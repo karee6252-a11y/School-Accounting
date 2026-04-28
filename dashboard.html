@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>الرئيسية - نظام المحاسبة</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="app-layout">
+  <!-- Sidebar injected by layout.js -->
+
+  <div class="main-content">
+    <div id="topbarContainer"></div>
+
+    <div class="page-content">
+
+      <!-- Stats -->
+      <div class="stats-grid animate-in" id="statsGrid">
+        <div class="stat-card">
+          <div class="stat-icon"></div>
+          <div>
+            <div class="stat-value" id="statTodayTotal">0</div>
+            <div class="stat-label">إجمالي تحصيل اليوم</div>
+            <div class="stat-change up" id="statTodayCount">0 عملية</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"></div>
+          <div>
+            <div class="stat-value" id="statMonthTotal">0</div>
+            <div class="stat-label">إجمالي الشهر</div>
+            <div class="stat-change" id="statMonthCount">0 عملية</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"></div>
+          <div>
+            <div class="stat-value" id="statStudents">0</div>
+            <div class="stat-label">طلاب دفعوا اليوم</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"></div>
+          <div>
+            <div class="stat-value" id="statPending">0</div>
+            <div class="stat-label">معاملات هذا الأسبوع</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem" class="animate-in">
+
+        <!-- Recent Transactions -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"> آخر التحصيلات</span>
+            <a href="collection.html" class="btn btn-sm btn-secondary">إضافة جديد +</a>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table" id="recentTable">
+              <thead>
+                <tr>
+                  <th>الطالب</th>
+                  <th>البند</th>
+                  <th>المبلغ</th>
+                  <th>الوقت</th>
+                </tr>
+              </thead>
+              <tbody id="recentTableBody">
+                <tr><td colspan="4"><div class="loading-spinner"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Payment Items Breakdown -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"> توزيع المدفوعات - الشهر الحالي</span>
+          </div>
+          <div class="card-body" id="breakdownArea">
+            <div class="loading-spinner"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Stage summary -->
+      <div class="card mt-2 animate-in">
+        <div class="card-header">
+          <span class="card-title"> ملخص المراحل</span>
+          <a href="reports.html" class="btn btn-sm btn-secondary">التقارير الكاملة</a>
+        </div>
+        <div class="card-body">
+          <div class="stats-grid" id="stageStats">
+            <div class="loading-spinner"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="layout.js"></script>
+<script>
+  renderLayout('dashboard', 'الرئيسية');
+
+  const session = SESSION.get();
+  const schoolId = session.schoolId;
+
+  async function loadDashboard() {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const todayStr = today.toISOString().split('T')[0];
+
+    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const firstOfWeek = new Date(today);
+    firstOfWeek.setDate(today.getDate() - today.getDay());
+
+    try {
+      const col = db.collection('transactions')
+        .where('schoolId', '==', schoolId);
+
+      // Today's transactions
+      const todaySnap = await col
+        .where('date', '==', todayStr)
+        .get();
+
+      let todayTotal = 0;
+      const todayStudents = new Set();
+      todaySnap.forEach(doc => {
+        const d = doc.data();
+        todayTotal += d.amount || 0;
+        todayStudents.add(d.studentName);
+      });
+
+      document.getElementById('statTodayTotal').textContent = formatCurrency(todayTotal);
+      document.getElementById('statTodayCount').textContent = todaySnap.size + ' عملية';
+      document.getElementById('statStudents').textContent = todayStudents.size;
+
+      // Month transactions - add upper bound to avoid fetching beyond current month
+      const lastOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      const monthSnap = await col
+        .where('date', '>=', firstOfMonth.toISOString().split('T')[0])
+        .where('date', '<=', lastOfMonth.toISOString().split('T')[0])
+        .get();
+
+      let monthTotal = 0;
+      monthSnap.forEach(doc => { monthTotal += doc.data().amount || 0; });
+      document.getElementById('statMonthTotal').textContent = formatCurrency(monthTotal);
+      document.getElementById('statMonthCount').textContent = monthSnap.size + ' عملية';
+
+      // Week
+      const weekSnap = await col
+        .where('date', '>=', firstOfWeek.toISOString().split('T')[0])
+        .get();
+      document.getElementById('statPending').textContent = weekSnap.size;
+
+      // Recent table - last 8 من الـ monthSnap اللي جبناه فعلاً (client-side sort)
+      const recentDocs = monthSnap.docs
+        .sort((a, b) => (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0))
+        .slice(0, 8);
+
+      const tbody = document.getElementById('recentTableBody');
+      if (recentDocs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد تحصيلات بعد</div></div></td></tr>`;
+      } else {
+        tbody.innerHTML = '';
+        recentDocs.forEach(doc => {
+          const d = doc.data();
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${d.studentName}</strong><br><span class="text-sm text-muted">${d.grade}</span></td>
+            <td><span class="badge badge-primary">${d.paymentItem}</span></td>
+            <td class="text-bold text-primary">${formatCurrency(d.amount)}</td>
+            <td class="text-sm text-muted">${d.date}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // Breakdown by payment item
+      const itemTotals = {};
+      monthSnap.forEach(doc => {
+        const d = doc.data();
+        if (!itemTotals[d.paymentItem]) itemTotals[d.paymentItem] = 0;
+        itemTotals[d.paymentItem] += d.amount || 0;
+      });
+
+      const breakdownArea = document.getElementById('breakdownArea');
+      if (Object.keys(itemTotals).length === 0) {
+        breakdownArea.innerHTML = `<div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد بيانات</div></div>`;
+      } else {
+        const maxVal = Math.max(...Object.values(itemTotals));
+        breakdownArea.innerHTML = Object.entries(itemTotals).map(([item, total]) => `
+          <div style="margin-bottom:0.75rem">
+            <div class="d-flex justify-between mb-1">
+              <span class="text-sm text-bold">${item}</span>
+              <span class="text-sm text-primary text-bold">${formatCurrency(total)}</span>
+            </div>
+            <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+              <div style="height:100%;width:${Math.round(total/maxVal*100)}%;background:var(--primary);border-radius:4px;transition:width 1s ease"></div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Stage stats
+      const stageTotals = {};
+      monthSnap.forEach(doc => {
+        const d = doc.data();
+        if (!stageTotals[d.stage]) stageTotals[d.stage] = { total: 0, count: 0 };
+        stageTotals[d.stage].total += d.amount || 0;
+        stageTotals[d.stage].count++;
+      });
+
+      const stageContainer = document.getElementById('stageStats');
+      const stageIcons = { pre_kg: '', kg: '', grade: '', prep: '' };
+      stageContainer.innerHTML = Object.entries(STAGES).map(([key, stage]) => {
+        const data = stageTotals[key] || { total: 0, count: 0 };
+        return `
+          <div class="stat-card">
+            <div class="stat-icon">${stageIcons[key] || ''}</div>
+            <div>
+              <div class="stat-value" style="font-size:1.1rem">${formatCurrency(data.total)}</div>
+              <div class="stat-label">${stage.labelAr}</div>
+              <div class="stat-change">${data.count} عملية</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تسجيل الدخول - نظام المحاسبة المدرسية</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .login-page { background: linear-gradient(135deg, #1a2a4a 0%, #0d1b35 60%, #050d1a 100%); }
+    .school-selector-section { margin-bottom: 1.5rem; }
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-light);
+      margin-bottom: 0.75rem;
+    }
+    .school-option { position: relative; }
+    .school-option .color-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .school-option.active::after {
+      content: '';
+      position: absolute;
+      left: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--primary);
+      font-weight: 900;
+      font-size: 0.9rem;
+    }
+    .pwd-wrapper { position: relative; }
+    .pwd-toggle {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-light);
+      font-size: 1rem;
+      padding: 0;
+    }
+    .login-divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1.25rem 0;
+      color: var(--text-light);
+      font-size: 0.75rem;
+    }
+    .login-divider::before, .login-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .admin-link {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: var(--text-light);
+    }
+    .admin-link a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .admin-link a:hover { text-decoration: underline; }
+    
+    /* School selected indicator */
+    .selected-school-preview {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      border: 2px solid var(--primary-light);
+      margin-bottom: 1.25rem;
+      opacity: 0;
+      transition: var(--transition);
+      pointer-events: none;
+    }
+    .selected-school-preview.show { opacity: 1; }
+    .selected-school-preview img { width: 36px; height: 36px; object-fit: contain; border-radius: 6px; }
+    .selected-school-preview-name { font-size: 0.875rem; font-weight: 700; color: var(--primary); }
+    
+    /* Admin mode toggle */
+    .admin-toggle-area {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-light);
+      margin-bottom: 1rem;
+    }
+    .admin-mode-badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      background: #fff3cd;
+      color: #856404;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      border: 1px solid #ffc107;
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-page">
+  <div class="login-wrapper">
+    <div class="login-card">
+
+      <!-- Header -->
+      <div class="login-header">
+        <div class="login-logo-area" id="schoolLogos">
+          <!-- School logos loaded dynamically -->
+        </div>
+        <h1 class="login-title">نظام المحاسبة المدرسية</h1>
+        <p class="login-subtitle">تسجيل الدخول للمحاسبين</p>
+      </div>
+
+      <!-- Alert -->
+      <div class="alert alert-error hidden" id="loginAlert">
+        <span></span>
+        <span id="loginAlertMsg"></span>
+      </div>
+
+      <!-- Admin mode indicator -->
+      <div class="admin-toggle-area" id="adminModeArea" style="display:none">
+        <span class="admin-mode-badge"> وضع الأدمن</span>
+        <span>الدخول على كل المدارس</span>
+      </div>
+
+      <!-- School Selector -->
+      <div class="school-selector-section" id="schoolSelectorSection">
+        <div class="section-label">اختر المدرسة</div>
+        <div class="school-selector" id="schoolSelector">
+          <!-- Schools loaded dynamically -->
+        </div>
+      </div>
+
+      <!-- Selected School Preview -->
+      <div class="selected-school-preview" id="selectedPreview">
+        <img id="previewLogo" src="" alt="" />
+        <span class="selected-school-preview-name" id="previewName"></span>
+      </div>
+
+      <!-- Login Form -->
+      <div>
+        <div class="form-group">
+          <label class="form-label">البريد الإلكتروني <span class="required">*</span></label>
+          <input 
+            type="email" 
+            class="form-input" 
+            id="emailInput" 
+            placeholder="example@school.com"
+            autocomplete="email"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">كلمة المرور <span class="required">*</span></label>
+          <div class="pwd-wrapper">
+            <input 
+              type="password" 
+              class="form-input" 
+              id="passwordInput"
+              placeholder="••••••••"
+              style="padding-left: 2.5rem;"
+              autocomplete="current-password"
+            />
+            <button class="pwd-toggle" onclick="togglePassword()" type="button" id="pwdToggleBtn"></button>
+          </div>
+        </div>
+
+        <div class="form-check mb-2">
+          <input type="checkbox" id="rememberMe" />
+          <label for="rememberMe">تذكرني</label>
+        </div>
+
+        <button class="btn btn-primary" id="loginBtn" onclick="handleLogin()">
+          <span id="loginBtnText">تسجيل الدخول</span>
+          <span id="loginBtnLoader" class="hidden">⏳</span>
+        </button>
+      </div>
+
+      <div class="admin-link">
+        <p>للأدمن فقط: <a href="#" onclick="toggleAdminMode(event)">الدخول كأدمن </a></p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+  let selectedSchool = null;
+  let isAdminMode = false;
+
+  // ---- Render schools ----
+  function renderSchools() {
+    const selector = document.getElementById('schoolSelector');
+    selector.innerHTML = '';
+    Object.values(SCHOOLS).forEach(school => {
+      const div = document.createElement('div');
+      div.className = 'school-option';
+      div.dataset.id = school.id;
+      div.innerHTML = `
+        <img src="${school.logo}" alt="${school.name}" onerror="this.style.display='none'" />
+        <span class="color-dot" style="background:${school.primaryColor}"></span>
+        <span class="school-option-name">${school.name}</span>
+      `;
+      div.addEventListener('click', () => selectSchool(school));
+      selector.appendChild(div);
+    });
+  }
+
+  function selectSchool(school) {
+    selectedSchool = school;
+    document.querySelectorAll('.school-option').forEach(el => el.classList.remove('active'));
+    document.querySelector(`[data-id="${school.id}"]`).classList.add('active');
+    
+    // Update preview
+    document.getElementById('previewLogo').src = school.logo;
+    document.getElementById('previewName').textContent = school.name;
+    document.getElementById('selectedPreview').classList.add('show');
+    
+    // Apply school colors
+    document.documentElement.style.setProperty('--primary', school.primaryColor);
+    document.documentElement.style.setProperty('--secondary', school.secondaryColor);
+    document.documentElement.style.setProperty('--accent', school.accentColor);
+  }
+
+  function toggleAdminMode(e) {
+    e.preventDefault();
+    isAdminMode = !isAdminMode;
+    const schoolSection = document.getElementById('schoolSelectorSection');
+    const adminArea = document.getElementById('adminModeArea');
+    const selectedPreview = document.getElementById('selectedPreview');
+    
+    if (isAdminMode) {
+      schoolSection.style.display = 'none';
+      selectedPreview.classList.remove('show');
+      adminArea.style.display = 'flex';
+      // Reset colors
+      document.documentElement.style.setProperty('--primary', '#1a3a6b');
+      document.documentElement.style.setProperty('--secondary', '#c8a951');
+      document.documentElement.style.setProperty('--accent', '#e8f0fe');
+    } else {
+      schoolSection.style.display = 'block';
+      adminArea.style.display = 'none';
+    }
+  }
+
+  function togglePassword() {
+    const input = document.getElementById('passwordInput');
+    const btn = document.getElementById('pwdToggleBtn');
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.textContent = '';
+    } else {
+      input.type = 'password';
+      btn.textContent = '';
+    }
+  }
+
+  function showAlert(msg, type = 'error') {
+    const alert = document.getElementById('loginAlert');
+    const msgEl = document.getElementById('loginAlertMsg');
+    alert.className = `alert alert-${type}`;
+    msgEl.textContent = msg;
+    alert.classList.remove('hidden');
+    setTimeout(() => alert.classList.add('hidden'), 5000);
+  }
+
+  async function handleLogin() {
+    const email = document.getElementById('emailInput').value.trim();
+    const password = document.getElementById('passwordInput').value;
+    const btn = document.getElementById('loginBtn');
+    const btnText = document.getElementById('loginBtnText');
+    const btnLoader = document.getElementById('loginBtnLoader');
+
+    // Validation
+    if (!email || !password) {
+      showAlert('من فضلك ادخل البريد الإلكتروني وكلمة المرور');
+      return;
+    }
+    if (!isAdminMode && !selectedSchool) {
+      showAlert('من فضلك اختر المدرسة أولاً');
+      return;
+    }
+
+    // Loading state
+    btn.disabled = true;
+    btnText.textContent = 'جاري الدخول...';
+    btnLoader.classList.remove('hidden');
+
+    try {
+      const result = await auth.signInWithEmailAndPassword(email, password);
+      const user = result.user;
+
+      // Check if admin
+      if (ADMINS.includes(email)) {
+        const schoolId = isAdminMode ? Object.keys(SCHOOLS)[0] : (selectedSchool?.id || Object.keys(SCHOOLS)[0]);
+        SESSION.set({
+          uid: user.uid,
+          email: email,
+          role: 'admin',
+          schoolId: schoolId,
+          name: 'مدير النظام'
+        });
+        window.location.href = 'admin.html';
+        return;
+      }
+
+      // Check if accountant for selected school
+      if (!selectedSchool) {
+        showAlert('من فضلك اختر المدرسة');
+        return;
+      }
+
+      if (!selectedSchool.users.includes(email)) {
+        showAlert('هذا الحساب غير مصرح له بالدخول على هذه المدرسة');
+        auth.signOut();
+        return;
+      }
+
+      // Save session
+      SESSION.set({
+        uid: user.uid,
+        email: email,
+        role: 'accountant',
+        schoolId: selectedSchool.id,
+        schoolName: selectedSchool.name,
+        name: email.split('@')[0]
+      });
+
+      // Remember me
+      if (document.getElementById('rememberMe').checked) {
+        localStorage.setItem('remembered_email', email);
+        localStorage.setItem('remembered_school', selectedSchool.id);
+      }
+
+      window.location.href = 'dashboard.html';
+
+    } catch (error) {
+      let msg = 'حدث خطأ في تسجيل الدخول';
+      if (error.code === 'auth/user-not-found') msg = 'البريد الإلكتروني غير مسجل';
+      else if (error.code === 'auth/wrong-password') msg = 'كلمة المرور غير صحيحة';
+      else if (error.code === 'auth/too-many-requests') msg = 'تم تجاوز عدد المحاولات، حاول لاحقاً';
+      else if (error.code === 'auth/network-request-failed') msg = 'تحقق من الاتصال بالإنترنت';
+      showAlert(msg);
+    } finally {
+      btn.disabled = false;
+      btnText.textContent = 'تسجيل الدخول';
+      btnLoader.classList.add('hidden');
+    }
+  }
+
+  // Enter key support
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleLogin();
+  });
+
+  // Initialize
+  renderSchools();
+
+  // Remember me
+  const rememberedEmail = localStorage.getItem('remembered_email');
+  const rememberedSchool = localStorage.getItem('remembered_school');
+  if (rememberedEmail) {
+    document.getElementById('emailInput').value = rememberedEmail;
+    document.getElementById('rememberMe').checked = true;
+  }
+  if (rememberedSchool && SCHOOLS[rememberedSchool]) {
+    selectSchool(SCHOOLS[rememberedSchool]);
+  }
+
+  // If already logged in
+  const session = SESSION.get();
+  if (session) {
+    window.location.href = session.role === 'admin' ? 'admin.html' : 'dashboard.html';
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>التحصيل اليومي - نظام المحاسبة</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .payment-item-card { position: relative; cursor: pointer; transition: var(--transition); }
+    .payment-item-card.selected { background: var(--accent); border-color: var(--primary); }
+    .item-check {
+      position: absolute; top: 6px; left: 6px;
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      background: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 900; color: var(--primary);
+    }
+    .payment-item-card.selected .item-check { background: var(--primary); color: white; border-color: var(--primary); }
+    .amount-input-wrapper { position: relative; }
+    .amount-currency { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.8rem; font-weight: 700; color: var(--text-light); }
+    #amountInput { padding-left: 3rem; }
+    .receipt-number-gen { display: flex; gap: 0.5rem; }
+    .receipt-number-gen input { flex: 1; }
+    .stage-indicator { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 700; background: var(--accent); color: var(--primary); margin-bottom: 0.75rem; }
+    .today-panel { position: sticky; top: calc(var(--header-height) + 1.5rem); max-height: calc(100vh - var(--header-height) - 3rem); overflow-y: auto; }
+    .today-item { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem; border-bottom: 1px solid var(--border); transition: var(--transition); }
+    .today-item:hover { background: var(--accent); }
+    .today-item:last-child { border-bottom: none; }
+    .today-amount { font-size: 0.875rem; font-weight: 800; color: var(--primary); white-space: nowrap; }
+    .today-student { font-size: 0.8rem; font-weight: 700; }
+    .today-details { font-size: 0.72rem; color: var(--text-light); }
+    .total-badge { background: var(--primary); color: white; border-radius: var(--radius); padding: 1rem 1.25rem; text-align: center; margin-bottom: 1rem; }
+    .total-badge .label { font-size: 0.8rem; opacity: 0.8; }
+    .total-badge .amount { font-size: 1.5rem; font-weight: 900; }
+    .selected-items-summary { background: var(--accent); border: 1px solid var(--primary-light, #aac); border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-top: 0.75rem; display: none; }
+    .selected-items-summary.show { display: block; }
+    .selected-item-row { display: flex; justify-content: space-between; align-items: center; padding: 0.3rem 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+    .selected-item-row:last-child { border: none; }
+    .selected-total-row { display: flex; justify-content: space-between; padding-top: 0.5rem; font-weight: 800; font-size: 0.9rem; color: var(--primary); }
+    .discount-result { font-size: 0.75rem; color: #c0392b; font-weight: 700; }
+    .debt-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+    .payment-summary-box { background: #f8f9fa; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-top: 0.75rem; }
+    .payment-summary-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 0.2rem 0; }
+    .payment-summary-total { display: flex; justify-content: space-between; font-weight: 900; font-size: 1rem; color: var(--primary); border-top: 2px solid var(--primary); padding-top: 0.5rem; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div id="topbarContainer"></div>
+    <div class="page-content">
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;align-items:start">
+
+        <!-- FORM -->
+        <div>
+          <div class="alert hidden" id="formAlert"></div>
+
+          <!-- Student Info -->
+          <div class="card mb-2 animate-in">
+            <div class="card-header">
+              <span class="card-title">بيانات الطالب</span>
+              <span class="badge badge-primary" id="receiptBadge">ايصال جديد</span>
+            </div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">اسم الطالب <span class="required">*</span></label>
+                  <input type="text" class="form-input form-input-ar" id="studentName" placeholder="الاسم كاملا" list="studentSuggestions" oninput="checkStudentDebt()" />
+                  <datalist id="studentSuggestions"></datalist>
+                  <div id="debtIndicator" style="margin-top:4px;display:none"></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">المرحلة الدراسية <span class="required">*</span></label>
+                  <select class="form-select" id="stageSelect" onchange="onStageChange()">
+                    <option value="">اختر المرحلة</option>
+                    <option value="pre_kg">Pre-KG - ما قبل الروضة</option>
+                    <option value="kg">KG - الروضة</option>
+                    <option value="grade">Grade - الابتدائي</option>
+                    <option value="prep">Prep - الاعدادي</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">الصف <span class="required">*</span></label>
+                  <select class="form-select" id="gradeSelect">
+                    <option value="">اختر الصف اولا</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">التاريخ <span class="required">*</span></label>
+                  <input type="date" class="form-input" id="dateInput" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Items (multi-select) -->
+          <div class="card mb-2 animate-in">
+            <div class="card-header">
+              <span class="card-title">بنود الدفع <span class="required">*</span></span>
+              <div style="display:flex;align-items:center;gap:0.5rem">
+                <div class="stage-indicator" id="stageIndicator" style="display:none"><span id="stageIndicatorText"></span></div>
+                <span class="badge badge-primary" id="selectedCountBadge" style="display:none">0 بنود</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <p style="font-size:0.8rem;color:var(--text-light);margin-bottom:0.75rem">يمكنك اختيار اكثر من بند في نفس الوقت</p>
+              <div class="payment-items-grid" id="paymentItemsGrid"></div>
+              <div class="selected-items-summary" id="selectedSummary">
+                <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.5rem;color:var(--primary)">البنود المختارة:</div>
+                <div id="selectedItemsList"></div>
+                <div class="selected-total-row">
+                  <span>الاجمالي المقترح</span>
+                  <span id="suggestedTotal">0 ج.م</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Details -->
+          <div class="card mb-2 animate-in">
+            <div class="card-header">
+              <span class="card-title">تفاصيل الدفع</span>
+            </div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">المبلغ المدفوع (جنيه) <span class="required">*</span></label>
+                  <div class="amount-input-wrapper">
+                    <input type="number" class="form-input" id="amountInput" placeholder="0.00" min="0" step="0.01" oninput="calcDebt()" />
+                    <span class="amount-currency">ج.م</span>
+                  </div>
+                  <div id="debtPreview" style="margin-top:4px;display:none"></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">طريقة الدفع <span class="required">*</span></label>
+                  <select class="form-select" id="paymentType">
+                    <option value="">اختر طريقة الدفع</option>
+                    <option value="cash">نقدي</option>
+                    <option value="bank_transfer">تحويل بنكي</option>
+                    <option value="check">شيك</option>
+                    <option value="instapay">انستاباي</option>
+                  </select>
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1" id="discountSection" style="display:none">
+                  <label class="form-label">الخصومات (اختياري - %)</label>
+                  <div id="discountFields"></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">رقم الايصال <span class="required">*</span></label>
+                  <div class="receipt-number-gen">
+                    <input type="text" class="form-input form-input-ar" id="receiptNumber" placeholder="REC-2026-001" />
+                    <button class="btn btn-secondary btn-sm" onclick="generateReceiptNumber()">تلقائي</button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">ملاحظات</label>
+                  <textarea class="form-textarea" id="notes" placeholder="اي ملاحظات اضافية..."></textarea>
+                </div>
+              </div>
+              <div class="payment-summary-box" id="paymentSummaryBox" style="display:none">
+                <div style="font-size:0.85rem;font-weight:700;color:var(--primary);margin-bottom:0.5rem">ملخص العملية</div>
+                <div id="paymentSummaryContent"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary flex-1" id="saveBtn" onclick="saveTransaction()">حفظ التحصيل</button>
+            <button class="btn btn-secondary" onclick="resetForm()">تفريغ</button>
+            <button class="btn btn-outline" onclick="previewReceipt()">معاينة الايصال</button>
+          </div>
+        </div>
+
+        <!-- TODAY'S PANEL -->
+        <div class="today-panel">
+          <div class="total-badge">
+            <div class="label">اجمالي تحصيل اليوم</div>
+            <div class="amount" id="todayTotalDisplay">ج.م 0</div>
+            <div style="font-size:0.75rem;opacity:0.7;margin-top:0.25rem" id="todayCountDisplay">0 عملية</div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">تحصيلات اليوم</span>
+              <button class="btn btn-sm btn-secondary" onclick="exportTodayPDF()">PDF</button>
+            </div>
+            <div id="todayTransactions"><div class="loading-spinner"></div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal-overlay hidden" id="receiptModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title">معاينة الايصال</span>
+      <button class="btn-close" onclick="closeModal('receiptModal')">X</button>
+    </div>
+    <div class="modal-body"><div class="receipt-preview" id="receiptPreviewContent"></div></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('receiptModal')">اغلاق</button>
+      <button class="btn btn-primary" onclick="printReceipt()">طباعة</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="layout.js"></script>
+<script>
+  renderLayout('collection', 'التحصيل اليومي');
+  const session = SESSION.get();
+  const schoolId = session.schoolId;
+  let selectedItems = {};
+  let todayTransactions = [];
+
+  function init() {
+    document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
+    generateReceiptNumber();
+    renderPaymentItems(null);
+    loadTodayTransactions();
+    loadStudentSuggestions();
+  }
+
+  function onStageChange() {
+    const stage = document.getElementById('stageSelect').value;
+    const gradeSelect = document.getElementById('gradeSelect');
+    gradeSelect.innerHTML = '<option value="">اختر الصف</option>';
+    if (stage && STAGES[stage]) {
+      STAGES[stage].grades.forEach(g => { gradeSelect.innerHTML += `<option value="${g}">${g}</option>`; });
+    }
+    const indicator = document.getElementById('stageIndicator');
+    if (stage && STAGES[stage]) {
+      indicator.style.display = 'inline-flex';
+      document.getElementById('stageIndicatorText').textContent = STAGES[stage].labelAr;
+    } else { indicator.style.display = 'none'; }
+    selectedItems = {};
+    renderPaymentItems(stage);
+    updateSelectedSummary();
+    updateDiscountFields();
+  }
+
+  function renderPaymentItems(stage) {
+    const grid = document.getElementById('paymentItemsGrid');
+    grid.innerHTML = PAYMENT_ITEMS.map(item => {
+      const price = stage && STAGES[stage] ? STAGES[stage].prices[item] : null;
+      const isSelected = !!selectedItems[item];
+      return `<div class="payment-item-card ${isSelected?'selected':''}" onclick="togglePaymentItem('${item}', ${price||0})">
+        <div class="item-check">${isSelected?'&#10003;':''}</div>
+        <div class="item-name">${item}</div>
+        ${price ? `<div class="item-price">${formatCurrency(price)}</div>` : '<div class="item-price text-muted">اختر المرحلة اولا</div>'}
+      </div>`;
+    }).join('');
+  }
+
+  function togglePaymentItem(item, price) {
+    const stage = document.getElementById('stageSelect').value;
+    if (!stage) { showAlert('من فضلك اختر المرحلة اولا'); return; }
+    if (selectedItems[item]) { delete selectedItems[item]; }
+    else { selectedItems[item] = { price: price||0, discount: 0 }; }
+    renderPaymentItems(stage);
+    updateSelectedSummary();
+    updateDiscountFields();
+    calcDebt();
+  }
+
+  function updateSelectedSummary() {
+    const summary = document.getElementById('selectedSummary');
+    const list = document.getElementById('selectedItemsList');
+    const badge = document.getElementById('selectedCountBadge');
+    const keys = Object.keys(selectedItems);
+    if (keys.length === 0) { summary.classList.remove('show'); badge.style.display='none'; return; }
+    summary.classList.add('show');
+    badge.style.display = 'inline';
+    badge.textContent = keys.length + ' بنود';
+    let total = 0;
+    list.innerHTML = keys.map(item => {
+      const price = selectedItems[item].price;
+      total += price;
+      return `<div class="selected-item-row"><span>${item}</span><span style="font-weight:700;color:var(--primary)">${formatCurrency(price)}</span></div>`;
+    }).join('');
+    document.getElementById('suggestedTotal').textContent = formatCurrency(total);
+    const amountInput = document.getElementById('amountInput');
+    if (!amountInput.value) { amountInput.value = total; calcDebt(); }
+  }
+
+  function updateDiscountFields() {
+    const section = document.getElementById('discountSection');
+    const container = document.getElementById('discountFields');
+    const keys = Object.keys(selectedItems);
+    if (keys.length === 0) { section.style.display='none'; return; }
+    section.style.display = 'block';
+    container.innerHTML = keys.map(item => `
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem">
+        <span style="flex:1;font-size:0.85rem;font-weight:600">${item}</span>
+        <input type="number" class="form-input" style="width:80px;text-align:center"
+          placeholder="0" min="0" max="100" step="0.5"
+          id="disc_${item.replace(/\s/g,'_')}"
+          oninput="updateItemDiscount('${item}',this.value);calcDebt();"
+          value="${selectedItems[item].discount||''}" />
+        <span style="font-size:0.8rem;color:var(--text-light)">%</span>
+        <span id="discval_${item.replace(/\s/g,'_')}" class="discount-result"></span>
+      </div>`).join('');
+    updateDiscountPreviews();
+  }
+
+  function updateItemDiscount(item, value) {
+    if (selectedItems[item]) selectedItems[item].discount = parseFloat(value)||0;
+    updateDiscountPreviews();
+  }
+
+  function updateDiscountPreviews() {
+    Object.keys(selectedItems).forEach(item => {
+      const disc = selectedItems[item].discount||0;
+      const price = selectedItems[item].price;
+      const el = document.getElementById('discval_'+item.replace(/\s/g,'_'));
+      if (el && disc > 0) { el.textContent = '- ' + formatCurrency(price*disc/100); }
+      else if (el) { el.textContent = ''; }
+    });
+  }
+
+  function getTotalAfterDiscount() {
+    return Object.values(selectedItems).reduce((sum,v) => sum + v.price*(1-(v.discount||0)/100), 0);
+  }
+
+  function calcDebt() {
+    const totalDue = getTotalAfterDiscount();
+    const paid = parseFloat(document.getElementById('amountInput').value)||0;
+    const debtPreview = document.getElementById('debtPreview');
+    const summaryBox = document.getElementById('paymentSummaryBox');
+    const summaryContent = document.getElementById('paymentSummaryContent');
+    if (Object.keys(selectedItems).length === 0) { debtPreview.style.display='none'; summaryBox.style.display='none'; return; }
+    const debt = totalDue - paid;
+    summaryBox.style.display = 'block';
+    let rows = Object.entries(selectedItems).map(([item,v]) => {
+      const disc = v.discount>0?` (خصم ${v.discount}%)`:'';
+      const net = v.price*(1-(v.discount||0)/100);
+      return `<div class="payment-summary-row"><span>${item}${disc}</span><span>${formatCurrency(net)}</span></div>`;
+    }).join('');
+    summaryContent.innerHTML = rows + `
+      <div class="payment-summary-row" style="color:var(--text-light)"><span>الاجمالي بعد الخصومات</span><span>${formatCurrency(totalDue)}</span></div>
+      <div class="payment-summary-row"><span>المدفوع</span><span style="color:#27ae60;font-weight:700">${formatCurrency(paid)}</span></div>
+      ${debt>0?`<div class="payment-summary-total"><span>المديونية</span><span style="color:#c0392b">${formatCurrency(debt)}</span></div>`:
+       debt<0?`<div class="payment-summary-total"><span>زيادة مدفوعة</span><span style="color:#27ae60">${formatCurrency(Math.abs(debt))}</span></div>`:
+       `<div class="payment-summary-total"><span>تم الدفع بالكامل</span><span style="color:#27ae60">مكتمل</span></div>`}`;
+    if (debt>0&&paid>0) { debtPreview.style.display='block'; debtPreview.innerHTML=`<span class="debt-badge">مديونية: ${formatCurrency(debt)}</span>`; }
+    else { debtPreview.style.display='none'; }
+  }
+
+  function generateReceiptNumber() {
+    const now = new Date();
+    const y=now.getFullYear(), m=String(now.getMonth()+1).padStart(2,'0'), d=String(now.getDate()).padStart(2,'0');
+    document.getElementById('receiptNumber').value = `REC-${y}${m}${d}-${String(Math.floor(Math.random()*9000)+1000)}`;
+  }
+
+  function showAlert(msg, type='error') {
+    const el = document.getElementById('formAlert');
+    el.className = `alert alert-${type}`;
+    el.innerHTML = msg;
+    el.classList.remove('hidden');
+    setTimeout(()=>el.classList.add('hidden'),5000);
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+
+  async function saveTransaction() {
+    const studentName = document.getElementById('studentName').value.trim();
+    const stage = document.getElementById('stageSelect').value;
+    const grade = document.getElementById('gradeSelect').value;
+    const amount = parseFloat(document.getElementById('amountInput').value);
+    const paymentType = document.getElementById('paymentType').value;
+    const receiptNumber = document.getElementById('receiptNumber').value.trim();
+    const date = document.getElementById('dateInput').value;
+    const notes = document.getElementById('notes').value.trim();
+    if (!studentName) return showAlert('من فضلك ادخل اسم الطالب');
+    if (!stage) return showAlert('من فضلك اختر المرحلة');
+    if (!grade) return showAlert('من فضلك اختر الصف');
+    if (Object.keys(selectedItems).length===0) return showAlert('من فضلك اختر بند الدفع');
+    if (!amount||amount<=0) return showAlert('من فضلك ادخل مبلغ صحيح');
+    if (!paymentType) return showAlert('من فضلك اختر طريقة الدفع');
+    if (!receiptNumber) return showAlert('من فضلك ادخل رقم الايصال');
+    if (!date) return showAlert('من فضلك اختر التاريخ');
+    const btn = document.getElementById('saveBtn');
+    btn.disabled=true; btn.textContent='جاري الحفظ...';
+    try {
+      const school = SESSION.getSchool();
+      const totalDue = getTotalAfterDiscount();
+      const debt = totalDue - amount;
+      const itemsList = Object.entries(selectedItems).map(([item,v])=>({item,price:v.price,discount:v.discount||0,netPrice:v.price*(1-(v.discount||0)/100)}));
+      const transaction = {
+        schoolId, schoolName:school.name, studentName, stage, stageName:STAGES[stage].labelAr, grade,
+        paymentItems: itemsList,
+        paymentItem: itemsList.map(i=>i.item).join(' + '),
+        totalDue, amount, debt:Math.max(0,debt), hasDebt:debt>0,
+        paymentType, paymentTypeName:PAYMENT_TYPES.find(p=>p.value===paymentType)?.label||paymentType,
+        receiptNumber, date, notes, createdBy:session.email,
+        createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+        year:new Date(date).getFullYear(), month:new Date(date).getMonth()+1, week:getWeekNumber(new Date(date)),
+        academicYear:'2026/2027'
+      };
+      const docRef = await db.collection('transactions').add(transaction);
+      if (debt>0) {
+        await db.collection('debts').add({
+          schoolId, studentName, stage, grade,
+          paymentItem:transaction.paymentItem, totalDue, paid:amount, remaining:debt,
+          transactionId:docRef.id, date,
+          createdAt:firebase.firestore.FieldValue.serverTimestamp(), academicYear:'2026/2027'
+        });
+      }
+      showAlert('تم حفظ التحصيل بنجاح!'+(debt>0?` - مديونية: ${formatCurrency(debt)}`:''), 'success');
+      loadTodayTransactions();
+      document.getElementById('studentName').value='';
+      document.getElementById('amountInput').value='';
+      document.getElementById('notes').value='';
+      document.getElementById('debtIndicator').style.display='none';
+      document.getElementById('debtPreview').style.display='none';
+      document.getElementById('paymentSummaryBox').style.display='none';
+      selectedItems={};
+      renderPaymentItems(document.getElementById('stageSelect').value);
+      updateSelectedSummary(); updateDiscountFields(); generateReceiptNumber();
+    } catch(err) { console.error(err); showAlert('حدث خطا: '+err.message); }
+    finally { btn.disabled=false; btn.innerHTML='حفظ التحصيل'; }
+  }
+
+  async function checkStudentDebt() {
+    const name = document.getElementById('studentName').value.trim();
+    const indicator = document.getElementById('debtIndicator');
+    if (!name||name.length<3) { indicator.style.display='none'; return; }
+    try {
+      const snap = await db.collection('debts').where('schoolId','==',schoolId).where('studentName','==',name).where('remaining','>',0).get();
+      if (!snap.empty) {
+        let totalDebt=0; let items=[];
+        snap.forEach(doc=>{const d=doc.data();totalDebt+=d.remaining||0;items.push(d.paymentItem);});
+        indicator.style.display='block';
+        indicator.innerHTML=`<span class="debt-badge">لدى هذا الطالب مديونية: ${formatCurrency(totalDebt)} (${items.join(', ')})</span>`;
+      } else { indicator.style.display='none'; }
+    } catch(e){}
+  }
+
+  function resetForm() {
+    document.getElementById('studentName').value='';
+    document.getElementById('stageSelect').value='';
+    document.getElementById('gradeSelect').innerHTML='<option value="">اختر الصف اولا</option>';
+    document.getElementById('amountInput').value='';
+    document.getElementById('paymentType').value='';
+    document.getElementById('notes').value='';
+    document.getElementById('dateInput').value=new Date().toISOString().split('T')[0];
+    document.getElementById('stageIndicator').style.display='none';
+    document.getElementById('debtIndicator').style.display='none';
+    document.getElementById('debtPreview').style.display='none';
+    document.getElementById('paymentSummaryBox').style.display='none';
+    document.getElementById('discountSection').style.display='none';
+    selectedItems={}; renderPaymentItems(null); updateSelectedSummary(); generateReceiptNumber();
+  }
+
+  function previewReceipt() {
+    const studentName=document.getElementById('studentName').value.trim()||'اسم الطالب';
+    const grade=document.getElementById('gradeSelect').value||'الصف';
+    const stage=document.getElementById('stageSelect').value;
+    const amount=document.getElementById('amountInput').value||'0';
+    const paymentType=document.getElementById('paymentType').value;
+    const receiptNumber=document.getElementById('receiptNumber').value;
+    const date=document.getElementById('dateInput').value;
+    const school=SESSION.getSchool();
+    const paymentTypeName=PAYMENT_TYPES.find(p=>p.value===paymentType)?.label||paymentType;
+    const totalDue=getTotalAfterDiscount();
+    const debt=totalDue-parseFloat(amount);
+    const itemsHTML=Object.entries(selectedItems).map(([item,v])=>{
+      const net=v.price*(1-(v.discount||0)/100);
+      return `<div class="receipt-row"><span class="receipt-label">${item}${v.discount>0?` (${v.discount}%)`:''})</span><span class="receipt-value">${formatCurrency(net)}</span></div>`;
+    }).join('');
+    document.getElementById('receiptPreviewContent').innerHTML=`
+      <div class="receipt-header">
+        <img class="receipt-logo" src="${school?.logo||''}" alt="${school?.name}" onerror="this.style.display='none'" />
+        <div class="receipt-school-name">${school?.name||'المدرسة'}</div>
+        <div style="font-size:0.75rem;color:#666;margin-top:0.25rem">ايصال تحصيل - السنة الدراسية 2026/2027</div>
+      </div>
+      <div class="receipt-row"><span class="receipt-label">رقم الايصال</span><span class="receipt-value">${receiptNumber}</span></div>
+      <div class="receipt-row"><span class="receipt-label">التاريخ</span><span class="receipt-value">${formatDate(date)}</span></div>
+      <div class="receipt-row"><span class="receipt-label">اسم الطالب</span><span class="receipt-value">${studentName}</span></div>
+      <div class="receipt-row"><span class="receipt-label">الصف</span><span class="receipt-value">${grade}</span></div>
+      <div class="receipt-row"><span class="receipt-label">المرحلة</span><span class="receipt-value">${stage?STAGES[stage]?.labelAr:''}</span></div>
+      ${itemsHTML}
+      <div class="receipt-row"><span class="receipt-label">طريقة الدفع</span><span class="receipt-value">${paymentTypeName}</span></div>
+      <div class="receipt-total"><span>المبلغ المدفوع</span><span>${formatCurrency(parseFloat(amount))}</span></div>
+      ${debt>0?`<div style="display:flex;justify-content:space-between;padding:8px 0;color:#c0392b;font-weight:700"><span>المديونية المتبقية</span><span>${formatCurrency(debt)}</span></div>`:''}
+      <div style="text-align:center;margin-top:1rem;font-size:0.7rem;color:#999">تم الانشاء بواسطة ${session.email}</div>
+    `;
+    document.getElementById('receiptModal').classList.remove('hidden');
+  }
+
+  function printReceipt() {
+    const content=document.getElementById('receiptPreviewContent').innerHTML;
+    const win=window.open('','_blank');
+    win.document.write(`<html dir="rtl"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet"><style>body{font-family:Cairo,sans-serif;max-width:320px;margin:0 auto;padding:20px;direction:rtl}.receipt-header{text-align:center;margin-bottom:16px;padding-bottom:16px;border-bottom:2px dashed #ddd}.receipt-logo{width:60px;height:60px;object-fit:contain;margin:0 auto 8px;display:block}.receipt-school-name{font-size:16px;font-weight:800}.receipt-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:13px}.receipt-label{color:#999}.receipt-value{font-weight:700}.receipt-total{display:flex;justify-content:space-between;padding:12px 0 0;margin-top:8px;border-top:2px solid #333;font-size:16px;font-weight:900}</style></head><body>${content}<script>window.print();setTimeout(()=>window.close(),500)<\/script></body></html>`);
+  }
+
+  function closeModal(id){document.getElementById(id).classList.add('hidden');}
+
+  async function loadTodayTransactions() {
+    const todayStr=new Date().toISOString().split('T')[0];
+    const container=document.getElementById('todayTransactions');
+    try {
+      const snap=await db.collection('transactions').where('schoolId','==',schoolId).where('date','==',todayStr).get();
+      todayTransactions=[]; let total=0;
+      if (snap.empty) {
+        container.innerHTML=`<div class="empty-state" style="padding:2rem"><div class="empty-state-title">لا توجد تحصيلات اليوم</div></div>`;
+      } else {
+        container.innerHTML='';
+        snap.docs.sort((a,b)=>(b.data().createdAt?.seconds||0)-(a.data().createdAt?.seconds||0)).forEach(doc=>{
+          const d={id:doc.id,...doc.data()};
+          todayTransactions.push(d); total+=d.amount||0;
+          const div=document.createElement('div');
+          div.className='today-item';
+          div.innerHTML=`<div style="flex:1">
+            <div class="today-student">${d.studentName}</div>
+            <div class="today-details">${d.paymentItem} - ${d.grade} - ${d.paymentTypeName||d.paymentType}</div>
+            ${d.debt>0?`<div class="today-details" style="color:#c0392b;font-weight:700">مديونية: ${formatCurrency(d.debt)}</div>`:''}
+            ${d.notes?`<div class="today-details">${d.notes}</div>`:''}
+          </div><div>
+            <div class="today-amount">${formatCurrency(d.amount)}</div>
+            <div style="text-align:left;margin-top:4px">
+              <button onclick="deleteTransaction('${d.id}')" class="btn btn-sm" style="padding:2px 6px;font-size:0.7rem;color:var(--danger);background:none;border:none;cursor:pointer">حذف</button>
+            </div></div>`;
+          container.appendChild(div);
+        });
+      }
+      document.getElementById('todayTotalDisplay').textContent=formatCurrency(total);
+      document.getElementById('todayCountDisplay').textContent=snap.size+' عملية';
+    } catch(err){console.error(err);container.innerHTML=`<div class="alert alert-error" style="margin:1rem">تعذر التحميل</div>`;}
+  }
+
+  async function deleteTransaction(id){
+    if (!confirm('هل تريد حذف هذه العملية؟')) return;
+    try{await db.collection('transactions').doc(id).delete();showAlert('تم الحذف','success');loadTodayTransactions();}
+    catch(err){showAlert('خطا في الحذف: '+err.message);}
+  }
+
+  async function loadStudentSuggestions(){
+    try{
+      const snap=await db.collection('transactions').where('schoolId','==',schoolId).limit(200).get();
+      const names=new Set();
+      snap.forEach(doc=>names.add(doc.data().studentName));
+      document.getElementById('studentSuggestions').innerHTML=[...names].map(n=>`<option value="${n}">`).join('');
+    }catch(e){}
+  }
+
+  async function exportTodayPDF(){
+    const school=SESSION.getSchool();
+    const todayStr=new Date().toISOString().split('T')[0];
+    let total=0;
+    const rows=todayTransactions.map(d=>{
+      total+=d.amount;
+      return `<tr><td>${d.studentName}</td><td>${d.grade}</td><td>${d.stageName}</td><td>${d.paymentItem}</td><td>${formatCurrency(d.amount)}</td><td style="color:#c0392b">${d.debt>0?formatCurrency(d.debt):'-'}</td><td>${d.paymentTypeName||d.paymentType}</td><td>${d.receiptNumber}</td><td>${d.notes||'-'}</td></tr>`;
+    }).join('');
+    const win=window.open('','_blank');
+    win.document.write(`<html dir="rtl"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet"><style>body{font-family:Cairo,sans-serif;padding:20px;direction:rtl;font-size:12px}h2{color:#1a3a6b}table{width:100%;border-collapse:collapse;margin-top:16px}th{background:#1a3a6b;color:white;padding:8px;text-align:right}td{padding:6px 8px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f5f5f5}.total{margin-top:16px;font-size:14px;font-weight:800}@media print{body{padding:0}}</style></head><body>
+      <h2>${school?.name}</h2><div>كشف تحصيل يومي - ${formatDate(todayStr)} - السنة الدراسية 2026/2027</div>
+      <table><thead><tr><th>الطالب</th><th>الصف</th><th>المرحلة</th><th>البند</th><th>المبلغ</th><th>المديونية</th><th>طريقة الدفع</th><th>رقم الايصال</th><th>ملاحظات</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="total">الاجمالي: ${formatCurrency(total)}</div>
+      <script>window.print();setTimeout(()=>window.close(),500)<\/script></body></html>`);
+  }
+
+  function getWeekNumber(d) {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  }
+  init();
+</script>
+</body>
+</html>

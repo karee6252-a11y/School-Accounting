@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==============================
+    // دالة مساعدة: هل المستخدم مسجّل دخول؟
+    // ==============================
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // ==============================
+    // transactions — تحصيل الطلاب
+    // ==============================
+    match /transactions/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    // ==============================
+    // debts — المديونيات
+    // ==============================
+    match /debts/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    // ==============================
+    // expenses — بند المصروفات
+    // ==============================
+    match /expenses/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    // ==============================
+    // custodians — العهد
+    // ==============================
+    match /custodians/{schoolId} {
+      allow read, write: if isAuth();
+    }
+
+    // ==============================
+    // busCompanies — شركات الباصات (subcollection)
+    // busCompanies/{schoolId}/companies/{companyId}
+    // ==============================
+    match /busCompanies/{schoolId} {
+      allow read, write: if isAuth();
+      match /companies/{companyId} {
+        allow read, write: if isAuth();
+      }
+    }
+
+    // ==============================
+    // busData — بيانات الباصات القديمة (للتوافق)
+    // ==============================
+    match /busData/{schoolId} {
+      allow read, write: if isAuth();
+    }
+
+    // ==============================
+    // contractors — الموردون والمقاولون
+    // ==============================
+    match /contractors_suppliers/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /contractors_purchases/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /contractors_contracts/{docId} {
+      allow read, write: if isAuth();
+    }
+  }
+}

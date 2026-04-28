@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>دليل إعداد النظام</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root { --primary: #1a3a6b; --secondary: #c8a951; --success: #2e7d32; --danger: #c62828; --warning: #f57f17; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Cairo', sans-serif; background: #f4f6fb; color: #1a1a2e; direction: rtl; line-height: 1.7; }
+  .container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+  .hero { background: linear-gradient(135deg, var(--primary), #0d2247); color: white; padding: 3rem 2rem; text-align: center; border-radius: 16px; margin-bottom: 2rem; }
+  .hero h1 { font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; }
+  .hero p { opacity: 0.8; font-size: 1rem; }
+  .section { background: white; border-radius: 12px; border: 1px solid #e0e4f0; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .section-title { font-size: 1.1rem; font-weight: 800; color: var(--primary); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; border-right: 4px solid var(--secondary); padding-right: 0.75rem; }
+  .step { display: flex; gap: 1rem; margin-bottom: 1.25rem; align-items: flex-start; }
+  .step-num { width: 32px; height: 32px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.9rem; flex-shrink: 0; margin-top: 2px; }
+  .step-content h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .step-content p { font-size: 0.875rem; color: #4a4a6a; }
+  .code-block { background: #1a1a2e; color: #e8f0fe; border-radius: 8px; padding: 1.25rem; font-family: 'Courier New', monospace; font-size: 0.82rem; direction: ltr; text-align: left; margin: 0.75rem 0; line-height: 1.8; overflow-x: auto; position: relative; }
+  .code-block .comment { color: #888; }
+  .code-block .key { color: #79c7e3; }
+  .code-block .val { color: #a8ff78; }
+  .code-block .str { color: #ffd700; }
+  .copy-btn { position: absolute; top: 0.5rem; left: 0.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; font-family: 'Cairo', sans-serif; }
+  .copy-btn:hover { background: rgba(255,255,255,0.2); }
+  .alert { padding: 0.875rem 1rem; border-radius: 8px; font-size: 0.875rem; margin: 0.75rem 0; display: flex; gap: 0.5rem; align-items: flex-start; }
+  .alert-warning { background: #fff8e1; color: #7c4400; border: 1px solid #ffe082; }
+  .alert-success { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
+  .alert-info { background: #e3f2fd; color: #0d47a1; border: 1px solid #90caf9; }
+  .alert-danger { background: #fdecea; color: #b71c1c; border: 1px solid #ef9a9a; }
+  .file-tree { background: #f8f9fa; border: 1px solid #e0e4f0; border-radius: 8px; padding: 1rem 1.25rem; font-family: 'Courier New', monospace; font-size: 0.82rem; direction: ltr; text-align: left; }
+  .file-tree .folder { color: var(--primary); font-weight: 700; }
+  .file-tree .file { color: #4a4a6a; }
+  .file-tree .new-file { color: var(--success); font-weight: 600; }
+  .rules-block { background: #1a1a2e; color: #e8f0fe; border-radius: 8px; padding: 1.25rem; font-family: 'Courier New', monospace; font-size: 0.8rem; direction: ltr; text-align: left; line-height: 2; overflow-x: auto; }
+  .index-row { display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; padding: 0.75rem; background: #f8f9fa; border-radius: 8px; margin-bottom: 0.5rem; align-items: center; font-size: 0.85rem; border: 1px solid #e0e4f0; }
+  .index-row .collection { color: var(--primary); font-weight: 700; }
+  .index-row .fields { color: #4a4a6a; font-family: monospace; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; }
+  .tag-required { background: #fdecea; color: var(--danger); }
+  .tag-auto { background: #e8f5e9; color: var(--success); }
+  .summary-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  .summary-table th { background: var(--primary); color: white; padding: 0.6rem 0.875rem; text-align: right; }
+  .summary-table td { padding: 0.6rem 0.875rem; border-bottom: 1px solid #e0e4f0; }
+  .summary-table tr:nth-child(even) td { background: #f8f9fa; }
+  h2 { font-size: 1.4rem; font-weight: 900; color: var(--primary); margin-bottom: 0.25rem; }
+  .badge-done { background: #e8f5e9; color: var(--success); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; }
+  .badge-important { background: #fdecea; color: var(--danger); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div style="font-size:3rem;margin-bottom:0.5rem"></div>
+    <h1>دليل إعداد نظام المحاسبة المدرسية</h1>
+    <p>اتبع الخطوات دي خطوة بخطوة وهيشتغل معاك تمام</p>
+  </div>
+
+  <!-- ===================== SECTION 1: FILES ===================== -->
+  <div class="section">
+    <div class="section-title"> ملفات المشروع</div>
+    <div class="file-tree">
+      <div class="folder"> school-accounting/</div>
+      <div style="margin-right:20px">
+        <div class="file">  index.html &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#888">← صفحة الدخول</span></div>
+        <div class="file">  dashboard.html &nbsp;<span style="color:#888">← الرئيسية</span></div>
+        <div class="file">  collection.html &nbsp;<span style="color:#888">← التحصيل اليومي</span></div>
+        <div class="file">  reports.html &nbsp;&nbsp;&nbsp;<span style="color:#888">← التقارير</span></div>
+        <div class="file">  admin.html &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#888">← لوحة الأدمن</span></div>
+        <div class="new-file">   firebase-config.js &nbsp;<span style="color:#888">← هنا تحط بياناتك</span></div>
+        <div class="file">  layout.js</div>
+        <div class="file">  styles.css</div>
+        <div class="file">  logos/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#888">← صور لوجوهات المدارس</span></div>
+      </div>
+    </div>
+    <div class="alert alert-info" style="margin-top:1rem">
+       <strong>مفيش backend أو server</strong> — المشروع كله frontend بيتكلم مع Firebase مباشرة. هتشغله بأي web server بسيط أو hosting.
+    </div>
+  </div>
+
+  <!-- ===================== SECTION 2: FIREBASE PROJECT ===================== -->
+  <div class="section">
+    <div class="section-title"> الخطوة 1 — إنشاء مشروع Firebase</div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>روح على <a href="https://console.firebase.google.com" target="_blank" style="color:var(--primary)">console.firebase.google.com</a></h3>
+        <p>سجل دخول بحساب Google واضغط <strong>"Add project"</strong></p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>اسم المشروع</h3>
+        <p>اكتب اسم زي <code>school-accounting</code> ثم Next → Disable Google Analytics (مش محتاجه) → Create project</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>أضف Web App</h3>
+        <p>من الـ dashboard اضغط على أيقونة <strong>&lt;/&gt;</strong> (Web) → اكتب اسم التطبيق → Register app</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>انسخ الـ Config</h3>
+        <p>هيظهرلك كود زي ده — انسخه كله:</p>
+        <div class="code-block">
+<span class="comment">// Your web app's Firebase configuration</span>
+<span class="key">const</span> firebaseConfig = {
+  <span class="str">apiKey</span>: <span class="val">"AIzaSy..."</span>,
+  <span class="str">authDomain</span>: <span class="val">"school-accounting.firebaseapp.com"</span>,
+  <span class="str">projectId</span>: <span class="val">"school-accounting"</span>,
+  <span class="str">storageBucket</span>: <span class="val">"school-accounting.appspot.com"</span>,
+  <span class="str">messagingSenderId</span>: <span class="val">"123456789"</span>,
+  <span class="str">appId</span>: <span class="val">"1:123456789:web:abc123"</span>
+};
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SECTION 3: CONFIG FILE ===================== -->
+  <div class="section">
+    <div class="section-title"> الخطوة 2 — تعديل firebase-config.js</div>
+
+    <p style="font-size:0.875rem;color:#4a4a6a;margin-bottom:1rem">افتح ملف <strong>firebase-config.js</strong> وعدّل الأجزاء دي:</p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3> بيانات Firebase (أول حاجة)</h3>
+        <div class="code-block">
+<span class="key">const</span> firebaseConfig = {
+  <span class="str">apiKey</span>: <span class="val">"<strong>← الصق هنا الـ apiKey بتاعك</strong>"</span>,
+  <span class="str">authDomain</span>: <span class="val">"<strong>← authDomain</strong>"</span>,
+  <span class="str">projectId</span>: <span class="val">"<strong>← projectId</strong>"</span>,
+  <span class="str">storageBucket</span>: <span class="val">"<strong>← storageBucket</strong>"</span>,
+  <span class="str">messagingSenderId</span>: <span class="val">"<strong>← messagingSenderId</strong>"</span>,
+  <span class="str">appId</span>: <span class="val">"<strong>← appId</strong>"</span>
+};
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3> بيانات المدارس الأربعة</h3>
+        <p style="margin-bottom:0.5rem">عدّل اسم كل مدرسة ولونها وإيميلات المحاسبين بتاعتها:</p>
+        <div class="code-block">
+<span class="key">const</span> SCHOOLS = {
+  school1: {
+    id: <span class="val">"school1"</span>,
+    name: <span class="val">"<strong>اسم المدرسة الأولى</strong>"</span>,
+    primaryColor: <span class="val">"#1a3a6b"</span>,   <span class="comment">← اللون الرئيسي</span>
+    secondaryColor: <span class="val">"#c8a951"</span>,
+    accentColor: <span class="val">"#e8f0fe"</span>,
+    logo: <span class="val">"logos/school1.png"</span>,  <span class="comment">← حط اللوجو في مجلد logos/</span>
+    users: [
+      <span class="val">"<strong>محاسب1@school1.com</strong>"</span>,  <span class="comment">← إيميل المحاسب الأول</span>
+      <span class="val">"<strong>محاسب2@school1.com</strong>"</span>   <span class="comment">← إيميل المحاسب الثاني</span>
+    ]
+  },
+  <span class="comment">// ... نفس الشيء لـ school2, school3, school4</span>
+};
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3> إيميلات الأدمن</h3>
+        <div class="code-block">
+<span class="key">const</span> ADMINS = [
+  <span class="val">"<strong>admin@schools.com</strong>"</span>,   <span class="comment">← إيميل الأدمن الأول</span>
+  <span class="val">"<strong>admin2@schools.com</strong>"</span>  <span class="comment">← إيميل الأدمن الثاني</span>
+];
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3> الأسعار (اختياري)</h3>
+        <p>في قسم <code>STAGES</code> عدّل الأسعار حسب مدارسك. الأسعار دي بتظهر كـ default للمحاسب وممكن يعدلها.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SECTION: LOGIN SYSTEM ===================== -->
+  <div class="section">
+    <div class="section-title"> كيف يشتغل نظام الدخول والصلاحيات</div>
+
+    <p style="font-size:0.875rem;color:#4a4a6a;margin-bottom:1.25rem">
+      النظام ده شغال بالكامل في الكود — مش محتاج تضيف أي حاجة، بس لازم تفهم إزاي يشتغل عشان تضبط البيانات صح.
+    </p>
+
+    <!-- How login works -->
+    <div style="background:#f8f9fa;border-radius:10px;padding:1.25rem;margin-bottom:1.25rem;border:1px solid #e0e4f0">
+      <div style="font-weight:800;font-size:0.95rem;color:var(--primary);margin-bottom:0.75rem"> شاشة الدخول — إيه اللي بيحصل؟</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;font-size:0.85rem">
+        <div style="background:white;border-radius:8px;padding:0.875rem;border:1px solid #e0e4f0">
+          <div style="font-weight:700;margin-bottom:0.4rem"> المحاسب</div>
+          <ol style="padding-right:1.1rem;color:#4a4a6a;line-height:2">
+            <li>بيختار المدرسة من الـ grid</li>
+            <li>بيكتب الإيميل والباسورد</li>
+            <li>النظام بيتحقق إن الإيميل ده موجود في قائمة <code>users</code> للمدرسة المختارة</li>
+            <li>لو مش موجود → <strong style="color:var(--danger)">رفض تلقائي</strong></li>
+            <li>لو موجود → دخول على dashboard المدرسة دي بس</li>
+          </ol>
+        </div>
+        <div style="background:white;border-radius:8px;padding:0.875rem;border:1px solid #e0e4f0">
+          <div style="font-weight:700;margin-bottom:0.4rem"> الأدمن</div>
+          <ol style="padding-right:1.1rem;color:#4a4a6a;line-height:2">
+            <li>بيضغط "الدخول كأدمن" في أسفل الصفحة</li>
+            <li>بيكتب الإيميل والباسورد</li>
+            <li>النظام بيتحقق إن الإيميل موجود في مصفوفة <code>ADMINS</code></li>
+            <li>لو موجود → دخول على <strong>admin.html</strong> مباشرة</li>
+            <li>يقدر يشوف ويتنقل بين كل المدارس</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security explanation -->
+    <div style="font-weight:800;font-size:0.9rem;color:var(--primary);margin-bottom:0.75rem"> كيف النظام بيمنع المحاسب من دخول مدرسة غلط؟</div>
+    <p style="font-size:0.875rem;color:#4a4a6a;margin-bottom:0.5rem">الكود ده موجود في <code>index.html</code> ويتنفذ تلقائياً عند كل محاولة دخول:</p>
+    <div class="code-block">
+<span class="comment">// بعد ما Firebase يتحقق من الإيميل والباسورد...</span>
+
+<span class="comment">// هل الإيميل ده في قائمة users للمدرسة المختارة؟</span>
+<span class="key">if</span> (!selectedSchool.users.<span class="str">includes</span>(email)) {
+  showAlert(<span class="val">'هذا الحساب غير مصرح له بالدخول على هذه المدرسة'</span>);
+  auth.<span class="str">signOut</span>();  <span class="comment">← بيعمل logout فوراً من Firebase</span>
+  <span class="key">return</span>;
+}
+
+<span class="comment">// لو عدى الـ check → يحفظ الـ session ويروح للـ dashboard</span>
+SESSION.<span class="str">set</span>({ schoolId: selectedSchool.id, role: <span class="val">'accountant'</span>, ... });
+    </div>
+
+    <div class="alert alert-warning">
+       <strong>مثال عملي:</strong> لو محاسب مدرسة 1 حاول يختار مدرسة 2 ويدخل بنفس إيميله — النظام هيرفضه حتى لو الباسورد صح، لأن إيميله مش في قائمة <code>users</code> بتاعة مدرسة 2.
+    </div>
+
+    <!-- Admin section -->
+    <div style="font-weight:800;font-size:0.9rem;color:var(--primary);margin:1rem 0 0.75rem"> الأدمن — إيه اللي يقدر يعمله؟</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.75rem;font-size:0.82rem">
+      <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:0.875rem;text-align:center">
+        <div style="font-size:1.5rem;margin-bottom:0.4rem"></div>
+        <div style="font-weight:700">ملخص كل المدارس</div>
+        <div style="color:#7c4400;margin-top:0.3rem">إجمالي الشهر + عدد العمليات لكل مدرسة</div>
+      </div>
+      <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:0.875rem;text-align:center">
+        <div style="font-size:1.5rem;margin-bottom:0.4rem"></div>
+        <div style="font-weight:700">كل التحصيلات</div>
+        <div style="color:#7c4400;margin-top:0.3rem">يشوف ويفلتر تحصيلات كل المدارس مع بعض</div>
+      </div>
+      <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:0.875rem;text-align:center">
+        <div style="font-size:1.5rem;margin-bottom:0.4rem"></div>
+        <div style="font-weight:700">تبديل المدرسة</div>
+        <div style="color:#7c4400;margin-top:0.3rem">يدخل على أي مدرسة ويشوف الـ dashboard بتاعتها</div>
+      </div>
+      <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:0.875rem;text-align:center">
+        <div style="font-size:1.5rem;margin-bottom:0.4rem"></div>
+        <div style="font-weight:700">تصدير Excel</div>
+        <div style="color:#7c4400;margin-top:0.3rem">يصدر بيانات كل المدارس أو مدرسة محددة</div>
+      </div>
+    </div>
+
+    <!-- Important note -->
+    <div class="alert alert-info" style="margin-top:1rem">
+       <strong>ملاحظة مهمة:</strong> الصلاحيات دي بتتحكم فيها مصفوفة <code>users</code> في <code>firebase-config.js</code> — مش في Firebase نفسه. يعني لو حبيت تضيف أو تشيل محاسب، بتعدل الملف ده بس.
+    </div>
+  </div>
+
+  <!-- ===================== SECTION 4: AUTH ===================== -->
+  <div class="section">
+    <div class="section-title"> الخطوة 3 — إعداد Authentication</div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>فعّل Email/Password</h3>
+        <p>من Firebase Console: <strong>Authentication → Sign-in method → Email/Password → Enable</strong></p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>أضف المستخدمين (8 مستخدمين إجمالاً)</h3>
+        <p>من <strong>Authentication → Users → Add user</strong> — أضف كل مستخدم بإيميله وكلمة سر:</p>
+        <table class="summary-table" style="margin-top:0.75rem">
+          <thead><tr><th>المستخدم</th><th>الإيميل</th><th>الدور</th></tr></thead>
+          <tbody>
+            <tr><td>محاسب 1 - مدرسة 1</td><td style="direction:ltr;text-align:left;font-family:monospace">accountant1@school1.com</td><td>محاسب</td></tr>
+            <tr><td>محاسب 2 - مدرسة 1</td><td style="direction:ltr;text-align:left;font-family:monospace">accountant2@school1.com</td><td>محاسب</td></tr>
+            <tr><td>محاسب 1 - مدرسة 2</td><td style="direction:ltr;text-align:left;font-family:monospace">accountant1@school2.com</td><td>محاسب</td></tr>
+            <tr><td colspan="3" style="text-align:center;color:#888;font-size:0.8rem">... إلخ لكل مدرسة</td></tr>
+            <tr><td>الأدمن الأول</td><td style="direction:ltr;text-align:left;font-family:monospace">admin@schools.com</td><td>أدمن</td></tr>
+            <tr><td>الأدمن الثاني</td><td style="direction:ltr;text-align:left;font-family:monospace">admin2@schools.com</td><td>أدمن</td></tr>
+          </tbody>
+        </table>
+        <div class="alert alert-warning" style="margin-top:0.75rem">
+           <strong>مهم:</strong> الإيميلات اللي هتحطها هنا لازم تكون <strong>نفس الإيميلات</strong> اللي في <code>firebase-config.js</code> في مصفوفة <code>users</code> لكل مدرسة.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SECTION 5: FIRESTORE ===================== -->
+  <div class="section">
+    <div class="section-title"> الخطوة 4 — إعداد Firestore Database</div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>إنشاء قاعدة البيانات</h3>
+        <p>من Firebase Console: <strong>Firestore Database → Create database → Start in production mode → اختر region قريبة (europe-west1 أو me-central1)</strong></p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>إعداد الـ Security Rules</h3>
+        <p>من <strong>Firestore → Rules</strong>، انسخ والصق الكود ده:</p>
+        <div class="rules-block">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    <span style="color:#888">// فقط المستخدمين المسجلين يقدرون يقرأوا ويكتبوا</span>
+    match /transactions/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    <span style="color:#888">// باقي المجموعات محمية</span>
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}</div>
+        <div class="alert alert-info" style="margin-top:0.5rem">
+           الـ rules دي بتسمح لأي مستخدم logged in يعمل read/write. الصلاحيات التفصيلية (مين يشوف مدرسة مين) بتتعمل في الـ JavaScript مش في Firebase Rules.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>الـ Indexes المطلوبة <span class="badge-important">مهم جداً</span></h3>
+        <p style="margin-bottom:0.75rem">لازم تعمل Composite Indexes عشان الـ queries تشتغل. من <strong>Firestore → Indexes → Composite → Add index:</strong></p>
+
+        <div class="index-row">
+          <span class="collection">transactions</span>
+          <span class="fields">schoolId (Asc) + date (Asc) + createdAt (Desc)</span>
+          <span class="tag tag-required">مطلوب</span>
+        </div>
+        <div class="index-row">
+          <span class="collection">transactions</span>
+          <span class="fields">schoolId (Asc) + date (Desc)</span>
+          <span class="tag tag-required">مطلوب</span>
+        </div>
+        <div class="index-row">
+          <span class="collection">transactions</span>
+          <span class="fields">schoolId (Asc) + createdAt (Desc)</span>
+          <span class="tag tag-required">مطلوب</span>
+        </div>
+        <div class="index-row">
+          <span class="collection">transactions</span>
+          <span class="fields">schoolId (Asc) + stage (Asc) + date (Asc)</span>
+          <span class="tag tag-required">مطلوب</span>
+        </div>
+        <div class="index-row">
+          <span class="collection">transactions</span>
+          <span class="fields">schoolId (Asc) + paymentItem (Asc) + date (Asc)</span>
+          <span class="tag tag-required">مطلوب</span>
+        </div>
+
+        <div class="alert alert-success" style="margin-top:0.75rem">
+           <strong>أسهل طريقة:</strong> شغّل النظام وافتح الـ Console في المتصفح (F12). أي query محتاجة index هيظهر في الـ console رسالة خطأ فيها <strong>رابط مباشر</strong> تضغط عليه وهو هيعمل الـ index تلقائياً!
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SECTION 6: LOGOS ===================== -->
+  <div class="section">
+    <div class="section-title"> الخطوة 5 — اللوجوهات</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>إنشاء مجلد logos</h3>
+        <p>في نفس مجلد الملفات، عمل مجلد اسمه <code>logos</code> وحط فيه صور المدارس:</p>
+        <div class="file-tree">
+          logos/
+           school1.png &nbsp;<span style="color:#888">← لوجو المدرسة الأولى</span>
+           school2.png
+           school3.png
+           school4.png
+        </div>
+        <p style="margin-top:0.5rem;font-size:0.85rem;color:#4a4a6a">الصور مش هتأثر على الشغل لو مش موجودة — النظام هيحط إيموجي  بدلها تلقائياً.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SECTION 7: HOSTING ===================== -->
+  <div class="section">
+    <div class="section-title"> الخطوة 6 — تشغيل ونشر النظام</div>
+
+    <div class="step">
+      <div class="step-num">A</div>
+      <div class="step-content">
+        <h3>تشغيل محلياً (للتجربة)</h3>
+        <p>مش ممكن تفتح الملفات مباشرة double-click — محتاج web server بسيط:</p>
+        <div class="code-block">
+<span class="comment"># لو عندك Python:</span>
+python -m http.server 8080
+
+<span class="comment"># لو عندك Node.js:</span>
+npx serve .
+
+<span class="comment"># أو حمّل VS Code + Live Server extension</span>
+        </div>
+        <p>ثم افتح المتصفح على: <code style="color:var(--primary)">http://localhost:8080</code></p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">B</div>
+      <div class="step-content">
+        <h3>نشر على Firebase Hosting (مجاني ومريح)</h3>
+        <div class="code-block">
+<span class="comment"># تثبيت Firebase CLI</span>
+npm install -g firebase-tools
+
+<span class="comment"># تسجيل دخول</span>
+firebase login
+
+<span class="comment"># في مجلد المشروع</span>
+firebase init hosting
+
+<span class="comment"># الإجابة على الأسئلة:</span>
+<span class="comment"># Which Firebase project? → اختر مشروعك</span>
+<span class="comment"># Public directory? → . (نقطة)</span>
+<span class="comment"># Single-page app? → No</span>
+<span class="comment"># Overwrite index.html? → No</span>
+
+<span class="comment"># رفع الملفات</span>
+firebase deploy
+        </div>
+        <p style="font-size:0.85rem;color:#4a4a6a">هيديك رابط زي: <code>https://school-accounting.web.app</code></p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">C</div>
+      <div class="step-content">
+        <h3>أي hosting تاني</h3>
+        <p>ارفع كل الملفات على أي hosting عادي (cPanel, Netlify, Vercel). المشروع static files بس.</p>
+        <div class="alert alert-warning">
+           لازم تضيف الـ domain بتاعك في Firebase Console تحت <strong>Authentication → Settings → Authorized domains</strong> عشان الـ login يشتغل.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SECTION 8: STRUCTURE ===================== -->
+  <div class="section">
+    <div class="section-title"> هيكل قاعدة البيانات</div>
+    <p style="font-size:0.875rem;color:#4a4a6a;margin-bottom:1rem">كل عملية تحصيل بتتحفظ في Firestore كالآتي:</p>
+    <div class="code-block">
+<span class="comment">// Collection: transactions</span>
+{
+  <span class="str">schoolId</span>: <span class="val">"school1"</span>,               <span class="comment">← id المدرسة</span>
+  <span class="str">schoolName</span>: <span class="val">"المدرسة الأولى"</span>,
+  <span class="str">studentName</span>: <span class="val">"أحمد محمد"</span>,
+  <span class="str">stage</span>: <span class="val">"grade"</span>,                   <span class="comment">← pre_kg | kg | grade | prep</span>
+  <span class="str">stageName</span>: <span class="val">"الابتدائي"</span>,
+  <span class="str">grade</span>: <span class="val">"Grade 3"</span>,
+  <span class="str">paymentItem</span>: <span class="val">"مصروفات دراسية"</span>,
+  <span class="str">amount</span>: <span class="val">22000</span>,
+  <span class="str">paymentType</span>: <span class="val">"cash"</span>,               <span class="comment">← cash | bank_transfer | check | instapay</span>
+  <span class="str">paymentTypeName</span>: <span class="val">"نقدي"</span>,
+  <span class="str">receiptNumber</span>: <span class="val">"REC-20241201-4521"</span>,
+  <span class="str">date</span>: <span class="val">"2024-12-01"</span>,              <span class="comment">← YYYY-MM-DD</span>
+  <span class="str">notes</span>: <span class="val">""</span>,
+  <span class="str">createdBy</span>: <span class="val">"accountant1@school1.com"</span>,
+  <span class="str">createdAt</span>: <span class="val">Timestamp</span>,           <span class="comment">← serverTimestamp()</span>
+  <span class="str">year</span>: <span class="val">2024</span>,
+  <span class="str">month</span>: <span class="val">12</span>,
+  <span class="str">week</span>: <span class="val">48</span>
+}
+    </div>
+  </div>
+
+  <!-- ===================== CHECKLIST ===================== -->
+  <div class="section">
+    <div class="section-title"> Checklist قبل التشغيل</div>
+    <div style="display:grid;gap:0.5rem">
+      <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:#f8f9fa;border-radius:8px;cursor:pointer;font-size:0.875rem">
+        <input type="checkbox" style="width:18px;height:18px;accent-color:var(--primary)">
+        عملت مشروع Firebase وجبت الـ config
+      </label>
+      <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:#f8f9fa;border-radius:8px;cursor:pointer;font-size:0.875rem">
+        <input type="checkbox" style="width:18px;height:18px;accent-color:var(--primary)">
+        عدّلت firebase-config.js ببيانات مشروعك
+      </label>
+      <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:#f8f9fa;border-radius:8px;cursor:pointer;font-size:0.875rem">
+        <input type="checkbox" style="width:18px;height:18px;accent-color:var(--primary)">
+        غيّرت أسماء وألوان وإيميلات المدارس الأربعة
+      </label>
+      <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:#f8f9fa;border-radius:8px;cursor:pointer;font-size:0.875rem">
+        <input type="checkbox" style="width:18px;height:18px;accent-color:var(--primary)">
+        حطيت إيميلات الأدمن في مصفوفة ADMINS
+      </label>
+      <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:#f8f9fa;border-radius:8px;cursor:pointer;font-size:0.875rem">
+        <input type="checkbox" style="width:18px;height:18px;accent-color:var(--primary)">
+        فعّلت Authentication → Email/Password
+      </label>
+      <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:#f8f9fa;border-radius:8px;cursor:pointer;font-size:0.875em">
+        <input type="checkbox" style="width:18px;height:18px;accent-color:var(--primary)">
+        أضفت كل المستخدمين (8 مستخدمين) في Firebase Auth
+      </label>
+      <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:#f8f9fa;border-radius:8px;cursor:pointer;font-size:0.875rem">
+        <input type="checkbox" style="width:18px;height:18px;accent-color:var(--primary)">
+        عملت Firestore Database وحطيت الـ Security Rules
+      </label>
+      <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:#f8f9fa;border-radius:8px;cursor:pointer;font-size:0.875rem">
+        <input type="checkbox" style="width:18px;height:18px;accent-color:var(--primary)">
+        جربت الدخول بحساب محاسب وبحساب أدمن
+      </label>
+      <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:#f8f9fa;border-radius:8px;cursor:pointer;font-size:0.875rem">
+        <input type="checkbox" style="width:18px;height:18px;accent-color:var(--primary)">
+        جربت تسجيل عملية تحصيل وشفتها في الداشبورد
+      </label>
+    </div>
+  </div>
+
+  <!-- ===================== FOOTER ===================== -->
+  <div style="text-align:center;padding:2rem;color:#888;font-size:0.8rem">
+    نظام المحاسبة المدرسية — جميع الملفات جاهزة للتشغيل
+  </div>
+
+</div>
+</body>
+</html>

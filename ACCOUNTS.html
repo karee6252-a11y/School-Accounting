@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بيانات الأكونتات</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Cairo', sans-serif; background: #f0f2f8; color: #1a1a2e; direction: rtl; padding: 2rem; max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; font-weight: 900; color: #1e2d5a; margin-bottom: 0.25rem; }
+  .subtitle { color: #666; font-size: 0.875rem; margin-bottom: 1.5rem; }
+  .warning { background: #fff3cd; border: 1px solid #ffc107; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 2rem; font-size: 0.875rem; color: #7c4400; }
+
+  /* Quick summary */
+  .summary-card { background: white; border-radius: 14px; border: 1px solid #e0e4f0; margin-bottom: 2rem; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .summary-header { background: linear-gradient(135deg, #1e2d5a, #2d4a8a); color: white; padding: 1rem 1.5rem; font-size: 1rem; font-weight: 800; }
+
+  /* School blocks */
+  .school-block { background: white; border-radius: 14px; border: 1px solid #e0e4f0; margin-bottom: 1.5rem; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .school-header { padding: 1rem 1.5rem; display: flex; align-items: center; gap: 1rem; }
+  .school-logo { width: 48px; height: 48px; object-fit: contain; border-radius: 8px; background: #f0f2f8; padding: 2px; }
+  .school-name { font-size: 1rem; font-weight: 900; }
+  .school-id-badge { font-size: 0.72rem; color: #888; font-family: monospace; background: #f0f2f8; padding: 2px 8px; border-radius: 6px; display: inline-block; margin-top: 3px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #f8f9fa; padding: 0.6rem 1.25rem; text-align: right; font-size: 0.8rem; color: #666; font-weight: 700; border-top: 1px solid #e0e4f0; border-bottom: 1px solid #e0e4f0; }
+  td { padding: 0.7rem 1.25rem; font-size: 0.875rem; border-bottom: 1px solid #f0f2f8; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .role-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+  .role-acc   { background: #e3f2fd; color: #0d47a1; }
+  .role-admin { background: #fff8e1; color: #e65100; }
+  .pw { font-family: monospace; font-weight: 700; background: #f0f2f8; padding: 3px 10px; border-radius: 6px; font-size: 0.85rem; letter-spacing: 1px; }
+  .em { font-family: monospace; font-size: 0.82rem; color: #1e2d5a; direction: ltr; display: inline-block; }
+  .copy-btn {
+    background: #e8ecf5; border: 1px solid #c8d0e8; border-radius: 6px;
+    padding: 3px 10px; font-size: 0.7rem; cursor: pointer;
+    font-family: 'Cairo', sans-serif; color: #1e2d5a; font-weight: 700;
+    margin-right: 6px; transition: all 0.15s; vertical-align: middle;
+  }
+  .copy-btn:hover { background: #1e2d5a; color: white; border-color: #1e2d5a; }
+  .copy-btn.copied { background: #2e7d32; color: white; border-color: #2e7d32; }
+  .admin-block { background: white; border-radius: 14px; border: 2px solid #ffc107; margin-bottom: 1.5rem; overflow: hidden; box-shadow: 0 2px 16px rgba(212,160,23,0.15); }
+  .admin-header { background: linear-gradient(135deg, #1a1a2e, #2d2d4e); color: white; padding: 1rem 1.5rem; font-size: 1rem; font-weight: 800; }
+  .step-section { background: white; border-radius: 14px; border: 1px solid #e0e4f0; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .step-title { font-size: 1rem; font-weight: 800; color: #1e2d5a; margin-bottom: 1rem; border-right: 4px solid #d4a017; padding-right: 0.75rem; }
+  .step { display: flex; gap: 0.75rem; margin-bottom: 0.875rem; align-items: flex-start; font-size: 0.875rem; line-height: 1.6; }
+  .step-num { width: 26px; height: 26px; background: #1e2d5a; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 900; flex-shrink: 0; margin-top: 2px; }
+  code { background: #f0f2f8; padding: 1px 6px; border-radius: 4px; font-family: monospace; font-size: 0.82rem; color: #1e2d5a; }
+  @media print {
+    body { padding: 1rem; background: white; }
+    .copy-btn { display: none; }
+    .school-block, .admin-block, .summary-card { box-shadow: none; break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1> بيانات الأكونتات — نظام المحاسبة المدرسية</h1>
+
+
+<!-- ===== QUICK SUMMARY ===== -->
+<div class="summary-card">
+  <table>
+    <thead>
+      <tr>
+        <th>المدرسة / الدور</th>
+        <th>الإيميل</th>
+        <th>الباسورد</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="background:#fffde7">
+        <td><span class="role-badge role-admin"> أدمن 1</span></td>
+        <td><span class="em">admin@schools-system.com</span></td>
+        <td><span class="pw">Admin@1234</span></td>
+        <td><button class="copy-btn" onclick="copyText('admin@schools-system.com','Admin@1234',this)"> نسخ</button></td>
+      </tr>
+      <tr style="background:#fffde7">
+        <td><span class="role-badge role-admin"> أدمن 2</span></td>
+        <td><span class="em">admin2@schools-system.com</span></td>
+        <td><span class="pw">Admin@5678</span></td>
+        <td><button class="copy-btn" onclick="copyText('admin2@schools-system.com','Admin@5678',this)"> نسخ</button></td>
+      </tr>
+      <tr><td colspan="4" style="background:#e8ecf5;font-weight:700;font-size:0.78rem;color:#1e2d5a;padding:0.4rem 1.25rem"> Bristol Language School</td></tr>
+      <tr>
+        <td><span class="role-badge role-acc">محاسب 1</span></td>
+        <td><span class="em">acc1.bristol@bristol-school.com</span></td>
+        <td><span class="pw">Bristol@11</span></td>
+        <td><button class="copy-btn" onclick="copyText('acc1.bristol@bristol-school.com','Bristol@11',this)"> نسخ</button></td>
+      </tr>
+      <tr>
+        <td><span class="role-badge role-acc">محاسب 2</span></td>
+        <td><span class="em">acc2.bristol@bristol-school.com</span></td>
+        <td><span class="pw">Bristol@22</span></td>
+        <td><button class="copy-btn" onclick="copyText('acc2.bristol@bristol-school.com','Bristol@22',this)"> نسخ</button></td>
+      </tr>
+      <tr><td colspan="4" style="background:#f5eaea;font-weight:700;font-size:0.78rem;color:#6b1a1a;padding:0.4rem 1.25rem"> Cardiff International School</td></tr>
+      <tr>
+        <td><span class="role-badge role-acc">محاسب 1</span></td>
+        <td><span class="em">acc1.cardiff@cardiff-school.com</span></td>
+        <td><span class="pw">Cardiff@11</span></td>
+        <td><button class="copy-btn" onclick="copyText('acc1.cardiff@cardiff-school.com','Cardiff@11',this)"> نسخ</button></td>
+      </tr>
+      <tr>
+        <td><span class="role-badge role-acc">محاسب 2</span></td>
+        <td><span class="em">acc2.cardiff@cardiff-school.com</span></td>
+        <td><span class="pw">Cardiff@22</span></td>
+        <td><button class="copy-btn" onclick="copyText('acc2.cardiff@cardiff-school.com','Cardiff@22',this)"> نسخ</button></td>
+      </tr>
+      <tr><td colspan="4" style="background:#fdf8e8;font-weight:700;font-size:0.78rem;color:#7c4400;padding:0.4rem 1.25rem"> Stanford Language School 1</td></tr>
+      <tr>
+        <td><span class="role-badge role-acc">محاسب 1</span></td>
+        <td><span class="em">acc1.stanford1@stanford-school.com</span></td>
+        <td><span class="pw">Stanford1@11</span></td>
+        <td><button class="copy-btn" onclick="copyText('acc1.stanford1@stanford-school.com','Stanford1@11',this)"> نسخ</button></td>
+      </tr>
+      <tr>
+        <td><span class="role-badge role-acc">محاسب 2</span></td>
+        <td><span class="em">acc2.stanford1@stanford-school.com</span></td>
+        <td><span class="pw">Stanford1@22</span></td>
+        <td><button class="copy-btn" onclick="copyText('acc2.stanford1@stanford-school.com','Stanford1@22',this)"> نسخ</button></td>
+      </tr>
+      <tr><td colspan="4" style="background:#fdf8e8;font-weight:700;font-size:0.78rem;color:#7c4400;padding:0.4rem 1.25rem"> Stanford Language School 2</td></tr>
+      <tr>
+        <td><span class="role-badge role-acc">محاسب 1</span></td>
+        <td><span class="em">acc1.stanford2@stanford-school.com</span></td>
+        <td><span class="pw">Stanford2@11</span></td>
+        <td><button class="copy-btn" onclick="copyText('acc1.stanford2@stanford-school.com','Stanford2@11',this)"> نسخ</button></td>
+      </tr>
+      <tr>
+        <td><span class="role-badge role-acc">محاسب 2</span></td>
+        <td><span class="em">acc2.stanford2@stanford-school.com</span></td>
+        <td><span class="pw">Stanford2@22</span></td>
+        <td><button class="copy-btn" onclick="copyText('acc2.stanford2@stanford-school.com','Stanford2@22',this)"> نسخ</button></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== ADMINS ===== -->
+<div class="admin-block">
+  <div class="admin-header"> حسابات الأدمن — دخول على كل المدارس</div>
+  <table>
+    <thead><tr><th>الاسم</th><th>الإيميل</th><th>الباسورد</th><th>الدور</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>الأدمن الأول</strong></td>
+        <td><span class="em">admin@schools-system.com</span> <button class="copy-btn" onclick="copyText('admin@schools-system.com','Admin@1234',this)"> نسخ</button></td>
+        <td><span class="pw">Admin@1234</span></td>
+        <td><span class="role-badge role-admin"> أدمن</span></td>
+      </tr>
+      <tr>
+        <td><strong>الأدمن الثاني</strong></td>
+        <td><span class="em">admin2@schools-system.com</span> <button class="copy-btn" onclick="copyText('admin2@schools-system.com','Admin@5678',this)"> نسخ</button></td>
+        <td><span class="pw">Admin@5678</span></td>
+        <td><span class="role-badge role-admin"> أدمن</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== BRISTOL ===== -->
+<div class="school-block" style="border-top: 4px solid #1e2d5a">
+  <div class="school-header" style="background:#e8ecf5">
+    <img class="school-logo" src="logos/Bristol.jpeg" onerror="this.style.display='none'" />
+    <div>
+      <div class="school-name" style="color:#1e2d5a">Bristol Language School</div>
+      <span class="school-id-badge">ID: bristol</span>
+    </div>
+  </div>
+  <table>
+    <thead><tr><th>المستخدم</th><th>الإيميل</th><th>الباسورد</th><th>الدور</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>محاسب 1</strong></td>
+        <td><span class="em">acc1.bristol@bristol-school.com</span> <button class="copy-btn" onclick="copyText('acc1.bristol@bristol-school.com','Bristol@11',this)"> نسخ</button></td>
+        <td><span class="pw">Bristol@11</span></td>
+        <td><span class="role-badge role-acc">محاسب</span></td>
+      </tr>
+      <tr>
+        <td><strong>محاسب 2</strong></td>
+        <td><span class="em">acc2.bristol@bristol-school.com</span> <button class="copy-btn" onclick="copyText('acc2.bristol@bristol-school.com','Bristol@22',this)"> نسخ</button></td>
+        <td><span class="pw">Bristol@22</span></td>
+        <td><span class="role-badge role-acc">محاسب</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== CARDIFF ===== -->
+<div class="school-block" style="border-top: 4px solid #6b1a1a">
+  <div class="school-header" style="background:#f5eaea">
+    <img class="school-logo" src="logos/cis.jpeg" onerror="this.style.display='none'" />
+    <div>
+      <div class="school-name" style="color:#6b1a1a">Cardiff International School</div>
+      <span class="school-id-badge">ID: cardiff</span>
+    </div>
+  </div>
+  <table>
+    <thead><tr><th>المستخدم</th><th>الإيميل</th><th>الباسورد</th><th>الدور</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>محاسب 1</strong></td>
+        <td><span class="em">acc1.cardiff@cardiff-school.com</span> <button class="copy-btn" onclick="copyText('acc1.cardiff@cardiff-school.com','Cardiff@11',this)"> نسخ</button></td>
+        <td><span class="pw">Cardiff@11</span></td>
+        <td><span class="role-badge role-acc">محاسب</span></td>
+      </tr>
+      <tr>
+        <td><strong>محاسب 2</strong></td>
+        <td><span class="em">acc2.cardiff@cardiff-school.com</span> <button class="copy-btn" onclick="copyText('acc2.cardiff@cardiff-school.com','Cardiff@22',this)"> نسخ</button></td>
+        <td><span class="pw">Cardiff@22</span></td>
+        <td><span class="role-badge role-acc">محاسب</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== STANFORD 1 ===== -->
+<div class="school-block" style="border-top: 4px solid #d4a017">
+  <div class="school-header" style="background:#fdf8e8">
+    <img class="school-logo" src="logos/stanford.jpeg" onerror="this.style.display='none'" />
+    <div>
+      <div class="school-name" style="color:#1a1a1a">Stanford Language School 1</div>
+      <span class="school-id-badge">ID: stanford1</span>
+    </div>
+  </div>
+  <table>
+    <thead><tr><th>المستخدم</th><th>الإيميل</th><th>الباسورد</th><th>الدور</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>محاسب 1</strong></td>
+        <td><span class="em">acc1.stanford1@stanford-school.com</span> <button class="copy-btn" onclick="copyText('acc1.stanford1@stanford-school.com','Stanford1@11',this)"> نسخ</button></td>
+        <td><span class="pw">Stanford1@11</span></td>
+        <td><span class="role-badge role-acc">محاسب</span></td>
+      </tr>
+      <tr>
+        <td><strong>محاسب 2</strong></td>
+        <td><span class="em">acc2.stanford1@stanford-school.com</span> <button class="copy-btn" onclick="copyText('acc2.stanford1@stanford-school.com','Stanford1@22',this)"> نسخ</button></td>
+        <td><span class="pw">Stanford1@22</span></td>
+        <td><span class="role-badge role-acc">محاسب</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== STANFORD 2 ===== -->
+<div class="school-block" style="border-top: 4px solid #d4a017">
+  <div class="school-header" style="background:#fdf8e8">
+    <img class="school-logo" src="logos/stanford.jpeg" onerror="this.style.display='none'" />
+    <div>
+      <div class="school-name" style="color:#1a1a1a">Stanford Language School 2</div>
+      <span class="school-id-badge">ID: stanford2</span>
+    </div>
+  </div>
+  <table>
+    <thead><tr><th>المستخدم</th><th>الإيميل</th><th>الباسورد</th><th>الدور</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>محاسب 1</strong></td>
+        <td><span class="em">acc1.stanford2@stanford-school.com</span> <button class="copy-btn" onclick="copyText('acc1.stanford2@stanford-school.com','Stanford2@11',this)"> نسخ</button></td>
+        <td><span class="pw">Stanford2@11</span></td>
+        <td><span class="role-badge role-acc">محاسب</span></td>
+      </tr>
+      <tr>
+        <td><strong>محاسب 2</strong></td>
+        <td><span class="em">acc2.stanford2@stanford-school.com</span> <button class="copy-btn" onclick="copyText('acc2.stanford2@stanford-school.com','Stanford2@22',this)"> نسخ</button></td>
+        <td><span class="pw">Stanford2@22</span></td>
+        <td><span class="role-badge role-acc">محاسب</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+function copyText(email, password, btn) {
+  const text = email + '\n' + password;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = ' تم النسخ';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = ' نسخ';
+      btn.classList.remove('copied');
+    }, 2000);
+  }).catch(() => {
+    // fallback
+    const el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    btn.textContent = ' تم النسخ';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = ' نسخ'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+</script>
+</body>
+</html>
