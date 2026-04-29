@@ -108,6 +108,8 @@
               <option value="kg">KG</option>
               <option value="grade">Grade</option>
               <option value="prep">Prep</option>
+              <option value="international">International (Cardiff)</option>
+              <option value="semi_international">Semi-International (Cardiff)</option>
             </select>
           </div>
           <div>
@@ -303,7 +305,7 @@
       tr.innerHTML = `
         <td class="text-sm text-muted">${i+1}</td>
         <td><strong>${d.studentName}</strong><br><span class="text-sm text-muted">${d.grade||''}</span></td>
-        <td><span class="badge badge-primary">${STAGES[d.stage]?.labelAr||d.stage}</span></td>
+        <td><span class="badge badge-primary">${(STAGES[d.stage]?.labelAr || (typeof CARDIFF_STAGES !== 'undefined' && CARDIFF_STAGES[d.stage]?.labelAr) || d.stage)}</span></td>
         <td>${d.paymentItem}</td>
         <td class="text-bold">${formatCurrency(due)}</td>
         <td style="color:#27ae60;font-weight:700">${formatCurrency(paid)}</td>
@@ -441,7 +443,7 @@
         schoolName: school?.name || '',
         studentName: currentDebt.studentName,
         stage: currentDebt.stage,
-        stageName: STAGES[currentDebt.stage]?.labelAr || '',
+        stageName: STAGES[currentDebt.stage]?.labelAr || (typeof CARDIFF_STAGES !== 'undefined' && CARDIFF_STAGES[currentDebt.stage]?.labelAr) || currentDebt.stage,
         grade: currentDebt.grade,
         paymentItem: currentDebt.paymentItem,
         paymentItems: [{ item: currentDebt.paymentItem, price: amount, discount: 0, netPrice: amount }],
