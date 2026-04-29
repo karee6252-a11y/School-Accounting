@@ -300,23 +300,24 @@
 
   function renderPaymentItems(stage) {
     const grid = document.getElementById("paymentItemsGrid");
-    grid.innerHTML = PAYMENT_ITEMS.map(item => {
+    grid.innerHTML = "";
+    PAYMENT_ITEMS.forEach(item => {
       const price = stage ? getStagePrice(stage, item) : null;
       const isSelected = !!selectedItems[item];
       const isVariable = selectedItems[item]?.variable || false;
       const customPrice = selectedItems[item]?.customPrice || "";
       const forceVariable = (item === "رحلات");
       const cardEl = document.createElement("div");
-      cardEl.className = "payment-item-card " + (isSelected?"selected":"");
-      cardEl.onclick = () => togglePaymentItem(item, price||0);
-      let html = `<div class="item-check">${isSelected?"&#10003;":""}</div><div class="item-name">${item}</div>`;
+      cardEl.className = "payment-item-card " + (isSelected ? "selected" : "");
+      cardEl.onclick = () => togglePaymentItem(item, price || 0);
+      let html = `<div class="item-check">${isSelected ? "&#10003;" : ""}</div><div class="item-name">${item}</div>`;
       if (forceVariable) html += `<div class="item-price text-muted">سعر متغير</div>`;
       else html += price ? `<div class="item-price">${formatCurrency(price)}</div>` : `<div class="item-price text-muted">اختر المرحلة اولا</div>`;
-      if (isSelected && !forceVariable) html += `<div onclick="event.stopPropagation()" style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.75rem"><input type="checkbox" id="var_${item}" ${isVariable?"checked":""} onchange="toggleVariablePrice('${item}', this.checked)"/><label for="var_${item}" style="cursor:pointer;color:var(--text-light)">سعر متغير</label></div>`;
+      if (isSelected && !forceVariable) html += `<div onclick="event.stopPropagation()" style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.75rem"><input type="checkbox" id="var_${item}" ${isVariable ? "checked" : ""} onchange="toggleVariablePrice('${item}', this.checked)"/><label for="var_${item}" style="cursor:pointer;color:var(--text-light)">سعر متغير</label></div>`;
       if (isSelected && (isVariable || forceVariable)) html += `<div onclick="event.stopPropagation()" style="margin-top:6px"><input type="number" class="form-input" style="font-size:0.8rem;padding:0.3rem 0.5rem;height:auto" placeholder="ادخل السعر" min="0" value="${customPrice}" oninput="setCustomPrice('${item}', this.value)"/></div>`;
       cardEl.innerHTML = html;
-      return cardEl.outerHTML;
-    }).join("");
+      grid.appendChild(cardEl);
+    });
   }
 
   function togglePaymentItem(item, price) {
