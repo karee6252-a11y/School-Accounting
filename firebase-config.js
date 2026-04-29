@@ -143,6 +143,66 @@ const STAGES = {
   }
 };
 
+// ========================================
+// CARDIFF STAGES & PRICING (خاص بـ Cardiff فقط)
+// ========================================
+const CARDIFF_STAGES = {
+  "international": {
+    label: "International",
+    labelAr: "إنترناشونال",
+    grades: ["KG1", "KG2", "Grade 1", "Grade 2", "Grade 3", "Grade 10", "Grade 11"],
+    paymentTypes: [
+      { value: "normal", label: "دفعة عادية" },
+      { value: "golden", label: "دفعة ذهبية" }
+    ],
+    prices: {
+      normal: {
+        "مصروفات دراسية": 22000,
+        "باص": 9000,
+        "يونيفورم": 3000,
+        "فايل": 700,
+        "أبليكيشن": 1200,
+        "امتحانات": 1200
+      },
+      golden: {
+        "مصروفات دراسية": 30000,
+        "باص": 9000,
+        "يونيفورم": 3000,
+        "فايل": 700,
+        "أبليكيشن": 1200,
+        "امتحانات": 1200
+      }
+    }
+  },
+  "semi_international": {
+    label: "Semi-International",
+    labelAr: "سيمي إنترناشونال",
+    grades: ["KG1", "KG2", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5"],
+    paymentTypes: [
+      { value: "normal", label: "دفعة عادية" },
+      { value: "golden", label: "دفعة ذهبية" }
+    ],
+    prices: {
+      normal: {
+        "مصروفات دراسية": 18000,
+        "باص": 8000,
+        "يونيفورم": 2500,
+        "فايل": 600,
+        "أبليكيشن": 1000,
+        "امتحانات": 1000
+      },
+      golden: {
+        "مصروفات دراسية": 25000,
+        "باص": 8000,
+        "يونيفورم": 2500,
+        "فايل": 600,
+        "أبليكيشن": 1000,
+        "امتحانات": 1000
+      }
+    }
+  }
+};
+
 const PAYMENT_TYPES = [
   { value: "cash",          label: "نقدي",       icon: "" },
   { value: "bank_transfer", label: "تحويل بنكي", icon: "" },

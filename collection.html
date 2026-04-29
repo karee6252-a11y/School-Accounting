@@ -76,10 +76,15 @@
                   <label class="form-label">المرحلة الدراسية <span class="required">*</span></label>
                   <select class="form-select" id="stageSelect" onchange="onStageChange()">
                     <option value="">اختر المرحلة</option>
-                    <option value="pre_kg">Pre-KG - ما قبل الروضة</option>
-                    <option value="kg">KG - الروضة</option>
-                    <option value="grade">Grade - الابتدائي</option>
-                    <option value="prep">Prep - الاعدادي</option>
+                  </select>
+                </div>
+                <!-- دفعة Cardiff فقط -->
+                <div class="form-group hidden" id="paymentTierGroup">
+                  <label class="form-label">نوع الدفعة <span class="required">*</span></label>
+                  <select class="form-select" id="paymentTierSelect" onchange="onPaymentTierChange()">
+                    <option value="">اختر نوع الدفعة</option>
+                    <option value="normal">دفعة عادية</option>
+                    <option value="golden">دفعة ذهبية ⭐</option>
                   </select>
                 </div>
                 <div class="form-group">
@@ -222,25 +227,70 @@
   let selectedItems = {};
   let todayTransactions = [];
 
+  const isCardiff = schoolId === 'cardiff';
+
   function init() {
     document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
     generateReceiptNumber();
+    // بناء المراحل حسب المدرسة
+    const stageSelect = document.getElementById('stageSelect');
+    stageSelect.innerHTML = '<option value="">اختر المرحلة</option>';
+    if (isCardiff) {
+      Object.entries(CARDIFF_STAGES).forEach(([key, s]) => {
+        stageSelect.innerHTML += `<option value="${key}">${s.label} - ${s.labelAr}</option>`;
+      });
+    } else {
+      stageSelect.innerHTML += `
+        <option value="pre_kg">Pre-KG - ما قبل الروضة</option>
+        <option value="kg">KG - الروضة</option>
+        <option value="grade">Grade - الابتدائي</option>
+        <option value="prep">Prep - الاعدادي</option>`;
+    }
     renderPaymentItems(null);
     loadTodayTransactions();
     loadStudentSuggestions();
   }
 
+  function getStageData(stage) {
+    if (isCardiff) return CARDIFF_STAGES[stage] || null;
+    return STAGES[stage] || null;
+  }
+
+  function getStagePrice(stage, item) {
+    if (isCardiff) {
+      const tier = document.getElementById('paymentTierSelect')?.value || 'normal';
+      return CARDIFF_STAGES[stage]?.prices?.[tier]?.[item] || null;
+    }
+    return STAGES[stage]?.prices?.[item] || null;
+  }
+
+  function onPaymentTierChange() {
+    const stage = document.getElementById('stageSelect').value;
+    selectedItems = {};
+    renderPaymentItems(stage);
+    updateSelectedSummary();
+  }
+
   function onStageChange() {
     const stage = document.getElementById('stageSelect').value;
     const gradeSelect = document.getElementById('gradeSelect');
+    const tierGroup = document.getElementById('paymentTierGroup');
     gradeSelect.innerHTML = '<option value="">اختر الصف</option>';
-    if (stage && STAGES[stage]) {
-      STAGES[stage].grades.forEach(g => { gradeSelect.innerHTML += `<option value="${g}">${g}</option>`; });
+    const stageData = getStageData(stage);
+    if (stageData) {
+      stageData.grades.forEach(g => { gradeSelect.innerHTML += `<option value="${g}">${g}</option>`; });
+    }
+    // Cardiff: اظهر نوع الدفعة
+    if (isCardiff && stage) {
+      tierGroup.classList.remove('hidden');
+      document.getElementById('paymentTierSelect').value = '';
+    } else {
+      tierGroup.classList.add('hidden');
     }
     const indicator = document.getElementById('stageIndicator');
-    if (stage && STAGES[stage]) {
+    if (stage && stageData) {
       indicator.style.display = 'inline-flex';
-      document.getElementById('stageIndicatorText').textContent = STAGES[stage].labelAr;
+      document.getElementById('stageIndicatorText').textContent = stageData.labelAr;
     } else { indicator.style.display = 'none'; }
     selectedItems = {};
     renderPaymentItems(stage);
@@ -249,37 +299,39 @@
   }
 
   function renderPaymentItems(stage) {
-    const grid = document.getElementById('paymentItemsGrid');
+    const grid = document.getElementById("paymentItemsGrid");
     grid.innerHTML = PAYMENT_ITEMS.map(item => {
-      const price = stage && STAGES[stage] ? STAGES[stage].prices[item] : null;
+      const price = stage ? getStagePrice(stage, item) : null;
       const isSelected = !!selectedItems[item];
       const isVariable = selectedItems[item]?.variable || false;
-      const customPrice = selectedItems[item]?.customPrice || '';
-      const forceVariable = (item === 'رحلات');
-      return `
-        <div class="payment-item-card ${isSelected?'selected':''}" onclick="togglePaymentItem('${item}', ${price||0})">
-          <div class="item-check">${isSelected?'&#10003;':''}</div>
-          <div class="item-name">${item}</div>
-          ${forceVariable
-            ? `<div class="item-price text-muted">سعر متغير</div>`
-            : (price ? `<div class="item-price">${formatCurrency(price)}</div>` : '<div class="item-price text-muted">اختر المرحلة اولا</div>')
-          }
-          ${isSelected && !forceVariable ? `
-            <div onclick="event.stopPropagation()" style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.75rem">
-              <input type="checkbox" id="var_${item}" ${isVariable?'checked':''} onchange="toggleVariablePrice('${item}', this.checked)" />
-              <label for="var_${item}" style="cursor:pointer;color:var(--text-light)">سعر متغير</label>
-            </div>
-          ` : ''}
-          ${isSelected && (isVariable || forceVariable) ? `
-            <div onclick="event.stopPropagation()" style="margin-top:6px">
-              <input type="number" class="form-input" style="font-size:0.8rem;padding:0.3rem 0.5rem;height:auto"
-                placeholder="ادخل السعر" min="0"
-                value="${customPrice}"
-                oninput="setCustomPrice('${item}', this.value)" />
-            </div>
-          ` : ''}
-        </div>`;
-    }).join('');
+      const customPrice = selectedItems[item]?.customPrice || "";
+      const forceVariable = (item === "رحلات");
+      const cardEl = document.createElement("div");
+      cardEl.className = "payment-item-card " + (isSelected?"selected":"");
+      cardEl.onclick = () => togglePaymentItem(item, price||0);
+      let html = `<div class="item-check">${isSelected?"&#10003;":""}</div><div class="item-name">${item}</div>`;
+      if (forceVariable) html += `<div class="item-price text-muted">سعر متغير</div>`;
+      else html += price ? `<div class="item-price">${formatCurrency(price)}</div>` : `<div class="item-price text-muted">اختر المرحلة اولا</div>`;
+      if (isSelected && !forceVariable) html += `<div onclick="event.stopPropagation()" style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.75rem"><input type="checkbox" id="var_${item}" ${isVariable?"checked":""} onchange="toggleVariablePrice('${item}', this.checked)"/><label for="var_${item}" style="cursor:pointer;color:var(--text-light)">سعر متغير</label></div>`;
+      if (isSelected && (isVariable || forceVariable)) html += `<div onclick="event.stopPropagation()" style="margin-top:6px"><input type="number" class="form-input" style="font-size:0.8rem;padding:0.3rem 0.5rem;height:auto" placeholder="ادخل السعر" min="0" value="${customPrice}" oninput="setCustomPrice('${item}', this.value)"/></div>`;
+      cardEl.innerHTML = html;
+      return cardEl.outerHTML;
+    }).join("");
+  }
+  }
+
+  function togglePaymentItem(item, price) {
+    const stage = document.getElementById('stageSelect').value;
+    if (!stage) { showAlert('من فضلك اختر المرحلة اولا'); return; }
+    if (isCardiff && !document.getElementById('paymentTierSelect').value) {
+      showAlert('من فضلك اختر نوع الدفعة اولا'); return;
+    }
+    if (selectedItems[item]) { delete selectedItems[item]; }
+    else { selectedItems[item] = { price: price||0, discount: 0 }; }
+    renderPaymentItems(stage);
+    updateSelectedSummary();
+    updateDiscountFields();
+    calcDebt();
   }
 
   function toggleVariablePrice(item, isVariable) {
@@ -290,8 +342,7 @@
       selectedItems[item].customPrice = '';
       selectedItems[item].price = 0;
     } else {
-      const fixedPrice = stage && STAGES[stage] ? (STAGES[stage].prices[item] || 0) : 0;
-      selectedItems[item].price = fixedPrice;
+      selectedItems[item].price = getStagePrice(stage, item) || 0;
       selectedItems[item].customPrice = '';
     }
     renderPaymentItems(stage);
@@ -304,17 +355,6 @@
     selectedItems[item].customPrice = val;
     selectedItems[item].price = parseFloat(val) || 0;
     updateSelectedSummary();
-    calcDebt();
-  }
-
-  function togglePaymentItem(item, price) {
-    const stage = document.getElementById('stageSelect').value;
-    if (!stage) { showAlert('من فضلك اختر المرحلة اولا'); return; }
-    if (selectedItems[item]) { delete selectedItems[item]; }
-    else { selectedItems[item] = { price: price||0, discount: 0 }; }
-    renderPaymentItems(stage);
-    updateSelectedSummary();
-    updateDiscountFields();
     calcDebt();
   }
 
@@ -427,6 +467,7 @@
     const notes = document.getElementById('notes').value.trim();
     if (!studentName) return showAlert('من فضلك ادخل اسم الطالب');
     if (!stage) return showAlert('من فضلك اختر المرحلة');
+    if (isCardiff && !document.getElementById('paymentTierSelect').value) return showAlert('من فضلك اختر نوع الدفعة');
     if (!grade) return showAlert('من فضلك اختر الصف');
     if (Object.keys(selectedItems).length===0) return showAlert('من فضلك اختر بند الدفع');
     if (!amount||amount<=0) return showAlert('من فضلك ادخل مبلغ صحيح');
@@ -441,7 +482,11 @@
       const debt = totalDue - amount;
       const itemsList = Object.entries(selectedItems).map(([item,v])=>({item,price:v.price,discount:v.discount||0,netPrice:v.price*(1-(v.discount||0)/100)}));
       const transaction = {
-        schoolId, schoolName:school.name, studentName, stage, stageName:STAGES[stage].labelAr, grade,
+        schoolId, schoolName:school.name, studentName, stage,
+        stageName: isCardiff ? (CARDIFF_STAGES[stage]?.labelAr || stage) : (STAGES[stage]?.labelAr || stage),
+        paymentTier: isCardiff ? (document.getElementById('paymentTierSelect').value) : null,
+        paymentTierName: isCardiff ? (document.getElementById('paymentTierSelect').options[document.getElementById('paymentTierSelect').selectedIndex]?.text || '') : null,
+        grade,
         paymentItems: itemsList,
         paymentItem: itemsList.map(i=>i.item).join(' + '),
         totalDue, amount, debt:Math.max(0,debt), hasDebt:debt>0,
@@ -501,6 +546,8 @@
     document.getElementById('stageIndicator').style.display='none';
     document.getElementById('debtIndicator').style.display='none';
     document.getElementById('debtPreview').style.display='none';
+    const tierSelect = document.getElementById('paymentTierSelect');
+    if (tierSelect) { tierSelect.value=''; document.getElementById('paymentTierGroup').classList.add('hidden'); }
     document.getElementById('paymentSummaryBox').style.display='none';
     document.getElementById('discountSection').style.display='none';
     selectedItems={}; renderPaymentItems(null); updateSelectedSummary(); generateReceiptNumber();
@@ -532,7 +579,8 @@
       <div class="receipt-row"><span class="receipt-label">التاريخ</span><span class="receipt-value">${formatDate(date)}</span></div>
       <div class="receipt-row"><span class="receipt-label">اسم الطالب</span><span class="receipt-value">${studentName}</span></div>
       <div class="receipt-row"><span class="receipt-label">الصف</span><span class="receipt-value">${grade}</span></div>
-      <div class="receipt-row"><span class="receipt-label">المرحلة</span><span class="receipt-value">${stage?STAGES[stage]?.labelAr:''}</span></div>
+      <div class="receipt-row"><span class="receipt-label">المرحلة</span><span class="receipt-value">${stage ? (isCardiff ? CARDIFF_STAGES[stage]?.labelAr : STAGES[stage]?.labelAr) : ''}</span></div>
+      ${isCardiff && document.getElementById('paymentTierSelect').value ? `<div class="receipt-row"><span class="receipt-label">نوع الدفعة</span><span class="receipt-value">${document.getElementById('paymentTierSelect').options[document.getElementById('paymentTierSelect').selectedIndex]?.text}</span></div>` : ''}
       ${itemsHTML}
       <div class="receipt-row"><span class="receipt-label">طريقة الدفع</span><span class="receipt-value">${paymentTypeName}</span></div>
       <div class="receipt-total"><span>المبلغ المدفوع</span><span>${formatCurrency(parseFloat(amount))}</span></div>
