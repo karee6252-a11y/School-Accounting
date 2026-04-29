@@ -179,9 +179,9 @@ function getAcademicYear(dateStr) {
 // SESSION MANAGEMENT
 // ========================================
 const SESSION = {
-  get: () => JSON.parse(localStorage.getItem('school_session') || 'null'),
-  set: (data) => localStorage.setItem('school_session', JSON.stringify(data)),
-  clear: () => localStorage.removeItem('school_session'),
+  get: () => JSON.parse(sessionStorage.getItem('school_session') || 'null'),
+  set: (data) => sessionStorage.setItem('school_session', JSON.stringify(data)),
+  clear: () => sessionStorage.removeItem('school_session'),
   isAdmin: () => {
     const s = SESSION.get();
     return s && ADMINS.includes(s.email);
