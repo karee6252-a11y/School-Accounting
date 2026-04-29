@@ -30,7 +30,7 @@ const SCHOOLS = {
     primaryColor: "#1e2d5a",
     secondaryColor: "#4a6fa5",
     accentColor: "#e8ecf5",
-    logo: "Bristol.jpeg",
+    logo: "logos/Bristol.jpeg",
     users: [
       "acc1.bristol@bristol-school.com",
       "acc2.bristol@bristol-school.com"
@@ -43,7 +43,7 @@ const SCHOOLS = {
     primaryColor: "#6b1a1a",
     secondaryColor: "#a05050",
     accentColor: "#f5eaea",
-    logo: "cis.jpeg",
+    logo: "logos/cis.jpeg",
     users: [
       "acc1.cardiff@cardiff-school.com",
       "acc2.cardiff@cardiff-school.com"
@@ -56,7 +56,7 @@ const SCHOOLS = {
     primaryColor: "#1a1a1a",
     secondaryColor: "#d4a017",
     accentColor: "#fdf8e8",
-    logo: "stanford.jpeg",
+    logo: "logos/stanford.jpeg",
     users: [
       "acc1.stanford1@stanford-school.com",
       "acc2.stanford1@stanford-school.com"
@@ -69,7 +69,7 @@ const SCHOOLS = {
     primaryColor: "#1a1a1a",
     secondaryColor: "#d4a017",
     accentColor: "#fdf8e8",
-    logo: "stanford.jpeg",
+    logo: "logos/stanford.jpeg",
     users: [
       "acc1.stanford2@stanford-school.com",
       "acc2.stanford2@stanford-school.com"
@@ -99,7 +99,6 @@ const STAGES = {
       "يونيفورم": 2500,
       "فايل": 500,
       "أبليكيشن": 1000,
-      "رحلات": 1500,
       "امتحانات": 800
     }
   },
@@ -113,7 +112,6 @@ const STAGES = {
       "يونيفورم": 2500,
       "فايل": 600,
       "أبليكيشن": 1000,
-      "رحلات": 2000,
       "امتحانات": 1000
     }
   },
@@ -127,7 +125,6 @@ const STAGES = {
       "يونيفورم": 3000,
       "فايل": 700,
       "أبليكيشن": 1200,
-      "رحلات": 2500,
       "امتحانات": 1200
     }
   },
@@ -141,7 +138,6 @@ const STAGES = {
       "يونيفورم": 3500,
       "فايل": 800,
       "أبليكيشن": 1500,
-      "رحلات": 3000,
       "امتحانات": 1500
     }
   }

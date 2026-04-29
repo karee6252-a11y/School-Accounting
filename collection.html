@@ -253,12 +253,58 @@
     grid.innerHTML = PAYMENT_ITEMS.map(item => {
       const price = stage && STAGES[stage] ? STAGES[stage].prices[item] : null;
       const isSelected = !!selectedItems[item];
-      return `<div class="payment-item-card ${isSelected?'selected':''}" onclick="togglePaymentItem('${item}', ${price||0})">
-        <div class="item-check">${isSelected?'&#10003;':''}</div>
-        <div class="item-name">${item}</div>
-        ${price ? `<div class="item-price">${formatCurrency(price)}</div>` : '<div class="item-price text-muted">اختر المرحلة اولا</div>'}
-      </div>`;
+      const isVariable = selectedItems[item]?.variable || false;
+      const customPrice = selectedItems[item]?.customPrice || '';
+      const forceVariable = (item === 'رحلات');
+      return `
+        <div class="payment-item-card ${isSelected?'selected':''}" onclick="togglePaymentItem('${item}', ${price||0})">
+          <div class="item-check">${isSelected?'&#10003;':''}</div>
+          <div class="item-name">${item}</div>
+          ${forceVariable
+            ? `<div class="item-price text-muted">سعر متغير</div>`
+            : (price ? `<div class="item-price">${formatCurrency(price)}</div>` : '<div class="item-price text-muted">اختر المرحلة اولا</div>')
+          }
+          ${isSelected && !forceVariable ? `
+            <div onclick="event.stopPropagation()" style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.75rem">
+              <input type="checkbox" id="var_${item}" ${isVariable?'checked':''} onchange="toggleVariablePrice('${item}', this.checked)" />
+              <label for="var_${item}" style="cursor:pointer;color:var(--text-light)">سعر متغير</label>
+            </div>
+          ` : ''}
+          ${isSelected && (isVariable || forceVariable) ? `
+            <div onclick="event.stopPropagation()" style="margin-top:6px">
+              <input type="number" class="form-input" style="font-size:0.8rem;padding:0.3rem 0.5rem;height:auto"
+                placeholder="ادخل السعر" min="0"
+                value="${customPrice}"
+                oninput="setCustomPrice('${item}', this.value)" />
+            </div>
+          ` : ''}
+        </div>`;
     }).join('');
+  }
+
+  function toggleVariablePrice(item, isVariable) {
+    if (!selectedItems[item]) return;
+    const stage = document.getElementById('stageSelect').value;
+    selectedItems[item].variable = isVariable;
+    if (isVariable) {
+      selectedItems[item].customPrice = '';
+      selectedItems[item].price = 0;
+    } else {
+      const fixedPrice = stage && STAGES[stage] ? (STAGES[stage].prices[item] || 0) : 0;
+      selectedItems[item].price = fixedPrice;
+      selectedItems[item].customPrice = '';
+    }
+    renderPaymentItems(stage);
+    updateSelectedSummary();
+    calcDebt();
+  }
+
+  function setCustomPrice(item, val) {
+    if (!selectedItems[item]) return;
+    selectedItems[item].customPrice = val;
+    selectedItems[item].price = parseFloat(val) || 0;
+    updateSelectedSummary();
+    calcDebt();
   }
 
   function togglePaymentItem(item, price) {
