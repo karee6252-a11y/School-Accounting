@@ -498,12 +498,33 @@
       };
       const docRef = await db.collection('transactions').add(transaction);
       if (debt>0) {
-        await db.collection('debts').add({
-          schoolId, studentName, stage, grade,
-          paymentItem:transaction.paymentItem, totalDue, paid:amount, remaining:debt,
-          transactionId:docRef.id, date,
-          createdAt:firebase.firestore.FieldValue.serverTimestamp(), academicYear:'2026/2027'
-        });
+        // تحقق لو فيه دين موجود لنفس الطالب ونفس البند قبل الإضافة
+        const existingDebtSnap = await db.collection('debts')
+          .where('schoolId', '==', schoolId)
+          .where('studentName', '==', studentName)
+          .where('paymentItem', '==', transaction.paymentItem)
+          .where('remaining', '>', 0)
+          .get();
+
+        if (!existingDebtSnap.empty) {
+          // دين موجود — اعمل update عليه
+          const existingDebt = existingDebtSnap.docs[0];
+          const prevData = existingDebt.data();
+          await db.collection('debts').doc(existingDebt.id).update({
+            totalDue: (prevData.totalDue || 0) + totalDue,
+            paid:     (prevData.paid || 0) + amount,
+            remaining: (prevData.remaining || 0) + debt,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        } else {
+          // دين جديد — أضفه
+          await db.collection('debts').add({
+            schoolId, studentName, stage, grade,
+            paymentItem:transaction.paymentItem, totalDue, paid:amount, remaining:debt,
+            transactionId:docRef.id, date,
+            createdAt:firebase.firestore.FieldValue.serverTimestamp(), academicYear:'2026/2027'
+          });
+        }
       }
       showAlert('تم حفظ التحصيل بنجاح!'+(debt>0?` - مديونية: ${formatCurrency(debt)}`:''), 'success');
       loadTodayTransactions();
