@@ -30,7 +30,7 @@ const SCHOOLS = {
     primaryColor: "#1e2d5a",
     secondaryColor: "#4a6fa5",
     accentColor: "#e8ecf5",
-    logo: "logos/Bristol.jpeg",
+    logo: "Bristol.jpeg",
     users: [
       "acc1.bristol@bristol-school.com",
       "acc2.bristol@bristol-school.com"
@@ -43,7 +43,7 @@ const SCHOOLS = {
     primaryColor: "#6b1a1a",
     secondaryColor: "#a05050",
     accentColor: "#f5eaea",
-    logo: "logos/cis.jpeg",
+    logo: "cis.jpeg",
     users: [
       "acc1.cardiff@cardiff-school.com",
       "acc2.cardiff@cardiff-school.com"
@@ -56,7 +56,7 @@ const SCHOOLS = {
     primaryColor: "#1a1a1a",
     secondaryColor: "#d4a017",
     accentColor: "#fdf8e8",
-    logo: "logos/stanford.jpeg",
+    logo: "stanford.jpeg",
     users: [
       "acc1.stanford1@stanford-school.com",
       "acc2.stanford1@stanford-school.com"
@@ -69,7 +69,7 @@ const SCHOOLS = {
     primaryColor: "#1a1a1a",
     secondaryColor: "#d4a017",
     accentColor: "#fdf8e8",
-    logo: "logos/stanford.jpeg",
+    logo: "stanford.jpeg",
     users: [
       "acc1.stanford2@stanford-school.com",
       "acc2.stanford2@stanford-school.com"
