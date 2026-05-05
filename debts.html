@@ -323,6 +323,7 @@
             ? `<button class="btn btn-sm btn-primary" onclick="openSettleModal('${d.id}')"> تسوية</button>`
             : `<span class="text-sm text-muted">مكتمل</span>`
           }
+          <button class="btn btn-sm" onclick="openEditDebtModal('${d.id}')" style="color:var(--primary);background:none;border:1px solid var(--primary);border-radius:4px;padding:2px 8px;font-size:0.75rem;cursor:pointer;margin-right:4px">✏</button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -626,6 +627,95 @@
 
   // =============== INIT ===============
   loadDebts();
+
+  // ============================================================
+  // EDIT DEBT MODAL
+  // ============================================================
+  let editingDebtId = null;
+
+  async function openEditDebtModal(id) {
+    const doc = await db.collection('debts').doc(id).get();
+    if (!doc.exists) return alert('لم يتم العثور على السجل');
+    const d = doc.data();
+    editingDebtId = id;
+    document.getElementById('editDebtStudent').value  = d.studentName || '';
+    document.getElementById('editDebtGrade').value    = d.grade || '';
+    document.getElementById('editDebtItem').value     = d.paymentItem || '';
+    document.getElementById('editDebtTotalDue').value = d.totalDue || '';
+    document.getElementById('editDebtPaid').value     = d.paid || '';
+    document.getElementById('editDebtModal').style.display = 'flex';
+  }
+
+  function closeEditDebtModal() {
+    document.getElementById('editDebtModal').style.display = 'none';
+    editingDebtId = null;
+  }
+
+  async function saveEditDebt() {
+    if (!editingDebtId) return;
+    const studentName = document.getElementById('editDebtStudent').value.trim();
+    const grade       = document.getElementById('editDebtGrade').value.trim();
+    const paymentItem = document.getElementById('editDebtItem').value.trim();
+    const totalDue    = parseFloat(document.getElementById('editDebtTotalDue').value) || 0;
+    const paid        = parseFloat(document.getElementById('editDebtPaid').value) || 0;
+
+    if (!studentName) return alert('ادخل اسم الطالب');
+    if (totalDue <= 0) return alert('ادخل إجمالي المستحق');
+
+    const remaining = Math.max(0, totalDue - paid);
+    const btn = document.getElementById('editDebtSaveBtn');
+    btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+    try {
+      await db.collection('debts').doc(editingDebtId).update({
+        studentName, grade, paymentItem, totalDue, paid, remaining,
+        editedBy: session.email,
+        editedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      closeEditDebtModal();
+      loadDebts();
+    } catch (err) {
+      alert('خطأ في التعديل: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'حفظ التعديلات';
+    }
+  }
 </script>
+
+<!-- EDIT DEBT MODAL -->
+<div id="editDebtModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:white;border-radius:12px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;padding:1.5rem;direction:rtl;font-family:Cairo,sans-serif">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <h2 style="font-size:1.1rem;font-weight:800;color:var(--primary);margin:0">✏ تعديل بيانات المديونية</h2>
+      <button onclick="closeEditDebtModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#999">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">اسم الطالب</label>
+        <input id="editDebtStudent" type="text" class="form-input form-input-ar" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">الصف</label>
+        <input id="editDebtGrade" type="text" class="form-input" />
+      </div>
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">بند الدفع</label>
+        <input id="editDebtItem" type="text" class="form-input form-input-ar" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">إجمالي المستحق (ج.م)</label>
+        <input id="editDebtTotalDue" type="number" class="form-input" min="0" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">المدفوع حتى الآن (ج.م)</label>
+        <input id="editDebtPaid" type="number" class="form-input" min="0" />
+      </div>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.25rem">
+      <button id="editDebtSaveBtn" onclick="saveEditDebt()" class="btn btn-primary" style="flex:1">حفظ التعديلات</button>
+      <button onclick="closeEditDebtModal()" class="btn btn-secondary">إلغاء</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

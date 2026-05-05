@@ -648,8 +648,9 @@
             ${d.notes?`<div class="today-details">${d.notes}</div>`:''}
           </div><div>
             <div class="today-amount">${formatCurrency(d.amount)}</div>
-            <div style="text-align:left;margin-top:4px">
-              <button onclick="deleteTransaction('${d.id}')" class="btn btn-sm" style="padding:2px 6px;font-size:0.7rem;color:var(--danger);background:none;border:none;cursor:pointer">حذف</button>
+            <div style="text-align:left;margin-top:4px;display:flex;flex-direction:column;gap:3px">
+              <button onclick="openEditModal('${d.id}')" class="btn btn-sm" style="padding:2px 8px;font-size:0.7rem;color:var(--primary);background:none;border:1px solid var(--primary);border-radius:4px;cursor:pointer">✏ تعديل</button>
+              <button onclick="deleteTransaction('${d.id}')" class="btn btn-sm" style="padding:2px 8px;font-size:0.7rem;color:var(--danger);background:none;border:none;cursor:pointer">🗑 حذف</button>
             </div></div>`;
           container.appendChild(div);
         });
@@ -698,6 +699,128 @@
     return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
   }
   init();
+
+  // ============================================================
+  // EDIT MODAL - تعديل التحصيل
+  // ============================================================
+  let editingDocId = null;
+
+  async function openEditModal(id) {
+    const doc = await db.collection('transactions').doc(id).get();
+    if (!doc.exists) return showAlert('لم يتم العثور على السجل');
+    const d = doc.data();
+    editingDocId = id;
+
+    document.getElementById('editStudentName').value = d.studentName || '';
+    document.getElementById('editGrade').value = d.grade || '';
+    document.getElementById('editAmount').value = d.amount || '';
+    document.getElementById('editDate').value = d.date || '';
+    document.getElementById('editPaymentType').value = d.paymentType || '';
+    document.getElementById('editPaymentItem').value = d.paymentItem || '';
+    document.getElementById('editNotes').value = d.notes || '';
+    document.getElementById('editReceiptNumber').value = d.receiptNumber || '';
+
+    document.getElementById('editModal').style.display = 'flex';
+  }
+
+  function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+    editingDocId = null;
+  }
+
+  async function saveEdit() {
+    if (!editingDocId) return;
+    const studentName = document.getElementById('editStudentName').value.trim();
+    const grade       = document.getElementById('editGrade').value.trim();
+    const amount      = parseFloat(document.getElementById('editAmount').value);
+    const date        = document.getElementById('editDate').value;
+    const paymentType = document.getElementById('editPaymentType').value;
+    const paymentItem = document.getElementById('editPaymentItem').value.trim();
+    const notes       = document.getElementById('editNotes').value.trim();
+    const receiptNumber = document.getElementById('editReceiptNumber').value.trim();
+
+    if (!studentName) return showAlert('ادخل اسم الطالب');
+    if (!amount || amount <= 0) return showAlert('ادخل مبلغ صحيح');
+    if (!date) return showAlert('اختر التاريخ');
+    if (!paymentType) return showAlert('اختر طريقة الدفع');
+
+    const btn = document.getElementById('editSaveBtn');
+    btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+    try {
+      await db.collection('transactions').doc(editingDocId).update({
+        studentName, grade, amount, date, paymentType,
+        paymentTypeName: PAYMENT_TYPES.find(p => p.value === paymentType)?.label || paymentType,
+        paymentItem, notes, receiptNumber,
+        editedBy: session.email,
+        editedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showAlert('تم التعديل بنجاح ✓', 'success');
+      closeEditModal();
+      loadTodayTransactions();
+    } catch (err) {
+      showAlert('خطأ في التعديل: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'حفظ التعديلات';
+    }
+  }
 </script>
+
+<!-- EDIT MODAL -->
+<div id="editModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:white;border-radius:12px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:1.5rem;direction:rtl;font-family:Cairo,sans-serif">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <h2 style="font-size:1.1rem;font-weight:800;color:var(--primary);margin:0">✏ تعديل بيانات التحصيل</h2>
+      <button onclick="closeEditModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#999">✕</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">اسم الطالب</label>
+        <input id="editStudentName" type="text" class="form-input form-input-ar" placeholder="اسم الطالب" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">الصف</label>
+        <input id="editGrade" type="text" class="form-input" placeholder="مثال: Grade 3" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">المبلغ المدفوع (ج.م)</label>
+        <input id="editAmount" type="number" class="form-input" placeholder="0" min="0" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">التاريخ</label>
+        <input id="editDate" type="date" class="form-input" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">طريقة الدفع</label>
+        <select id="editPaymentType" class="form-select">
+          <option value="">اختر</option>
+          <option value="cash">نقدي</option>
+          <option value="bank_transfer">تحويل بنكي</option>
+          <option value="check">شيك</option>
+          <option value="instapay">إنستاباي</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">رقم الإيصال</label>
+        <input id="editReceiptNumber" type="text" class="form-input" placeholder="REC-2026-001" />
+      </div>
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">بند الدفع</label>
+        <input id="editPaymentItem" type="text" class="form-input form-input-ar" placeholder="مثال: مصروفات دراسية" />
+      </div>
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">ملاحظات</label>
+        <textarea id="editNotes" class="form-textarea" rows="2" placeholder="ملاحظات اختيارية..."></textarea>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:0.75rem;margin-top:1.25rem">
+      <button id="editSaveBtn" onclick="saveEdit()" class="btn btn-primary" style="flex:1">حفظ التعديلات</button>
+      <button onclick="closeEditModal()" class="btn btn-secondary">إلغاء</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
