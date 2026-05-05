@@ -56,7 +56,7 @@
         <div class="card-header"><span class="card-title"> نتائج التقرير</span><span class="badge badge-primary" id="resultsCount">0 سجل</span></div>
         <div class="table-wrapper">
           <table class="data-table" id="reportTable">
-            <thead><tr><th>#</th><th>التاريخ</th><th class="col-daily">اسم الطالب</th><th>المرحلة</th><th>الصف</th><th>بند الدفع</th><th>المبلغ المدفوع</th><th class="col-daily">المديونية</th><th>طريقة الدفع</th><th>رقم الإيصال</th><th>ملاحظات</th></tr></thead>
+            <thead><tr><th>#</th><th>التاريخ</th><th class="col-daily">اسم الطالب</th><th>المرحلة</th><th>الصف</th><th>بند الدفع</th><th>المبلغ المدفوع</th><th class="col-daily">المديونية</th><th>طريقة الدفع</th><th>رقم الإيصال</th><th>ملاحظات</th><th class="no-print">إجراء</th></tr></thead>
             <tbody id="reportTableBody"><tr><td colspan="10"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">اختر الفلتر وانقر بحث</div></div></td></tr></tbody>
             <tfoot id="reportTableFoot"></tfoot>
           </table>
@@ -182,11 +182,14 @@
           <td>${d.paymentTypeName || d.paymentType}</td>
           <td class="text-sm text-muted">${d.receiptNumber}</td>
           <td class="text-sm text-muted">${d.notes || '-'}</td>
+          <td class="no-print">
+            <button onclick="openEditTxModal('${d.id}')" style="padding:3px 10px;font-size:0.75rem;font-weight:700;color:var(--primary);background:none;border:1.5px solid var(--primary);border-radius:6px;cursor:pointer;font-family:Cairo,sans-serif;white-space:nowrap">✏ تعديل</button>
+          </td>
         `;
         tbody.appendChild(tr);
       });
       const colspan = isDaily ? 6 : 5;
-      tfoot.innerHTML = `<tr class="table-footer-total"><td colspan="${colspan}" style="padding:0.75rem 1rem;font-weight:800">الاجمالي (${currentData.length} عملية)</td><td style="padding:0.75rem 1rem;font-weight:900;font-size:1.05rem">${formatCurrency(total)}</td>${isDaily ? `<td style="padding:0.75rem 1rem;font-weight:900;color:#c0392b">${totalDebt>0?formatCurrency(totalDebt):'-'}</td>` : ''}<td colspan="${isDaily?3:4}"></td></tr>`;
+      tfoot.innerHTML = `<tr class="table-footer-total"><td colspan="${colspan}" style="padding:0.75rem 1rem;font-weight:800">الاجمالي (${currentData.length} عملية)</td><td style="padding:0.75rem 1rem;font-weight:900;font-size:1.05rem">${formatCurrency(total)}</td>${isDaily ? `<td style="padding:0.75rem 1rem;font-weight:900;color:#c0392b">${totalDebt>0?formatCurrency(totalDebt):'-'}</td>` : ''}<td colspan="${isDaily?4:5}"></td></tr>`;
     }
     document.getElementById('summaryTotal').textContent = formatCurrency(total);
     document.getElementById('summaryCount').textContent = currentData.length;
@@ -713,6 +716,172 @@
   }
 
   init();
+
+  // ============================================================
+  // EDIT TRANSACTION MODAL — من صفحة التقارير
+  // ============================================================
+  let editingTxId = null;
+
+  async function openEditTxModal(id) {
+    try {
+      const docSnap = await db.collection('transactions').doc(id).get();
+      if (!docSnap.exists) return alert('لم يتم العثور على السجل');
+      const d = docSnap.data();
+      editingTxId = id;
+
+      // بيانات الطالب
+      document.getElementById('etStudentName').value    = d.studentName   || '';
+      document.getElementById('etGrade').value          = d.grade         || '';
+      document.getElementById('etDate').value           = d.date          || '';
+      document.getElementById('etAmount').value         = d.amount        || '';
+      document.getElementById('etPaymentType').value    = d.paymentType   || '';
+      document.getElementById('etPaymentItem').value    = d.paymentItem   || '';
+      document.getElementById('etReceiptNumber').value  = d.receiptNumber || '';
+      document.getElementById('etNotes').value          = d.notes         || '';
+
+      // عنوان المودال يبيّن اسم الطالب والتاريخ
+      document.getElementById('etModalTitle').textContent = `✏ تعديل: ${d.studentName} — ${d.date}`;
+
+      document.getElementById('editTxModal').style.display = 'flex';
+    } catch(err) {
+      alert('خطأ في تحميل البيانات: ' + err.message);
+    }
+  }
+
+  function closeEditTxModal() {
+    document.getElementById('editTxModal').style.display = 'none';
+    editingTxId = null;
+  }
+
+  async function saveEditTx() {
+    if (!editingTxId) return;
+
+    const studentName   = document.getElementById('etStudentName').value.trim();
+    const grade         = document.getElementById('etGrade').value.trim();
+    const date          = document.getElementById('etDate').value;
+    const amount        = parseFloat(document.getElementById('etAmount').value);
+    const paymentType   = document.getElementById('etPaymentType').value;
+    const paymentItem   = document.getElementById('etPaymentItem').value.trim();
+    const receiptNumber = document.getElementById('etReceiptNumber').value.trim();
+    const notes         = document.getElementById('etNotes').value.trim();
+
+    if (!studentName)          return showEtAlert('ادخل اسم الطالب');
+    if (!amount || amount <= 0) return showEtAlert('ادخل مبلغ صحيح');
+    if (!date)                  return showEtAlert('اختر التاريخ');
+    if (!paymentType)           return showEtAlert('اختر طريقة الدفع');
+    if (!receiptNumber)         return showEtAlert('ادخل رقم الإيصال');
+
+    const btn = document.getElementById('etSaveBtn');
+    btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+    try {
+      await db.collection('transactions').doc(editingTxId).update({
+        studentName, grade, date, amount, paymentType,
+        paymentTypeName: PAYMENT_TYPES.find(p => p.value === paymentType)?.label || paymentType,
+        paymentItem, receiptNumber, notes,
+        editedBy: session.email,
+        editedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      // تحديث currentData في الذاكرة بدل إعادة fetch كاملة
+      const idx = currentData.findIndex(d => d.id === editingTxId);
+      if (idx !== -1) {
+        currentData[idx] = { ...currentData[idx], studentName, grade, date, amount, paymentType,
+          paymentTypeName: PAYMENT_TYPES.find(p => p.value === paymentType)?.label || paymentType,
+          paymentItem, receiptNumber, notes };
+      }
+
+      closeEditTxModal();
+      renderTable();                       // يعيد رسم الجدول بالبيانات المحدثة
+    } catch(err) {
+      showEtAlert('خطأ في الحفظ: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'حفظ التعديلات';
+    }
+  }
+
+  function showEtAlert(msg) {
+    const el = document.getElementById('etAlert');
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 4000);
+  }
+
 </script>
+
+<!-- ====== EDIT TRANSACTION MODAL ====== -->
+<div id="editTxModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:580px;max-height:92vh;overflow-y:auto;padding:1.75rem;direction:rtl;font-family:Cairo,sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;padding-bottom:0.75rem;border-bottom:2px solid var(--border)">
+      <h2 id="etModalTitle" style="font-size:1.05rem;font-weight:800;color:var(--primary);margin:0"></h2>
+      <button onclick="closeEditTxModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#aaa;line-height:1">✕</button>
+    </div>
+
+    <!-- Alert -->
+    <div id="etAlert" style="display:none;background:#fdecea;color:#c0392b;border:1px solid #f5c6cb;border-radius:6px;padding:0.6rem 0.9rem;font-size:0.85rem;margin-bottom:1rem"></div>
+
+    <!-- Fields -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem">
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">اسم الطالب <span style="color:#e74c3c">*</span></label>
+        <input id="etStudentName" type="text" class="form-input form-input-ar" placeholder="الاسم كاملاً" />
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">الصف</label>
+        <input id="etGrade" type="text" class="form-input" placeholder="مثال: Grade 3" />
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">التاريخ <span style="color:#e74c3c">*</span></label>
+        <input id="etDate" type="date" class="form-input" />
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">المبلغ المدفوع (ج.م) <span style="color:#e74c3c">*</span></label>
+        <input id="etAmount" type="number" class="form-input" placeholder="0" min="0" step="0.01" />
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">طريقة الدفع <span style="color:#e74c3c">*</span></label>
+        <select id="etPaymentType" class="form-select">
+          <option value="">اختر</option>
+          <option value="cash">نقدي</option>
+          <option value="bank_transfer">تحويل بنكي</option>
+          <option value="check">شيك</option>
+          <option value="instapay">إنستاباي</option>
+        </select>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">رقم الإيصال <span style="color:#e74c3c">*</span></label>
+        <input id="etReceiptNumber" type="text" class="form-input" placeholder="REC-2026-001" />
+      </div>
+
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">بند الدفع</label>
+        <input id="etPaymentItem" type="text" class="form-input form-input-ar" placeholder="مثال: مصروفات دراسية + باص" />
+        <div style="font-size:0.73rem;color:#888">لو بنود متعددة اكتبها بـ + بينهم</div>
+      </div>
+
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">ملاحظات</label>
+        <textarea id="etNotes" class="form-textarea" rows="2" placeholder="أي ملاحظات إضافية..."></textarea>
+      </div>
+
+    </div>
+
+    <!-- Buttons -->
+    <div style="display:flex;gap:0.75rem;margin-top:1.4rem">
+      <button id="etSaveBtn" onclick="saveEditTx()" class="btn btn-primary" style="flex:1;font-size:0.95rem">💾 حفظ التعديلات</button>
+      <button onclick="closeEditTxModal()" class="btn btn-secondary" style="padding:0 1.5rem">إلغاء</button>
+    </div>
+
+  </div>
+</div>
+
 </body>
 </html>
