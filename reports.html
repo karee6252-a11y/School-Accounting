@@ -328,18 +328,27 @@
 
     function numFmt(cell) { cell.numFmt = '#,##0;(#,##0);"-"'; }
 
-    // دالة توزيع مبلغ على البنود
+    // دالة توزيع مبلغ على البنود — بتستخدم includes عشان تدعم البنود المتعددة
     function mapAmounts(d) {
-      const amt = d.amount || 0;
-      const out = { fees:0, disc:d.discount||0, file:0, uni:0, bus:0, app:0, other:0 };
-      switch(d.paymentItem) {
-        case 'مصروفات دراسية': out.fees = amt; break;
-        case 'فايل':           out.file = amt; break;
-        case 'يونيفورم':       out.uni  = amt; break;
-        case 'باص':            out.bus  = amt; break;
-        case 'أبليكيشن':       out.app  = amt; break;
-        default:               out.other= amt; break;
-      }
+      const amt  = d.amount || 0;
+      const item = d.paymentItem || '';
+      const out  = { fees:0, disc:d.discount||0, file:0, uni:0, bus:0, app:0, other:0 };
+
+      // لو بند واحد بالظبط — نحط المبلغ كله فيه
+      if      (item === 'مصروفات دراسية') { out.fees = amt; }
+      else if (item === 'فايل')           { out.file = amt; }
+      else if (item === 'يونيفورم')       { out.uni  = amt; }
+      else if (item === 'باص')            { out.bus  = amt; }
+      else if (item === 'أبليكيشن')       { out.app  = amt; }
+      else if (item === 'امتحانات' || item === 'رحلات') { out.other = amt; }
+      // لو بنود متعددة (contains) — نحط في الخانة المناسبة الأولى
+      else if (item.includes('مصروفات دراسية')) { out.fees  = amt; }
+      else if (item.includes('باص'))             { out.bus   = amt; }
+      else if (item.includes('يونيفورم'))        { out.uni   = amt; }
+      else if (item.includes('فايل'))            { out.file  = amt; }
+      else if (item.includes('أبليكيشن'))        { out.app   = amt; }
+      else                                       { out.other = amt; }
+
       return out;
     }
 
@@ -872,15 +881,14 @@
       let y = sectionTitle(doc, '① الإيرادات اليومية', 46);
 
       const mapA = d => {
-        const a = d.amount||0;
-        switch(d.paymentItem){
-          case 'مصروفات دراسية': return [a,'',''  ,'','',''];
-          case 'فايل':           return ['',a,''  ,'','',''];
-          case 'يونيفورم':       return ['','',a  ,'','',''];
-          case 'باص':            return ['','','' ,a,'',''];
-          case 'أبليكيشن':       return ['','','' ,'',a,''];
-          default:               return ['','','' ,'','',a];
-        }
+        const a    = d.amount||0;
+        const item = d.paymentItem||'';
+        if      (item === 'مصروفات دراسية' || item.includes('مصروفات دراسية')) return [a,'','','','',''];
+        else if (item === 'فايل'           || item.includes('فايل'))           return ['',a,'','','',''];
+        else if (item === 'يونيفورم'       || item.includes('يونيفورم'))       return ['','',a,'','',''];
+        else if (item === 'باص'            || item.includes('باص'))            return ['','','',a,'',''];
+        else if (item === 'أبليكيشن'       || item.includes('أبليكيشن'))       return ['','','','',a,''];
+        else                                                                    return ['','','','','',a];
       };
       const totC = {fees:0,file:0,uni:0,bus:0,app:0,other:0};
       const bodyRows = currentData.map((d,i) => {
@@ -957,17 +965,15 @@
         const di = new Date(d.date+'T00:00:00').getDay();
         const dayAr = DAYS_AR[di===6?0:di];
         if (dayMap[dayAr]) {
-          const m = (() => {
-            const a=d.amount||0;
-            switch(d.paymentItem){
-              case 'مصروفات دراسية': return {fees:a};
-              case 'فايل':           return {file:a};
-              case 'يونيفورم':       return {uni:a};
-              case 'باص':            return {bus:a};
-              case 'أبليكيشن':       return {app:a};
-              default:               return {other:a};
-            }
-          })();
+          const a    = d.amount||0;
+          const item = d.paymentItem||'';
+          let m = {};
+          if      (item === 'مصروفات دراسية' || item.includes('مصروفات دراسية')) m = {fees:a};
+          else if (item === 'فايل'           || item.includes('فايل'))           m = {file:a};
+          else if (item === 'يونيفورم'       || item.includes('يونيفورم'))       m = {uni:a};
+          else if (item === 'باص'            || item.includes('باص'))            m = {bus:a};
+          else if (item === 'أبليكيشن'       || item.includes('أبليكيشن'))       m = {app:a};
+          else                                                                    m = {other:a};
           Object.entries(m).forEach(([k,v]) => { dayMap[dayAr][k]=(dayMap[dayAr][k]||0)+v; });
           if (!dayMap[dayAr].date) dayMap[dayAr].date = d.date;
         }
@@ -1029,15 +1035,14 @@
       currentData.forEach(d => {
         const wk = `الأسبوع ${Math.ceil(new Date(d.date+'T00:00:00').getDate()/7)}`;
         if (!weekBuckets[wk]) weekBuckets[wk] = {fees:0,disc:0,file:0,uni:0,bus:0,app:0,other:0};
-        const a = d.amount||0;
-        switch(d.paymentItem){
-          case 'مصروفات دراسية': weekBuckets[wk].fees+=a; break;
-          case 'فايل':           weekBuckets[wk].file+=a; break;
-          case 'يونيفورم':       weekBuckets[wk].uni +=a; break;
-          case 'باص':            weekBuckets[wk].bus +=a; break;
-          case 'أبليكيشن':       weekBuckets[wk].app +=a; break;
-          default:               weekBuckets[wk].other+=a; break;
-        }
+        const a    = d.amount||0;
+        const item = d.paymentItem||'';
+        if      (item === 'مصروفات دراسية' || item.includes('مصروفات دراسية')) weekBuckets[wk].fees +=a;
+        else if (item === 'فايل'           || item.includes('فايل'))           weekBuckets[wk].file +=a;
+        else if (item === 'يونيفورم'       || item.includes('يونيفورم'))       weekBuckets[wk].uni  +=a;
+        else if (item === 'باص'            || item.includes('باص'))            weekBuckets[wk].bus  +=a;
+        else if (item === 'أبليكيشن'       || item.includes('أبليكيشن'))       weekBuckets[wk].app  +=a;
+        else                                                                    weekBuckets[wk].other+=a;
       });
 
       const monthTotals = {fees:0,file:0,uni:0,bus:0,app:0,other:0};

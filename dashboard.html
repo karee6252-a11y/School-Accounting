@@ -117,19 +117,40 @@
   const schoolId = session.schoolId;
 
   async function loadDashboard() {
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const todayStr = today.toISOString().split('T')[0];
+    // Use local date (not UTC) to avoid timezone mismatch
+    const now = new Date();
+    const todayStr = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0')
+    ].join('-');
 
-    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const firstOfWeek = new Date(today);
-    firstOfWeek.setDate(today.getDate() - today.getDay());
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastOfMonth  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const firstOfMonthStr = [
+      firstOfMonth.getFullYear(),
+      String(firstOfMonth.getMonth() + 1).padStart(2, '0'),
+      '01'
+    ].join('-');
+    const lastOfMonthStr = [
+      lastOfMonth.getFullYear(),
+      String(lastOfMonth.getMonth() + 1).padStart(2, '0'),
+      String(lastOfMonth.getDate()).padStart(2, '0')
+    ].join('-');
+
+    const firstOfWeek = new Date(now);
+    firstOfWeek.setDate(now.getDate() - now.getDay());
+    const firstOfWeekStr = [
+      firstOfWeek.getFullYear(),
+      String(firstOfWeek.getMonth() + 1).padStart(2, '0'),
+      String(firstOfWeek.getDate()).padStart(2, '0')
+    ].join('-');
 
     try {
       const col = db.collection('transactions')
         .where('schoolId', '==', schoolId);
 
-      // Today's transactions
+      // Today's transactions — exact match on today's date string
       const todaySnap = await col
         .where('date', '==', todayStr)
         .get();
@@ -138,29 +159,28 @@
       const todayStudents = new Set();
       todaySnap.forEach(doc => {
         const d = doc.data();
-        todayTotal += d.amount || 0;
-        todayStudents.add(d.studentName);
+        todayTotal += Number(d.amount) || 0;
+        if (d.studentName) todayStudents.add(d.studentName);
       });
 
       document.getElementById('statTodayTotal').textContent = formatCurrency(todayTotal);
       document.getElementById('statTodayCount').textContent = todaySnap.size + ' عملية';
       document.getElementById('statStudents').textContent = todayStudents.size;
 
-      // Month transactions - add upper bound to avoid fetching beyond current month
-      const lastOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      // Month transactions
       const monthSnap = await col
-        .where('date', '>=', firstOfMonth.toISOString().split('T')[0])
-        .where('date', '<=', lastOfMonth.toISOString().split('T')[0])
+        .where('date', '>=', firstOfMonthStr)
+        .where('date', '<=', lastOfMonthStr)
         .get();
 
       let monthTotal = 0;
-      monthSnap.forEach(doc => { monthTotal += doc.data().amount || 0; });
+      monthSnap.forEach(doc => { monthTotal += Number(doc.data().amount) || 0; });
       document.getElementById('statMonthTotal').textContent = formatCurrency(monthTotal);
       document.getElementById('statMonthCount').textContent = monthSnap.size + ' عملية';
 
       // Week
       const weekSnap = await col
-        .where('date', '>=', firstOfWeek.toISOString().split('T')[0])
+        .where('date', '>=', firstOfWeekStr)
         .get();
       document.getElementById('statPending').textContent = weekSnap.size;
 

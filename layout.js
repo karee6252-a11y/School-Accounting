@@ -43,12 +43,13 @@ function renderLayout(activePage, pageTitle) {
   const userName = session.name || session.email.split('@')[0];
 
   const navItems = [
-    { id: 'dashboard',   icon: '', label: 'الرئيسية',             href: 'dashboard.html' },
-    { id: 'collection',  icon: '', label: 'تحصيل يومي',           href: 'collection.html' },
-    { id: 'debts',       icon: '', label: 'المديونيات',            href: 'debts.html' },
-    { id: 'expenses',    icon: '', label: 'بند المصروفات',         href: 'expenses.html' },
-    { id: 'contractors', icon: '', label: 'الموردون والمقاولون',   href: 'contractors.html' },
-    { id: 'reports',     icon: '', label: 'التقارير والشيتات',     href: 'reports.html' },
+    { id: 'dashboard',      icon: '', label: 'الرئيسية',             href: 'dashboard.html' },
+    { id: 'collection',     icon: '', label: 'تحصيل يومي',           href: 'collection.html' },
+    { id: 'student-search', icon: '', label: 'بحث الطلاب',           href: 'student-search.html' },
+    { id: 'debts',          icon: '', label: 'المديونيات',            href: 'debts.html' },
+    { id: 'expenses',       icon: '', label: 'بند المصروفات',         href: 'expenses.html' },
+    { id: 'contractors',    icon: '', label: 'الموردون والمقاولون',   href: 'contractors.html' },
+    { id: 'reports',        icon: '', label: 'التقارير والشيتات',     href: 'reports.html' },
   ];
 
   if (isAdmin) {
