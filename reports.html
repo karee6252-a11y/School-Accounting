@@ -328,26 +328,35 @@
 
     function numFmt(cell) { cell.numFmt = '#,##0;(#,##0);"-"'; }
 
-    // دالة توزيع مبلغ على البنود — بتستخدم includes عشان تدعم البنود المتعددة
+    // دالة توزيع مبلغ على البنود — بتستخدم paymentItems (array of objects) لو موجودة
     function mapAmounts(d) {
-      const amt  = d.amount || 0;
-      const item = d.paymentItem || '';
-      const out  = { fees:0, disc:d.discount||0, file:0, uni:0, bus:0, app:0, other:0 };
+      const out = { fees:0, disc:d.discount||0, file:0, uni:0, bus:0, app:0, other:0 };
 
-      // لو بند واحد بالظبط — نحط المبلغ كله فيه
-      if      (item === 'مصروفات دراسية') { out.fees = amt; }
-      else if (item === 'فايل')           { out.file = amt; }
-      else if (item === 'يونيفورم')       { out.uni  = amt; }
-      else if (item === 'باص')            { out.bus  = amt; }
-      else if (item === 'أبليكيشن')       { out.app  = amt; }
-      else if (item === 'امتحانات' || item === 'رحلات') { out.other = amt; }
-      // لو بنود متعددة (contains) — نحط في الخانة المناسبة الأولى
-      else if (item.includes('مصروفات دراسية')) { out.fees  = amt; }
-      else if (item.includes('باص'))             { out.bus   = amt; }
-      else if (item.includes('يونيفورم'))        { out.uni   = amt; }
-      else if (item.includes('فايل'))            { out.file  = amt; }
-      else if (item.includes('أبليكيشن'))        { out.app   = amt; }
-      else                                       { out.other = amt; }
+      function assignItem(itemName, itemAmt) {
+        if      (itemName === 'مصروفات دراسية' || itemName.includes('مصروفات')) { out.fees += itemAmt; }
+        else if (itemName === 'فايل'            || itemName.includes('فايل'))    { out.file += itemAmt; }
+        else if (itemName === 'يونيفورم'        || itemName.includes('يونيفورم')){ out.uni  += itemAmt; }
+        else if (itemName === 'باص'             || itemName.includes('باص'))     { out.bus  += itemAmt; }
+        else if (itemName === 'أبليكيشن'        || itemName.includes('أبليكيشن')){ out.app  += itemAmt; }
+        else { out.other += itemAmt; }
+      }
+
+      // paymentItems = [{item, price, discount, netPrice}, ...]
+      if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
+        d.paymentItems.forEach(pi => {
+          if (typeof pi === 'object' && pi.item) {
+            assignItem(pi.item, Number(pi.netPrice) || Number(pi.price) || 0);
+          } else if (typeof pi === 'string') {
+            // قسّم المبلغ بالتساوي لو string فقط
+            assignItem(pi, (d.amount || 0) / d.paymentItems.length);
+          }
+        });
+      } else {
+        // fallback على paymentItem string
+        const amt  = d.amount || 0;
+        const item = d.paymentItem || '';
+        assignItem(item, amt);
+      }
 
       return out;
     }
