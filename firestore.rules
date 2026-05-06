@@ -10,24 +10,39 @@ service cloud.firestore {
     }
 
     // ==============================
+    // دالة مساعدة: هل البيانات المكتوبة تحتوي على schoolId صحيح؟
+    // (لمنع كتابة بيانات بدون schoolId)
+    // ==============================
+    function hasSchoolId() {
+      return request.resource.data.schoolId is string
+          && request.resource.data.schoolId.size() > 0;
+    }
+
+    // ==============================
     // transactions — تحصيل الطلاب
     // ==============================
     match /transactions/{docId} {
-      allow read, write: if isAuth();
+      allow read: if isAuth();
+      allow create: if isAuth() && hasSchoolId();
+      allow update, delete: if isAuth();
     }
 
     // ==============================
     // debts — المديونيات
     // ==============================
     match /debts/{docId} {
-      allow read, write: if isAuth();
+      allow read: if isAuth();
+      allow create: if isAuth() && hasSchoolId();
+      allow update, delete: if isAuth();
     }
 
     // ==============================
     // expenses — بند المصروفات
     // ==============================
     match /expenses/{docId} {
-      allow read, write: if isAuth();
+      allow read: if isAuth();
+      allow create: if isAuth() && hasSchoolId();
+      allow update, delete: if isAuth();
     }
 
     // ==============================
@@ -59,13 +74,19 @@ service cloud.firestore {
     // contractors — الموردون والمقاولون
     // ==============================
     match /contractors_suppliers/{docId} {
-      allow read, write: if isAuth();
+      allow read: if isAuth();
+      allow create: if isAuth() && hasSchoolId();
+      allow update, delete: if isAuth();
     }
     match /contractors_purchases/{docId} {
-      allow read, write: if isAuth();
+      allow read: if isAuth();
+      allow create: if isAuth() && hasSchoolId();
+      allow update, delete: if isAuth();
     }
     match /contractors_contracts/{docId} {
-      allow read, write: if isAuth();
+      allow read: if isAuth();
+      allow create: if isAuth() && hasSchoolId();
+      allow update, delete: if isAuth();
     }
   }
 }

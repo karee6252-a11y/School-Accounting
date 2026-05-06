@@ -116,7 +116,8 @@
             <label class="form-label">الحالة</label>
             <select class="form-select" id="filterStatus" onchange="applyFilters()">
               <option value="">الكل</option>
-              <option value="pending">متبقية</option>
+              <option value="pending">متبقية (لم يُدفع شيء)</option>
+              <option value="partial">جزئية (دفع جزء)</option>
               <option value="settled">مسددة</option>
             </select>
           </div>
@@ -258,7 +259,8 @@
     filteredDebts = allDebts.filter(d => {
       if (name  && !(d.studentName||'').toLowerCase().includes(name)) return false;
       if (stage && d.stage !== stage) return false;
-      if (status === 'pending'  && (d.remaining||0) <= 0) return false;
+      if (status === 'pending'  && !((d.remaining||0) > 0 && (d.paid||0) === 0)) return false;
+      if (status === 'partial'  && !((d.remaining||0) > 0 && (d.paid||0) > 0))  return false;
       if (status === 'settled'  && (d.remaining||0) > 0)  return false;
       return true;
     });
