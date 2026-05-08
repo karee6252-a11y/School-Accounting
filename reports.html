@@ -79,11 +79,18 @@
   let currentPeriod = 'daily';
   let currentData = [];
 
+  function localDateStr(d) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0');
+  }
+
   function init() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateStr(new Date());
     document.getElementById('filterDate').value = today;
-    const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-    document.getElementById('filterWeekStart').value = weekStart.toISOString().split('T')[0];
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    document.getElementById('filterWeekStart').value = localDateStr(weekStart);
     document.getElementById('filterMonth').value = today.substring(0,7);
     document.getElementById('filterFrom').value = today;
     document.getElementById('filterTo').value = today;
@@ -109,10 +116,10 @@
       const d = document.getElementById('filterDate').value || today.toISOString().split('T')[0];
       from = d; to = d;
     } else if (currentPeriod === 'weekly') {
-      const start = new Date(document.getElementById('filterWeekStart').value || today);
+      const start = new Date(document.getElementById('filterWeekStart').value + 'T00:00:00');
       const end = new Date(start); end.setDate(end.getDate() + 6);
-      from = start.toISOString().split('T')[0];
-      to = end.toISOString().split('T')[0];
+      from = localDateStr(start);
+      to = localDateStr(end);
     } else if (currentPeriod === 'monthly') {
       const month = document.getElementById('filterMonth').value || today.toISOString().substring(0,7);
       const [y, m] = month.split('-').map(Number);
@@ -188,8 +195,17 @@
         `;
         tbody.appendChild(tr);
       });
-      const colspan = isDaily ? 6 : 5;
-      tfoot.innerHTML = `<tr class="table-footer-total"><td colspan="${colspan}" style="padding:0.75rem 1rem;font-weight:800">الاجمالي (${currentData.length} عملية)</td><td style="padding:0.75rem 1rem;font-weight:900;font-size:1.05rem">${formatCurrency(total)}</td>${isDaily ? `<td style="padding:0.75rem 1rem;font-weight:900;color:#c0392b">${totalDebt>0?formatCurrency(totalDebt):'-'}</td>` : ''}<td colspan="${isDaily?4:5}"></td></tr>`;
+      // الأعمدة الظاهرة:
+      // يومي (12): م، تاريخ، طالب، مرحلة، صف، بند، مبلغ، مديونية، دفع، إيصال، ملاحظات، إجراء
+      // غير يومي (10): م، تاريخ، مرحلة، صف، بند، مبلغ، دفع، إيصال، ملاحظات، إجراء
+      const labelColspan = isDaily ? 6 : 5;   // حتى عمود "بند الدفع"
+      const trailColspan = isDaily ? 4 : 4;   // دفع + إيصال + ملاحظات + إجراء
+      tfoot.innerHTML = `<tr class="table-footer-total">
+        <td colspan="${labelColspan}" style="padding:0.75rem 1rem;font-weight:800">الإجمالي (${currentData.length} عملية)</td>
+        <td style="padding:0.75rem 1rem;font-weight:900;font-size:1.05rem">${formatCurrency(total)}</td>
+        ${isDaily ? `<td style="padding:0.75rem 1rem;font-weight:900;color:#c0392b">${totalDebt>0?formatCurrency(totalDebt):'-'}</td>` : ''}
+        <td colspan="${trailColspan}"></td>
+      </tr>`;
     }
     document.getElementById('summaryTotal').textContent = formatCurrency(total);
     document.getElementById('summaryCount').textContent = currentData.length;
@@ -234,7 +250,7 @@
     const schoolName = school?.name || 'المدرسة';
     const YEAR = '2026/2027';
     const DAYS_AR_W = ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
-    const GRADES_LIST = ['Pre KG','KG 1','KG 2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
+    const GRADES_LIST = ['Pre-KG','KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
 
     // ── ألوان المدرسة ──
     const rawPrimary = (school?.primaryColor || '#1E2D5A').replace('#','');
@@ -333,11 +349,18 @@
       const out = { fees:0, disc:d.discount||0, file:0, uni:0, bus:0, app:0, other:0 };
 
       function assignItem(itemName, itemAmt) {
-        if      (itemName === 'مصروفات دراسية' || itemName.includes('مصروفات')) { out.fees += itemAmt; }
-        else if (itemName === 'فايل'            || itemName.includes('فايل'))    { out.file += itemAmt; }
-        else if (itemName === 'يونيفورم'        || itemName.includes('يونيفورم')){ out.uni  += itemAmt; }
-        else if (itemName === 'باص'             || itemName.includes('باص'))     { out.bus  += itemAmt; }
-        else if (itemName === 'أبليكيشن'        || itemName.includes('أبليكيشن')){ out.app  += itemAmt; }
+        const name = (itemName || '').trim();
+        if      (name === 'مصروفات دراسية' || name === 'مصروفات') { out.fees += itemAmt; }
+        else if (name === 'فايل')                                   { out.file += itemAmt; }
+        else if (name === 'يونيفورم')                              { out.uni  += itemAmt; }
+        else if (name === 'باص')                                    { out.bus  += itemAmt; }
+        else if (name === 'أبليكيشن')                              { out.app  += itemAmt; }
+        // fallback includes (للأسماء الطويلة أو المختلفة قليلاً)
+        else if (name.includes('مصروفات'))  { out.fees += itemAmt; }
+        else if (name.includes('فايل'))     { out.file += itemAmt; }
+        else if (name.includes('يونيفورم')) { out.uni  += itemAmt; }
+        else if (name.includes('باص'))      { out.bus  += itemAmt; }
+        else if (name.includes('أبليكيشن')) { out.app  += itemAmt; }
         else { out.other += itemAmt; }
       }
 
@@ -354,8 +377,14 @@
       } else {
         // fallback على paymentItem string
         const amt  = d.amount || 0;
-        const item = d.paymentItem || '';
-        assignItem(item, amt);
+        const itemStr = d.paymentItem || '';
+        // لو فيه " + " يعني بنود متعددة — قسّم بالتساوي
+        if (itemStr.includes('+')) {
+          const parts = itemStr.split('+').map(s => s.trim()).filter(Boolean);
+          parts.forEach(part => assignItem(part, amt / parts.length));
+        } else {
+          assignItem(itemStr, amt);
+        }
       }
 
       return out;
@@ -378,7 +407,9 @@
       const b1 = titleRow(ws, `إيراد ${schoolName} — العام الدراسي ${YEAR}`, PRI, WHT, 14, MCOL);
       ws.getCell(`A${b1.number}`).alignment = cAlign(true);
 
-      const b2 = ws.addRow([`اليوم :  ${new Date(from+'T00:00:00').toLocaleDateString('ar-EG',{weekday:'long'})}     التاريخ :  ${from}     الأسبوع رقم : 1`]);
+      const _d0 = new Date(from+'T00:00:00');
+      const _wkNum = Math.ceil(_d0.getDate() / 7);
+      const b2 = ws.addRow([`اليوم :  ${_d0.toLocaleDateString('ar-EG',{weekday:'long'})}     التاريخ :  ${from}     الأسبوع رقم : ${_wkNum}`]);
       ws.mergeCells(`A${b2.number}:${MCOL}${b2.number}`);
       styleRow(b2, SEC, WHT, true, 11); b2.height = 22;
 
@@ -493,8 +524,10 @@
       const MCOL = 'O';
 
       // ── بانر ──
+      const _wkStart = new Date(from + 'T00:00:00');
+      const _wkNum = Math.ceil(_wkStart.getDate() / 7);
       titleRow(ws, `التقرير المالي الأسبوعي  •  ${schoolName}`, PRI, WHT, 14, MCOL);
-      const infoR = ws.addRow([`الأسبوع رقم : 1          الفترة الزمنية : ${from}   ←   ${to}          العام الدراسي : ${YEAR}`]);
+      const infoR = ws.addRow([`الأسبوع رقم : ${_wkNum}          الفترة الزمنية : ${from}   ←   ${to}          العام الدراسي : ${YEAR}`]);
       ws.mergeCells(`A${infoR.number}:${MCOL}${infoR.number}`);
       styleRow(infoR, SEC, WHT, true, 11); infoR.height = 22;
       ws.addRow([]);
@@ -508,10 +541,15 @@
       // توزيع البيانات على الأيام
       const dayMap = {};
       DAYS_AR_W.forEach(d => dayMap[d] = { fees:0,disc:0,file:0,uni:0,bus:0,app:0,other:0, date:'' });
+      // getDay(): 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+      // DAYS_AR_W:  [السبت, الأحد, الاثنين, الثلاثاء, الأربعاء, الخميس]
+      const DAY_MAP_IDX = {6:0, 0:1, 1:2, 2:3, 3:4, 4:5}; // Sat→0,Sun→1,...,Thu→5
       currentData.forEach(d => {
         const dDate = new Date(d.date + 'T00:00:00');
-        const dayIndex = dDate.getDay(); // 0=Sun..6=Sat
-        const dayAr = DAYS_AR_W[dayIndex === 6 ? 0 : dayIndex]; // السبت=0
+        const jsDay = dDate.getDay();
+        const idx = DAY_MAP_IDX[jsDay];
+        if (idx === undefined) return; // الجمعة مش في الأسبوع
+        const dayAr = DAYS_AR_W[idx];
         if (dayMap[dayAr] !== undefined) {
           const m = mapAmounts(d);
           Object.keys(m).forEach(k => { if(dayMap[dayAr][k] !== undefined) dayMap[dayAr][k] += m[k]; });
@@ -556,7 +594,9 @@
       DAYS_AR_W.forEach(d => expByDay[d] = 0);
       expensesData.forEach(e => {
         const di = new Date(e.date+'T00:00:00').getDay();
-        const dayAr = DAYS_AR_W[di === 6 ? 0 : di];
+        const idx = DAY_MAP_IDX[di];
+        if (idx === undefined) return;
+        const dayAr = DAYS_AR_W[idx];
         if (expByDay[dayAr] !== undefined) expByDay[dayAr] += e.amount || 0;
       });
 
@@ -613,10 +653,11 @@
       // ── قسم رابعاً: الموقف المالي الإجمالي ──
       sectionRow(ws, '④', 'رابعاً : الموقف المالي الإجمالي للأسبوع', SEC, MCOL);
       hdrRow(ws,
-        ['المديونية السابقة','','','الإيراد الأسبوعي','','','المصروفات','','خصومات','','الإيراد المسلم للإدارة','','المديونية الفعلية','',''],
+        ['المديونية السابقة','','','الإيراد الأسبوعي','','','المصروفات','','خصومات','','صافي الأسبوع','','المديونية الفعلية','',''],
         SEC, [['A','C'],['D','F'],['G','H'],['I','J'],['K','L'],['M','O']]);
 
-      const mfRow = ws.addRow([0,'','', wkTotal,'','', expGrandTotal,'', 0,'', 0,'', 0,'','']);
+      const wkNetRevenue = wkTotal - expGrandTotal;
+      const mfRow = ws.addRow([0,'','', wkTotal,'','', expGrandTotal,'', 0,'', wkNetRevenue,'', 0,'','']);
       mfRow.height = 30;
       ws.mergeCells(`A${mfRow.number}:C${mfRow.number}`);
       ws.mergeCells(`D${mfRow.number}:F${mfRow.number}`);
@@ -624,13 +665,19 @@
       ws.mergeCells(`I${mfRow.number}:J${mfRow.number}`);
       ws.mergeCells(`K${mfRow.number}:L${mfRow.number}`);
       ws.mergeCells(`M${mfRow.number}:O${mfRow.number}`);
-      [[1,ACC,BLK],[4,ACC,BLK],[7,ACC,BLK],[9,ACC,BLK],[11,ACC,BLK],[13,SEC,WHT]].forEach(([ci,bg,fc]) => {
+      [[1,ACC,BLK],[4,ACC,BLK],[7,ACC,BLK],[9,ACC,BLK],[13,ACC,BLK]].forEach(([ci,bg,fc]) => {
         mfRow.getCell(ci).fill = hFill(bg);
         mfRow.getCell(ci).font = {name:'Arial',bold:true,size:13,color:{argb:fc}};
         mfRow.getCell(ci).alignment = cAlign();
         mfRow.getCell(ci).border = medBorder();
         numFmt(mfRow.getCell(ci));
       });
+      // خلية صافي الأسبوع — لون حسب الإشارة
+      mfRow.getCell(11).fill = hFill(wkNetRevenue >= 0 ? 'FF1B5E20' : 'FFC00000');
+      mfRow.getCell(11).font = {name:'Arial',bold:true,size:14,color:{argb:WHT}};
+      mfRow.getCell(11).alignment = cAlign();
+      mfRow.getCell(11).border = medBorder();
+      numFmt(mfRow.getCell(11));
 
       ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:4, activeCell:'A5' }];
 
@@ -661,36 +708,45 @@
         ['م','الأسبوع','مصروفات دراسية','خصم','فايل','يونيفورم','باص','أبليكيشن','إيرادات أخرى','إجمالي الإيرادات','المصروفات'],
         SEC, []);
 
-      // توزيع على الأسابيع (تقريب)
+      // توزيع على 4 أسابيع ثابتة: 1-7 / 8-14 / 15-21 / 22-نهاية الشهر
+      const WEEK_RANGES = [
+        { key:'الأسبوع الأول  (1-7)',    from:1,  to:7  },
+        { key:'الأسبوع الثاني (8-14)',   from:8,  to:14 },
+        { key:'الأسبوع الثالث (15-21)', from:15, to:21 },
+        { key:'الأسبوع الرابع (22-نهاية)', from:22, to:31 },
+      ];
       const weekBuckets = {};
+      WEEK_RANGES.forEach(w => { weekBuckets[w.key] = {fees:0,disc:0,file:0,uni:0,bus:0,app:0,other:0}; });
+
       currentData.forEach(d => {
-        const dt = new Date(d.date+'T00:00:00');
-        const wk = Math.ceil((dt.getDate()) / 7);
-        const wkKey = `الأسبوع ${wk}`;
-        if (!weekBuckets[wkKey]) weekBuckets[wkKey] = {fees:0,disc:0,file:0,uni:0,bus:0,app:0,other:0};
+        const day = new Date(d.date+'T00:00:00').getDate();
+        const wr = WEEK_RANGES.find(w => day >= w.from && day <= w.to);
+        if (!wr) return;
         const m = mapAmounts(d);
-        Object.keys(m).forEach(k => weekBuckets[wkKey][k] += m[k]);
+        Object.keys(m).forEach(k => weekBuckets[wr.key][k] += m[k]);
       });
+
       const expWeekBuckets = {};
+      WEEK_RANGES.forEach(w => { expWeekBuckets[w.key] = 0; });
       expensesData.forEach(e => {
-        const dt = new Date(e.date+'T00:00:00');
-        const wkKey = `الأسبوع ${Math.ceil(dt.getDate()/7)}`;
-        if (!expWeekBuckets[wkKey]) expWeekBuckets[wkKey] = 0;
-        expWeekBuckets[wkKey] += e.amount || 0;
+        const day = new Date(e.date+'T00:00:00').getDate();
+        const wr = WEEK_RANGES.find(w => day >= w.from && day <= w.to);
+        if (!wr) return;
+        expWeekBuckets[wr.key] += e.amount || 0;
       });
 
       const monthTotals = {fees:0,disc:0,file:0,uni:0,bus:0,app:0,other:0};
       let monthExpTotal = 0;
-      const weeks = Object.keys(weekBuckets).length > 0 ? Object.keys(weekBuckets) : ['الأسبوع 1'];
+      const weeks = WEEK_RANGES.map(w => w.key);
       weeks.forEach((wk,i) => {
-        const wb2 = weekBuckets[wk] || {};
+        const wkData = weekBuckets[wk] || {};
         const wkExp = expWeekBuckets[wk] || 0;
-        const wkRev = (wb2.fees||0)+(wb2.file||0)+(wb2.uni||0)+(wb2.bus||0)+(wb2.app||0)+(wb2.other||0);
-        Object.keys(monthTotals).forEach(k => monthTotals[k] += wb2[k]||0);
+        const wkRev = (wkData.fees||0)+(wkData.file||0)+(wkData.uni||0)+(wkData.bus||0)+(wkData.app||0)+(wkData.other||0);
+        Object.keys(monthTotals).forEach(k => monthTotals[k] += wkData[k]||0);
         monthExpTotal += wkExp;
         const r = dataRow(ws,
-          [i+1, wk, wb2.fees||'', wb2.disc||'', wb2.file||'',
-           wb2.uni||'', wb2.bus||'', wb2.app||'', wb2.other||'', wkRev||'', wkExp||''],
+          [i+1, wk, wkData.fees||'', wkData.disc||'', wkData.file||'',
+           wkData.uni||'', wkData.bus||'', wkData.app||'', wkData.other||'', wkRev||'', wkExp||''],
           i%2===1);
         [3,4,5,6,7,8,9,10,11].forEach(ci => { if(r.getCell(ci).value) numFmt(r.getCell(ci)); });
       });
@@ -721,13 +777,17 @@
       GRADES_LIST.forEach((grade,i) => {
         const collected = gradeTotalsM[grade] || 0;
         totalCollected += collected;
-        const pct = collected > 0 ? '✓' : '-';
-        const r = dataRow(ws, [i+1, grade, 0, collected||'', 0, collected ? 0 : '-', pct, '', '', '', ''], i%2===1);
+        const pct = collected > 0 ? '✓ تحصيل' : '—';
+        const r = dataRow(ws, [i+1, grade, '—', collected||0, '—', '—', pct, '', '', '', ''], i%2===1);
         ws.mergeCells(`G${r.number}:K${r.number}`);
         if(r.getCell(4).value) numFmt(r.getCell(4));
+        // لون خلية المحصل
+        if (collected > 0) {
+          r.getCell(4).font = {name:'Arial',bold:true,size:10,color:{argb:'FF1B5E20'}};
+        }
       });
 
-      const str = totalRow(ws, ['الإجمالي','', 0, totalCollected, 0, 0,'','','','',''], TOTBG, [['A','B'],['G','K']]);
+      const str = totalRow(ws, ['الإجمالي','', '—', totalCollected, '—', '—','','','','',''], TOTBG, [['A','B'],['G','K']]);
       numFmt(str.getCell(4));
 
       ws.addRow([]);
@@ -889,23 +949,13 @@
       // ── جدول الإيرادات ──
       let y = sectionTitle(doc, '① الإيرادات اليومية', 46);
 
-      const mapA = d => {
-        const a    = d.amount||0;
-        const item = d.paymentItem||'';
-        if      (item === 'مصروفات دراسية' || item.includes('مصروفات دراسية')) return [a,'','','','',''];
-        else if (item === 'فايل'           || item.includes('فايل'))           return ['',a,'','','',''];
-        else if (item === 'يونيفورم'       || item.includes('يونيفورم'))       return ['','',a,'','',''];
-        else if (item === 'باص'            || item.includes('باص'))            return ['','','',a,'',''];
-        else if (item === 'أبليكيشن'       || item.includes('أبليكيشن'))       return ['','','','',a,''];
-        else                                                                    return ['','','','','',a];
-      };
       const totC = {fees:0,file:0,uni:0,bus:0,app:0,other:0};
       const bodyRows = currentData.map((d,i) => {
-        const [fees,file,uni,bus,app,other] = mapA(d);
-        totC.fees +=(fees||0); totC.file+=(file||0); totC.uni+=(uni||0);
-        totC.bus  +=(bus ||0); totC.app+=(app ||0); totC.other+=(other||0);
+        const m = mapAmounts(d);
+        totC.fees +=m.fees; totC.file+=m.file; totC.uni+=m.uni;
+        totC.bus  +=m.bus;  totC.app+=m.app;   totC.other+=m.other;
         return [i+1, d.date, d.studentName, d.grade,
-                fees||'-', file||'-', uni||'-', bus||'-', app||'-', other||'-',
+                m.fees||'-', m.file||'-', m.uni||'-', m.bus||'-', m.app||'-', m.other||'-',
                 formatCurrency(d.amount), d.debt>0?formatCurrency(d.debt):'-',
                 d.paymentTypeName||d.paymentType, d.receiptNumber||'-'];
       });
@@ -970,20 +1020,17 @@
 
       const dayMap = {};
       DAYS_AR.forEach(d => dayMap[d] = {fees:0,file:0,uni:0,bus:0,app:0,other:0,date:''});
+      // getDay(): 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+      // DAYS_AR:  [السبت=6, الأحد=0, الاثنين=1, الثلاثاء=2, الأربعاء=3, الخميس=4]
+      const DAY_MAP_PDF = {6:0, 0:1, 1:2, 2:3, 3:4, 4:5};
       currentData.forEach(d => {
         const di = new Date(d.date+'T00:00:00').getDay();
-        const dayAr = DAYS_AR[di===6?0:di];
+        const idx = DAY_MAP_PDF[di];
+        if (idx === undefined) return; // الجمعة مش في الأسبوع
+        const dayAr = DAYS_AR[idx];
         if (dayMap[dayAr]) {
-          const a    = d.amount||0;
-          const item = d.paymentItem||'';
-          let m = {};
-          if      (item === 'مصروفات دراسية' || item.includes('مصروفات دراسية')) m = {fees:a};
-          else if (item === 'فايل'           || item.includes('فايل'))           m = {file:a};
-          else if (item === 'يونيفورم'       || item.includes('يونيفورم'))       m = {uni:a};
-          else if (item === 'باص'            || item.includes('باص'))            m = {bus:a};
-          else if (item === 'أبليكيشن'       || item.includes('أبليكيشن'))       m = {app:a};
-          else                                                                    m = {other:a};
-          Object.entries(m).forEach(([k,v]) => { dayMap[dayAr][k]=(dayMap[dayAr][k]||0)+v; });
+          const m = mapAmounts(d);
+          Object.keys(m).forEach(k => { if(dayMap[dayAr][k] !== undefined) dayMap[dayAr][k] += m[k]; });
           if (!dayMap[dayAr].date) dayMap[dayAr].date = d.date;
         }
       });
@@ -1014,7 +1061,7 @@
       let y2 = doc.lastAutoTable.finalY + 6;
       if (y2 > PH-40) { doc.addPage(); pageNum++; drawPageHeader(pageNum); y2=34; }
       y2 = sectionTitle(doc, '② تحصيل المراحل الأسبوعي', y2);
-      const GRADES_LIST2 = ['Pre KG','KG 1','KG 2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
+      const GRADES_LIST2 = ['Pre-KG','KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
       const gradeTotals2 = {};
       currentData.forEach(d => { gradeTotals2[d.grade] = (gradeTotals2[d.grade]||0)+(d.amount||0); });
       let stageTotal2 = 0;
@@ -1034,7 +1081,7 @@
     // ③ شهري / مخصص
     // ==============================================================
     } else {
-      const GRADES_LIST3 = ['Pre KG','KG 1','KG 2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
+      const GRADES_LIST3 = ['Pre-KG','KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
       let pageNum = 1;
       drawPageHeader(pageNum);
       drawSummaryBox(29);
@@ -1044,14 +1091,9 @@
       currentData.forEach(d => {
         const wk = `الأسبوع ${Math.ceil(new Date(d.date+'T00:00:00').getDate()/7)}`;
         if (!weekBuckets[wk]) weekBuckets[wk] = {fees:0,disc:0,file:0,uni:0,bus:0,app:0,other:0};
-        const a    = d.amount||0;
-        const item = d.paymentItem||'';
-        if      (item === 'مصروفات دراسية' || item.includes('مصروفات دراسية')) weekBuckets[wk].fees +=a;
-        else if (item === 'فايل'           || item.includes('فايل'))           weekBuckets[wk].file +=a;
-        else if (item === 'يونيفورم'       || item.includes('يونيفورم'))       weekBuckets[wk].uni  +=a;
-        else if (item === 'باص'            || item.includes('باص'))            weekBuckets[wk].bus  +=a;
-        else if (item === 'أبليكيشن'       || item.includes('أبليكيشن'))       weekBuckets[wk].app  +=a;
-        else                                                                    weekBuckets[wk].other+=a;
+        // استخدم mapAmounts للتوزيع الصحيح
+        const m = mapAmounts(d);
+        Object.keys(m).forEach(k => { if(weekBuckets[wk][k] !== undefined) weekBuckets[wk][k] += m[k]; });
       });
 
       const monthTotals = {fees:0,file:0,uni:0,bus:0,app:0,other:0};

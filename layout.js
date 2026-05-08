@@ -50,6 +50,7 @@ function renderLayout(activePage, pageTitle) {
     { id: 'expenses',       icon: '', label: 'بند المصروفات',         href: 'expenses.html' },
     { id: 'contractors',    icon: '', label: 'الموردون والمقاولون',   href: 'contractors.html' },
     { id: 'reports',        icon: '', label: 'التقارير والشيتات',     href: 'reports.html' },
+    { id: 'party',          icon: '', label: 'تسجيل الحفلة',          href: 'party.html' },
   ];
 
   if (isAdmin) {

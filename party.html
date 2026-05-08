@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تسجيل الحفلة - نظام المحاسبة</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ===== PARTY PAGE STYLES ===== */
+    .party-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      background: var(--card-bg);
+      padding: 0.5rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .party-tab {
+      flex: 1;
+      min-width: 120px;
+      padding: 0.65rem 1rem;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-mid);
+      font-family: 'Cairo', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: center;
+    }
+    .party-tab.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .party-tab:not(.active):hover {
+      background: var(--accent);
+      color: var(--primary);
+    }
+
+    /* TYPE TOGGLE */
+    .type-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .type-card {
+      border: 3px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: center;
+      background: var(--card-bg);
+      position: relative;
+      overflow: hidden;
+    }
+    .type-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--primary);
+      opacity: 0;
+      transition: var(--transition);
+    }
+    .type-card.selected {
+      border-color: var(--primary);
+      background: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+    .type-card .type-icon { font-size: 2.5rem; margin-bottom: 0.5rem; display: block; }
+    .type-card .type-label { font-size: 1rem; font-weight: 800; color: var(--text-dark); }
+    .type-card .type-price {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.2rem 0.75rem;
+      background: var(--primary);
+      color: white;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .type-card.selected .type-price { background: var(--secondary, #c8a951); }
+    .type-check {
+      position: absolute;
+      top: 0.75rem;
+      left: 0.75rem;
+      width: 22px; height: 22px;
+      border: 2.5px solid var(--border);
+      border-radius: 50%;
+      background: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      transition: var(--transition);
+    }
+    .type-card.selected .type-check {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    /* QR MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .modal-overlay.show { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: white;
+      border-radius: 20px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+      transform: scale(0.9) translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      text-align: center;
+    }
+    .modal-overlay.show .modal-box {
+      transform: scale(1) translateY(0);
+    }
+
+    .qr-ticket {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark,#0d2247) 100%);
+      border-radius: 16px;
+      padding: 1.5rem;
+      color: white;
+      margin-bottom: 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .qr-ticket::before {
+      content: '🎉';
+      position: absolute;
+      font-size: 6rem;
+      opacity: 0.07;
+      top: -1rem;
+      right: -1rem;
+    }
+    .qr-ticket .ticket-school { font-size: 0.75rem; opacity: 0.7; margin-bottom: 0.5rem; }
+    .qr-ticket .ticket-name { font-size: 1.3rem; font-weight: 900; margin-bottom: 0.25rem; }
+    .qr-ticket .ticket-info { font-size: 0.85rem; opacity: 0.8; margin-bottom: 1rem; }
+    .qr-ticket .ticket-type-badge {
+      display: inline-block;
+      padding: 0.2rem 0.75rem;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .qr-canvas-wrap {
+      background: white;
+      border-radius: 12px;
+      padding: 0.75rem;
+      display: inline-block;
+      margin: 0 auto;
+    }
+    .qr-ticket .ticket-id {
+      margin-top: 0.75rem;
+      font-size: 0.7rem;
+      opacity: 0.5;
+      font-family: monospace;
+      letter-spacing: 1px;
+    }
+
+    /* ATTENDEES TABLE */
+    .attendee-row { cursor: pointer; }
+    .attendee-row:hover { background: var(--accent); }
+
+    /* STATS BAR */
+    .party-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .party-stat {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .party-stat .ps-icon { font-size: 1.5rem; }
+    .party-stat .ps-val { font-size: 1.5rem; font-weight: 900; color: var(--primary); }
+    .party-stat .ps-label { font-size: 0.75rem; color: var(--text-light); font-weight: 600; }
+
+    /* SEND MODAL */
+    .send-options { display: flex; flex-direction: column; gap: 0.75rem; }
+    .send-opt-btn {
+      display: flex; align-items: center; gap: 1rem;
+      padding: 0.875rem 1.25rem;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--card-bg);
+      cursor: pointer;
+      font-family: 'Cairo', sans-serif;
+      font-size: 0.9rem; font-weight: 700;
+      color: var(--text-dark);
+      transition: var(--transition);
+      text-decoration: none;
+      text-align: right;
+    }
+    .send-opt-btn:hover { border-color: var(--primary); background: var(--accent); }
+    .send-opt-btn .opt-icon { font-size: 1.5rem; }
+    .send-opt-btn .opt-text .opt-label { display: block; font-weight: 800; }
+    .send-opt-btn .opt-text .opt-sub { display: block; font-size: 0.75rem; color: var(--text-light); font-weight: 400; }
+
+    @media (max-width: 600px) {
+      .type-toggle { grid-template-columns: 1fr 1fr; }
+      .party-stats { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* PRINT TICKET */
+    @media print {
+      .app-layout > * { display: none !important; }
+      .print-ticket-area { display: block !important; }
+    }
+    .print-ticket-area { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div id="topbarContainer"></div>
+
+    <div class="page-content">
+
+      <!-- STATS BAR -->
+      <div class="party-stats animate-in" id="partyStats">
+        <div class="party-stat">
+          <span class="ps-icon">🎓</span>
+          <span class="ps-val" id="statStudCount">0</span>
+          <span class="ps-label">طلاب مسجلين</span>
+        </div>
+        <div class="party-stat">
+          <span class="ps-icon">👥</span>
+          <span class="ps-val" id="statCompCount">0</span>
+          <span class="ps-label">مرافقين</span>
+        </div>
+        <div class="party-stat">
+          <span class="ps-icon">✅</span>
+          <span class="ps-val" id="statAttended">0</span>
+          <span class="ps-label">دخلوا الحفلة</span>
+        </div>
+        <div class="party-stat">
+          <span class="ps-icon">💰</span>
+          <span class="ps-val" id="statRevenue">0</span>
+          <span class="ps-label">إجمالي الإيراد (ج.م)</span>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="party-tabs animate-in">
+        <button class="party-tab active" onclick="showTab('register', this)">📝 تسجيل جديد</button>
+        <button class="party-tab" onclick="showTab('scan', this)">🔍 بحث بالكود</button>
+        <button class="party-tab" onclick="showTab('list', this)">📋 قائمة المسجلين</button>
+      </div>
+
+      <!-- ===================== TAB 1: REGISTER ===================== -->
+      <div id="tab-register" class="animate-in">
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;align-items:start">
+
+          <!-- FORM -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🎉 تسجيل في الحفلة</span>
+              <span class="badge badge-primary" id="formBadge">جديد</span>
+            </div>
+            <div class="card-body">
+
+              <div class="alert hidden" id="regAlert"></div>
+
+              <!-- TYPE SELECTION -->
+              <div class="form-group">
+                <label class="form-label">نوع التذكرة <span class="required">*</span></label>
+                <div class="type-toggle">
+                  <div class="type-card selected" id="typeStudent" onclick="selectType('student')">
+                    <div class="type-check">✓</div>
+                    <span class="type-icon">🎓</span>
+                    <div class="type-label">طالب</div>
+                    <span class="type-price">300 ج.م</span>
+                  </div>
+                  <div class="type-card" id="typeCompanion" onclick="selectType('companion')">
+                    <div class="type-check"></div>
+                    <span class="type-icon">👤</span>
+                    <div class="type-label">مرافق</div>
+                    <span class="type-price">150 ج.م</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- STUDENT FIELDS -->
+              <div id="studentFields">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">اسم الطالب <span class="required">*</span></label>
+                    <input type="text" class="form-input form-input-ar" id="regName"
+                      placeholder="الاسم كاملاً" list="studentSuggestList" oninput="fetchStudentSuggestions()" />
+                    <datalist id="studentSuggestList"></datalist>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">الصف <span class="required">*</span></label>
+                    <select class="form-select" id="regGrade">
+                      <option value="">اختر الصف</option>
+                      <option value="Pre-KG">Pre-KG</option>
+                      <option value="KG1">KG1</option>
+                      <option value="KG2">KG2</option>
+                      <option value="Grade 1">Grade 1</option>
+                      <option value="Grade 2">Grade 2</option>
+                      <option value="Grade 3">Grade 3</option>
+                      <option value="Grade 4">Grade 4</option>
+                      <option value="Grade 5">Grade 5</option>
+                      <option value="Grade 6">Grade 6</option>
+                      <option value="Prep 1">Prep 1</option>
+                      <option value="Prep 2">Prep 2</option>
+                      <option value="Prep 3">Prep 3</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- COMPANION FIELDS -->
+              <div id="companionFields" style="display:none">
+                <div class="form-group">
+                  <label class="form-label">اسم المرافق <span class="required">*</span></label>
+                  <input type="text" class="form-input form-input-ar" id="regCompName"
+                    placeholder="اسم المرافق كاملاً" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">اسم الطالب المرتبط (اختياري)</label>
+                  <input type="text" class="form-input form-input-ar" id="regLinkedStudent"
+                    placeholder="اسم الطالب الذي يرافقه" list="studentSuggestList2" />
+                  <datalist id="studentSuggestList2"></datalist>
+                </div>
+              </div>
+
+              <!-- COMMON FIELDS -->
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">رقم التليفون <span class="required">*</span></label>
+                  <input type="tel" class="form-input" id="regPhone"
+                    placeholder="01xxxxxxxxx" dir="ltr" style="text-align:right" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">طريقة الدفع <span class="required">*</span></label>
+                  <select class="form-select" id="regPayType">
+                    <option value="">اختر</option>
+                    <option value="cash">نقدي</option>
+                    <option value="bank_transfer">تحويل بنكي</option>
+                    <option value="instapay">إنستاباي</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">ملاحظات (اختياري)</label>
+                <textarea class="form-textarea" id="regNotes" rows="2" placeholder="أي ملاحظات..."></textarea>
+              </div>
+
+              <!-- PRICE DISPLAY -->
+              <div style="background:var(--accent);border-radius:var(--radius-sm);padding:0.875rem 1rem;display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;border:1px solid var(--primary-light)">
+                <span style="font-weight:700;color:var(--text-mid)">المبلغ المطلوب</span>
+                <span style="font-size:1.4rem;font-weight:900;color:var(--primary)" id="priceDisplay">300 ج.م</span>
+              </div>
+
+              <div style="display:flex;gap:0.75rem">
+                <button class="btn btn-primary flex-1" id="saveRegBtn" onclick="saveRegistration()">
+                  💾 حفظ وإنشاء QR
+                </button>
+                <button class="btn btn-outline" onclick="resetRegForm()">تفريغ</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- RECENT REGISTRATIONS PANEL -->
+          <div style="position:sticky;top:calc(var(--header-height) + 1.5rem)">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">آخر التسجيلات</span>
+                <span class="badge badge-primary" id="recentCount">0</span>
+              </div>
+              <div id="recentList" style="max-height:500px;overflow-y:auto">
+                <div style="padding:1.5rem;text-align:center;color:var(--text-light)">لا يوجد بعد</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ===================== TAB 2: SCAN / LOOKUP ===================== -->
+      <div id="tab-scan" style="display:none" class="animate-in">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🔍 بحث بكود التذكرة</span>
+          </div>
+          <div class="card-body">
+            <div style="max-width:520px;margin:0 auto">
+              <label class="form-label">سكان الـ QR أو اكتب الكود يدوياً</label>
+              <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem">
+                <input type="text" class="form-input" id="scanInput"
+                  placeholder="PARTY-STU-XXXXXX-XXXX" dir="ltr"
+                  style="font-family:monospace;letter-spacing:1px"
+                  oninput="this.value=this.value.toUpperCase()"
+                  onkeydown="if(event.key==='Enter') lookupTicket()" />
+                <button class="btn btn-primary" onclick="lookupTicket()" style="white-space:nowrap">بحث ✓</button>
+              </div>
+              <div style="font-size:0.78rem;color:var(--text-light)">
+                💡 سكان الـ QR بأي تطبيق وسيُملأ الكود تلقائياً، ثم اضغط بحث
+              </div>
+            </div>
+            <div id="scanResultArea" style="max-width:520px;margin:1.5rem auto 0;display:none"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== TAB 3: LIST ===================== -->
+      <div id="tab-list" style="display:none" class="animate-in">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📋 قائمة المسجلين</span>
+            <div style="display:flex;gap:0.5rem">
+              <button class="btn btn-sm btn-secondary" onclick="exportListExcel()">📊 Excel</button>
+              <button class="btn btn-sm btn-secondary" onclick="exportListPDF()">📄 PDF</button>
+            </div>
+          </div>
+          <div class="card-body" style="padding-bottom:0">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.75rem;margin-bottom:1rem">
+              <div>
+                <label class="form-label">بحث بالاسم</label>
+                <input type="text" class="form-input" id="listSearch" placeholder="ابحث..." oninput="filterList()" />
+              </div>
+              <div>
+                <label class="form-label">النوع</label>
+                <select class="form-select" id="listTypeFilter" onchange="filterList()">
+                  <option value="">الكل</option>
+                  <option value="student">طلاب</option>
+                  <option value="companion">مرافقين</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">الحالة</label>
+                <select class="form-select" id="listStatusFilter" onchange="filterList()">
+                  <option value="">الكل</option>
+                  <option value="registered">مسجل</option>
+                  <option value="attended">دخل الحفلة</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table" id="attendeeTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>الاسم</th>
+                  <th>النوع</th>
+                  <th>الصف</th>
+                  <th>التليفون</th>
+                  <th>الدفع</th>
+                  <th>الحالة</th>
+                  <th>وقت الدخول</th>
+                  <th>إجراء</th>
+                </tr>
+              </thead>
+              <tbody id="attendeeTableBody">
+                <tr><td colspan="9"><div class="loading-spinner"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== QR MODAL ===== -->
+<div class="modal-overlay" id="qrModal">
+  <div class="modal-box">
+    <div class="qr-ticket" id="qrTicket">
+      <div class="ticket-school" id="qrSchoolName">المدرسة</div>
+      <div class="ticket-name" id="qrName">-</div>
+      <div class="ticket-info" id="qrInfo">-</div>
+      <div class="ticket-type-badge" id="qrTypeBadge">-</div>
+      <div class="qr-canvas-wrap" id="qrCanvasWrap">
+        <!-- QR rendered here dynamically -->
+      </div>
+      <div class="ticket-id" id="qrTicketId">-</div>
+    </div>
+
+    <div style="margin-bottom:1rem">
+      <div style="font-size:0.8rem;color:var(--text-light);margin-bottom:0.5rem">إرسال التذكرة عبر</div>
+      <div class="send-options" id="sendOptions">
+        <!-- filled dynamically -->
+      </div>
+    </div>
+
+    <div style="display:flex;gap:0.5rem">
+      <button class="btn btn-secondary flex-1" onclick="printTicket()">🖨️ طباعة</button>
+      <button class="btn btn-primary flex-1" onclick="downloadQR()">⬇️ تحميل QR</button>
+    </div>
+    <button class="btn btn-outline w-full" style="margin-top:0.5rem" onclick="closeQRModal()">إغلاق</button>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="layout.js"></script>
+
+<!-- QR Code Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<!-- ExcelJS for export -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+
+<script>
+  renderLayout('party', 'تسجيل الحفلة 🎉');
+
+  const session = SESSION.get();
+  const schoolId = session.schoolId;
+  const school   = SESSION.getSchool();
+
+  const PRICES = { student: 300, companion: 150 };
+  let currentType = 'student';
+  let allAttendees = [];
+  let currentQRData = null;
+
+  // ==================== TABS ====================
+  function showTab(tab, btn) {
+    ['register','scan','list'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = (t === tab) ? 'block' : 'none';
+    });
+    document.querySelectorAll('.party-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (tab === 'list') loadAttendeeList();
+    if (tab === 'scan') {
+      document.getElementById('scanInput').focus();
+      document.getElementById('scanResultArea').style.display = 'none';
+      document.getElementById('scanInput').value = '';
+    }
+  }
+
+  // ==================== TYPE SELECT ====================
+  function selectType(type) {
+    currentType = type;
+    document.getElementById('typeStudent').classList.toggle('selected', type === 'student');
+    document.getElementById('typeCompanion').classList.toggle('selected', type === 'companion');
+    document.getElementById('typeStudent').querySelector('.type-check').textContent = type === 'student' ? '✓' : '';
+    document.getElementById('typeCompanion').querySelector('.type-check').textContent = type === 'companion' ? '✓' : '';
+    document.getElementById('studentFields').style.display = type === 'student' ? 'block' : 'none';
+    document.getElementById('companionFields').style.display = type === 'companion' ? 'block' : 'none';
+    document.getElementById('priceDisplay').textContent = PRICES[type] + ' ج.م';
+  }
+
+  // ==================== STUDENT SUGGESTIONS ====================
+  async function fetchStudentSuggestions() {
+    const q = document.getElementById('regName').value.trim();
+    if (q.length < 2) return;
+    try {
+      const snap = await db.collection('transactions')
+        .where('schoolId', '==', schoolId)
+        .limit(200).get();
+      const names = new Set();
+      snap.forEach(d => { if (d.data().studentName?.includes(q)) names.add(d.data().studentName); });
+      const dl = document.getElementById('studentSuggestList');
+      dl.innerHTML = [...names].slice(0,8).map(n => `<option value="${n}">`).join('');
+      const dl2 = document.getElementById('studentSuggestList2');
+      dl2.innerHTML = dl.innerHTML;
+    } catch(e) {}
+  }
+
+  // ==================== GENERATE TICKET ID ====================
+  function generateTicketId(type) {
+    const prefix = type === 'student' ? 'STU' : 'COM';
+    const ts = Date.now().toString(36).toUpperCase();
+    const rand = Math.random().toString(36).substring(2,6).toUpperCase();
+    return `PARTY-${prefix}-${ts}-${rand}`;
+  }
+
+  // ==================== SAVE REGISTRATION ====================
+  async function saveRegistration() {
+    const btn = document.getElementById('saveRegBtn');
+    const phone = document.getElementById('regPhone').value.trim();
+    const payType = document.getElementById('regPayType').value;
+    const notes = document.getElementById('regNotes').value.trim();
+
+    let name = '', grade = '', linkedStudent = '';
+    if (currentType === 'student') {
+      name  = document.getElementById('regName').value.trim();
+      grade = document.getElementById('regGrade').value;
+      if (!name)  return showAlert('regAlert', 'أدخل اسم الطالب', 'error');
+      if (!grade) return showAlert('regAlert', 'اختر الصف', 'error');
+    } else {
+      name = document.getElementById('regCompName').value.trim();
+      linkedStudent = document.getElementById('regLinkedStudent').value.trim();
+      if (!name) return showAlert('regAlert', 'أدخل اسم المرافق', 'error');
+    }
+    if (!phone)   return showAlert('regAlert', 'أدخل رقم التليفون', 'error');
+    if (!payType) return showAlert('regAlert', 'اختر طريقة الدفع', 'error');
+
+    btn.disabled = true;
+    btn.textContent = '⏳ جاري الحفظ...';
+
+    try {
+      const ticketId = generateTicketId(currentType);
+      const now = new Date();
+      const dateStr = now.getFullYear() + '-' +
+        String(now.getMonth()+1).padStart(2,'0') + '-' +
+        String(now.getDate()).padStart(2,'0');
+
+      const doc = {
+        ticketId,
+        schoolId,
+        type: currentType,
+        name,
+        phone,
+        paymentType: payType,
+        amount: PRICES[currentType],
+        notes,
+        status: 'registered',
+        attendedAt: null,
+        registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
+        registeredBy: session.email,
+        date: dateStr,
+        ...(currentType === 'student' ? { grade } : { linkedStudent })
+      };
+
+      await db.collection('partyAttendees').add(doc);
+
+      // للـ QR modal نستخدم now كـ fallback لأن serverTimestamp مش فيه value فوراً
+      currentQRData = { ...doc, registeredAt: now };
+      openQRModal(currentQRData);
+
+      loadStats();
+      loadRecentList();
+      resetRegForm();
+      showAlert('regAlert', '✅ تم التسجيل بنجاح!', 'success');
+
+    } catch(e) {
+      showAlert('regAlert', 'حدث خطأ: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '💾 حفظ وإنشاء QR';
+    }
+  }
+
+  // ==================== QR MODAL ====================
+  function openQRModal(data) {
+    const modal = document.getElementById('qrModal');
+    document.getElementById('qrSchoolName').textContent = school?.name || 'المدرسة';
+    document.getElementById('qrName').textContent = data.name;
+
+    if (data.type === 'student') {
+      document.getElementById('qrInfo').textContent = '🎓 ' + (data.grade || '');
+      document.getElementById('qrTypeBadge').textContent = 'طالب - ' + PRICES.student + ' ج.م';
+    } else {
+      document.getElementById('qrInfo').textContent = '👤 مرافق' + (data.linkedStudent ? ' لـ ' + data.linkedStudent : '');
+      document.getElementById('qrTypeBadge').textContent = 'مرافق - ' + PRICES.companion + ' ج.م';
+    }
+    document.getElementById('qrTicketId').textContent = data.ticketId;
+
+    // رسم الـ QR — URL يفتح صفحة بيانات التذكرة
+    const qrPayload = `https://school-accounting-one.vercel.app/ticket.html?id=${encodeURIComponent(data.ticketId)}`;
+
+    const canvasWrap = document.getElementById('qrCanvasWrap');
+    canvasWrap.innerHTML = '';
+    const qrDiv = document.createElement('div');
+    canvasWrap.appendChild(qrDiv);
+    new QRCode(qrDiv, {
+      text: qrPayload,
+      width: 180,
+      height: 180,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+
+    // خيارات الإرسال — ننتظر QR يتعمل الأول
+    const phone = data.phone.replace(/[^0-9]/g,'');
+    const waPhone = phone.startsWith('0') ? '2' + phone : phone;
+
+    setTimeout(() => {
+      document.getElementById('sendOptions').innerHTML = `
+        <button class="send-opt-btn" onclick="sendViaWhatsapp('${waPhone}', '${data.name}')">
+          <span class="opt-icon">💬</span>
+          <span class="opt-text">
+            <span class="opt-label">إرسال عبر واتساب</span>
+            <span class="opt-sub">بيحمل صورة الـ QR وبيفتح واتساب تلقائياً</span>
+          </span>
+        </button>
+        <button class="send-opt-btn" onclick="downloadQR()">
+          <span class="opt-icon">⬇️</span>
+          <span class="opt-text">
+            <span class="opt-label">تحميل صورة QR فقط</span>
+            <span class="opt-sub">حفظ الصورة على الجهاز</span>
+          </span>
+        </button>
+      `;
+    }, 150);
+
+    modal.classList.add('show');
+  }
+
+  function closeQRModal() {
+    document.getElementById('qrModal').classList.remove('show');
+  }
+
+  function downloadQR() {
+    const wrap = document.getElementById('qrCanvasWrap');
+    const cvs = wrap.querySelector('canvas');
+    const img = wrap.querySelector('img');
+    let src = '';
+    if (cvs) src = cvs.toDataURL('image/png');
+    else if (img) src = img.src;
+    else return alert('QR غير جاهز، انتظر لحظة وحاول مرة أخرى');
+
+    const link = document.createElement('a');
+    link.href = src;
+    link.download = (currentQRData?.name || 'ticket') + '-QR.png';
+    link.click();
+  }
+
+  function sendViaWhatsapp(waPhone, name) {
+    // حمّل الصورة الأول
+    const wrap = document.getElementById('qrCanvasWrap');
+    const cvs = wrap.querySelector('canvas');
+    const img = wrap.querySelector('img');
+    let src = '';
+    if (cvs) src = cvs.toDataURL('image/png');
+    else if (img) src = img.src;
+
+    if (src) {
+      // حمّل الصورة
+      const link = document.createElement('a');
+      link.href = src;
+      link.download = (name || 'ticket') + '-QR.png';
+      link.click();
+    }
+
+    // بعد ثانية افتح واتساب
+    setTimeout(() => {
+      window.open('https://wa.me/' + waPhone, '_blank');
+    }, 800);
+  }
+
+  function printTicket() {
+    const wrap = document.getElementById('qrCanvasWrap');
+    const origImg = wrap.querySelector('img');
+    const origCvs = wrap.querySelector('canvas');
+    let qrSrc = '';
+    if (origImg) qrSrc = origImg.src;
+    else if (origCvs) qrSrc = origCvs.toDataURL('image/png');
+
+    const pw = window.open('', '_blank', 'width=400,height=600');
+    pw.document.write(`
+      <html><head><meta charset="UTF-8">
+      <style>
+        body { margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh; background:#f0f0f0; font-family: Cairo, sans-serif; }
+        .qr-ticket { background: linear-gradient(135deg,#1a3a6b,#0d2247); color:white; border-radius:16px; padding:1.5rem; text-align:center; width:280px; }
+        .ticket-school { font-size:0.75rem; opacity:0.7; margin-bottom:0.5rem; }
+        .ticket-name { font-size:1.3rem; font-weight:900; margin-bottom:0.25rem; }
+        .ticket-info { font-size:0.85rem; opacity:0.8; margin-bottom:1rem; }
+        .ticket-type-badge { display:inline-block; padding:0.2rem 0.75rem; background:rgba(255,255,255,0.2); border-radius:20px; font-size:0.75rem; font-weight:700; margin-bottom:1rem; }
+        .qr-canvas-wrap { background:white; border-radius:12px; padding:0.75rem; display:inline-block; }
+        .qr-canvas-wrap img { width:180px; height:180px; display:block; }
+        .ticket-id { margin-top:0.75rem; font-size:0.7rem; opacity:0.5; font-family:monospace; letter-spacing:1px; }
+      </style></head><body>
+      <div class="qr-ticket">
+        <div class="ticket-school">${document.getElementById('qrSchoolName').textContent}</div>
+        <div class="ticket-name">${document.getElementById('qrName').textContent}</div>
+        <div class="ticket-info">${document.getElementById('qrInfo').textContent}</div>
+        <div class="ticket-type-badge">${document.getElementById('qrTypeBadge').textContent}</div>
+        <div class="qr-canvas-wrap"><img src="${qrSrc}" width="180" height="180" /></div>
+        <div class="ticket-id">${document.getElementById('qrTicketId').textContent}</div>
+      </div>
+    `);
+    pw.document.write('</body></html>');
+    pw.document.close();
+    setTimeout(() => pw.print(), 600);
+  }
+
+  // ==================== TICKET LOOKUP ====================
+  async function lookupTicket() {
+    const input = document.getElementById('scanInput');
+    const ticketId = input.value.trim().toUpperCase();
+    const resultArea = document.getElementById('scanResultArea');
+
+    if (!ticketId) return;
+
+    resultArea.style.display = 'block';
+    resultArea.innerHTML = `<div style="text-align:center;padding:2rem"><div class="loading-spinner"></div><div style="margin-top:0.5rem;color:var(--text-light)">جاري البحث...</div></div>`;
+
+    try {
+      const snap = await db.collection('partyAttendees')
+        .where('ticketId', '==', ticketId)
+        .where('schoolId', '==', schoolId)
+        .limit(1)
+        .get();
+
+      if (snap.empty) {
+        resultArea.innerHTML = `
+          <div style="border:3px solid var(--danger);border-radius:var(--radius);padding:1.5rem;background:#fff5f5;display:flex;align-items:center;gap:1rem">
+            <span style="font-size:2.5rem">❌</span>
+            <div>
+              <div style="font-size:1.1rem;font-weight:900;color:var(--danger)">تذكرة غير موجودة</div>
+              <div style="font-size:0.85rem;color:var(--text-mid);margin-top:0.25rem">الكود "${ticketId}" غير مسجل في النظام</div>
+            </div>
+          </div>`;
+        return;
+      }
+
+      const docRef = snap.docs[0];
+      const d = docRef.data();
+      const docId = docRef.id;
+      const payLabels = { cash:'نقدي', bank_transfer:'تحويل بنكي', instapay:'إنستاباي' };
+      const isAttended = d.status === 'attended';
+      const attendedAt = d.attendedAt?.toDate?.()
+        ? d.attendedAt.toDate().toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'})
+        : null;
+
+      const borderColor = isAttended ? 'var(--success)' : 'var(--primary)';
+      const bgColor     = isAttended ? '#e8f5e9' : 'var(--accent)';
+
+      resultArea.innerHTML = `
+        <div style="border:3px solid ${borderColor};border-radius:var(--radius);padding:1.5rem;background:${bgColor}">
+          <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+            <span style="font-size:2.5rem">${d.type === 'student' ? '🎓' : '👤'}</span>
+            <div style="flex:1">
+              <div style="font-size:1.3rem;font-weight:900;color:var(--text-dark)">${d.name}</div>
+              <div style="font-size:0.85rem;color:var(--text-mid);margin-top:0.2rem">
+                ${d.type === 'student' ? `الصف: ${d.grade}` : `مرافق${d.linkedStudent ? ' لـ ' + d.linkedStudent : ''}`}
+              </div>
+            </div>
+            <span style="padding:0.3rem 0.875rem;border-radius:20px;font-size:0.8rem;font-weight:800;${isAttended ? 'background:#2e7d32;color:white' : 'background:#856404;color:white'}">
+              ${isAttended ? '✅ دخل الحفلة' : '⏳ مسجل'}
+            </span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.85rem;margin-bottom:1rem">
+            <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem">
+              <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">النوع</div>
+              <div style="font-weight:700">${d.type === 'student' ? 'طالب' : 'مرافق'}</div>
+            </div>
+            <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem">
+              <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">المبلغ</div>
+              <div style="font-weight:700;color:var(--primary)">${PRICES[d.type]} ج.م</div>
+            </div>
+            <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem">
+              <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">طريقة الدفع</div>
+              <div style="font-weight:700">${payLabels[d.paymentType] || d.paymentType}</div>
+            </div>
+            <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem">
+              <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">التليفون</div>
+              <div style="font-weight:700;direction:ltr;text-align:right">${d.phone}</div>
+            </div>
+            ${isAttended && attendedAt ? `
+            <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem;grid-column:span 2">
+              <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">وقت الدخول</div>
+              <div style="font-weight:700;color:var(--success)">${attendedAt}</div>
+            </div>` : ''}
+          </div>
+
+          ${!isAttended ? `
+          <button class="btn btn-success w-full" onclick="confirmAttendance('${docId}')">
+            ✅ تأكيد الدخول
+          </button>` : `
+          <div style="text-align:center;font-size:0.85rem;color:var(--success);font-weight:700">
+            ✅ هذا الشخص دخل الحفلة بالفعل${attendedAt ? ' الساعة ' + attendedAt : ''}
+          </div>`}
+        </div>
+      `;
+
+    } catch(e) {
+      resultArea.innerHTML = `
+        <div style="border:3px solid var(--danger);border-radius:var(--radius);padding:1.5rem;background:#fff5f5;text-align:center;color:var(--danger)">
+          ❌ خطأ: ${e.message}
+        </div>`;
+    }
+  }
+
+  async function confirmAttendance(docId) {
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '⏳ جاري التأكيد...';
+    try {
+      await db.collection('partyAttendees').doc(docId).update({
+        status: 'attended',
+        attendedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      // إعادة البحث لتحديث العرض
+      lookupTicket();
+      loadStats();
+    } catch(e) {
+      alert('خطأ: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '✅ تأكيد الدخول';
+    }
+  }
+
+  // ==================== RECENT LIST PANEL ====================
+  async function loadRecentList() {
+    try {
+      let snap;
+      try {
+        snap = await db.collection('partyAttendees')
+          .where('schoolId','==', schoolId)
+          .orderBy('registeredAt','desc')
+          .limit(10)
+          .get();
+      } catch(indexErr) {
+        const fallback = await db.collection('partyAttendees')
+          .where('schoolId','==', schoolId)
+          .limit(50)
+          .get();
+        const sorted = fallback.docs.sort((a,b) =>
+          (b.data().registeredAt?.seconds||0) - (a.data().registeredAt?.seconds||0)
+        ).slice(0,10);
+        snap = { empty: sorted.length === 0, size: sorted.length, forEach: (fn) => sorted.forEach(fn) };
+      }
+      const container = document.getElementById('recentList');
+      if (snap.empty) {
+        container.innerHTML = `<div style="padding:1.5rem;text-align:center;color:var(--text-light)">لا يوجد بعد</div>`;
+        document.getElementById('recentCount').textContent = '0';
+        return;
+      }
+      document.getElementById('recentCount').textContent = snap.size;
+      container.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        const div = document.createElement('div');
+        div.style.cssText = 'display:flex;align-items:center;gap:0.75rem;padding:0.65rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.2s';
+        div.onmouseover = () => div.style.background = 'var(--accent)';
+        div.onmouseout  = () => div.style.background = '';
+        div.onclick = () => openQRModal(d);
+        div.innerHTML = `
+          <span style="font-size:1.25rem">${d.type === 'student' ? '🎓' : '👤'}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name}</div>
+            <div style="font-size:0.72rem;color:var(--text-light)">${d.type === 'student' ? d.grade : 'مرافق'} • ${PRICES[d.type]} ج.م</div>
+          </div>
+          <span style="font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:10px;font-weight:700;${d.status==='attended'?'background:#e8f5e9;color:#2e7d32':'background:#fff3cd;color:#856404'}">${d.status==='attended'?'✅ دخل':'⏳ مسجل'}</span>
+        `;
+        container.appendChild(div);
+      });
+    } catch(e) { console.error(e); }
+  }
+
+  // ==================== STATS ====================
+  async function loadStats() {
+    try {
+      const snap = await db.collection('partyAttendees')
+        .where('schoolId','==', schoolId)
+        .get();
+      let students=0, companions=0, attended=0, revenue=0;
+      snap.forEach(doc => {
+        const d = doc.data();
+        if (d.type === 'student') students++;
+        else companions++;
+        if (d.status === 'attended') attended++;
+        revenue += d.amount || 0;
+      });
+      document.getElementById('statStudCount').textContent = students;
+      document.getElementById('statCompCount').textContent = companions;
+      document.getElementById('statAttended').textContent = attended;
+      document.getElementById('statRevenue').textContent = revenue.toLocaleString('ar-EG');
+    } catch(e) {}
+  }
+
+  // ==================== ATTENDEE LIST ====================
+  async function loadAttendeeList() {
+    const tbody = document.getElementById('attendeeTableBody');
+    tbody.innerHTML = `<tr><td colspan="9"><div class="loading-spinner"></div></td></tr>`;
+    try {
+      let snap;
+      try {
+        snap = await db.collection('partyAttendees')
+          .where('schoolId','==', schoolId)
+          .orderBy('registeredAt','desc')
+          .get();
+      } catch(indexErr) {
+        snap = await db.collection('partyAttendees')
+          .where('schoolId','==', schoolId)
+          .get();
+      }
+      allAttendees = [];
+      snap.forEach(doc => allAttendees.push({ id: doc.id, ...doc.data() }));
+      allAttendees.sort((a,b) => (b.registeredAt?.seconds||0) - (a.registeredAt?.seconds||0));
+      renderAttendeeTable(allAttendees);
+    } catch(e) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:red">${e.message}</td></tr>`;
+    }
+  }
+
+  function filterList() {
+    const q = document.getElementById('listSearch').value.toLowerCase();
+    const type = document.getElementById('listTypeFilter').value;
+    const status = document.getElementById('listStatusFilter').value;
+    const filtered = allAttendees.filter(d =>
+      (!q || d.name.toLowerCase().includes(q)) &&
+      (!type || d.type === type) &&
+      (!status || d.status === status)
+    );
+    renderAttendeeTable(filtered);
+  }
+
+  function renderAttendeeTable(data) {
+    const tbody = document.getElementById('attendeeTableBody');
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-state-title">لا توجد نتائج</div></div></td></tr>`;
+      return;
+    }
+    const payLabels = { cash:'نقدي', bank_transfer:'تحويل', instapay:'إنستاباي' };
+    tbody.innerHTML = data.map((d, i) => {
+      const attendedAt = d.attendedAt?.toDate?.()
+        ? d.attendedAt.toDate().toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'})
+        : '-';
+      return `
+        <tr class="attendee-row" onclick="openQRModalById('${d.id}')">
+          <td>${i+1}</td>
+          <td><strong>${d.name}</strong>${d.linkedStudent ? `<br><span class="text-sm text-muted">يرافق: ${d.linkedStudent}</span>` : ''}</td>
+          <td><span style="font-size:1rem">${d.type==='student'?'🎓':'👤'}</span> ${d.type==='student'?'طالب':'مرافق'}</td>
+          <td>${d.grade || '-'}</td>
+          <td dir="ltr" style="text-align:right">${d.phone}</td>
+          <td><span class="badge badge-primary">${payLabels[d.paymentType]||d.paymentType}</span> <span style="font-weight:800">${PRICES[d.type]} ج.م</span></td>
+          <td><span style="padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:700;${d.status==='attended'?'background:#e8f5e9;color:#2e7d32;border:1px solid #4caf50':'background:#fff3cd;color:#856404;border:1px solid #ffc107'}">${d.status==='attended'?'✅ دخل الحفلة':'⏳ مسجل'}</span></td>
+          <td style="font-size:0.8rem;color:var(--text-light)">${attendedAt}</td>
+          <td>
+            ${d.status !== 'attended' ? `<button class="btn btn-sm btn-success" onclick="event.stopPropagation();markAttended('${d.id}')" style="margin-left:0.25rem">✅ دخول</button>` : ''}
+            <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();deleteAttendee('${d.id}')">🗑️</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function openQRModalById(docId) {
+    const d = allAttendees.find(a => a.id === docId);
+    if (d) openQRModal(d);
+  }
+
+  async function markAttended(docId) {
+    try {
+      await db.collection('partyAttendees').doc(docId).update({
+        status: 'attended',
+        attendedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      // تحديث الـ cache محلياً
+      const idx = allAttendees.findIndex(a => a.id === docId);
+      if (idx !== -1) {
+        allAttendees[idx].status = 'attended';
+        allAttendees[idx].attendedAt = { toDate: () => new Date(), seconds: Date.now()/1000 };
+      }
+      renderAttendeeTable(allAttendees);
+      loadStats();
+    } catch(e) {
+      alert('حدث خطأ: ' + e.message);
+    }
+  }
+
+  async function deleteAttendee(docId) {
+    if (!confirm('هل تريد حذف هذا السجل؟')) return;
+    await db.collection('partyAttendees').doc(docId).delete();
+    allAttendees = allAttendees.filter(a => a.id !== docId);
+    renderAttendeeTable(allAttendees);
+    loadStats();
+  }
+
+  // ==================== EXPORT EXCEL ====================
+  async function exportListExcel() {
+    if (!allAttendees.length) return alert('لا توجد بيانات للتصدير');
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('قائمة الحفلة');
+    ws.views = [{ rightToLeft: true }];
+    ws.columns = [
+      { header: '#',           key: 'idx',       width: 6  },
+      { header: 'الاسم',       key: 'name',      width: 25 },
+      { header: 'النوع',       key: 'type',      width: 12 },
+      { header: 'الصف',        key: 'grade',     width: 14 },
+      { header: 'التليفون',    key: 'phone',     width: 16 },
+      { header: 'طريقة الدفع', key: 'pay',       width: 14 },
+      { header: 'المبلغ',      key: 'amount',    width: 12 },
+      { header: 'الحالة',      key: 'status',    width: 14 },
+      { header: 'وقت الدخول',  key: 'attendedAt',width: 18 },
+    ];
+    ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A3A6B' } };
+    ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
+
+    allAttendees.forEach((d, i) => {
+      ws.addRow({
+        idx:       i+1,
+        name:      d.name,
+        type:      d.type==='student' ? 'طالب' : 'مرافق',
+        grade:     d.grade || '-',
+        phone:     d.phone,
+        pay:       ({cash:'نقدي', bank_transfer:'تحويل بنكي', instapay:'إنستاباي'})[d.paymentType] || d.paymentType,
+        amount:    PRICES[d.type],
+        status:    d.status==='attended' ? 'دخل الحفلة' : 'مسجل',
+        attendedAt: d.attendedAt?.toDate?.() ? d.attendedAt.toDate().toLocaleString('ar-EG') : '-',
+      });
+    });
+
+    const total = allAttendees.reduce((s,d) => s + PRICES[d.type], 0);
+    const totalRow = ws.addRow({ name: 'الإجمالي', amount: total });
+    totalRow.font = { bold: true };
+    totalRow.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFE0B2' } };
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `قائمة-الحفلة-${school?.name||''}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportListPDF() {
+    if (!allAttendees.length) return alert('لا توجد بيانات للطباعة');
+    const pw = window.open('', '_blank', 'width=900,height=700');
+    const total = allAttendees.reduce((s,d) => s + PRICES[d.type], 0);
+    const payLabels = { cash:'نقدي', bank_transfer:'تحويل بنكي', instapay:'إنستاباي' };
+    pw.document.write(`
+      <html><head><meta charset="UTF-8">
+      <style>
+        body { font-family: Cairo, sans-serif; direction: rtl; margin: 1.5rem; color: #1a1a2e; }
+        h2 { text-align: center; color: #1a3a6b; margin-bottom: 0.25rem; }
+        .sub { text-align:center; color:#888; font-size:0.85rem; margin-bottom:1.5rem; }
+        table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+        th { background:#1a3a6b; color:white; padding:0.5rem 0.75rem; text-align:right; }
+        td { padding:0.45rem 0.75rem; border-bottom:1px solid #e0e4f0; }
+        tr:nth-child(even) td { background:#f4f6fb; }
+        .total-row td { font-weight:900; background:#fff3cd; }
+        @media print { button { display:none; } }
+      </style></head><body>
+      <h2>🎉 قائمة حفلة ${school?.name||''}</h2>
+      <div class="sub">إجمالي المسجلين: ${allAttendees.length} | إجمالي الإيراد: ${total.toLocaleString('ar-EG')} ج.م</div>
+      <table>
+        <thead><tr><th>#</th><th>الاسم</th><th>النوع</th><th>الصف</th><th>التليفون</th><th>الدفع</th><th>المبلغ</th><th>الحالة</th></tr></thead>
+        <tbody>
+          ${allAttendees.map((d,i) => `
+            <tr>
+              <td>${i+1}</td>
+              <td>${d.name}</td>
+              <td>${d.type==='student'?'طالب':'مرافق'}</td>
+              <td>${d.grade||'-'}</td>
+              <td dir="ltr" style="text-align:right">${d.phone}</td>
+              <td>${payLabels[d.paymentType]||d.paymentType}</td>
+              <td>${PRICES[d.type]} ج.م</td>
+              <td>${d.status==='attended'?'✅ دخل':'⏳ مسجل'}</td>
+            </tr>
+          `).join('')}
+          <tr class="total-row"><td colspan="6">الإجمالي</td><td>${total.toLocaleString('ar-EG')} ج.م</td><td></td></tr>
+        </tbody>
+      </table>
+    `);
+    pw.document.write('</body></html>');
+    pw.document.close();
+    setTimeout(() => pw.print(), 600);
+  }
+
+  // ==================== HELPERS ====================
+  function resetRegForm() {
+    document.getElementById('regName').value = '';
+    document.getElementById('regGrade').value = '';
+    document.getElementById('regCompName').value = '';
+    document.getElementById('regLinkedStudent').value = '';
+    document.getElementById('regPhone').value = '';
+    document.getElementById('regPayType').value = '';
+    document.getElementById('regNotes').value = '';
+    selectType('student');
+  }
+
+  function showAlert(id, msg, type='error') {
+    const el = document.getElementById(id);
+    el.className = `alert alert-${type}`;
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), 4000);
+  }
+
+  document.getElementById('qrModal').addEventListener('click', function(e) {
+    if (e.target === this) closeQRModal();
+  });
+
+  // ==================== INIT ====================
+  loadStats();
+  loadRecentList();
+</script>
+</body>
+</html>
