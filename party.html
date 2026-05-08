@@ -647,7 +647,7 @@
         ...(currentType === 'student' ? { grade } : { linkedStudent })
       };
 
-      await db.collection('partyAttendees').add(doc);
+      await db.collection('partyAttendees').doc(ticketId).set(doc);
 
       // للـ QR modal نستخدم now كـ fallback لأن serverTimestamp مش فيه value فوراً
       currentQRData = { ...doc, registeredAt: now };

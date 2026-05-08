@@ -327,6 +327,34 @@
         </div>
       </div>
 
+      <!-- زر تسجيل الدخول — يظهر بس لو مسجل ولسه مدخلش -->
+      <div id="markAttendedWrap" style="padding: 0 1.5rem 1.25rem; display:none">
+        <button id="markAttendedBtn"
+          onclick="markAttended()"
+          style="
+            display: none;
+            width: 100%;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            padding: 0.9rem 1.5rem;
+            background: var(--school-primary, #1e2d5a);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-family: Cairo, sans-serif;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: opacity 0.2s;
+          "
+          onmouseover="this.style.opacity='0.88'"
+          onmouseout="this.style.opacity='1'"
+        >
+          ✅ تسجيل دخول الحفلة
+        </button>
+      </div>
+
       <div class="ticket-footer" id="tFooter">
         تذكرة حفلة المدرسة &nbsp;•&nbsp; <span id="tRegDate">-</span>
       </div>
@@ -448,6 +476,44 @@
     document.getElementById('ticketWrap').style.display = 'block';
   }
 
+  // ====== MARK ATTENDED ======
+  async function markAttended() {
+    const btn = document.getElementById('markAttendedBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ جاري التسجيل...';
+
+    try {
+      await db.collection('partyAttendees').doc(ticketId).update({
+        status: 'attended',
+        attendedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      const badge = document.getElementById('tStatusBadge');
+      badge.className = 'status-badge attended';
+      badge.textContent = '✅ دخل الحفلة';
+      document.getElementById('attendedOverlay').style.display = 'flex';
+
+      const now = new Date();
+      document.getElementById('tAttendedWrap').style.display = 'block';
+      document.getElementById('tAttendedAt').textContent =
+        now.toLocaleString('ar-EG', {
+          year: 'numeric', month: 'long', day: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        });
+
+      btn.textContent = '✅ تم تسجيل الدخول';
+      btn.style.background = '#e8f5e9';
+      btn.style.color = '#2e7d32';
+      btn.style.borderColor = '#4caf50';
+      btn.style.cursor = 'default';
+
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = '✅ تسجيل دخول الحفلة';
+      alert('حدث خطأ: ' + e.message);
+    }
+  }
+
   async function loadTicket() {
     if (!ticketId) {
       showError('لم يتم تحديد كود التذكرة في الرابط');
@@ -455,17 +521,20 @@
     }
 
     try {
-      const snap = await db.collection('partyAttendees')
-        .where('ticketId', '==', ticketId)
-        .limit(1)
-        .get();
+      const docSnap = await db.collection('partyAttendees').doc(ticketId).get();
 
-      if (snap.empty) {
+      if (!docSnap.exists) {
         showError(`الكود "${ticketId}" غير مسجل في النظام`);
         return;
       }
 
-      renderTicket(snap.docs[0].data());
+      const data = docSnap.data();
+      renderTicket(data);
+
+      if (data.status !== 'attended') {
+        document.getElementById('markAttendedBtn').style.display = 'flex';
+        document.getElementById('markAttendedWrap').style.display = 'block';
+      }
 
     } catch (e) {
       showError('حدث خطأ أثناء تحميل البيانات: ' + e.message);
