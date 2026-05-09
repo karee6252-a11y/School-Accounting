@@ -53,9 +53,7 @@ function renderLayout(activePage, pageTitle) {
     { id: 'party',          icon: '', label: 'تسجيل الحفلة',          href: 'party.html' },
   ];
 
-  if (isAdmin) {
-    navItems.push({ id: 'admin', icon: '', label: 'إدارة النظام', href: 'admin.html' });
-  }
+  // admin link بيظهر في section منفصل أسفل القايمة — مش هنا
 
   const sidebarHTML = `
     <aside class="sidebar" id="sidebar">
@@ -80,14 +78,14 @@ function renderLayout(activePage, pageTitle) {
         
         ${isAdmin ? `
           <div class="nav-section-title" style="margin-top:0.5rem">الأدمن</div>
+          <a class="nav-item ${activePage === 'admin' ? 'active' : ''}" href="admin.html">
+            <span class="nav-icon"></span>
+            <span>إدارة النظام</span>
+          </a>
           <div class="nav-item" onclick="showSchoolSwitcher()">
             <span class="nav-icon"></span>
             <span>تغيير المدرسة</span>
           </div>
-          ${session.adminHomeSchoolId && session.adminHomeSchoolId !== session.schoolId ? `
-          <div style="margin:0.5rem 0.75rem;padding:0.5rem 0.75rem;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:0.72rem;color:#856404;font-weight:700;line-height:1.4">
-            ⚠️ أنت تعرض بيانات مدرسة مختلفة عن حسابك الأصلي
-          </div>` : ''}
         ` : ''}
       </nav>
 

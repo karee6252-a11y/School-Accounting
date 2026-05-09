@@ -11,7 +11,6 @@ service cloud.firestore {
 
     // ==============================
     // دالة مساعدة: هل البيانات المكتوبة تحتوي على schoolId صحيح؟
-    // (لمنع كتابة بيانات بدون schoolId)
     // ==============================
     function hasSchoolId() {
       return request.resource.data.schoolId is string
@@ -19,84 +18,117 @@ service cloud.firestore {
     }
 
     // ==============================
+    // دالة مساعدة: هل المستخدم أدمن؟
+    // ==============================
+    function isAdmin() {
+      return request.auth.token.email in [
+        'admin@schools-system.com',
+        'admin2@schools-system.com'
+      ];
+    }
+
+    // ==============================
+    // دالة مساعدة: هل المستخدم مصرح له بالكتابة على هذه المدرسة؟
+    // الأدمن يقدر يكتب على أي مدرسة — المحاسب بس على مدرسته
+    // ==============================
+    function canWriteToSchool(sid) {
+      return isAdmin() || (
+        (sid == 'bristol'   && request.auth.token.email in ['acc1.bristol@bristol-school.com',   'acc2.bristol@bristol-school.com']) ||
+        (sid == 'cardiff'   && request.auth.token.email in ['acc1.cardiff@cardiff-school.com',   'acc2.cardiff@cardiff-school.com']) ||
+        (sid == 'stanford1' && request.auth.token.email in ['acc1.stanford1@stanford-school.com','acc2.stanford1@stanford-school.com']) ||
+        (sid == 'stanford2' && request.auth.token.email in ['acc1.stanford2@stanford-school.com','acc2.stanford2@stanford-school.com'])
+      );
+    }
+
+    // ==============================
+    // دالة مساعدة: هل المستخدم يقدر يقرأ بيانات مدرسة معينة؟
+    // ==============================
+    function canReadSchool(sid) {
+      return isAdmin() || canWriteToSchool(sid);
+    }
+
+    // ==============================
     // transactions — تحصيل الطلاب
     // ==============================
     match /transactions/{docId} {
-      allow read: if isAuth();
-      allow create: if isAuth() && hasSchoolId();
-      allow update, delete: if isAuth();
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
 
     // ==============================
     // debts — المديونيات
     // ==============================
     match /debts/{docId} {
-      allow read: if isAuth();
-      allow create: if isAuth() && hasSchoolId();
-      allow update, delete: if isAuth();
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
 
     // ==============================
     // expenses — بند المصروفات
     // ==============================
     match /expenses/{docId} {
-      allow read: if isAuth();
-      allow create: if isAuth() && hasSchoolId();
-      allow update, delete: if isAuth();
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
 
     // ==============================
     // custodians — العهد
     // ==============================
-    match /custodians/{schoolId} {
-      allow read, write: if isAuth();
+    match /custodians/{sid} {
+      allow read: if isAuth() && canReadSchool(sid);
+      allow write: if isAuth() && canWriteToSchool(sid);
     }
 
     // ==============================
-    // busCompanies — شركات الباصات (subcollection)
-    // busCompanies/{schoolId}/companies/{companyId}
+    // busCompanies — شركات الباصات
     // ==============================
-    match /busCompanies/{schoolId} {
-      allow read, write: if isAuth();
+    match /busCompanies/{sid} {
+      allow read: if isAuth() && canReadSchool(sid);
+      allow write: if isAuth() && canWriteToSchool(sid);
       match /companies/{companyId} {
-        allow read, write: if isAuth();
+        allow read: if isAuth() && canReadSchool(sid);
+        allow write: if isAuth() && canWriteToSchool(sid);
       }
     }
 
     // ==============================
-    // busData — بيانات الباصات القديمة (للتوافق)
+    // busData — بيانات الباصات القديمة
     // ==============================
-    match /busData/{schoolId} {
-      allow read, write: if isAuth();
+    match /busData/{sid} {
+      allow read: if isAuth() && canReadSchool(sid);
+      allow write: if isAuth() && canWriteToSchool(sid);
     }
 
     // ==============================
     // contractors — الموردون والمقاولون
     // ==============================
     match /contractors_suppliers/{docId} {
-      allow read: if isAuth();
-      allow create: if isAuth() && hasSchoolId();
-      allow update, delete: if isAuth();
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
     match /contractors_purchases/{docId} {
-      allow read: if isAuth();
-      allow create: if isAuth() && hasSchoolId();
-      allow update, delete: if isAuth();
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
     match /contractors_contracts/{docId} {
-      allow read: if isAuth();
-      allow create: if isAuth() && hasSchoolId();
-      allow update, delete: if isAuth();
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
 
     // ==============================
     // partyAttendees — تسجيل الحفلة
-    // القراءة العامة مسموحة (لصفحة ticket.html)
     // ==============================
     match /partyAttendees/{docId} {
-      allow read: if true;
-      allow create: if isAuth() && hasSchoolId();
-      allow update, delete: if isAuth();
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
   }
 }
+

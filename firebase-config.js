@@ -272,15 +272,14 @@ function formatDate(date) {
   }).format(new Date(date));
 }
 
-function requireAuth() {
-  const session = SESSION.get();
-  if (!session) {
-    window.location.href = 'index.html';
-    return null;
-  }
-  const school = SESSION.getSchool();
-  if (school) applySchoolTheme(school);
-  return session;
+// ========================================
+// LOCAL DATE HELPER — بيرجع التاريخ بالتوقيت المحلي مش UTC
+// ========================================
+function localDateStr(d) {
+  const date = d || new Date();
+  return date.getFullYear() + '-' +
+    String(date.getMonth() + 1).padStart(2, '0') + '-' +
+    String(date.getDate()).padStart(2, '0');
 }
 
 function applySchoolTheme(school) {

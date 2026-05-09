@@ -618,19 +618,21 @@
       // ── قسم ثالثاً: تحصيل المراحل ──
       sectionRow(ws, '③', 'ثالثاً : الموقف المالي — تحصيل المراحل', SEC, MCOL);
       hdrRow(ws,
-        ['م','المرحلة','','','المديونية السابقة','','المحصل خلال الأسبوع','','خصومات أخوة/خاص','','المديونية الحالية','','ملاحظات','',''],
+        ['م','المرحلة','','','المديونية السابقة','','المحصل (مصروفات دراسية)','','خصومات أخوة/خاص','','المديونية الحالية','','ملاحظات','',''],
         SEC, [['B','D'],['E','F'],['G','H'],['I','J'],['K','L'],['M','O']]);
 
-      const gradeTotals = {};
+      // تجميع المصروفات الدراسية فقط لكل صف
+      const gradeFeesByGrade = {};
       currentData.forEach(d => {
         const g = d.grade;
-        if (!gradeTotals[g]) gradeTotals[g] = 0;
-        gradeTotals[g] += d.amount || 0;
+        if (!gradeFeesByGrade[g]) gradeFeesByGrade[g] = 0;
+        const m = mapAmounts(d);
+        gradeFeesByGrade[g] += m.fees || 0;
       });
 
       let stageCollected = 0;
       GRADES_LIST.forEach((grade, i) => {
-        const collected = gradeTotals[grade] || 0;
+        const collected = gradeFeesByGrade[grade] || 0;
         stageCollected += collected;
         const r = dataRow(ws,
           [i+1, grade,'','', 0, '', collected||'', '', 0, '', 0, '', '', '', ''],
@@ -765,23 +767,23 @@
       // ── قسم ثانياً: تحصيل المراحل ──
       sectionRow(ws, '②', 'ثانياً : تحصيل المراحل الشهري', SEC, MCOL);
       hdrRow(ws,
-        ['م','المرحلة','المديونية السابقة','المحصل الشهر','خصومات','المديونية الحالية','نسبة التحصيل','','','',''],
+        ['م','المرحلة','المديونية السابقة','المحصل (مصروفات دراسية)','خصومات','المديونية الحالية','ملاحظات','','','',''],
         SEC, [['G','K']]);
 
+      // تجميع المصروفات الدراسية فقط لكل صف
       const gradeTotalsM = {};
       currentData.forEach(d => {
         if (!gradeTotalsM[d.grade]) gradeTotalsM[d.grade] = 0;
-        gradeTotalsM[d.grade] += d.amount || 0;
+        const m = mapAmounts(d);
+        gradeTotalsM[d.grade] += m.fees || 0;
       });
       let totalCollected = 0;
       GRADES_LIST.forEach((grade,i) => {
         const collected = gradeTotalsM[grade] || 0;
         totalCollected += collected;
-        const pct = collected > 0 ? '✓ تحصيل' : '—';
-        const r = dataRow(ws, [i+1, grade, '—', collected||0, '—', '—', pct, '', '', '', ''], i%2===1);
+        const r = dataRow(ws, [i+1, grade, '—', collected||0, '—', '—', '', '', '', '', ''], i%2===1);
         ws.mergeCells(`G${r.number}:K${r.number}`);
         if(r.getCell(4).value) numFmt(r.getCell(4));
-        // لون خلية المحصل
         if (collected > 0) {
           r.getCell(4).font = {name:'Arial',bold:true,size:10,color:{argb:'FF1B5E20'}};
         }
@@ -1062,18 +1064,21 @@
       if (y2 > PH-40) { doc.addPage(); pageNum++; drawPageHeader(pageNum); y2=34; }
       y2 = sectionTitle(doc, '② تحصيل المراحل الأسبوعي', y2);
       const GRADES_LIST2 = ['Pre-KG','KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
-      const gradeTotals2 = {};
-      currentData.forEach(d => { gradeTotals2[d.grade] = (gradeTotals2[d.grade]||0)+(d.amount||0); });
+      const gradeFees2 = {};
+      currentData.forEach(d => {
+        const m = mapAmounts(d);
+        gradeFees2[d.grade] = (gradeFees2[d.grade]||0) + (m.fees||0);
+      });
       let stageTotal2 = 0;
       const gradeRows2 = GRADES_LIST2.map((g,i) => {
-        const c = gradeTotals2[g]||0; stageTotal2+=c;
+        const c = gradeFees2[g]||0; stageTotal2+=c;
         return [i+1, g, '-', c?formatCurrency(c):'-', '-', '-'];
       });
       doc.autoTable({
         ...autoTableDefaults, startY: y2,
-        head: [['#','المرحلة','المديونية السابقة','المحصل','خصومات','المديونية الحالية']],
+        head: [['#','المرحلة','المديونية السابقة','المحصل (مصروفات دراسية)','خصومات','ملاحظات']],
         body: gradeRows2,
-        foot: [['الإجمالي','','-',formatCurrency(stageTotal2),'-','-']],
+        foot: [['الإجمالي','','-',formatCurrency(stageTotal2),'-','']],
         didDrawPage: d => { pageNum = d.pageNumber; drawPageHeader(pageNum); }
       });
 
@@ -1122,16 +1127,19 @@
       let y4 = doc.lastAutoTable.finalY + 6;
       if (y4 > PH-50) { doc.addPage(); pageNum++; drawPageHeader(pageNum); y4=34; }
       y4 = sectionTitle(doc, '② تحصيل المراحل الشهري', y4);
-      const gradeTotals3 = {};
-      currentData.forEach(d => { gradeTotals3[d.grade]=(gradeTotals3[d.grade]||0)+(d.amount||0); });
+      const gradeFees3 = {};
+      currentData.forEach(d => {
+        const m = mapAmounts(d);
+        gradeFees3[d.grade] = (gradeFees3[d.grade]||0) + (m.fees||0);
+      });
       let totalCollected3 = 0;
       const gradeRows3 = GRADES_LIST3.map((g,i) => {
-        const c = gradeTotals3[g]||0; totalCollected3+=c;
-        return [i+1, g, '-', c?formatCurrency(c):'-', '-', c?'-':'لا تحصيل'];
+        const c = gradeFees3[g]||0; totalCollected3+=c;
+        return [i+1, g, '-', c?formatCurrency(c):'-', '-', ''];
       });
       doc.autoTable({
         ...autoTableDefaults, startY: y4,
-        head: [['#','المرحلة','المديونية السابقة','المحصل الشهر','خصومات','ملاحظات']],
+        head: [['#','المرحلة','المديونية السابقة','المحصل (مصروفات دراسية)','خصومات','ملاحظات']],
         body: gradeRows3,
         foot: [['الإجمالي','','-',formatCurrency(totalCollected3),'-','']],
         didDrawPage: d => { pageNum = d.pageNumber; drawPageHeader(pageNum); }
@@ -1250,39 +1258,44 @@
       });
 
       // ===== مزامنة مع debts collection =====
-      // البحث بالاسم والبند الأصليين قبل التعديل
-      const origStudentName = orig.studentName || studentName;
-      const origPaymentItem = orig.paymentItem || paymentItem;
-
       if (newDebt > 0) {
+        // ابحث عن debt مفتوح لنفس الطالب ونفس البند
         const existingDebtSnap = await db.collection('debts')
           .where('schoolId',    '==', schoolId)
-          .where('studentName', '==', origStudentName)
-          .where('paymentItem', '==', origPaymentItem)
+          .where('studentName', '==', studentName)
+          .where('paymentItem', '==', paymentItem)
           .get();
 
         const openDebts = existingDebtSnap.docs.filter(d => (d.data().remaining || 0) > 0);
 
         if (openDebts.length > 0) {
-          // حدّث بالقيم الحقيقية الجديدة + اسم الطالب والبند الجديدين
-          await db.collection('debts').doc(openDebts[0].id).update({
-            studentName, grade, paymentItem,
-            totalDue, paid: amount, remaining: newDebt,
+          // حدّث الـ debt الموجود — فقط غيّر الـ remaining بالفرق
+          const existingDebt = openDebts[0];
+          const prevData = existingDebt.data();
+          // الفرق بين الـ debt القديم (من التعديل السابق) والجديد
+          const oldDebtFromThisTx = hadDebt; // الدين القديم من نفس الـ tx
+          const diff = newDebt - oldDebtFromThisTx;
+          await db.collection('debts').doc(existingDebt.id).update({
+            paid:      Math.max(0, (prevData.paid      || 0) - diff),
+            remaining: Math.max(0, (prevData.remaining || 0) + diff),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         } else {
           // أنشئ debt جديد
           await db.collection('debts').add({
-            schoolId, studentName, grade,
+            schoolId,
+            studentName,
+            grade,
             stage:       orig.stage       || '',
             stageName:   orig.stageName   || '',
-            paymentItem, totalDue,
+            paymentItem,
+            totalDue,
             paid:        amount,
             remaining:   newDebt,
-            date, hasDebt: true,
+            date,
+            hasDebt:     true,
             createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt:   firebase.firestore.FieldValue.serverTimestamp(),
-            academicYear: ACADEMIC_YEAR,
             sourceEditedTx: editingTxId
           });
         }
@@ -1290,14 +1303,14 @@
         // كان عنده debt وبقى مسدد — صفّر الـ remaining
         const existingDebtSnap = await db.collection('debts')
           .where('schoolId',    '==', schoolId)
-          .where('studentName', '==', origStudentName)
-          .where('paymentItem', '==', origPaymentItem)
+          .where('studentName', '==', studentName)
+          .where('paymentItem', '==', paymentItem)
           .get();
         const openDebts = existingDebtSnap.docs.filter(d => (d.data().remaining || 0) > 0);
         if (openDebts.length > 0) {
           await db.collection('debts').doc(openDebts[0].id).update({
-            studentName, grade, paymentItem,
-            remaining: 0, paid: totalDue,
+            remaining: 0,
+            paid: totalDue,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         }
