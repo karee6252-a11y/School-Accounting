@@ -844,7 +844,28 @@
   }
 
   function sendViaWhatsapp(waPhone, name) {
-    // حمّل الصورة الأول
+    const d = currentQRData;
+    const totalStu = d?.totalStudents || 1;
+    const companions = d?.companions || [];
+    const schoolName = school?.name || 'المدرسة';
+    const ticketLink = `https://school-accounting-one.vercel.app/ticket.html?id=${encodeURIComponent(d?.ticketId || '')}`;
+
+    // بناء نص الرسالة
+    let msg = `🎉 *تذكرة حفلة ${schoolName}*\n`;
+    msg += `━━━━━━━━━━━━━━━\n`;
+    msg += `🎓 *الاسم:* ${name}\n`;
+    if (d?.grade) msg += `📚 *الصف:* ${d.grade}\n`;
+    if (totalStu > 1) msg += `👨‍👩‍👧 *عدد الطلاب:* ${totalStu}\n`;
+    if (companions.length > 0) {
+      msg += `👥 *المرافقين (${companions.length}):*\n`;
+      companions.forEach((c, i) => { msg += `  ${i+1}. ${c}\n`; });
+    }
+    msg += `💰 *المبلغ:* ${(d?.amount || PRICES.student).toLocaleString('ar-EG')} ج.م\n`;
+    msg += `━━━━━━━━━━━━━━━\n`;
+    msg += `🔗 *رابط التذكرة (للسكان):*\n${ticketLink}\n`;
+    msg += `\n_امسح الـ QR من الرابط عند الدخول_`;
+
+    // حمّل صورة الـ QR الأول
     const wrap = document.getElementById('qrCanvasWrap');
     const cvs = wrap.querySelector('canvas');
     const img = wrap.querySelector('img');
@@ -853,17 +874,16 @@
     else if (img) src = img.src;
 
     if (src) {
-      // حمّل الصورة
       const link = document.createElement('a');
       link.href = src;
       link.download = (name || 'ticket') + '-QR.png';
       link.click();
     }
 
-    // بعد ثانية افتح واتساب
+    // بعد تحميل الصورة افتح واتساب مع الرسالة
     setTimeout(() => {
-      window.open('https://wa.me/' + waPhone, '_blank');
-    }, 800);
+      window.open('https://wa.me/' + waPhone + '?text=' + encodeURIComponent(msg), '_blank');
+    }, 900);
   }
 
   function printTicket() {
