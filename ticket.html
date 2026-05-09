@@ -182,9 +182,14 @@ function renderTicket(d) {
 
   document.getElementById('tSchool').textContent = school?.name || 'حفلة المدرسة';
   document.getElementById('tName').textContent   = d.name || '-';
-  document.getElementById('tSub').textContent    = d.type === 'student'
-    ? '🎓 طالب' + (d.grade ? ' — ' + d.grade : '')
-    : '👤 مرافق' + (d.linkedStudent ? ' لـ ' + d.linkedStudent : '');
+
+  // السطر الفرعي تحت الاسم — يعرض الصف + عدد الطلاب + المرافقين
+  const _totalStu = d.totalStudents || 1;
+  const _compCount = d.companionCount || 0;
+  let subText = d.grade ? `📚 ${d.grade}` : '';
+  if (_totalStu > 1) subText += `  •  🎓 ${_totalStu} طلاب`;
+  if (_compCount > 0) subText += `  •  👤 ${_compCount} مرافق`;
+  document.getElementById('tSub').textContent = subText || '🎓 طالب';
 
   const badge = document.getElementById('tBadge');
   if (isAtt) {
@@ -202,11 +207,28 @@ function renderTicket(d) {
     document.getElementById('attendBtn').style.display = 'block';
   }
 
-  document.getElementById('tType').textContent   = d.type === 'student' ? '🎓 طالب' : '👤 مرافق';
+  // عدد الطلاب والمرافقين
+  const totalStudents = d.totalStudents || 1;
+  const companionCount = d.companionCount || 0;
+  const companions = d.companions || [];
+
+  // tType: عرض عدد الطلاب + المرافقين
+  let typeText = `🎓 ${totalStudents} طالب`;
+  if (companionCount > 0) typeText += ` + 👤 ${companionCount} مرافق`;
+  document.getElementById('tType').textContent = typeText;
+
   document.getElementById('tGrade').textContent  = d.grade || (d.linkedStudent ? 'مرافق لـ '+d.linkedStudent : '-');
   document.getElementById('tAmount').textContent = d.amount ? Number(d.amount).toLocaleString('ar-EG')+' ج.م' : '-';
   document.getElementById('tPay').textContent    = PAY[d.paymentType] || d.paymentType || '-';
   document.getElementById('tId').textContent     = d.ticketId || ticketId;
+
+  // أسماء المرافقين
+  if (companions.length > 0) {
+    document.getElementById('tCompanionsWrap').style.display = 'block';
+    document.getElementById('tCompanions').innerHTML = companions
+      .map(c => `<span style="display:inline-block;background:#fff8e1;border:1px solid #ffe082;border-radius:12px;padding:0.1rem 0.6rem;margin:0.15rem;font-size:0.85rem">👤 ${c}</span>`)
+      .join('');
+  }
 
   if (d.notes) {
     document.getElementById('tNotesWrap').style.display = 'block';
