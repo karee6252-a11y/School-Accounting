@@ -223,7 +223,7 @@ async function markAttended() {
   btn.disabled = true;
   btn.textContent = '⏳ جاري التسجيل...';
   try {
-    await db.collection('partyAttendees').doc(ticketId).update({
+    await db.collection('partyAttendees').doc(window._ticketDocId || ticketId).update({
       status:     'attended',
       attendedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -245,9 +245,31 @@ async function markAttended() {
 async function loadTicket() {
   if (!ticketId) { showError('لم يتم تحديد كود التذكرة في الرابط'); return; }
   try {
-    const snap = await db.collection('partyAttendees').doc(ticketId).get();
-    if (!snap.exists) { showError('هذا الكود غير مسجل في النظام'); return; }
-    renderTicket(snap.data());
+    // أولاً: جرب تجيبه بالـ document ID مباشرة (الطريقة الجديدة)
+    let data = null;
+    let docId = ticketId;
+
+    const directSnap = await db.collection('partyAttendees').doc(ticketId).get();
+    if (directSnap.exists) {
+      data = directSnap.data();
+    } else {
+      // ثانياً: دور على الـ ticketId كـ field (الطريقة القديمة بـ .add())
+      const querySnap = await db.collection('partyAttendees')
+        .where('ticketId', '==', ticketId)
+        .limit(1)
+        .get();
+      if (!querySnap.empty) {
+        data = querySnap.docs[0].data();
+        docId = querySnap.docs[0].id; // الـ ID العشوائي القديم
+      }
+    }
+
+    if (!data) { showError('هذا الكود غير مسجل في النظام'); return; }
+
+    // احفظ الـ docId الصح عشان الـ update يشتغل
+    window._ticketDocId = docId;
+    renderTicket(data);
+
   } catch(e) {
     showError('خطأ في الاتصال بقاعدة البيانات:\n' + e.message);
   }
