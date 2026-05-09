@@ -288,35 +288,22 @@
 
               <div class="alert hidden" id="regAlert"></div>
 
-              <!-- TYPE SELECTION -->
-              <div class="form-group">
-                <label class="form-label">نوع التذكرة <span class="required">*</span></label>
-                <div class="type-toggle">
-                  <div class="type-card selected" id="typeStudent" onclick="selectType('student')">
-                    <div class="type-check">✓</div>
-                    <span class="type-icon">🎓</span>
-                    <div class="type-label">طالب</div>
-                    <span class="type-price">300 ج.م</span>
-                  </div>
-                  <div class="type-card" id="typeCompanion" onclick="selectType('companion')">
-                    <div class="type-check"></div>
-                    <span class="type-icon">👤</span>
-                    <div class="type-label">مرافق</div>
-                    <span class="type-price">150 ج.م</span>
-                  </div>
+              <!-- STUDENT SECTION -->
+              <div style="background:var(--accent);border:1.5px solid var(--primary-light);border-radius:var(--radius);padding:1rem 1.125rem;margin-bottom:1rem">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.875rem">
+                  <span style="font-weight:800;color:var(--primary);font-size:0.95rem">🎓 الطلاب</span>
+                  <span style="font-size:0.8rem;color:var(--text-light)">300 ج.م / طالب</span>
                 </div>
-              </div>
 
-              <!-- STUDENT FIELDS -->
-              <div id="studentFields">
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label class="form-label">اسم الطالب <span class="required">*</span></label>
+                <!-- الطالب الأول (إلزامي) -->
+                <div class="form-grid" style="margin-bottom:0.5rem">
+                  <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">اسم الطالب الأول <span class="required">*</span></label>
                     <input type="text" class="form-input form-input-ar" id="regName"
                       placeholder="الاسم كاملاً" list="studentSuggestList" oninput="fetchStudentSuggestions()" />
                     <datalist id="studentSuggestList"></datalist>
                   </div>
-                  <div class="form-group">
+                  <div class="form-group" style="margin-bottom:0">
                     <label class="form-label">الصف <span class="required">*</span></label>
                     <select class="form-select" id="regGrade">
                       <option value="">اختر الصف</option>
@@ -335,21 +322,40 @@
                     </select>
                   </div>
                 </div>
+
+                <!-- عداد طلاب إضافيين -->
+                <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.75rem;flex-wrap:wrap">
+                  <span style="font-size:0.82rem;color:var(--text-mid);font-weight:700">طلاب إضافيين:</span>
+                  <div style="display:flex;align-items:center;gap:0.5rem;background:white;border:1.5px solid var(--border);border-radius:8px;padding:0.2rem 0.4rem">
+                    <button type="button" onclick="changeExtraStudentCount(-1)"
+                      style="width:28px;height:28px;border:none;background:var(--accent);border-radius:6px;font-size:1.1rem;font-weight:900;cursor:pointer;color:var(--primary);display:flex;align-items:center;justify-content:center">−</button>
+                    <span id="extraStudentCountDisplay" style="min-width:20px;text-align:center;font-weight:900;font-size:1rem;color:var(--primary)">0</span>
+                    <button type="button" onclick="changeExtraStudentCount(1)"
+                      style="width:28px;height:28px;border:none;background:var(--accent);border-radius:6px;font-size:1.1rem;font-weight:900;cursor:pointer;color:var(--primary);display:flex;align-items:center;justify-content:center">+</button>
+                  </div>
+                  <span style="font-size:0.75rem;color:var(--text-light)">(بدون اسم — بس عداد)</span>
+                </div>
               </div>
 
-              <!-- COMPANION FIELDS -->
-              <div id="companionFields" style="display:none">
-                <div class="form-group">
-                  <label class="form-label">اسم المرافق <span class="required">*</span></label>
-                  <input type="text" class="form-input form-input-ar" id="regCompName"
-                    placeholder="اسم المرافق كاملاً" />
+              <!-- COMPANION SECTION -->
+              <div style="background:#fff8e1;border:1.5px solid #ffe082;border-radius:var(--radius);padding:1rem 1.125rem;margin-bottom:1rem">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+                  <span style="font-weight:800;color:#856404;font-size:0.95rem">👤 المرافقين <span style="font-size:0.75rem;font-weight:400;color:var(--text-light)">(اختياري)</span></span>
+                  <span style="font-size:0.8rem;color:var(--text-light)">150 ج.م / مرافق</span>
                 </div>
-                <div class="form-group">
-                  <label class="form-label">اسم الطالب المرتبط (اختياري)</label>
-                  <input type="text" class="form-input form-input-ar" id="regLinkedStudent"
-                    placeholder="اسم الطالب الذي يرافقه" list="studentSuggestList2" />
-                  <datalist id="studentSuggestList2"></datalist>
+                <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.5rem">
+                  <span style="font-size:0.82rem;color:var(--text-mid);font-weight:700">عدد المرافقين:</span>
+                  <div style="display:flex;align-items:center;gap:0.5rem;background:white;border:1.5px solid #ffe082;border-radius:8px;padding:0.2rem 0.4rem">
+                    <button type="button" onclick="changeCompanionCount(-1)"
+                      style="width:28px;height:28px;border:none;background:#fff8e1;border-radius:6px;font-size:1.1rem;font-weight:900;cursor:pointer;color:#856404;display:flex;align-items:center;justify-content:center">−</button>
+                    <span id="companionCountDisplay" style="min-width:20px;text-align:center;font-weight:900;font-size:1rem;color:#856404">0</span>
+                    <button type="button" onclick="changeCompanionCount(1)"
+                      style="width:28px;height:28px;border:none;background:#fff8e1;border-radius:6px;font-size:1.1rem;font-weight:900;cursor:pointer;color:#856404;display:flex;align-items:center;justify-content:center">+</button>
+                  </div>
+                  <span style="font-size:0.75rem;color:var(--text-light)">(أسماء اختيارية)</span>
                 </div>
+                <!-- حقول أسماء المرافقين -->
+                <div id="companionNameFields"></div>
               </div>
 
               <!-- COMMON FIELDS -->
@@ -378,10 +384,10 @@
               <!-- PRICE DISPLAY -->
               <div style="background:var(--accent);border-radius:var(--radius-sm);padding:0.875rem 1rem;margin-bottom:1rem;border:1px solid var(--primary-light)">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
-                  <span style="font-size:0.8rem;color:var(--text-light)">🎓 طالب × 1</span>
+                  <span style="font-size:0.8rem;color:var(--text-light)" id="stuPriceBreakLabel">🎓 طلاب × 1</span>
                   <span style="font-size:0.85rem;font-weight:700;color:var(--text-mid)" id="stuPriceBreak">300 ج.م</span>
                 </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem" id="compPriceBreakRow" style="display:none">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem" id="compPriceBreakRow">
                   <span style="font-size:0.8rem;color:var(--text-light)" id="compPriceBreakLabel">👤 مرافق × 0</span>
                   <span style="font-size:0.85rem;font-weight:700;color:var(--text-mid)" id="compPriceBreak">0 ج.م</span>
                 </div>
@@ -589,8 +595,15 @@
     }
   }
 
-  // ==================== COMPANION COUNTER ====================
-  let companionCount = 0;
+  // ==================== COUNTERS ====================
+  let extraStudentCount = 0;  // طلاب إضافيين (بدون اسم)
+  let companionCount = 0;     // مرافقين (باسم اختياري)
+
+  function changeExtraStudentCount(delta) {
+    extraStudentCount = Math.max(0, extraStudentCount + delta);
+    document.getElementById('extraStudentCountDisplay').textContent = extraStudentCount;
+    updatePriceDisplay();
+  }
 
   function changeCompanionCount(delta) {
     companionCount = Math.max(0, companionCount + delta);
@@ -607,10 +620,10 @@
       const wrap = document.createElement('div');
       wrap.style.cssText = 'display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem';
       wrap.innerHTML = `
-        <span style="font-size:0.75rem;color:var(--text-light);white-space:nowrap;min-width:60px">مرافق ${i+1}</span>
+        <span style="font-size:0.75rem;color:#856404;white-space:nowrap;min-width:60px">مرافق ${i+1}</span>
         <input type="text" class="form-input form-input-ar"
           id="compName_${i}"
-          placeholder="اسم المرافق"
+          placeholder="اسم المرافق (اختياري)"
           value="${existing[i] || ''}"
           style="margin:0" />
       `;
@@ -619,9 +632,11 @@
   }
 
   function updatePriceDisplay() {
-    const stuTotal  = PRICES.student;
+    const totalStudents = 1 + extraStudentCount;
+    const stuTotal  = totalStudents * PRICES.student;
     const compTotal = companionCount * PRICES.companion;
     const total     = stuTotal + compTotal;
+    document.getElementById('stuPriceBreakLabel').textContent = `🎓 طلاب × ${totalStudents}`;
     document.getElementById('stuPriceBreak').textContent  = stuTotal.toLocaleString('ar-EG') + ' ج.م';
     document.getElementById('compPriceBreakLabel').textContent = `👤 مرافق × ${companionCount}`;
     document.getElementById('compPriceBreak').textContent = compTotal.toLocaleString('ar-EG') + ' ج.م';
@@ -668,13 +683,14 @@
     if (!phone)   return showAlert('regAlert', 'أدخل رقم التليفون', 'error');
     if (!payType) return showAlert('regAlert', 'اختر طريقة الدفع', 'error');
 
-    // اجمع أسماء المرافقين
+    // اجمع أسماء المرافقين (اختيارية — ممكن تكون فارغة)
     const companions = [];
     for (let i = 0; i < companionCount; i++) {
       const n = (document.getElementById(`compName_${i}`)?.value || '').trim();
-      if (!n) return showAlert('regAlert', `أدخل اسم المرافق ${i+1}`, 'error');
-      companions.push(n);
+      companions.push(n || `مرافق ${i+1}`);  // لو فارغ، اسم تلقائي
     }
+
+    const totalStudents = 1 + extraStudentCount;
 
     btn.disabled = true;
     btn.textContent = '⏳ جاري الحفظ...';
@@ -686,7 +702,7 @@
         String(now.getDate()).padStart(2,'0');
 
       const ticketId = generateTicketId('student');
-      const totalAmount = PRICES.student + (companionCount * PRICES.companion);
+      const totalAmount = (totalStudents * PRICES.student) + (companionCount * PRICES.companion);
 
       const doc = {
         ticketId,
@@ -702,6 +718,8 @@
         attendedAt: null,
         companions,           // أسماء المرافقين
         companionCount,       // عدد المرافقين
+        extraStudentCount,    // طلاب إضافيين بدون اسم
+        totalStudents,        // إجمالي الطلاب (1 + إضافيين)
         registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
         registeredBy: session.email,
         date: dateStr,
@@ -731,26 +749,29 @@
     document.getElementById('qrSchoolName').textContent = school?.name || 'المدرسة';
     document.getElementById('qrName').textContent = data.name;
 
-    document.getElementById('qrInfo').textContent = '🎓 ' + (data.grade || '');
-    // عرض أسماء المرافقين
+    const totalStu = data.totalStudents || 1;
+    document.getElementById('qrInfo').textContent = '🎓 ' + (data.grade || '') + (totalStu > 1 ? ` (+${totalStu-1} طالب)` : '');
+
+    // Badge: طلاب + مرافقين + مبلغ
     const companions = data.companions || [];
+    let badgeText = `🎓 ${totalStu} طالب`;
+    if (companions.length > 0) badgeText += ` + 👤 ${companions.length} مرافق`;
+    badgeText += ` — ${(data.amount || PRICES.student).toLocaleString('ar-EG')} ج.م`;
+    document.getElementById('qrTypeBadge').textContent = badgeText;
+
+    // عرض المرافقين تحت الـ QR
+    let compEl = document.getElementById('qrCompanionsList');
+    if (!compEl) {
+      compEl = document.createElement('div');
+      compEl.id = 'qrCompanionsList';
+      compEl.style.cssText = 'margin-top:0.5rem;font-size:0.78rem;opacity:0.9;text-align:center';
+      document.getElementById('qrTicketId').after(compEl);
+    }
     if (companions.length > 0) {
-      document.getElementById('qrTypeBadge').textContent =
-        'طالب + ' + companions.length + ' مرافق - ' + (data.amount || PRICES.student) + ' ج.م';
-      // أضف أسماء المرافقين تحت الـ QR
-      let compEl = document.getElementById('qrCompanionsList');
-      if (!compEl) {
-        compEl = document.createElement('div');
-        compEl.id = 'qrCompanionsList';
-        compEl.style.cssText = 'margin-top:0.5rem;font-size:0.78rem;opacity:0.9;text-align:center';
-        document.getElementById('qrTicketId').after(compEl);
-      }
       compEl.innerHTML = '<div style="margin-bottom:0.25rem;opacity:0.7;font-size:0.7rem">المرافقين:</div>' +
         companions.map(n => `<span style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:12px;padding:0.1rem 0.6rem;margin:0.15rem">👤 ${n}</span>`).join(' ');
     } else {
-      document.getElementById('qrTypeBadge').textContent = 'طالب - ' + PRICES.student + ' ج.م';
-      const compEl = document.getElementById('qrCompanionsList');
-      if (compEl) compEl.innerHTML = '';
+      compEl.innerHTML = '';
     }
     document.getElementById('qrTicketId').textContent = data.ticketId;
 
@@ -945,7 +966,7 @@
             </div>
             <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem">
               <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">المبلغ</div>
-              <div style="font-weight:700;color:var(--primary)">${PRICES[d.type]} ج.م</div>
+              <div style="font-weight:700;color:var(--primary)">${d.amount || PRICES.student} ج.م</div>
             </div>
             <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem">
               <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">طريقة الدفع</div>
@@ -1035,10 +1056,10 @@
         div.onmouseout  = () => div.style.background = '';
         div.onclick = () => openQRModal(d);
         div.innerHTML = `
-          <span style="font-size:1.25rem">${d.type === 'student' ? '🎓' : '👤'}</span>
+          <span style="font-size:1.25rem">🎓</span>
           <div style="flex:1;min-width:0">
             <div style="font-weight:700;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name}</div>
-            <div style="font-size:0.72rem;color:var(--text-light)">${d.type === 'student' ? d.grade : 'مرافق'} • ${PRICES[d.type]} ج.م</div>
+            <div style="font-size:0.72rem;color:var(--text-light)">${d.grade || ''} ${(d.totalStudents||1) > 1 ? `(${d.totalStudents} طلاب)` : ''} ${d.companionCount > 0 ? `+ ${d.companionCount} مرافق` : ''} • ${d.amount || PRICES.student} ج.م</div>
           </div>
           <span style="font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:10px;font-weight:700;${d.status==='attended'?'background:#e8f5e9;color:#2e7d32':'background:#fff3cd;color:#856404'}">${d.status==='attended'?'✅ دخل':'⏳ مسجل'}</span>
         `;
@@ -1056,8 +1077,8 @@
       let students=0, companions=0, attended=0, revenue=0;
       snap.forEach(doc => {
         const d = doc.data();
-        if (d.type === 'student') students++;
-        else companions++;
+        students  += d.totalStudents  || 1;
+        companions+= d.companionCount || 0;
         if (d.status === 'attended') attended++;
         revenue += d.amount || 0;
       });
@@ -1113,10 +1134,10 @@
     }
     const payLabels = { cash:'نقدي', bank_transfer:'تحويل', instapay:'إنستاباي' };
 
-    // إجمالي الحضور (طلاب + مرافقين)
+    // إجمالي الحضور (بحساب الطلاب الإضافيين)
     const totalCount = allAttendees.length;
-    const studentsCount = allAttendees.filter(a => a.type === 'student').length;
-    const companionsCount = allAttendees.filter(a => a.type === 'companion').length;
+    const studentsCount = allAttendees.reduce((s, a) => s + (a.totalStudents || 1), 0);
+    const companionsCount = allAttendees.reduce((s, a) => s + (a.companionCount || 0), 0);
 
     // عداد فوق الجدول
     let counterEl = document.getElementById('attendeeCounter');
@@ -1128,13 +1149,13 @@
     }
     counterEl.innerHTML = `
       <span style="background:#e3f2fd;color:#1565c0;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:800">
-        👥 الإجمالي: ${data.length} شخص
+        👥 التسجيلات: ${data.length}
       </span>
       <span style="background:#e8f5e9;color:#2e7d32;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:800">
-        🎓 طلاب: ${data.filter(x=>x.type==='student').length}
+        🎓 طلاب: ${studentsCount}
       </span>
       <span style="background:#fff3cd;color:#856404;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:800">
-        👤 مرافقين: ${data.filter(x=>x.type==='companion').length}
+        👤 مرافقين: ${companionsCount}
       </span>
     `;
 
@@ -1142,19 +1163,20 @@
       const attendedAt = d.attendedAt?.toDate?.()
         ? d.attendedAt.toDate().toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'})
         : '-';
+      const totalStu = d.totalStudents || 1;
       return `
         <tr class="attendee-row" onclick="openQRModalById('${d.id}')">
           <td>${i+1}</td>
           <td>
             <strong>${d.name}</strong>
             ${d.grade ? `<br><span class="text-sm text-muted">${d.grade}</span>` : ''}
+            ${totalStu > 1 ? `<br><span style="font-size:0.72rem;background:#e8f5e9;color:#2e7d32;padding:0.1rem 0.5rem;border-radius:10px;font-weight:700">🎓 ${totalStu} طلاب</span>` : ''}
             ${d.companions && d.companions.length > 0 ? `<br><span style="font-size:0.72rem;background:#e3f2fd;color:#1565c0;padding:0.1rem 0.5rem;border-radius:10px;font-weight:700">👥 ${d.companions.length} مرافق</span>` : ''}
-
           </td>
-          <td><span style="font-size:1rem">${d.type==='student'?'🎓':'👤'}</span> ${d.type==='student'?'طالب':'مرافق'}</td>
+          <td><span style="font-size:1rem">🎓</span> طالب</td>
           <td>${d.grade || '-'}</td>
           <td dir="ltr" style="text-align:right">${d.phone}</td>
-          <td><span class="badge badge-primary">${payLabels[d.paymentType]||d.paymentType}</span> <span style="font-weight:800">${PRICES[d.type]} ج.م</span></td>
+          <td><span class="badge badge-primary">${payLabels[d.paymentType]||d.paymentType}</span> <span style="font-weight:800">${d.amount || PRICES.student} ج.م</span></td>
           <td><span style="padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:700;${d.status==='attended'?'background:#e8f5e9;color:#2e7d32;border:1px solid #4caf50':'background:#fff3cd;color:#856404;border:1px solid #ffc107'}">${d.status==='attended'?'✅ دخل الحفلة':'⏳ مسجل'}</span></td>
           <td style="font-size:0.8rem;color:var(--text-light)">${attendedAt}</td>
           <td>
@@ -1222,17 +1244,17 @@
       ws.addRow({
         idx:       i+1,
         name:      d.name,
-        type:      d.type==='student' ? 'طالب' : 'مرافق',
+        type:      `🎓 ${d.totalStudents||1} طالب` + (d.companionCount > 0 ? ` + 👤 ${d.companionCount} مرافق` : ''),
         grade:     d.grade || '-',
         phone:     d.phone,
         pay:       ({cash:'نقدي', bank_transfer:'تحويل بنكي', instapay:'إنستاباي'})[d.paymentType] || d.paymentType,
-        amount:    PRICES[d.type],
+        amount:    d.amount || PRICES.student,
         status:    d.status==='attended' ? 'دخل الحفلة' : 'مسجل',
         attendedAt: d.attendedAt?.toDate?.() ? d.attendedAt.toDate().toLocaleString('ar-EG') : '-',
       });
     });
 
-    const total = allAttendees.reduce((s,d) => s + PRICES[d.type], 0);
+    const total = allAttendees.reduce((s,d) => s + (d.amount || PRICES.student), 0);
     const totalRow = ws.addRow({ name: 'الإجمالي', amount: total });
     totalRow.font = { bold: true };
     totalRow.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFE0B2' } };
@@ -1250,7 +1272,7 @@
   function exportListPDF() {
     if (!allAttendees.length) return alert('لا توجد بيانات للطباعة');
     const pw = window.open('', '_blank', 'width=900,height=700');
-    const total = allAttendees.reduce((s,d) => s + PRICES[d.type], 0);
+    const total = allAttendees.reduce((s,d) => s + (d.amount || PRICES.student), 0);
     const payLabels = { cash:'نقدي', bank_transfer:'تحويل بنكي', instapay:'إنستاباي' };
     pw.document.write(`
       <html><head><meta charset="UTF-8">
@@ -1278,7 +1300,7 @@
               <td>${d.grade||'-'}</td>
               <td dir="ltr" style="text-align:right">${d.phone}</td>
               <td>${payLabels[d.paymentType]||d.paymentType}</td>
-              <td>${PRICES[d.type]} ج.م</td>
+              <td>${d.amount || PRICES.student} ج.م</td>
               <td>${d.status==='attended'?'✅ دخل':'⏳ مسجل'}</td>
             </tr>
           `).join('')}
@@ -1298,7 +1320,9 @@
     document.getElementById('regPhone').value = '';
     document.getElementById('regPayType').value = '';
     document.getElementById('regNotes').value = '';
+    extraStudentCount = 0;
     companionCount = 0;
+    document.getElementById('extraStudentCountDisplay').textContent = '0';
     document.getElementById('companionCountDisplay').textContent = '0';
     document.getElementById('companionNameFields').innerHTML = '';
     updatePriceDisplay();
