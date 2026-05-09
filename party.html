@@ -295,7 +295,7 @@
                   <div class="type-card selected" id="typeStudent" onclick="selectType('student')">
                     <div class="type-check">✓</div>
                     <span class="type-icon">🎓</span>
-                    <div class="type-label">طالب</div>
+                    <div class="type-label">ضيف</div>
                     <span class="type-price">300 ج.م</span>
                   </div>
                   <div class="type-card" id="typeCompanion" onclick="selectType('companion')">
@@ -647,7 +647,7 @@
         ...(currentType === 'student' ? { grade } : { linkedStudent })
       };
 
-      await db.collection('partyAttendees').doc(ticketId).set(doc);
+      await db.collection('partyAttendees').add(doc);
 
       // للـ QR modal نستخدم now كـ fallback لأن serverTimestamp مش فيه value فوراً
       currentQRData = { ...doc, registeredAt: now };

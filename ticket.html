@@ -8,14 +8,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --primary: #1e2d5a;
-      --success: #2e7d32;
-      --warning: #856404;
-      --danger:  #c62828;
-    }
-
     body {
       font-family: 'Cairo', sans-serif;
       background: linear-gradient(135deg, #0d1b35 0%, #1a2a4a 60%, #0d1b35 100%);
@@ -25,523 +17,243 @@
       justify-content: center;
       padding: 1.5rem;
     }
-
-    /* ====== LOADING ====== */
-    .loading-screen {
-      text-align: center;
-      color: white;
-    }
-    .spinner {
-      width: 52px; height: 52px;
-      border: 4px solid rgba(255,255,255,0.2);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 1.25rem;
-    }
+    .spinner { width:52px;height:52px;border:4px solid rgba(255,255,255,0.2);border-top-color:white;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1.25rem; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-screen p { font-size: 0.95rem; opacity: 0.75; }
-
-    /* ====== ERROR ====== */
-    .error-card {
-      background: white;
-      border-radius: 20px;
-      padding: 2.5rem 2rem;
-      text-align: center;
-      max-width: 380px;
-      width: 100%;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.4);
-    }
-    .error-icon { font-size: 4rem; margin-bottom: 1rem; }
-    .error-title { font-size: 1.25rem; font-weight: 900; color: var(--danger); margin-bottom: 0.5rem; }
-    .error-sub { font-size: 0.875rem; color: #666; line-height: 1.6; }
-
-    /* ====== TICKET CARD ====== */
-    .ticket-wrap {
-      width: 100%;
-      max-width: 400px;
-      animation: slideUp 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
-    }
-    @keyframes slideUp {
-      from { opacity:0; transform: translateY(40px) scale(0.95); }
-      to   { opacity:1; transform: translateY(0) scale(1); }
-    }
-
-    /* Top decorative strip */
-    .ticket-top-strip {
-      height: 8px;
-      border-radius: 20px 20px 0 0;
-      background: linear-gradient(90deg, var(--school-primary, #1e2d5a), var(--school-secondary, #4a6fa5));
-    }
-
-    .ticket-card {
-      background: white;
-      border-radius: 0 0 20px 20px;
-      overflow: hidden;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.4);
-    }
-
-    /* Header */
-    .ticket-header {
-      background: linear-gradient(135deg, var(--school-primary, #1e2d5a) 0%, #0d1b2e 100%);
-      padding: 1.5rem 1.5rem 1.25rem;
-      color: white;
-      position: relative;
-      overflow: hidden;
-    }
-    .ticket-header::before {
-      content: '🎉';
-      position: absolute;
-      font-size: 7rem;
-      opacity: 0.06;
-      top: -1rem;
-      left: -1.5rem;
-      pointer-events: none;
-    }
-    .school-name {
-      font-size: 0.72rem;
-      font-weight: 700;
-      opacity: 0.65;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      margin-bottom: 0.4rem;
-    }
-    .attendee-name {
-      font-size: 1.6rem;
-      font-weight: 900;
-      line-height: 1.2;
-      margin-bottom: 0.35rem;
-    }
-    .attendee-sub {
-      font-size: 0.875rem;
-      opacity: 0.8;
-    }
-
-    /* Status badge */
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      margin-top: 0.85rem;
-      padding: 0.35rem 1rem;
-      border-radius: 30px;
-      font-size: 0.82rem;
-      font-weight: 800;
-      letter-spacing: 0.3px;
-    }
-    .status-badge.attended {
-      background: rgba(76,175,80,0.25);
-      border: 1.5px solid rgba(76,175,80,0.6);
-      color: #a5d6a7;
-    }
-    .status-badge.registered {
-      background: rgba(255,193,7,0.2);
-      border: 1.5px solid rgba(255,193,7,0.5);
-      color: #ffe082;
-    }
-
-    /* Dashed separator */
-    .ticket-separator {
-      position: relative;
-      height: 0;
-      border-top: 2px dashed #e0e4f0;
-      margin: 0;
-    }
-    .ticket-separator::before,
-    .ticket-separator::after {
-      content: '';
-      position: absolute;
-      top: -12px;
-      width: 24px; height: 24px;
-      background: linear-gradient(135deg, #0d1b35, #1a2a4a);
-      border-radius: 50%;
-    }
-    .ticket-separator::before { right: -12px; }
-    .ticket-separator::after  { left:  -12px; }
-
-    /* Body */
-    .ticket-body {
-      padding: 1.25rem 1.5rem 1.5rem;
-    }
-
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
-      margin-bottom: 1.25rem;
-    }
-    .info-item {
-      background: #f4f6fb;
-      border-radius: 10px;
-      padding: 0.75rem 0.875rem;
-    }
-    .info-item .info-label {
-      font-size: 0.68rem;
-      font-weight: 700;
-      color: #999;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 0.2rem;
-    }
-    .info-item .info-value {
-      font-size: 0.95rem;
-      font-weight: 800;
-      color: #1a1a2e;
-    }
-    .info-item.full { grid-column: 1 / -1; }
-    .info-item.amount .info-value {
-      font-size: 1.25rem;
-      color: var(--school-primary, #1e2d5a);
-    }
-
-    /* Ticket ID */
-    .ticket-id-bar {
-      background: #f4f6fb;
-      border-radius: 10px;
-      padding: 0.6rem 0.875rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1rem;
-    }
-    .ticket-id-bar .tid-label {
-      font-size: 0.68rem;
-      font-weight: 700;
-      color: #999;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .ticket-id-bar .tid-code {
-      font-size: 0.72rem;
-      font-family: monospace;
-      letter-spacing: 1.5px;
-      color: #555;
-      font-weight: 700;
-      word-break: break-all;
-      text-align: left;
-      direction: ltr;
-    }
-
-    /* Footer */
-    .ticket-footer {
-      background: #f9fafb;
-      border-top: 1px solid #e8ecf5;
-      padding: 0.875rem 1.5rem;
-      text-align: center;
-      font-size: 0.7rem;
-      color: #aaa;
-      font-weight: 600;
-    }
-
-    /* Attended overlay */
-    .attended-overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-      z-index: 2;
-    }
-    .attended-stamp {
-      border: 4px solid rgba(76,175,80,0.45);
-      border-radius: 12px;
-      padding: 0.3rem 1rem;
-      color: rgba(76,175,80,0.45);
-      font-size: 1.4rem;
-      font-weight: 900;
-      transform: rotate(-15deg);
-      letter-spacing: 2px;
-      white-space: nowrap;
-    }
-
-    @media (max-width: 440px) {
-      .attendee-name { font-size: 1.35rem; }
-      .info-grid { gap: 0.5rem; }
-    }
+    .loading-screen { text-align:center;color:white; }
+    .loading-screen p { font-size:0.95rem;opacity:0.75; }
+    .error-card { background:white;border-radius:20px;padding:2.5rem 2rem;text-align:center;max-width:380px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.4);display:none; }
+    .error-icon { font-size:4rem;margin-bottom:1rem; }
+    .error-title { font-size:1.25rem;font-weight:900;color:#c62828;margin-bottom:0.5rem; }
+    .error-sub { font-size:0.875rem;color:#666;line-height:1.6; }
+    .error-code { font-family:monospace;background:#f5f5f5;padding:0.3rem 0.6rem;border-radius:6px;font-size:0.8rem;margin-top:0.75rem;color:#333;word-break:break-all;display:inline-block; }
+    .ticket-wrap { width:100%;max-width:400px;display:none;animation:slideUp 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+    @keyframes slideUp { from{opacity:0;transform:translateY(40px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)} }
+    .ticket-top-strip { height:8px;border-radius:20px 20px 0 0; }
+    .ticket-card { background:white;border-radius:0 0 20px 20px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.4); }
+    .ticket-header { background:linear-gradient(135deg,#1e2d5a 0%,#0d1b2e 100%);padding:1.5rem 1.5rem 1.25rem;color:white;position:relative;overflow:hidden; }
+    .ticket-header::before { content:'🎉';position:absolute;font-size:7rem;opacity:0.06;top:-1rem;left:-1.5rem;pointer-events:none; }
+    .school-lbl { font-size:0.72rem;font-weight:700;opacity:0.65;letter-spacing:0.5px;margin-bottom:0.4rem; }
+    .attendee-name { font-size:1.6rem;font-weight:900;line-height:1.2;margin-bottom:0.35rem; }
+    .attendee-sub { font-size:0.875rem;opacity:0.8; }
+    .status-badge { display:inline-flex;align-items:center;gap:0.4rem;margin-top:0.85rem;padding:0.35rem 1rem;border-radius:30px;font-size:0.82rem;font-weight:800; }
+    .s-attended { background:rgba(76,175,80,0.25);border:1.5px solid rgba(76,175,80,0.6);color:#a5d6a7; }
+    .s-registered { background:rgba(255,193,7,0.2);border:1.5px solid rgba(255,193,7,0.5);color:#ffe082; }
+    .attended-overlay { position:absolute;inset:0;display:none;align-items:center;justify-content:center;pointer-events:none;z-index:2; }
+    .attended-stamp { border:4px solid rgba(76,175,80,0.45);border-radius:12px;padding:0.3rem 1rem;color:rgba(76,175,80,0.45);font-size:1.4rem;font-weight:900;transform:rotate(-15deg);letter-spacing:2px; }
+    .ticket-separator { position:relative;height:0;border-top:2px dashed #e0e4f0; }
+    .ticket-separator::before,.ticket-separator::after { content:'';position:absolute;top:-12px;width:24px;height:24px;background:linear-gradient(135deg,#0d1b35,#1a2a4a);border-radius:50%; }
+    .ticket-separator::before { right:-12px; }
+    .ticket-separator::after { left:-12px; }
+    .ticket-body { padding:1.25rem 1.5rem 1rem; }
+    .info-grid { display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem; }
+    .info-item { background:#f4f6fb;border-radius:10px;padding:0.75rem 0.875rem; }
+    .info-item.full { grid-column:1/-1; }
+    .info-lbl { font-size:0.68rem;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.2rem; }
+    .info-val { font-size:0.95rem;font-weight:800;color:#1a1a2e; }
+    .info-item.amount .info-val { font-size:1.2rem;color:#1e2d5a; }
+    .ticket-id-bar { background:#f4f6fb;border-radius:10px;padding:0.6rem 0.875rem;display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem; }
+    .tid-lbl { font-size:0.68rem;font-weight:700;color:#999; }
+    .tid-code { font-size:0.72rem;font-family:monospace;letter-spacing:1.5px;color:#555;font-weight:700;direction:ltr; }
+    .attend-btn { display:none;width:100%;padding:0.9rem;background:#1e2d5a;color:white;border:none;border-radius:12px;font-family:'Cairo',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;margin-bottom:1rem;transition:opacity 0.2s,background 0.3s; }
+    .attend-btn:hover:not(:disabled) { opacity:0.88; }
+    .attend-btn.done { background:#e8f5e9;color:#2e7d32;border:2px solid #4caf50;cursor:default; }
+    .ticket-footer { background:#f9fafb;border-top:1px solid #e8ecf5;padding:0.875rem 1.5rem;text-align:center;font-size:0.7rem;color:#aaa;font-weight:600; }
   </style>
 </head>
 <body>
 
-  <!-- Loading -->
-  <div class="loading-screen" id="loadingScreen">
-    <div class="spinner"></div>
-    <p>جاري تحميل بيانات التذكرة...</p>
-  </div>
+<div class="loading-screen" id="loadingScreen">
+  <div class="spinner"></div>
+  <p>جاري تحميل بيانات التذكرة...</p>
+</div>
 
-  <!-- Error -->
-  <div class="error-card" id="errorCard" style="display:none">
-    <div class="error-icon">❌</div>
-    <div class="error-title">تذكرة غير موجودة</div>
-    <div class="error-sub" id="errorMsg">الكود المدخل غير مسجل في النظام</div>
-  </div>
+<div class="error-card" id="errorCard">
+  <div class="error-icon">❌</div>
+  <div class="error-title">تذكرة غير موجودة</div>
+  <div class="error-sub" id="errorMsg">الكود المدخل غير مسجل في النظام</div>
+  <div class="error-code" id="errorCode"></div>
+</div>
 
-  <!-- Ticket -->
-  <div class="ticket-wrap" id="ticketWrap" style="display:none">
-    <div class="ticket-top-strip" id="topStrip"></div>
-    <div class="ticket-card">
-
-      <div class="ticket-header" id="ticketHeader">
-        <div class="attended-overlay" id="attendedOverlay" style="display:none">
-          <div class="attended-stamp">✓ دخل الحفلة</div>
-        </div>
-        <div class="school-name" id="tSchoolName">المدرسة</div>
-        <div class="attendee-name" id="tName">-</div>
-        <div class="attendee-sub" id="tSub">-</div>
-        <div class="status-badge registered" id="tStatusBadge">⏳ مسجل</div>
+<div class="ticket-wrap" id="ticketWrap">
+  <div class="ticket-top-strip" id="topStrip" style="background:linear-gradient(90deg,#1e2d5a,#4a6fa5)"></div>
+  <div class="ticket-card">
+    <div class="ticket-header">
+      <div class="attended-overlay" id="attendedOverlay">
+        <div class="attended-stamp">✓ دخل الحفلة</div>
       </div>
-
-      <div class="ticket-separator"></div>
-
-      <div class="ticket-body">
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="info-label">نوع التذكرة</div>
-            <div class="info-value" id="tType">-</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">الصف الدراسي</div>
-            <div class="info-value" id="tGrade">-</div>
-          </div>
-          <div class="info-item amount">
-            <div class="info-label">المبلغ المدفوع</div>
-            <div class="info-value" id="tAmount">-</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">طريقة الدفع</div>
-            <div class="info-value" id="tPayType">-</div>
-          </div>
-          <div class="info-item full" id="tNotesWrap" style="display:none">
-            <div class="info-label">ملاحظات</div>
-            <div class="info-value" id="tNotes">-</div>
-          </div>
-          <div class="info-item full" id="tAttendedWrap" style="display:none">
-            <div class="info-label">وقت الدخول</div>
-            <div class="info-value" id="tAttendedAt">-</div>
-          </div>
+      <div class="school-lbl"    id="tSchool"></div>
+      <div class="attendee-name" id="tName">-</div>
+      <div class="attendee-sub"  id="tSub">-</div>
+      <div class="status-badge s-registered" id="tBadge">⏳ مسجل</div>
+    </div>
+    <div class="ticket-separator"></div>
+    <div class="ticket-body">
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-lbl">نوع التذكرة</div>
+          <div class="info-val" id="tType">-</div>
         </div>
-
-        <div class="ticket-id-bar">
-          <span class="tid-label">كود التذكرة</span>
-          <span class="tid-code" id="tTicketId">-</span>
+        <div class="info-item">
+          <div class="info-lbl">الصف / البيان</div>
+          <div class="info-val" id="tGrade">-</div>
+        </div>
+        <div class="info-item amount">
+          <div class="info-lbl">المبلغ المدفوع</div>
+          <div class="info-val" id="tAmount">-</div>
+        </div>
+        <div class="info-item">
+          <div class="info-lbl">طريقة الدفع</div>
+          <div class="info-val" id="tPay">-</div>
+        </div>
+        <div class="info-item full" id="tAttWrap" style="display:none">
+          <div class="info-lbl">وقت الدخول</div>
+          <div class="info-val" id="tAttAt">-</div>
+        </div>
+        <div class="info-item full" id="tNotesWrap" style="display:none">
+          <div class="info-lbl">ملاحظات</div>
+          <div class="info-val" id="tNotes">-</div>
         </div>
       </div>
-
-      <!-- زر تسجيل الدخول — يظهر بس لو مسجل ولسه مدخلش -->
-      <div id="markAttendedWrap" style="padding: 0 1.5rem 1.25rem; display:none">
-        <button id="markAttendedBtn"
-          onclick="markAttended()"
-          style="
-            display: none;
-            width: 100%;
-            align-items: center;
-            justify-content: center;
-            gap: 0.6rem;
-            padding: 0.9rem 1.5rem;
-            background: var(--school-primary, #1e2d5a);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-family: Cairo, sans-serif;
-            font-size: 1rem;
-            font-weight: 800;
-            cursor: pointer;
-            transition: opacity 0.2s;
-          "
-          onmouseover="this.style.opacity='0.88'"
-          onmouseout="this.style.opacity='1'"
-        >
-          ✅ تسجيل دخول الحفلة
-        </button>
+      <div class="ticket-id-bar">
+        <span class="tid-lbl">كود التذكرة</span>
+        <span class="tid-code" id="tId">-</span>
       </div>
-
-      <div class="ticket-footer" id="tFooter">
-        تذكرة حفلة المدرسة &nbsp;•&nbsp; <span id="tRegDate">-</span>
-      </div>
+      <button class="attend-btn" id="attendBtn" onclick="markAttended()">
+        ✅ تسجيل دخول الحفلة
+      </button>
+    </div>
+    <div class="ticket-footer">
+      تذكرة حفلة المدرسة &nbsp;•&nbsp; <span id="tDate">-</span>
     </div>
   </div>
+</div>
 
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
 <script>
-  // ====== GET TICKET ID FROM URL ======
-  const params  = new URLSearchParams(window.location.search);
-  const ticketId = (params.get('id') || '').trim().toUpperCase();
+// ==========================================================
+// ⚠️ هذه الصفحة مستقلة تماماً — لا تعتمد على firebase-config.js
+// لأن firebase-config.js فيه requireAuth() يعمل redirect
+// ==========================================================
 
-  const PAY_LABELS = {
-    cash: 'نقدي 💵',
-    bank_transfer: 'تحويل بنكي 🏦',
-    instapay: 'إنستاباي 📱',
-    check: 'شيك 📝'
-  };
+firebase.initializeApp({
+  apiKey:            "AIzaSyBI76EQVpd21sgAHKMBmdDCKLJU9s8RrXQ",
+  authDomain:        "school-accounting-dd351.firebaseapp.com",
+  projectId:         "school-accounting-dd351",
+  storageBucket:     "school-accounting-dd351.firebasestorage.app",
+  messagingSenderId: "186711273841",
+  appId:             "1:186711273841:web:d979afcdd091ad207286d0"
+});
 
-  function showError(msg) {
-    document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('errorCard').style.display = 'block';
-    document.getElementById('errorMsg').textContent = msg || 'الكود المدخل غير مسجل في النظام';
+const db = firebase.firestore();
+
+const SCHOOLS = {
+  bristol:   { name:"Bristol Language School",     p:"#1e2d5a", s:"#4a6fa5" },
+  cardiff:   { name:"Cardiff International School", p:"#6b1a1a", s:"#a05050" },
+  stanford1: { name:"Stanford Language School 1",  p:"#1a1a1a", s:"#d4a017" },
+  stanford2: { name:"Stanford Language School 2",  p:"#1a1a1a", s:"#d4a017" }
+};
+
+const PAY = { cash:"نقدي 💵", bank_transfer:"تحويل بنكي 🏦", instapay:"إنستاباي 📱", check:"شيك 📝" };
+
+const params   = new URLSearchParams(window.location.search);
+const ticketId = (params.get('id') || '').trim().toUpperCase();
+
+function showError(msg) {
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('errorCard').style.display = 'block';
+  document.getElementById('errorMsg').textContent = msg;
+  if (ticketId) document.getElementById('errorCode').textContent = 'الكود: ' + ticketId;
+}
+
+function renderTicket(d) {
+  const school = SCHOOLS[d.schoolId];
+  const isAtt  = d.status === 'attended';
+
+  if (school) {
+    document.getElementById('topStrip').style.background = `linear-gradient(90deg,${school.p},${school.s})`;
+    document.getElementById('attendBtn').style.background = school.p;
+    document.querySelector('.info-item.amount .info-val').style.color = school.p;
   }
 
-  function applySchoolColors(schoolId) {
-    const colors = {
-      bristol:   { primary: '#1e2d5a', secondary: '#4a6fa5' },
-      cardiff:   { primary: '#6b1a1a', secondary: '#a05050' },
-      stanford1: { primary: '#1a1a1a', secondary: '#d4a017' },
-      stanford2: { primary: '#1a1a1a', secondary: '#d4a017' },
-    };
-    const c = colors[schoolId] || colors.bristol;
-    document.documentElement.style.setProperty('--school-primary',   c.primary);
-    document.documentElement.style.setProperty('--school-secondary', c.secondary);
-    document.getElementById('topStrip').style.background =
-      `linear-gradient(90deg, ${c.primary}, ${c.secondary})`;
+  document.getElementById('tSchool').textContent = school?.name || 'حفلة المدرسة';
+  document.getElementById('tName').textContent   = d.name || '-';
+  document.getElementById('tSub').textContent    = d.type === 'student'
+    ? '🎓 طالب' + (d.grade ? ' — ' + d.grade : '')
+    : '👤 مرافق' + (d.linkedStudent ? ' لـ ' + d.linkedStudent : '');
+
+  const badge = document.getElementById('tBadge');
+  if (isAtt) {
+    badge.className = 'status-badge s-attended';
+    badge.textContent = '✅ دخل الحفلة';
+    document.getElementById('attendedOverlay').style.display = 'flex';
+    if (d.attendedAt?.toDate) {
+      document.getElementById('tAttWrap').style.display = 'block';
+      document.getElementById('tAttAt').textContent = d.attendedAt.toDate()
+        .toLocaleString('ar-EG',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    }
+  } else {
+    badge.className = 'status-badge s-registered';
+    badge.textContent = '⏳ مسجل - لم يدخل بعد';
+    document.getElementById('attendBtn').style.display = 'block';
   }
 
-  function renderTicket(d) {
-    const isAttended = d.status === 'attended';
-    const school = SCHOOLS[d.schoolId];
+  document.getElementById('tType').textContent   = d.type === 'student' ? '🎓 طالب' : '👤 مرافق';
+  document.getElementById('tGrade').textContent  = d.grade || (d.linkedStudent ? 'مرافق لـ '+d.linkedStudent : '-');
+  document.getElementById('tAmount').textContent = d.amount ? Number(d.amount).toLocaleString('ar-EG')+' ج.م' : '-';
+  document.getElementById('tPay').textContent    = PAY[d.paymentType] || d.paymentType || '-';
+  document.getElementById('tId').textContent     = d.ticketId || ticketId;
 
-    // Apply school theme
-    if (d.schoolId) applySchoolColors(d.schoolId);
-
-    // School name
-    document.getElementById('tSchoolName').textContent = school?.name || 'حفلة المدرسة';
-
-    // Name
-    document.getElementById('tName').textContent = d.name;
-
-    // Sub info
-    if (d.type === 'student') {
-      document.getElementById('tSub').textContent = '🎓 طالب' + (d.grade ? ' — ' + d.grade : '');
-    } else {
-      document.getElementById('tSub').textContent = '👤 مرافق' + (d.linkedStudent ? ' لـ ' + d.linkedStudent : '');
-    }
-
-    // Status
-    const badge = document.getElementById('tStatusBadge');
-    if (isAttended) {
-      badge.className = 'status-badge attended';
-      badge.textContent = '✅ دخل الحفلة';
-      document.getElementById('attendedOverlay').style.display = 'flex';
-    } else {
-      badge.className = 'status-badge registered';
-      badge.textContent = '⏳ مسجل - لم يدخل بعد';
-    }
-
-    // Type
-    document.getElementById('tType').textContent = d.type === 'student' ? '🎓 طالب' : '👤 مرافق';
-
-    // Grade
-    if (d.type === 'student') {
-      document.getElementById('tGrade').textContent = d.grade || '-';
-    } else {
-      document.getElementById('tGrade').textContent = d.linkedStudent ? 'مرافق لـ ' + d.linkedStudent : 'مرافق';
-    }
-
-    // Amount
-    document.getElementById('tAmount').textContent =
-      (d.amount ? d.amount.toLocaleString('ar-EG') + ' ج.م' : '-');
-
-    // Payment type
-    document.getElementById('tPayType').textContent = PAY_LABELS[d.paymentType] || d.paymentType || '-';
-
-    // Notes
-    if (d.notes) {
-      document.getElementById('tNotesWrap').style.display = 'block';
-      document.getElementById('tNotes').textContent = d.notes;
-    }
-
-    // Attended at
-    if (isAttended && d.attendedAt?.toDate) {
-      document.getElementById('tAttendedWrap').style.display = 'block';
-      document.getElementById('tAttendedAt').textContent =
-        d.attendedAt.toDate().toLocaleString('ar-EG', {
-          year: 'numeric', month: 'long', day: 'numeric',
-          hour: '2-digit', minute: '2-digit'
-        });
-    }
-
-    // Ticket ID
-    document.getElementById('tTicketId').textContent = d.ticketId || ticketId;
-
-    // Registered date
-    const regDate = d.registeredAt?.toDate?.();
-    document.getElementById('tRegDate').textContent = regDate
-      ? regDate.toLocaleDateString('ar-EG', { year:'numeric', month:'long', day:'numeric' })
-      : (d.date || '');
-
-    // Show ticket
-    document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('ticketWrap').style.display = 'block';
+  if (d.notes) {
+    document.getElementById('tNotesWrap').style.display = 'block';
+    document.getElementById('tNotes').textContent = d.notes;
   }
 
-  // ====== MARK ATTENDED ======
-  async function markAttended() {
-    const btn = document.getElementById('markAttendedBtn');
-    btn.disabled = true;
-    btn.textContent = '⏳ جاري التسجيل...';
+  const reg = d.registeredAt?.toDate?.();
+  document.getElementById('tDate').textContent = reg
+    ? reg.toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'})
+    : (d.date || '');
 
-    try {
-      await db.collection('partyAttendees').doc(ticketId).update({
-        status: 'attended',
-        attendedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('ticketWrap').style.display = 'block';
+}
 
-      const badge = document.getElementById('tStatusBadge');
-      badge.className = 'status-badge attended';
-      badge.textContent = '✅ دخل الحفلة';
-      document.getElementById('attendedOverlay').style.display = 'flex';
-
-      const now = new Date();
-      document.getElementById('tAttendedWrap').style.display = 'block';
-      document.getElementById('tAttendedAt').textContent =
-        now.toLocaleString('ar-EG', {
-          year: 'numeric', month: 'long', day: 'numeric',
-          hour: '2-digit', minute: '2-digit'
-        });
-
-      btn.textContent = '✅ تم تسجيل الدخول';
-      btn.style.background = '#e8f5e9';
-      btn.style.color = '#2e7d32';
-      btn.style.borderColor = '#4caf50';
-      btn.style.cursor = 'default';
-
-    } catch (e) {
-      btn.disabled = false;
-      btn.textContent = '✅ تسجيل دخول الحفلة';
-      alert('حدث خطأ: ' + e.message);
-    }
+async function markAttended() {
+  const btn = document.getElementById('attendBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ جاري التسجيل...';
+  try {
+    await db.collection('partyAttendees').doc(ticketId).update({
+      status:     'attended',
+      attendedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    document.getElementById('tBadge').className = 'status-badge s-attended';
+    document.getElementById('tBadge').textContent = '✅ دخل الحفلة';
+    document.getElementById('attendedOverlay').style.display = 'flex';
+    document.getElementById('tAttWrap').style.display = 'block';
+    document.getElementById('tAttAt').textContent = new Date()
+      .toLocaleString('ar-EG',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    btn.classList.add('done');
+    btn.textContent = '✅ تم تسجيل الدخول بنجاح';
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '✅ تسجيل دخول الحفلة';
+    alert('خطأ:\n' + e.message);
   }
+}
 
-  async function loadTicket() {
-    if (!ticketId) {
-      showError('لم يتم تحديد كود التذكرة في الرابط');
-      return;
-    }
-
-    try {
-      const docSnap = await db.collection('partyAttendees').doc(ticketId).get();
-
-      if (!docSnap.exists) {
-        showError(`الكود "${ticketId}" غير مسجل في النظام`);
-        return;
-      }
-
-      const data = docSnap.data();
-      renderTicket(data);
-
-      if (data.status !== 'attended') {
-        document.getElementById('markAttendedBtn').style.display = 'flex';
-        document.getElementById('markAttendedWrap').style.display = 'block';
-      }
-
-    } catch (e) {
-      showError('حدث خطأ أثناء تحميل البيانات: ' + e.message);
-    }
+async function loadTicket() {
+  if (!ticketId) { showError('لم يتم تحديد كود التذكرة في الرابط'); return; }
+  try {
+    const snap = await db.collection('partyAttendees').doc(ticketId).get();
+    if (!snap.exists) { showError('هذا الكود غير مسجل في النظام'); return; }
+    renderTicket(snap.data());
+  } catch(e) {
+    showError('خطأ في الاتصال بقاعدة البيانات:\n' + e.message);
   }
+}
 
-  loadTicket();
+loadTicket();
 </script>
 </body>
 </html>
