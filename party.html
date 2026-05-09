@@ -295,7 +295,7 @@
                   <div class="type-card selected" id="typeStudent" onclick="selectType('student')">
                     <div class="type-check">✓</div>
                     <span class="type-icon">🎓</span>
-                    <div class="type-label">ضيف</div>
+                    <div class="type-label">طالب</div>
                     <span class="type-price">300 ج.م</span>
                   </div>
                   <div class="type-card" id="typeCompanion" onclick="selectType('companion')">
@@ -376,9 +376,19 @@
               </div>
 
               <!-- PRICE DISPLAY -->
-              <div style="background:var(--accent);border-radius:var(--radius-sm);padding:0.875rem 1rem;display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;border:1px solid var(--primary-light)">
-                <span style="font-weight:700;color:var(--text-mid)">المبلغ المطلوب</span>
-                <span style="font-size:1.4rem;font-weight:900;color:var(--primary)" id="priceDisplay">300 ج.م</span>
+              <div style="background:var(--accent);border-radius:var(--radius-sm);padding:0.875rem 1rem;margin-bottom:1rem;border:1px solid var(--primary-light)">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
+                  <span style="font-size:0.8rem;color:var(--text-light)">🎓 طالب × 1</span>
+                  <span style="font-size:0.85rem;font-weight:700;color:var(--text-mid)" id="stuPriceBreak">300 ج.م</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem" id="compPriceBreakRow" style="display:none">
+                  <span style="font-size:0.8rem;color:var(--text-light)" id="compPriceBreakLabel">👤 مرافق × 0</span>
+                  <span style="font-size:0.85rem;font-weight:700;color:var(--text-mid)" id="compPriceBreak">0 ج.م</span>
+                </div>
+                <div style="border-top:1px solid var(--border);margin-top:0.4rem;padding-top:0.4rem;display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-weight:700;color:var(--text-mid)">الإجمالي</span>
+                  <span style="font-size:1.4rem;font-weight:900;color:var(--primary)" id="priceDisplay">300 ج.م</span>
+                </div>
               </div>
 
               <div style="display:flex;gap:0.75rem">
@@ -505,6 +515,23 @@
         <!-- QR rendered here dynamically -->
       </div>
       <div class="ticket-id" id="qrTicketId">-</div>
+
+      <!-- رسالة ترحيبية تحت الـ QR -->
+      <div id="qrWelcomeMsg" style="
+        margin-top: 1rem;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        text-align: center;
+      ">
+        <div style="font-size:1rem;margin-bottom:0.3rem">🎉</div>
+        <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.25rem" id="qrWelcomeSchool">أهلاً بك في حفلة المدرسة</div>
+        <div style="font-size:0.72rem;opacity:0.85;line-height:1.5">
+          يسعدنا حضورك معنا في هذه المناسبة الجميلة<br>
+          <span style="color:#ffd54f;font-weight:700">⚠️ يرجى الاحتفاظ بهذا الكود للدخول إلى الحفلة</span>
+        </div>
+      </div>
     </div>
 
     <div style="margin-bottom:1rem">
@@ -543,7 +570,7 @@
   const school   = SESSION.getSchool();
 
   const PRICES = { student: 300, companion: 150 };
-  let currentType = 'student';
+  // currentType removed — now always student with companions array
   let allAttendees = [];
   let currentQRData = null;
 
@@ -562,16 +589,44 @@
     }
   }
 
-  // ==================== TYPE SELECT ====================
-  function selectType(type) {
-    currentType = type;
-    document.getElementById('typeStudent').classList.toggle('selected', type === 'student');
-    document.getElementById('typeCompanion').classList.toggle('selected', type === 'companion');
-    document.getElementById('typeStudent').querySelector('.type-check').textContent = type === 'student' ? '✓' : '';
-    document.getElementById('typeCompanion').querySelector('.type-check').textContent = type === 'companion' ? '✓' : '';
-    document.getElementById('studentFields').style.display = type === 'student' ? 'block' : 'none';
-    document.getElementById('companionFields').style.display = type === 'companion' ? 'block' : 'none';
-    document.getElementById('priceDisplay').textContent = PRICES[type] + ' ج.م';
+  // ==================== COMPANION COUNTER ====================
+  let companionCount = 0;
+
+  function changeCompanionCount(delta) {
+    companionCount = Math.max(0, companionCount + delta);
+    document.getElementById('companionCountDisplay').textContent = companionCount;
+    renderCompanionFields();
+    updatePriceDisplay();
+  }
+
+  function renderCompanionFields() {
+    const container = document.getElementById('companionNameFields');
+    const existing = Array.from(container.querySelectorAll('input')).map(i => i.value);
+    container.innerHTML = '';
+    for (let i = 0; i < companionCount; i++) {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem';
+      wrap.innerHTML = `
+        <span style="font-size:0.75rem;color:var(--text-light);white-space:nowrap;min-width:60px">مرافق ${i+1}</span>
+        <input type="text" class="form-input form-input-ar"
+          id="compName_${i}"
+          placeholder="اسم المرافق"
+          value="${existing[i] || ''}"
+          style="margin:0" />
+      `;
+      container.appendChild(wrap);
+    }
+  }
+
+  function updatePriceDisplay() {
+    const stuTotal  = PRICES.student;
+    const compTotal = companionCount * PRICES.companion;
+    const total     = stuTotal + compTotal;
+    document.getElementById('stuPriceBreak').textContent  = stuTotal.toLocaleString('ar-EG') + ' ج.م';
+    document.getElementById('compPriceBreakLabel').textContent = `👤 مرافق × ${companionCount}`;
+    document.getElementById('compPriceBreak').textContent = compTotal.toLocaleString('ar-EG') + ' ج.م';
+    document.getElementById('compPriceBreakRow').style.display = companionCount > 0 ? 'flex' : 'none';
+    document.getElementById('priceDisplay').textContent   = total.toLocaleString('ar-EG') + ' ج.م';
   }
 
   // ==================== STUDENT SUGGESTIONS ====================
@@ -601,55 +656,59 @@
 
   // ==================== SAVE REGISTRATION ====================
   async function saveRegistration() {
-    const btn = document.getElementById('saveRegBtn');
-    const phone = document.getElementById('regPhone').value.trim();
+    const btn     = document.getElementById('saveRegBtn');
+    const phone   = document.getElementById('regPhone').value.trim();
     const payType = document.getElementById('regPayType').value;
-    const notes = document.getElementById('regNotes').value.trim();
+    const notes   = document.getElementById('regNotes').value.trim();
+    const name    = document.getElementById('regName').value.trim();
+    const grade   = document.getElementById('regGrade').value;
 
-    let name = '', grade = '', linkedStudent = '';
-    if (currentType === 'student') {
-      name  = document.getElementById('regName').value.trim();
-      grade = document.getElementById('regGrade').value;
-      if (!name)  return showAlert('regAlert', 'أدخل اسم الطالب', 'error');
-      if (!grade) return showAlert('regAlert', 'اختر الصف', 'error');
-    } else {
-      name = document.getElementById('regCompName').value.trim();
-      linkedStudent = document.getElementById('regLinkedStudent').value.trim();
-      if (!name) return showAlert('regAlert', 'أدخل اسم المرافق', 'error');
-    }
+    if (!name)    return showAlert('regAlert', 'أدخل اسم الطالب', 'error');
+    if (!grade)   return showAlert('regAlert', 'اختر الصف', 'error');
     if (!phone)   return showAlert('regAlert', 'أدخل رقم التليفون', 'error');
     if (!payType) return showAlert('regAlert', 'اختر طريقة الدفع', 'error');
+
+    // اجمع أسماء المرافقين
+    const companions = [];
+    for (let i = 0; i < companionCount; i++) {
+      const n = (document.getElementById(`compName_${i}`)?.value || '').trim();
+      if (!n) return showAlert('regAlert', `أدخل اسم المرافق ${i+1}`, 'error');
+      companions.push(n);
+    }
 
     btn.disabled = true;
     btn.textContent = '⏳ جاري الحفظ...';
 
     try {
-      const ticketId = generateTicketId(currentType);
       const now = new Date();
       const dateStr = now.getFullYear() + '-' +
         String(now.getMonth()+1).padStart(2,'0') + '-' +
         String(now.getDate()).padStart(2,'0');
 
+      const ticketId = generateTicketId('student');
+      const totalAmount = PRICES.student + (companionCount * PRICES.companion);
+
       const doc = {
         ticketId,
         schoolId,
-        type: currentType,
+        type: 'student',
         name,
+        grade,
         phone,
         paymentType: payType,
-        amount: PRICES[currentType],
+        amount: totalAmount,
         notes,
         status: 'registered',
         attendedAt: null,
+        companions,           // أسماء المرافقين
+        companionCount,       // عدد المرافقين
         registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
         registeredBy: session.email,
         date: dateStr,
-        ...(currentType === 'student' ? { grade } : { linkedStudent })
       };
 
-      await db.collection('partyAttendees').add(doc);
+      await db.collection('partyAttendees').doc(ticketId).set(doc);
 
-      // للـ QR modal نستخدم now كـ fallback لأن serverTimestamp مش فيه value فوراً
       currentQRData = { ...doc, registeredAt: now };
       openQRModal(currentQRData);
 
@@ -672,14 +731,35 @@
     document.getElementById('qrSchoolName').textContent = school?.name || 'المدرسة';
     document.getElementById('qrName').textContent = data.name;
 
-    if (data.type === 'student') {
-      document.getElementById('qrInfo').textContent = '🎓 ' + (data.grade || '');
-      document.getElementById('qrTypeBadge').textContent = 'طالب - ' + PRICES.student + ' ج.م';
+    document.getElementById('qrInfo').textContent = '🎓 ' + (data.grade || '');
+    // عرض أسماء المرافقين
+    const companions = data.companions || [];
+    if (companions.length > 0) {
+      document.getElementById('qrTypeBadge').textContent =
+        'طالب + ' + companions.length + ' مرافق - ' + (data.amount || PRICES.student) + ' ج.م';
+      // أضف أسماء المرافقين تحت الـ QR
+      let compEl = document.getElementById('qrCompanionsList');
+      if (!compEl) {
+        compEl = document.createElement('div');
+        compEl.id = 'qrCompanionsList';
+        compEl.style.cssText = 'margin-top:0.5rem;font-size:0.78rem;opacity:0.9;text-align:center';
+        document.getElementById('qrTicketId').after(compEl);
+      }
+      compEl.innerHTML = '<div style="margin-bottom:0.25rem;opacity:0.7;font-size:0.7rem">المرافقين:</div>' +
+        companions.map(n => `<span style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:12px;padding:0.1rem 0.6rem;margin:0.15rem">👤 ${n}</span>`).join(' ');
     } else {
-      document.getElementById('qrInfo').textContent = '👤 مرافق' + (data.linkedStudent ? ' لـ ' + data.linkedStudent : '');
-      document.getElementById('qrTypeBadge').textContent = 'مرافق - ' + PRICES.companion + ' ج.م';
+      document.getElementById('qrTypeBadge').textContent = 'طالب - ' + PRICES.student + ' ج.م';
+      const compEl = document.getElementById('qrCompanionsList');
+      if (compEl) compEl.innerHTML = '';
     }
     document.getElementById('qrTicketId').textContent = data.ticketId;
+
+    // الرسالة الترحيبية — اسم المدرسة أوتوماتيك
+    const welcomeSchoolEl = document.getElementById('qrWelcomeSchool');
+    if (welcomeSchoolEl) {
+      const schoolName = school?.name || SESSION.getSchool()?.name || 'المدرسة';
+      welcomeSchoolEl.textContent = 'أهلاً بك في حفلة ' + schoolName;
+    }
 
     // رسم الـ QR — URL يفتح صفحة بيانات التذكرة
     const qrPayload = `https://school-accounting-one.vercel.app/ticket.html?id=${encodeURIComponent(data.ticketId)}`;
@@ -1032,6 +1112,32 @@
       return;
     }
     const payLabels = { cash:'نقدي', bank_transfer:'تحويل', instapay:'إنستاباي' };
+
+    // إجمالي الحضور (طلاب + مرافقين)
+    const totalCount = allAttendees.length;
+    const studentsCount = allAttendees.filter(a => a.type === 'student').length;
+    const companionsCount = allAttendees.filter(a => a.type === 'companion').length;
+
+    // عداد فوق الجدول
+    let counterEl = document.getElementById('attendeeCounter');
+    if (!counterEl) {
+      counterEl = document.createElement('div');
+      counterEl.id = 'attendeeCounter';
+      counterEl.style.cssText = 'display:flex;gap:0.75rem;margin-bottom:0.75rem;flex-wrap:wrap;';
+      tbody.closest('table').before(counterEl);
+    }
+    counterEl.innerHTML = `
+      <span style="background:#e3f2fd;color:#1565c0;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:800">
+        👥 الإجمالي: ${data.length} شخص
+      </span>
+      <span style="background:#e8f5e9;color:#2e7d32;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:800">
+        🎓 طلاب: ${data.filter(x=>x.type==='student').length}
+      </span>
+      <span style="background:#fff3cd;color:#856404;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:800">
+        👤 مرافقين: ${data.filter(x=>x.type==='companion').length}
+      </span>
+    `;
+
     tbody.innerHTML = data.map((d, i) => {
       const attendedAt = d.attendedAt?.toDate?.()
         ? d.attendedAt.toDate().toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'})
@@ -1039,7 +1145,12 @@
       return `
         <tr class="attendee-row" onclick="openQRModalById('${d.id}')">
           <td>${i+1}</td>
-          <td><strong>${d.name}</strong>${d.linkedStudent ? `<br><span class="text-sm text-muted">يرافق: ${d.linkedStudent}</span>` : ''}</td>
+          <td>
+            <strong>${d.name}</strong>
+            ${d.grade ? `<br><span class="text-sm text-muted">${d.grade}</span>` : ''}
+            ${d.companions && d.companions.length > 0 ? `<br><span style="font-size:0.72rem;background:#e3f2fd;color:#1565c0;padding:0.1rem 0.5rem;border-radius:10px;font-weight:700">👥 ${d.companions.length} مرافق</span>` : ''}
+
+          </td>
           <td><span style="font-size:1rem">${d.type==='student'?'🎓':'👤'}</span> ${d.type==='student'?'طالب':'مرافق'}</td>
           <td>${d.grade || '-'}</td>
           <td dir="ltr" style="text-align:right">${d.phone}</td>
@@ -1184,12 +1295,13 @@
   function resetRegForm() {
     document.getElementById('regName').value = '';
     document.getElementById('regGrade').value = '';
-    document.getElementById('regCompName').value = '';
-    document.getElementById('regLinkedStudent').value = '';
     document.getElementById('regPhone').value = '';
     document.getElementById('regPayType').value = '';
     document.getElementById('regNotes').value = '';
-    selectType('student');
+    companionCount = 0;
+    document.getElementById('companionCountDisplay').textContent = '0';
+    document.getElementById('companionNameFields').innerHTML = '';
+    updatePriceDisplay();
   }
 
   function showAlert(id, msg, type='error') {
