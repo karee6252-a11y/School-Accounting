@@ -477,6 +477,16 @@
     const btn = document.getElementById('saveBtn');
     btn.disabled=true; btn.textContent='جاري الحفظ...';
     try {
+      // تحقق من تكرار رقم الإيصال
+      const dupSnap = await db.collection('transactions')
+        .where('schoolId', '==', schoolId)
+        .where('receiptNumber', '==', receiptNumber)
+        .limit(1).get();
+      if (!dupSnap.empty) {
+        showAlert(`رقم الإيصال "${receiptNumber}" مستخدم من قبل — اختر رقماً آخر`);
+        btn.disabled=false; btn.textContent='حفظ التحصيل';
+        return;
+      }
       const school = SESSION.getSchool();
       const totalDue = getTotalAfterDiscount();
       const debt = totalDue - amount;
@@ -802,21 +812,24 @@
       });
 
       // ===== مزامنة debts collection =====
+      // البحث بالاسم والبند الأصليين (قبل التعديل) عشان نلاقي الـ debt الصح
+      const origStudentName = orig.studentName || studentName;
+      const origPaymentItem = orig.paymentItem || paymentItem;
+
       const debtSnap = await db.collection('debts')
         .where('schoolId',    '==', schoolId)
-        .where('studentName', '==', studentName)
-        .where('paymentItem', '==', paymentItem)
+        .where('studentName', '==', origStudentName)
+        .where('paymentItem', '==', origPaymentItem)
         .get();
       const openDebts = debtSnap.docs.filter(d => (d.data().remaining || 0) > 0);
 
       if (newDebt > 0) {
-        const diff = newDebt - oldDebt; // الفرق عن الحالة القديمة
         if (openDebts.length > 0) {
           const debtDoc  = openDebts[0];
-          const debtData = debtDoc.data();
+          // حدّث الـ debt بالقيم الجديدة الحقيقية (مش diff) + اسم الطالب والبند الجديدين
           await db.collection('debts').doc(debtDoc.id).update({
-            remaining: Math.max(0, (debtData.remaining || 0) + diff),
-            paid:      Math.max(0, (debtData.paid      || 0) - diff),
+            studentName, grade, paymentItem,
+            totalDue, paid: amount, remaining: newDebt,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         } else {
@@ -830,17 +843,15 @@
             date, hasDebt: true,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            academicYear: '2026/2027'
+            academicYear: ACADEMIC_YEAR
           });
         }
       } else if (oldDebt > 0 && newDebt === 0) {
         // كان في debt وبقى مسدد — صفّر
         if (openDebts.length > 0) {
-          const debtDoc  = openDebts[0];
-          const debtData = debtDoc.data();
-          await db.collection('debts').doc(debtDoc.id).update({
-            remaining: 0,
-            paid: debtData.totalDue || totalDue,
+          await db.collection('debts').doc(openDebts[0].id).update({
+            studentName, grade, paymentItem,
+            remaining: 0, paid: totalDue,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         }

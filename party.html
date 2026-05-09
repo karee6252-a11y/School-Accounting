@@ -803,14 +803,32 @@
     const waPhone = phone.startsWith('0') ? '2' + phone : phone;
 
     setTimeout(() => {
+      // بناء رابط واتساب مع الرسالة
+      const d2 = currentQRData;
+      const totalStu2 = d2?.totalStudents || 1;
+      const companions2 = d2?.companions || [];
+      const schoolName2 = school?.name || 'المدرسة';
+      const ticketLink2 = `https://school-accounting-one.vercel.app/ticket.html?id=${encodeURIComponent(d2?.ticketId || '')}`;
+      let waMsg = `🎉 *تذكرة حفلة ${schoolName2}*\n━━━━━━━━━━━━━━━\n🎓 *الاسم:* ${data.name}\n`;
+      if (d2?.grade) waMsg += `📚 *الصف:* ${d2.grade}\n`;
+      if (totalStu2 > 1) waMsg += `👨‍👩‍👧 *عدد الطلاب:* ${totalStu2}\n`;
+      if (companions2.length > 0) {
+        waMsg += `👥 *المرافقين (${companions2.length}):*\n`;
+        companions2.forEach((c, i) => { waMsg += `  ${i+1}. ${c}\n`; });
+      }
+      waMsg += `💰 *المبلغ:* ${(d2?.amount || PRICES.student).toLocaleString('ar-EG')} ج.م\n`;
+      waMsg += `━━━━━━━━━━━━━━━\n🔗 *رابط التذكرة:*\n${ticketLink2}\n_امسح الـ QR من الرابط عند الدخول_`;
+
+      const waHref = `https://wa.me/${waPhone}?text=${encodeURIComponent(waMsg)}`;
+
       document.getElementById('sendOptions').innerHTML = `
-        <button class="send-opt-btn" onclick="sendViaWhatsapp('${waPhone}', '${data.name}')">
+        <a class="send-opt-btn" href="${waHref}" target="_blank" rel="noopener" onclick="downloadQR()">
           <span class="opt-icon">💬</span>
           <span class="opt-text">
             <span class="opt-label">إرسال عبر واتساب</span>
-            <span class="opt-sub">بيحمل صورة الـ QR وبيفتح واتساب تلقائياً</span>
+            <span class="opt-sub">بيحمل صورة الـ QR وبيفتح واتساب مع الرسالة</span>
           </span>
-        </button>
+        </a>
         <button class="send-opt-btn" onclick="downloadQR()">
           <span class="opt-icon">⬇️</span>
           <span class="opt-text">
@@ -841,49 +859,6 @@
     link.href = src;
     link.download = (currentQRData?.name || 'ticket') + '-QR.png';
     link.click();
-  }
-
-  function sendViaWhatsapp(waPhone, name) {
-    const d = currentQRData;
-    const totalStu = d?.totalStudents || 1;
-    const companions = d?.companions || [];
-    const schoolName = school?.name || 'المدرسة';
-    const ticketLink = `https://school-accounting-one.vercel.app/ticket.html?id=${encodeURIComponent(d?.ticketId || '')}`;
-
-    // بناء نص الرسالة
-    let msg = `🎉 *تذكرة حفلة ${schoolName}*\n`;
-    msg += `━━━━━━━━━━━━━━━\n`;
-    msg += `🎓 *الاسم:* ${name}\n`;
-    if (d?.grade) msg += `📚 *الصف:* ${d.grade}\n`;
-    if (totalStu > 1) msg += `👨‍👩‍👧 *عدد الطلاب:* ${totalStu}\n`;
-    if (companions.length > 0) {
-      msg += `👥 *المرافقين (${companions.length}):*\n`;
-      companions.forEach((c, i) => { msg += `  ${i+1}. ${c}\n`; });
-    }
-    msg += `💰 *المبلغ:* ${(d?.amount || PRICES.student).toLocaleString('ar-EG')} ج.م\n`;
-    msg += `━━━━━━━━━━━━━━━\n`;
-    msg += `🔗 *رابط التذكرة (للسكان):*\n${ticketLink}\n`;
-    msg += `\n_امسح الـ QR من الرابط عند الدخول_`;
-
-    // حمّل صورة الـ QR الأول
-    const wrap = document.getElementById('qrCanvasWrap');
-    const cvs = wrap.querySelector('canvas');
-    const img = wrap.querySelector('img');
-    let src = '';
-    if (cvs) src = cvs.toDataURL('image/png');
-    else if (img) src = img.src;
-
-    if (src) {
-      const link = document.createElement('a');
-      link.href = src;
-      link.download = (name || 'ticket') + '-QR.png';
-      link.click();
-    }
-
-    // بعد تحميل الصورة افتح واتساب مع الرسالة
-    setTimeout(() => {
-      window.open('https://wa.me/' + waPhone + '?text=' + encodeURIComponent(msg), '_blank');
-    }, 900);
   }
 
   function printTicket() {

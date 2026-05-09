@@ -208,15 +208,6 @@ function renderTicket(d) {
   document.getElementById('tPay').textContent    = PAY[d.paymentType] || d.paymentType || '-';
   document.getElementById('tId').textContent     = d.ticketId || ticketId;
 
-  // عرض المرافقين
-  const companions = d.companions || [];
-  if (companions.length > 0) {
-    document.getElementById('tCompanionsWrap').style.display = 'block';
-    document.getElementById('tCompanions').innerHTML = companions
-      .map(n => `<span style="display:inline-block;background:#e3f2fd;color:#1565c0;border-radius:12px;padding:0.1rem 0.6rem;margin:0.15rem;font-size:0.88rem">👤 ${n}</span>`)
-      .join(' ');
-  }
-
   if (d.notes) {
     document.getElementById('tNotesWrap').style.display = 'block';
     document.getElementById('tNotes').textContent = d.notes;

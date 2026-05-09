@@ -467,7 +467,7 @@
     wsDaily.mergeCells('B2:N2');
     applyStyle(r2, HDR_BG, true, 14);
     r2.height = 24;
-    const headers = ['م','الاسم','الصف','الرسوم','Discount','FILE','UNIFORM','ابلكيشن','إيرادات أخرى','BUS','الايصال','ملاحظات'];
+    const headers = ['م','الاسم','الصف','الرسوم','Discount','FILE','UNIFORM','أبليكيشن','إيرادات أخرى','BUS','الايصال','ملاحظات'];
     const r3 = wsDaily.addRow(headers);
     applyStyle(r3, HDR_BG, true, 12);
     r3.height = 22;
@@ -483,7 +483,7 @@
         case 'Discount': rowData[4]=amt; totals[4]+=amt; break;
         case 'فايل': rowData[5]=amt; totals[5]+=amt; break;
         case 'يونيفورم': rowData[6]=amt; totals[6]+=amt; break;
-        case 'ابلكيشن': rowData[7]=amt; totals[7]+=amt; break;
+        case 'أبليكيشن': rowData[7]=amt; totals[7]+=amt; break;
         case 'إيرادات أخرى': rowData[8]=amt; totals[8]+=amt; break;
         case 'باص': rowData[9]=amt; totals[9]+=amt; break;
         default: rowData[8]=amt; totals[8]+=amt;
@@ -522,7 +522,7 @@
     const sec1 = wsWeekly.addRow(['أولا: الايراد الأسبوعي']);
     wsWeekly.mergeCells('A4:V4');
     applyStyle(sec1, SEC_BG, true, 13);
-    const subH1 = wsWeekly.addRow(['م','اليوم','','','التاريخ','إيرادات الرسوم','','Discount','','FILE','','UNIFORM','','Bus','','ابلكيشن','','إيرادات أخرى','','إجمالي الايرادات','','الإجمالي للعامين']);
+    const subH1 = wsWeekly.addRow(['م','اليوم','','','التاريخ','إيرادات الرسوم','','Discount','','FILE','','UNIFORM','','Bus','','أبليكيشن','','إيرادات أخرى','','إجمالي الايرادات','','الإجمالي للعامين']);
     applyStyle(subH1, HDR_BG, true, 11);
     wsWeekly.mergeCells('B4:D4');
     wsWeekly.mergeCells('E4:E4');
@@ -547,7 +547,7 @@
           case 'فايل':            is26 ? dayTotal26[2]+=amt : dayTotal25[2]+=amt; break;
           case 'يونيفورم':        is26 ? dayTotal26[3]+=amt : dayTotal25[3]+=amt; break;
           case 'باص':             is26 ? dayTotal26[4]+=amt : dayTotal25[4]+=amt; break;
-          case 'ابلكيشن':         is26 ? dayTotal26[5]+=amt : dayTotal25[5]+=amt; break;
+          case 'أبليكيشن':         is26 ? dayTotal26[5]+=amt : dayTotal25[5]+=amt; break;
           default:                is26 ? dayTotal26[6]+=amt : dayTotal25[6]+=amt;
         }
       });
@@ -579,7 +579,7 @@
     const sec1M = wsMonthly.addRow(['أولا: الايراد الشهري']);
     wsMonthly.mergeCells('A4:M4');
     applyStyle(sec1M, SEC_BG, true, 13);
-    const hdrM = wsMonthly.addRow(['م','الاسبوع','من','الى','مصروفات دراسية','فايل','يونيفورم','باص','ابلكيشن','إيرادات أخرى','','إجمالي الايرادات','']);
+    const hdrM = wsMonthly.addRow(['م','الاسبوع','من','الى','مصروفات دراسية','فايل','يونيفورم','باص','أبليكيشن','إيرادات أخرى','','إجمالي الايرادات','']);
     applyStyle(hdrM, HDR_BG, true, 11);
     const subM = wsMonthly.addRow(['','','','','25/26','26/27','25/26','26/27','25/26','26/27','25/26','26/27','']);
     applyStyle(subM, HDR_BG, true, 9);
@@ -608,7 +608,7 @@
           case 'فايل':            is26 ? wkTotals26[1]+=amt : wkTotals25[1]+=amt; break;
           case 'يونيفورم':        is26 ? wkTotals26[2]+=amt : wkTotals25[2]+=amt; break;
           case 'باص':             is26 ? wkTotals26[3]+=amt : wkTotals25[3]+=amt; break;
-          case 'ابلكيشن':         is26 ? wkTotals26[4]+=amt : wkTotals25[4]+=amt; break;
+          case 'أبليكيشن':         is26 ? wkTotals26[4]+=amt : wkTotals25[4]+=amt; break;
           case 'Discount':        is26 ? wkTotals26[5]+=amt : wkTotals25[5]+=amt; break;
           default:                is26 ? wkTotals26[6]+=amt : wkTotals25[6]+=amt;
         }
@@ -634,7 +634,9 @@
   
   function switchToSchool(schoolId) {
     const session = SESSION.get();
-    SESSION.set({ ...session, schoolId });
+    // احفظ الـ schoolId الأصلي للأدمن في المرة الأولى فقط
+    const adminHomeSchoolId = session.adminHomeSchoolId || session.schoolId;
+    SESSION.set({ ...session, schoolId, adminHomeSchoolId });
     applySchoolTheme(SCHOOLS[schoolId]);
     document.getElementById('schoolSwitcherModal')?.classList.add('hidden');
     window.location.href = 'dashboard.html';

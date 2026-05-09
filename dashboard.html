@@ -150,7 +150,7 @@
       const col = db.collection('transactions')
         .where('schoolId', '==', schoolId);
 
-      // Today's transactions — exact match on today's date string
+      // Today's transactions
       const todaySnap = await col
         .where('date', '==', todayStr)
         .get();
@@ -167,27 +167,46 @@
       document.getElementById('statTodayCount').textContent = todaySnap.size + ' عملية';
       document.getElementById('statStudents').textContent = todayStudents.size;
 
-      // Month transactions
+      // Month transactions — للإحصائيات والتوزيع فقط (بدون الـ docs كاملة)
       const monthSnap = await col
         .where('date', '>=', firstOfMonthStr)
         .where('date', '<=', lastOfMonthStr)
         .get();
 
       let monthTotal = 0;
-      monthSnap.forEach(doc => { monthTotal += Number(doc.data().amount) || 0; });
+      const itemTotals = {};
+      const stageTotals = {};
+      monthSnap.forEach(doc => {
+        const d = doc.data();
+        monthTotal += Number(d.amount) || 0;
+        if (!itemTotals[d.paymentItem]) itemTotals[d.paymentItem] = 0;
+        itemTotals[d.paymentItem] += d.amount || 0;
+        if (!stageTotals[d.stage]) stageTotals[d.stage] = { total: 0, count: 0 };
+        stageTotals[d.stage].total += d.amount || 0;
+        stageTotals[d.stage].count++;
+      });
+
       document.getElementById('statMonthTotal').textContent = formatCurrency(monthTotal);
       document.getElementById('statMonthCount').textContent = monthSnap.size + ' عملية';
 
-      // Week
-      const weekSnap = await col
-        .where('date', '>=', firstOfWeekStr)
-        .get();
-      document.getElementById('statPending').textContent = weekSnap.size;
+      // آخر 8 تحصيلات — query منفصل خفيف بـ orderBy + limit
+      let recentDocs = [];
+      try {
+        const recentSnap = await col
+          .orderBy('createdAt', 'desc')
+          .limit(8)
+          .get();
+        recentDocs = recentSnap.docs;
+      } catch(e) {
+        // fallback لو مفيش index: خد من monthSnap
+        recentDocs = monthSnap.docs
+          .sort((a, b) => (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0))
+          .slice(0, 8);
+      }
 
-      // Recent table - last 8 من الـ monthSnap اللي جبناه فعلاً (client-side sort)
-      const recentDocs = monthSnap.docs
-        .sort((a, b) => (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0))
-        .slice(0, 8);
+      // عداد الأسبوع من monthSnap (بدون query إضافي)
+      const weekCount = monthSnap.docs.filter(d => d.data().date >= firstOfWeekStr).length;
+      document.getElementById('statPending').textContent = weekCount;
 
       const tbody = document.getElementById('recentTableBody');
       if (recentDocs.length === 0) {
@@ -207,14 +226,6 @@
         });
       }
 
-      // Breakdown by payment item
-      const itemTotals = {};
-      monthSnap.forEach(doc => {
-        const d = doc.data();
-        if (!itemTotals[d.paymentItem]) itemTotals[d.paymentItem] = 0;
-        itemTotals[d.paymentItem] += d.amount || 0;
-      });
-
       const breakdownArea = document.getElementById('breakdownArea');
       if (Object.keys(itemTotals).length === 0) {
         breakdownArea.innerHTML = `<div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد بيانات</div></div>`;
@@ -232,15 +243,6 @@
           </div>
         `).join('');
       }
-
-      // Stage stats
-      const stageTotals = {};
-      monthSnap.forEach(doc => {
-        const d = doc.data();
-        if (!stageTotals[d.stage]) stageTotals[d.stage] = { total: 0, count: 0 };
-        stageTotals[d.stage].total += d.amount || 0;
-        stageTotals[d.stage].count++;
-      });
 
       const stageContainer = document.getElementById('stageStats');
       const stageIcons = { pre_kg: '', kg: '', grade: '', prep: '' };
