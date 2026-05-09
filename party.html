@@ -808,7 +808,6 @@
       const totalStu2 = d2?.totalStudents || 1;
       const companions2 = d2?.companions || [];
       const schoolName2 = school?.name || 'المدرسة';
-      const ticketLink2 = `https://school-accounting-one.vercel.app/ticket.html?id=${encodeURIComponent(d2?.ticketId || '')}`;
       let waMsg = `🎉 *تذكرة حفلة ${schoolName2}*\n━━━━━━━━━━━━━━━\n🎓 *الاسم:* ${data.name}\n`;
       if (d2?.grade) waMsg += `📚 *الصف:* ${d2.grade}\n`;
       if (totalStu2 > 1) waMsg += `👨‍👩‍👧 *عدد الطلاب:* ${totalStu2}\n`;
@@ -817,25 +816,19 @@
         companions2.forEach((c, i) => { waMsg += `  ${i+1}. ${c}\n`; });
       }
       waMsg += `💰 *المبلغ:* ${(d2?.amount || PRICES.student).toLocaleString('ar-EG')} ج.م\n`;
-      waMsg += `━━━━━━━━━━━━━━━\n🔗 *رابط التذكرة:*\n${ticketLink2}\n_امسح الـ QR من الرابط عند الدخول_`;
+      waMsg += `━━━━━━━━━━━━━━━\n`;
+      waMsg += `📌 *يرجى الاحتفاظ بصورة الـ QR للدخول للحفلة*`;
 
       const waHref = `https://wa.me/${waPhone}?text=${encodeURIComponent(waMsg)}`;
 
       document.getElementById('sendOptions').innerHTML = `
-        <a class="send-opt-btn" href="${waHref}" target="_blank" rel="noopener" onclick="downloadQR()">
+        <a class="send-opt-btn" href="${waHref}" target="_blank" rel="noopener" style="border-color:var(--primary);background:var(--accent)">
           <span class="opt-icon">💬</span>
           <span class="opt-text">
             <span class="opt-label">إرسال عبر واتساب</span>
-            <span class="opt-sub">بيحمل صورة الـ QR وبيفتح واتساب مع الرسالة</span>
+            <span class="opt-sub">يفتح الشات على الرقم المسجل مع الرسالة جاهزة</span>
           </span>
         </a>
-        <button class="send-opt-btn" onclick="downloadQR()">
-          <span class="opt-icon">⬇️</span>
-          <span class="opt-text">
-            <span class="opt-label">تحميل صورة QR فقط</span>
-            <span class="opt-sub">حفظ الصورة على الجهاز</span>
-          </span>
-        </button>
       `;
     }, 150);
 
@@ -956,8 +949,12 @@
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.85rem;margin-bottom:1rem">
             <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem">
-              <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">النوع</div>
-              <div style="font-weight:700">${d.type === 'student' ? 'طالب' : 'مرافق'}</div>
+              <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">عدد الطلاب</div>
+              <div style="font-weight:700">🎓 ${d.totalStudents || 1} طالب</div>
+            </div>
+            <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem">
+              <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">عدد المرافقين</div>
+              <div style="font-weight:700">👤 ${d.companionCount || 0} مرافق</div>
             </div>
             <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem">
               <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">المبلغ</div>
@@ -967,14 +964,21 @@
               <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">طريقة الدفع</div>
               <div style="font-weight:700">${payLabels[d.paymentType] || d.paymentType}</div>
             </div>
-            <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem">
+            <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem;grid-column:span 2">
               <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">التليفون</div>
               <div style="font-weight:700;direction:ltr;text-align:right">${d.phone}</div>
             </div>
+            ${(d.companions && d.companions.length > 0) ? `
+            <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:0.625rem 0.875rem;grid-column:span 2">
+              <div style="color:#856404;font-size:0.72rem;margin-bottom:0.4rem;font-weight:700">👥 أسماء المرافقين</div>
+              <div style="display:flex;flex-wrap:wrap;gap:0.3rem">
+                ${d.companions.map(c => `<span style="background:white;border:1px solid #ffe082;border-radius:12px;padding:0.15rem 0.65rem;font-size:0.8rem;font-weight:700;color:#856404">👤 ${c}</span>`).join('')}
+              </div>
+            </div>` : ''}
             ${isAttended && attendedAt ? `
             <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem;grid-column:span 2">
               <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">وقت الدخول</div>
-              <div style="font-weight:700;color:var(--success)">${attendedAt}</div>
+              <div style="font-weight:700;color:var(--success)">✅ ${attendedAt}</div>
             </div>` : ''}
           </div>
 
