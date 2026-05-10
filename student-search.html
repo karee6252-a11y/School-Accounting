@@ -674,7 +674,7 @@
       .reduce((s, t) => s + (Number(t.amount) || 0), 0);
     const monthTxCount = transactions.filter(t => t.date && t.date.startsWith(thisMonthStr)).length;
 
-    const totalDebt = debts.reduce((s, d) => s + (Number(d.remainingAmount) || 0), 0);
+    const totalDebt = debts.reduce((s, d) => s + (Number(d.remaining) || 0), 0);
     const pendingDebts = debts.filter(d => d.status !== 'settled').length;
 
     const lastTx = transactions[0];
@@ -767,13 +767,13 @@
         </div>`;
     } else {
       debtsEl.innerHTML = debts.map(d => {
-        const total   = Number(d.totalAmount) || 0;
-        const paid    = Number(d.paidAmount)  || 0;
-        const remain  = Number(d.remainingAmount) || (total - paid);
+        const total   = Number(d.totalDue)   || 0;
+        const paid    = Number(d.paid)        || 0;
+        const remain  = Number(d.remaining)   || 0;
         const pct     = total > 0 ? Math.round(paid / total * 100) : 0;
-        const settled = d.status === 'settled';
-        const statusLabel = settled ? 'مسدد' : (d.status === 'partial' ? 'جزئي' : 'معلق');
-        const statusClass = settled ? 'settled' : (d.status === 'partial' ? 'partial' : 'pending');
+        const settled = remain <= 0;
+        const statusLabel = settled ? 'مسدد' : (paid > 0 ? 'جزئي' : 'معلق');
+        const statusClass = settled ? 'settled' : (paid > 0 ? 'partial' : 'pending');
         return `
           <div class="debt-item ${settled ? 'settled' : ''}">
             <div>
