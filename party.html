@@ -1317,46 +1317,107 @@
   // ==================== EXPORT EXCEL ====================
   async function exportListExcel() {
     if (!allAttendees.length) return alert('لا توجد بيانات للتصدير');
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('قائمة الحفلة');
-    ws.views = [{ rightToLeft: true }];
-    ws.columns = [
-      { header: '#',           key: 'idx',       width: 6  },
-      { header: 'الاسم',       key: 'name',      width: 25 },
-      { header: 'النوع',       key: 'type',      width: 12 },
-      { header: 'الصف',        key: 'grade',     width: 14 },
-      { header: 'التليفون',    key: 'phone',     width: 16 },
-      { header: 'طريقة الدفع', key: 'pay',       width: 14 },
-      { header: 'المبلغ',      key: 'amount',    width: 12 },
-      { header: 'الحالة',      key: 'status',    width: 14 },
-      { header: 'وقت الدخول',  key: 'attendedAt',width: 18 },
-    ];
-    ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A3A6B' } };
-    ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
 
-    allAttendees.forEach((d, i) => {
-      ws.addRow({
-        idx:       i+1,
-        name:      d.name,
-        type:      ` ${d.totalStudents||1} طالب` + (d.companionCount > 0 ? ` +  ${d.companionCount} مرافق` : ''),
-        grade:     d.grade || '-',
-        phone:     d.phone,
-        pay:       ({cash:'نقدي', bank_transfer:'تحويل بنكي', instapay:'إنستاباي'})[d.paymentType] || d.paymentType,
-        amount:    d.amount || PRICES.student,
-        status:    d.status==='attended' ? 'دخل الحفلة' : 'مسجل',
-        attendedAt: d.attendedAt?.toDate?.() ? d.attendedAt.toDate().toLocaleString('ar-EG') : '-',
+    const rawPri = (school?.primaryColor   || '#1A3A6B').replace('#','');
+    const rawSec = (school?.secondaryColor || '#4A6FA5').replace('#','');
+    const rawAcc = (school?.accentColor    || '#E8F0FE').replace('#','');
+    const PRI  = 'FF' + rawPri;
+    const SEC  = 'FF' + rawSec;
+    const ACC  = 'FF' + rawAcc;
+    const WHT  = 'FFFFFFFF';
+    const BLK  = 'FF1A1A2E';
+    const COLS = 9; // عدد الأعمدة
+
+    const wb = new ExcelJS.Workbook();
+    wb.views = [{ rightToLeft: true }];
+    const ws = wb.addWorksheet('قائمة الحفلة');
+    ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:3, activeCell:'A4' }];
+
+    ws.columns = [
+      { key:'idx',       width: 6  },
+      { key:'name',      width: 28 },
+      { key:'type',      width: 16 },
+      { key:'grade',     width: 14 },
+      { key:'phone',     width: 18 },
+      { key:'pay',       width: 16 },
+      { key:'amount',    width: 14 },
+      { key:'status',    width: 16 },
+      { key:'attendedAt',width: 22 },
+    ];
+
+    // ── دوال مساعدة ──
+    function solidFill(argb) { return { type:'pattern', pattern:'solid', fgColor:{ argb } }; }
+    function border(style='thin', argb='FF999999') {
+      const s = { style, color:{ argb } };
+      return { top:s, bottom:s, left:s, right:s };
+    }
+    function applyRow(row, bgArgb, fontArgb, bold, sz, bStyle='thin', bColor='FF999999') {
+      row.eachCell({ includeEmpty:true }, cell => {
+        cell.fill      = solidFill(bgArgb);
+        cell.font      = { name:'Arial', bold, size:sz, color:{ argb: fontArgb } };
+        cell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2, wrapText:false };
+        cell.border    = border(bStyle, bColor);
       });
+    }
+
+    // ── صف 1: عنوان المدرسة ──
+    const titleRow = ws.addRow(['قائمة حفلة ' + (school?.name || 'المدرسة'), ...Array(COLS-1).fill('')]);
+    ws.mergeCells(`A1:I1`);
+    applyRow(titleRow, PRI, WHT, true, 14, 'medium', 'FF444444');
+    titleRow.height = 30;
+
+    // ── صف 2: معلومات التصدير ──
+    const infoRow = ws.addRow([
+      `إجمالي المسجلين: ${allAttendees.length}   |   تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')}`,
+      ...Array(COLS-1).fill('')
+    ]);
+    ws.mergeCells(`A2:I2`);
+    applyRow(infoRow, SEC, WHT, false, 10, 'medium', 'FF444444');
+    infoRow.height = 20;
+
+    // ── صف 3: هيدر الأعمدة ──
+    const headers = ['#','الاسم','النوع','الصف','التليفون','طريقة الدفع','المبلغ','الحالة','وقت الدخول'];
+    const hdrRow = ws.addRow(headers);
+    applyRow(hdrRow, SEC, WHT, true, 11, 'medium', 'FF333333');
+    hdrRow.height = 24;
+
+    // ── بيانات ──
+    const total = allAttendees.reduce((s,d) => s + (d.amount || PRICES.student), 0);
+    allAttendees.forEach((d, i) => {
+      const row = ws.addRow([
+        i+1,
+        d.name,
+        `${d.totalStudents||1} طالب` + (d.companionCount > 0 ? ` + ${d.companionCount} مرافق` : ''),
+        d.grade || '-',
+        d.phone,
+        ({cash:'نقدي', bank_transfer:'تحويل بنكي', instapay:'إنستاباي'})[d.paymentType] || d.paymentType,
+        d.amount || PRICES.student,
+        d.status==='attended' ? 'دخل الحفلة' : 'مسجل',
+        d.attendedAt?.toDate?.() ? d.attendedAt.toDate().toLocaleString('ar-EG') : '-',
+      ]);
+      const isAlt = i % 2 === 1;
+      applyRow(row, isAlt ? ACC : WHT, BLK, false, 10);
+      // المبلغ: bold وتنسيق رقمي
+      row.getCell(7).font   = { name:'Arial', bold:true, size:10, color:{ argb: 'FF' + rawPri } };
+      row.getCell(7).numFmt = '#,##0';
+      row.height = 20;
     });
 
-    const total = allAttendees.reduce((s,d) => s + (d.amount || PRICES.student), 0);
-    const totalRow = ws.addRow({ name: 'الإجمالي', amount: total });
-    totalRow.font = { bold: true };
-    totalRow.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFE0B2' } };
+    // ── صف الإجمالي ──
+    const totRow = ws.addRow(['الإجمالي', ...Array(COLS-3).fill(''), total, '', '']);
+    ws.mergeCells(`A${totRow.number}:F${totRow.number}`);
+    applyRow(totRow, PRI, WHT, true, 12, 'medium', 'FF222222');
+    totRow.getCell(7).fill   = solidFill(SEC);
+    totRow.getCell(7).font   = { name:'Arial', bold:true, size:13, color:{ argb:WHT } };
+    totRow.getCell(7).numFmt = '#,##0';
+    totRow.getCell(7).border = border('medium','FF222222');
+    totRow.getCell(7).alignment = { horizontal:'center', vertical:'middle' };
+    totRow.height = 26;
 
-    const buf = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const buf  = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
     a.href = url;
     a.download = `قائمة-الحفلة-${school?.name||''}.xlsx`;
     a.click();
