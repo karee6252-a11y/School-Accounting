@@ -1275,7 +1275,7 @@
           <td style="font-size:0.8rem;color:var(--text-light)">${attendedAt}</td>
           <td>
             ${d.status !== 'attended' ? `<button class="btn btn-sm btn-success" onclick="event.stopPropagation();markAttended('${d.id}')" style="margin-left:0.25rem">دخول</button>` : ''}
-            <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();deleteAttendee('${d.id}')"></button>
+            <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();deleteAttendee('${d.id}')">🗑️</button>
           </td>
         </tr>
       `;

@@ -484,7 +484,7 @@
             ${hasPhoto
               ? `<span class="badge-photo">محجوز</span>
                  <button class="btn btn-sm" style="background:#fce4ec;color:#c62828;border:1px solid #ef9a9a;font-size:0.75rem"
-                   onclick="cancelBooking('${s.id}', '${s.name}')">إلغاء</button>`
+                   onclick="cancelBooking('${s.id}', '${s.name}')">🗑️ إلغاء</button>`
               : `<button class="btn btn-sm btn-primary"
                    style="background:var(--primary);border-color:var(--primary);white-space:nowrap"
                    onclick="openConfirm('${s.id}')"> حجز</button>`
@@ -655,7 +655,7 @@
         <td>
           <button class="btn btn-sm"
             style="background:#fce4ec;color:#c62828;border:1px solid #ef9a9a;font-size:0.75rem"
-            onclick="cancelBooking('${s.id}', '${s.name}')">إلغاء</button>
+            onclick="cancelBooking('${s.id}', '${s.name}')">🗑️ إلغاء</button>
         </td>
       </tr>`).join('');
   }
