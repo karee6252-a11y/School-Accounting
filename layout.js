@@ -52,6 +52,7 @@ function renderLayout(activePage, pageTitle) {
     { id: 'contractors',    icon: '', label: 'الموردون والمقاولون',   href: 'contractors.html' },
     { id: 'reports',        icon: '', label: 'التقارير والشيتات',     href: 'reports.html' },
     { id: 'party',          icon: '', label: 'تسجيل الحفلة',          href: 'party.html' },
+    { id: 'photo-package',  icon: '', label: 'باكدج التصوير',         href: 'photo-package.html' },
   ];
 
   // admin link بيظهر في section منفصل أسفل القايمة — مش هنا

@@ -775,6 +775,24 @@
     }
     document.getElementById('qrTicketId').textContent = data.ticketId;
 
+    // ===== باكدج التصوير =====
+    let photoEl = document.getElementById('qrPhotoBadge');
+    if (!photoEl) {
+      photoEl = document.createElement('div');
+      photoEl.id = 'qrPhotoBadge';
+      photoEl.style.cssText = 'margin-top:0.6rem;text-align:center';
+      document.getElementById('qrTicketId').after(photoEl);
+    }
+    if (data.photoPackage) {
+      photoEl.innerHTML = `<span style="display:inline-block;background:rgba(255,255,255,0.18);
+        border:1px solid rgba(255,255,255,0.35);border-radius:20px;
+        padding:0.25rem 0.9rem;font-size:0.78rem;font-weight:800;color:#fff">
+        📸 باكدج التصوير — ${data.photoPrice || 0} ج.م
+      </span>`;
+    } else {
+      photoEl.innerHTML = '';
+    }
+
     // الرسالة الترحيبية — اسم المدرسة أوتوماتيك
     const welcomeSchoolEl = document.getElementById('qrWelcomeSchool');
     if (welcomeSchoolEl) {
@@ -816,6 +834,9 @@
         companions2.forEach((c, i) => { waMsg += `  ${i+1}. ${c}\n`; });
       }
       waMsg += `💰 *المبلغ:* ${(d2?.amount || PRICES.student).toLocaleString('ar-EG')} ج.م\n`;
+      if (d2?.photoPackage) {
+        waMsg += `📸 *باكدج التصوير:* محجوز — ${d2.photoPrice || 0} ج.م\n`;
+      }
       waMsg += `━━━━━━━━━━━━━━━\n`;
       waMsg += `📌 *يرجى الاحتفاظ بصورة الـ QR للدخول للحفلة*`;
 
