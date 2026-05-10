@@ -48,6 +48,7 @@ function renderLayout(activePage, pageTitle) {
     { id: 'student-search', icon: '', label: 'بحث الطلاب',           href: 'student-search.html' },
     { id: 'debts',          icon: '', label: 'المديونيات',            href: 'debts.html' },
     { id: 'expenses',       icon: '', label: 'بند المصروفات',         href: 'expenses.html' },
+    { id: 'buses',          icon: '', label: 'بند الباصات',            href: 'buses.html' },
     { id: 'contractors',    icon: '', label: 'الموردون والمقاولون',   href: 'contractors.html' },
     { id: 'reports',        icon: '', label: 'التقارير والشيتات',     href: 'reports.html' },
     { id: 'party',          icon: '', label: 'تسجيل الحفلة',          href: 'party.html' },
