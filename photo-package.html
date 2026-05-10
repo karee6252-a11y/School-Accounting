@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     .photo-header-banner {
-      background: linear-gradient(135deg, #6a0dad 0%, #9c27b0 60%, #4a0080 100%);
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
       border-radius: var(--radius);
       padding: 1.25rem 1.5rem;
       color: white;
@@ -16,7 +16,6 @@
       gap: 1rem;
       margin-bottom: 1.5rem;
     }
-    .photo-header-banner .phb-icon { font-size: 2.5rem; }
     .photo-header-banner h2 { font-size: 1.2rem; font-weight: 900; margin-bottom: 0.2rem; }
     .photo-header-banner p  { font-size: 0.82rem; opacity: 0.85; }
 
@@ -34,7 +33,7 @@
       display: flex; flex-direction: column; gap: 0.25rem;
     }
     .photo-stat .ps-icon  { font-size: 1.5rem; }
-    .photo-stat .ps-val   { font-size: 1.5rem; font-weight: 900; color: #6a0dad; }
+    .photo-stat .ps-val   { font-size: 1.5rem; font-weight: 900; color: var(--primary); }
     .photo-stat .ps-label { font-size: 0.75rem; color: var(--text-light); font-weight: 600; }
 
     .photo-tabs {
@@ -54,8 +53,8 @@
       font-size: 0.9rem; font-weight: 700; cursor: pointer;
       transition: var(--transition); text-align: center;
     }
-    .photo-tab.active { background: #6a0dad; color: white; box-shadow: 0 2px 8px rgba(106,13,173,0.3); }
-    .photo-tab:not(.active):hover { background: #f3e8ff; color: #6a0dad; }
+    .photo-tab.active { background: var(--primary); color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .photo-tab:not(.active):hover { background: var(--accent); color: var(--primary); }
 
     .student-grid { display: flex; flex-direction: column; gap: 0.5rem; }
     .student-card {
@@ -67,29 +66,31 @@
       background: var(--card-bg);
       transition: var(--transition); gap: 1rem;
     }
-    .student-card.has-photo { border-color: #9c27b0; background: #f9f0ff; }
+    .student-card.has-photo { border-color: var(--secondary); background: var(--accent); }
     .student-card .sc-left  { display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0; }
     .student-card .sc-avatar {
       width: 42px; height: 42px; border-radius: 50%;
-      background: linear-gradient(135deg, #e1bee7, #ce93d8);
+      background: var(--accent);
+      border: 2px solid var(--border);
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.2rem; flex-shrink: 0;
+      font-size: 0.75rem; font-weight: 900; color: var(--primary);
+      flex-shrink: 0; flex-direction: column; line-height: 1.2;
     }
-    .student-card.has-photo .sc-avatar { background: linear-gradient(135deg, #9c27b0, #6a0dad); color: white; }
+    .student-card.has-photo .sc-avatar { background: var(--primary); color: white; border-color: var(--primary); }
     .student-card .sc-name  { font-weight: 800; font-size: 0.95rem; color: var(--text-dark); }
     .student-card .sc-meta  { font-size: 0.75rem; color: var(--text-light); margin-top: 0.1rem; }
-    .student-card .sc-price { font-size: 0.85rem; font-weight: 800; color: #6a0dad; white-space: nowrap; flex-shrink: 0; }
-    .badge-photo   { background: #f3e8ff; color: #6a0dad; border: 1px solid #9c27b0; padding: 0.2rem 0.65rem; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+    .student-card .sc-price { font-size: 0.85rem; font-weight: 800; color: var(--primary); white-space: nowrap; flex-shrink: 0; }
+    .badge-photo   { background: var(--accent); color: var(--primary); border: 1px solid var(--secondary); padding: 0.2rem 0.65rem; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
 
     .price-pills { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
     .price-pill  {
       display: flex; align-items: center; gap: 0.5rem;
       padding: 0.4rem 0.875rem;
-      border-radius: 20px; background: #f3e8ff;
-      border: 1.5px solid #9c27b0;
-      font-size: 0.82rem; font-weight: 700; color: #4a0080;
+      border-radius: 20px; background: var(--accent);
+      border: 1.5px solid var(--secondary);
+      font-size: 0.82rem; font-weight: 700; color: var(--primary);
     }
-    .price-pill .pill-price { font-size: 1rem; font-weight: 900; color: #6a0dad; }
+    .price-pill .pill-price { font-size: 1rem; font-weight: 900; color: var(--primary); }
 
     .filter-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: flex-end; }
     .filter-row .form-group { flex: 1; min-width: 120px; margin-bottom: 0; }
@@ -116,18 +117,18 @@
     .modal-overlay.show .modal-box { transform: scale(1) translateY(0); }
 
     .photo-receipt {
-      background: linear-gradient(135deg, #6a0dad 0%, #9c27b0 60%, #4a0080 100%);
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
       border-radius: 14px; padding: 1.25rem 1.5rem;
       color: white; margin-bottom: 1.25rem;
       position: relative; overflow: hidden; text-align: center;
     }
-    .photo-receipt::before { content:'📸'; position:absolute; font-size:5rem; opacity:0.08; top:-0.5rem; right:-0.5rem; }
+    /* .photo-receipt::before removed - was emoji decoration */
     .photo-receipt .pr-school { font-size: 0.72rem; opacity: 0.7; margin-bottom: 0.3rem; }
     .photo-receipt .pr-name   { font-size: 1.25rem; font-weight: 900; margin-bottom: 0.2rem; }
     .photo-receipt .pr-grade  { font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.75rem; }
     .photo-receipt .pr-price  {
       display: inline-block; padding: 0.3rem 1rem;
-      background: rgba(255,255,255,0.2); border-radius: 20px;
+      background: rgba(255,255,255,0.25); border-radius: 20px;
       font-size: 1.1rem; font-weight: 900;
     }
     .photo-receipt .pr-note   { margin-top: 0.75rem; font-size: 0.72rem; opacity: 0.7; }
@@ -142,7 +143,7 @@
       color: var(--text-dark); transition: var(--transition);
       text-decoration: none; text-align: right;
     }
-    .send-opt-btn:hover { border-color: #9c27b0; background: #f3e8ff; }
+    .send-opt-btn:hover { border-color: var(--secondary); background: var(--accent); }
     .send-opt-btn .opt-icon { font-size: 1.5rem; }
     .send-opt-btn .opt-text .opt-label { display: block; font-weight: 800; }
     .send-opt-btn .opt-text .opt-sub   { display: block; font-size: 0.75rem; color: var(--text-light); }
@@ -163,7 +164,6 @@
 
       <!-- BANNER -->
       <div class="photo-header-banner animate-in">
-        <div class="phb-icon">📸</div>
         <div>
           <h2>باكدج التصوير</h2>
           <p>حجز اختياري لطلاب الحفلة من KG1 و KG2 — سيظهر الحجز تلقائياً على تذكرة الحفلة</p>
@@ -173,22 +173,18 @@
       <!-- STATS -->
       <div class="photo-stats animate-in">
         <div class="photo-stat">
-          <span class="ps-icon">📸</span>
           <span class="ps-val" id="statTotal">0</span>
           <span class="ps-label">إجمالي الحجوزات</span>
         </div>
         <div class="photo-stat">
-          <span class="ps-icon">🎓</span>
           <span class="ps-val" id="statKG1">0</span>
           <span class="ps-label">KG1 — 300 ج.م</span>
         </div>
         <div class="photo-stat">
-          <span class="ps-icon">🎓</span>
           <span class="ps-val" id="statKG2">0</span>
           <span class="ps-label">KG2 — 400 ج.م</span>
         </div>
         <div class="photo-stat">
-          <span class="ps-icon">💰</span>
           <span class="ps-val" id="statRevenue">0</span>
           <span class="ps-label">إيراد (ج.م)</span>
         </div>
@@ -196,24 +192,24 @@
 
       <!-- TABS -->
       <div class="photo-tabs animate-in">
-        <button class="photo-tab active" onclick="showTab('book', this)">➕ حجز جديد</button>
-        <button class="photo-tab" onclick="showTab('list', this)">📋 قائمة الحجوزات</button>
+        <button class="photo-tab active" onclick="showTab('book', this)">حجز جديد</button>
+        <button class="photo-tab" onclick="showTab('list', this)">قائمة الحجوزات</button>
       </div>
 
       <!-- TAB 1: BOOK -->
       <div id="tab-book" class="animate-in">
         <div class="card">
           <div class="card-header">
-            <span class="card-title">🎓 طلاب الحفلة (KG1 و KG2)</span>
-            <button class="btn btn-sm btn-secondary" onclick="loadPartyStudents()">🔄 تحديث</button>
+            <span class="card-title">طلاب الحفلة (KG1 و KG2)</span>
+            <button class="btn btn-sm btn-secondary" onclick="loadPartyStudents()">تحديث</button>
           </div>
           <div class="card-body">
             <div class="alert hidden" id="bookAlert"></div>
 
             <!-- PRICE INFO -->
             <div class="price-pills">
-              <div class="price-pill">🎓 KG1 <span class="pill-price">300 ج.م</span></div>
-              <div class="price-pill">🎓 KG2 <span class="pill-price">400 ج.م</span></div>
+              <div class="price-pill"> KG1 <span class="pill-price">300 ج.م</span></div>
+              <div class="price-pill"> KG2 <span class="pill-price">400 ج.م</span></div>
               <span style="font-size:0.78rem;color:var(--text-light)">الحجز اختياري — يظهر تلقائياً على تذكرة الحفلة</span>
             </div>
 
@@ -237,7 +233,7 @@
                 <select class="form-select" id="photoFilter" onchange="filterStudents()">
                   <option value="">الكل</option>
                   <option value="no">بدون باكدج</option>
-                  <option value="yes">محجوز ✅</option>
+                  <option value="yes">محجوز </option>
                 </select>
               </div>
             </div>
@@ -254,10 +250,10 @@
       <div id="tab-list" style="display:none" class="animate-in">
         <div class="card">
           <div class="card-header">
-            <span class="card-title">📋 قائمة حجوزات التصوير</span>
+            <span class="card-title">قائمة حجوزات التصوير</span>
             <div style="display:flex;gap:0.5rem">
-              <button class="btn btn-sm btn-secondary" onclick="exportExcel()">📊 Excel</button>
-              <button class="btn btn-sm btn-secondary" onclick="exportPDF()">📄 PDF</button>
+              <button class="btn btn-sm btn-secondary" onclick="exportExcel()">Excel</button>
+              <button class="btn btn-sm btn-secondary" onclick="exportPDF()">PDF</button>
             </div>
           </div>
           <div class="table-wrapper">
@@ -286,17 +282,16 @@
 
     <!-- STEP 1: Confirm -->
     <div id="stepConfirm">
-      <div style="font-size:2.5rem;margin-bottom:0.75rem;text-align:center">📸</div>
       <h3 style="text-align:center;font-size:1.1rem;font-weight:900;margin-bottom:1.25rem">تأكيد حجز باكدج التصوير</h3>
 
-      <div style="background:#f3e8ff;border:1.5px solid #9c27b0;border-radius:var(--radius-sm);padding:1rem;margin-bottom:1.25rem">
-        <div style="font-size:0.78rem;color:#6a0dad;font-weight:700;margin-bottom:0.25rem">الطالب</div>
-        <div style="font-size:1.1rem;font-weight:900;color:#4a0080" id="modalStudentName">-</div>
-        <div style="font-size:0.82rem;color:#6a0dad;margin-top:0.15rem" id="modalStudentGrade">-</div>
-        <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #ce93d8;
+      <div style="background:var(--accent);border:1.5px solid var(--secondary);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1.25rem">
+        <div style="font-size:0.78rem;color:var(--primary);font-weight:700;margin-bottom:0.25rem">الطالب</div>
+        <div style="font-size:1.1rem;font-weight:900;color:var(--primary)" id="modalStudentName">-</div>
+        <div style="font-size:0.82rem;color:var(--primary);margin-top:0.15rem" id="modalStudentGrade">-</div>
+        <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--secondary);
                     display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:0.82rem;color:#6a0dad;font-weight:700">سعر الباكدج</span>
-          <span style="font-size:1.3rem;font-weight:900;color:#6a0dad" id="modalPrice">-</span>
+          <span style="font-size:0.82rem;color:var(--primary);font-weight:700">سعر الباكدج</span>
+          <span style="font-size:1.3rem;font-weight:900;color:var(--primary)" id="modalPrice">-</span>
         </div>
       </div>
 
@@ -315,7 +310,7 @@
 
       <div style="display:flex;gap:0.5rem;margin-top:0.75rem">
         <button class="btn btn-primary flex-1" id="confirmBtn" onclick="confirmBooking()"
-          style="background:#6a0dad;border-color:#6a0dad">✅ تأكيد الحجز</button>
+          style="background:var(--primary);border-color:var(--primary)">تأكيد الحجز</button>
         <button class="btn btn-outline" onclick="closeModal()">إلغاء</button>
       </div>
     </div>
@@ -324,11 +319,11 @@
     <div id="stepReceipt" style="display:none">
       <div class="photo-receipt">
         <div class="pr-school" id="receiptSchool">المدرسة</div>
-        <div style="font-size:0.72rem;opacity:0.75;margin-bottom:0.5rem">📸 باكدج التصوير</div>
+        <div style="font-size:0.72rem;opacity:0.75;margin-bottom:0.5rem"> باكدج التصوير</div>
         <div class="pr-name"  id="receiptName">-</div>
         <div class="pr-grade" id="receiptGrade">-</div>
         <div class="pr-price" id="receiptPrice">-</div>
-        <div class="pr-note">✅ سيظهر هذا الحجز تلقائياً على تذكرة الحفلة</div>
+        <div class="pr-note">سيظهر هذا الحجز تلقائياً على تذكرة الحفلة</div>
       </div>
 
       <div style="margin-bottom:1rem">
@@ -351,7 +346,7 @@
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 
 <script>
-  renderLayout('photo-package', '📸 باكدج التصوير');
+  renderLayout('photo-package', 'باكدج التصوير');
 
   const session  = SESSION.get();
   const schoolId = session.schoolId;
@@ -399,7 +394,7 @@
       updateStats();
     } catch (e) {
       document.getElementById('studentGrid').innerHTML =
-        `<div class="empty-photo"><div class="ep-icon">⚠️</div><div class="ep-title">حدث خطأ: ${e.message}</div></div>`;
+        `<div class="empty-photo"><div class="ep-title">حدث خطأ: ${e.message}</div></div>`;
     }
   }
 
@@ -420,7 +415,6 @@
     if (!students.length) {
       const isEmpty = allPartyStudents.length === 0;
       grid.innerHTML = `<div class="empty-photo">
-        <div class="ep-icon">${isEmpty ? '🎉' : '🔍'}</div>
         <div class="ep-title">${isEmpty ? 'لا يوجد طلاب KG1/KG2 مسجلين في الحفلة' : 'لا توجد نتائج'}</div>
         <div class="ep-sub">${isEmpty ? 'سجّل الطلاب أولاً من صفحة تسجيل الحفلة' : 'جرّب تعديل الفلتر'}</div>
       </div>`;
@@ -433,7 +427,7 @@
       return `
         <div class="student-card ${hasPhoto ? 'has-photo' : ''}" id="sc-${s.id}">
           <div class="sc-left">
-            <div class="sc-avatar">${hasPhoto ? '📸' : '🎓'}</div>
+            <div class="sc-avatar">${s.grade}</div>
             <div>
               <div class="sc-name">${s.name}</div>
               <div class="sc-meta">
@@ -446,12 +440,12 @@
           <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0">
             <span class="sc-price">${price} ج.م</span>
             ${hasPhoto
-              ? `<span class="badge-photo">📸 محجوز</span>
+              ? `<span class="badge-photo">محجوز</span>
                  <button class="btn btn-sm" style="background:#fce4ec;color:#c62828;border:1px solid #ef9a9a;font-size:0.75rem"
                    onclick="cancelBooking('${s.id}', '${s.name}')">إلغاء</button>`
               : `<button class="btn btn-sm btn-primary"
-                   style="background:#6a0dad;border-color:#6a0dad;white-space:nowrap"
-                   onclick="openConfirm('${s.id}')">📸 حجز</button>`
+                   style="background:var(--primary);border-color:var(--primary);white-space:nowrap"
+                   onclick="openConfirm('${s.id}')"> حجز</button>`
             }
           </div>
         </div>`;
@@ -504,7 +498,7 @@
     if (!currentStudent) return;
 
     const btn = document.getElementById('confirmBtn');
-    btn.disabled = true; btn.textContent = '⏳ جاري الحفظ...';
+    btn.disabled = true; btn.textContent = 'جاري الحفظ...';
 
     try {
       const price = PHOTO_PRICES[currentStudent.grade] || 0;
@@ -528,7 +522,7 @@
     } catch (e) {
       showModalAlert('حدث خطأ: ' + e.message);
     } finally {
-      btn.disabled = false; btn.textContent = '✅ تأكيد الحجز';
+      btn.disabled = false; btn.textContent = 'تأكيد الحجز';
     }
   }
 
@@ -545,22 +539,21 @@
     const schoolName = school?.name || 'المدرسة';
 
     const waMsg = [
-      `📸 *تأكيد حجز باكدج التصوير*`,
-      `🏫 ${schoolName}`,
-      `━━━━━━━━━━━━━━━`,
-      `🎓 *الاسم:* ${student.name}`,
-      `📚 *الصف:* ${student.grade}`,
-      `💰 *السعر:* ${price} ج.م`,
-      `💳 *طريقة الدفع:* ${payLabel(payType)}`,
-      `━━━━━━━━━━━━━━━`,
-      `✅ *تم تسجيل الحجز بنجاح*`,
-      `📌 سيظهر باكدج التصوير تلقائياً على تذكرة الحفلة عند مسح الـ QR`,
+      `*تأكيد حجز باكدج التصوير*`,
+      `${schoolName}`,
+      `───────────────`,
+      `الاسم: ${student.name}`,
+      `الصف: ${student.grade}`,
+      `السعر: ${price} ج.م`,
+      `طريقة الدفع: ${payLabel(payType)}`,
+      `───────────────`,
+      `تم تسجيل الحجز بنجاح`,
+      `سيظهر باكدج التصوير تلقائياً على تذكرة الحفلة`,
     ].join('\n');
 
     document.getElementById('sendOptions').innerHTML = waPhone
       ? `<a class="send-opt-btn" href="https://wa.me/${waPhone}?text=${encodeURIComponent(waMsg)}"
-           target="_blank" rel="noopener" style="border-color:#9c27b0;background:#f3e8ff">
-           <span class="opt-icon">💬</span>
+           target="_blank" rel="noopener" style="border-color:var(--secondary);background:var(--accent)">
            <span class="opt-text">
              <span class="opt-label">إرسال عبر واتساب</span>
              <span class="opt-sub">على رقم ${student.phone || '-'} مع الرسالة جاهزة</span>
@@ -603,7 +596,7 @@
 
     if (!withPhoto.length) {
       tbody.innerHTML = `<tr><td colspan="7">
-        <div class="empty-photo"><div class="ep-icon">📸</div>
+        <div class="empty-photo">
         <div class="ep-title">لا توجد حجوزات بعد</div></div>
       </td></tr>`;
       return;
@@ -615,12 +608,12 @@
         <td><strong>${s.name}</strong></td>
         <td><span class="badge badge-primary">${s.grade}</span></td>
         <td dir="ltr" style="text-align:right">${s.phone || '-'}</td>
-        <td style="font-weight:800;color:#6a0dad">${s.photoPrice || PHOTO_PRICES[s.grade] || 0} ج.م</td>
+        <td style="font-weight:800;color:var(--primary)">${s.photoPrice || PHOTO_PRICES[s.grade] || 0} ج.م</td>
         <td>${payLabel(s.photoPayType)}</td>
         <td>
           <button class="btn btn-sm"
             style="background:#fce4ec;color:#c62828;border:1px solid #ef9a9a;font-size:0.75rem"
-            onclick="cancelBooking('${s.id}', '${s.name}')">🗑️ إلغاء</button>
+            onclick="cancelBooking('${s.id}', '${s.name}')">إلغاء</button>
         </td>
       </tr>`).join('');
   }
@@ -641,7 +634,7 @@
       { header: 'المبلغ',      key: 'price', width: 12 },
       { header: 'طريقة الدفع', key: 'pay',  width: 16 },
     ];
-    ws.getRow(1).fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF6A0DAD' } };
+    ws.getRow(1).fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF1E2D5A' } };
     ws.getRow(1).font = { bold:true, color:{ argb:'FFFFFFFF' }, size:12 };
 
     withPhoto.forEach((s, i) => {
@@ -654,7 +647,7 @@
     const total    = withPhoto.reduce((sum, s) => sum + (s.photoPrice || PHOTO_PRICES[s.grade] || 0), 0);
     const totalRow = ws.addRow({ name: 'الإجمالي', price: total });
     totalRow.font  = { bold: true };
-    totalRow.fill  = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFCE93D8' } };
+    totalRow.fill  = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF4A6FA5' } };
 
     const buf  = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -672,16 +665,16 @@
     pw.document.write(`<html><head><meta charset="UTF-8">
       <style>
         body { font-family:Cairo,sans-serif; direction:rtl; margin:1.5rem; color:#1a1a2e; }
-        h2   { text-align:center; color:#6a0dad; margin-bottom:0.25rem; }
+        h2   { text-align:center; color:var(--primary); margin-bottom:0.25rem; }
         .sub { text-align:center; color:#888; font-size:0.85rem; margin-bottom:1.5rem; }
         table { width:100%; border-collapse:collapse; font-size:0.85rem; }
-        th { background:#6a0dad; color:white; padding:0.5rem 0.75rem; text-align:right; }
+        th { background:var(--primary); color:white; padding:0.5rem 0.75rem; text-align:right; }
         td { padding:0.45rem 0.75rem; border-bottom:1px solid #e0e4f0; }
-        tr:nth-child(even) td { background:#f9f0ff; }
-        .total-row td { font-weight:900; background:#ce93d8; }
+        tr:nth-child(even) td { background:var(--accent); }
+        .total-row td { font-weight:900; background:var(--secondary); }
         @media print { button { display:none; } }
       </style></head><body>
-      <h2>📸 حجوزات باكدج التصوير — ${school?.name||''}</h2>
+      <h2> حجوزات باكدج التصوير — ${school?.name||''}</h2>
       <div class="sub">إجمالي: ${withPhoto.length} حجز | الإيراد: ${total.toLocaleString('ar-EG')} ج.م</div>
       <table>
         <thead><tr><th>#</th><th>الاسم</th><th>الصف</th><th>التليفون</th><th>المبلغ</th><th>طريقة الدفع</th></tr></thead>
