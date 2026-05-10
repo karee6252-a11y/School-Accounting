@@ -345,8 +345,24 @@
     function numFmt(cell) { cell.numFmt = '#,##0;(#,##0);"-"'; }
 
     // دالة توزيع مبلغ على البنود — بتستخدم paymentItems (array of objects) لو موجودة
+    // ✅ مُصلَحة: بتوزع المبلغ المدفوع الفعلي (d.amount) نسبياً على البنود
+    //    عشان إجمالي الشيت يطابق إجمالي الموقع تماماً
     function mapAmounts(d) {
-      const out = { fees:0, disc:d.discount||0, file:0, uni:0, bus:0, app:0, other:0 };
+      const paidAmount = d.amount || 0;
+
+      // حساب إجمالي الخصومات من paymentItems
+      let totalDiscount = 0;
+      if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
+        d.paymentItems.forEach(pi => {
+          if (typeof pi === 'object' && pi.item) {
+            const price = Number(pi.price) || 0;
+            const disc  = Number(pi.discount) || 0;
+            totalDiscount += price * disc / 100;
+          }
+        });
+      }
+
+      const out = { fees:0, disc: Math.round(totalDiscount), file:0, uni:0, bus:0, app:0, other:0 };
 
       function assignItem(itemName, itemAmt) {
         const name = (itemName || '').trim();
@@ -355,7 +371,6 @@
         else if (name === 'يونيفورم')                              { out.uni  += itemAmt; }
         else if (name === 'باص')                                    { out.bus  += itemAmt; }
         else if (name === 'أبليكيشن')                              { out.app  += itemAmt; }
-        // fallback includes (للأسماء الطويلة أو المختلفة قليلاً)
         else if (name.includes('مصروفات'))  { out.fees += itemAmt; }
         else if (name.includes('فايل'))     { out.file += itemAmt; }
         else if (name.includes('يونيفورم')) { out.uni  += itemAmt; }
@@ -364,26 +379,48 @@
         else { out.other += itemAmt; }
       }
 
-      // paymentItems = [{item, price, discount, netPrice}, ...]
       if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
-        d.paymentItems.forEach(pi => {
+        // ① حساب netPrice (بعد الخصم) لكل بند كأساس للتوزيع النسبي
+        const itemNetPrices = d.paymentItems.map(pi => {
           if (typeof pi === 'object' && pi.item) {
-            assignItem(pi.item, Number(pi.netPrice) || Number(pi.price) || 0);
-          } else if (typeof pi === 'string') {
-            // قسّم المبلغ بالتساوي لو string فقط
-            assignItem(pi, (d.amount || 0) / d.paymentItems.length);
+            const price = Number(pi.price) || 0;
+            const disc  = Number(pi.discount) || 0;
+            // لو موجود netPrice مباشرة استخدمه، غير كده احسبه
+            const net = Number(pi.netPrice) || (price * (1 - disc / 100));
+            return { item: pi.item, net };
           }
+          return { item: String(pi), net: 0 };
         });
+
+        const totalNet = itemNetPrices.reduce((s, x) => s + x.net, 0);
+
+        if (totalNet > 0) {
+          // ② وزّع المبلغ المدفوع الفعلي نسبياً على كل بند
+          let assignedTotal = 0;
+          itemNetPrices.forEach((x, idx) => {
+            let amt;
+            if (idx === itemNetPrices.length - 1) {
+              // آخر بند: خذ الباقي لتجنب فروق التقريب
+              amt = paidAmount - assignedTotal;
+            } else {
+              amt = Math.round(paidAmount * (x.net / totalNet));
+              assignedTotal += amt;
+            }
+            assignItem(x.item, amt);
+          });
+        } else {
+          // كل netPrices = 0: وزّع المبلغ بالتساوي
+          const share = paidAmount / Math.max(itemNetPrices.length, 1);
+          itemNetPrices.forEach(x => assignItem(x.item, share));
+        }
       } else {
         // fallback على paymentItem string
-        const amt  = d.amount || 0;
         const itemStr = d.paymentItem || '';
-        // لو فيه " + " يعني بنود متعددة — قسّم بالتساوي
         if (itemStr.includes('+')) {
           const parts = itemStr.split('+').map(s => s.trim()).filter(Boolean);
-          parts.forEach(part => assignItem(part, amt / parts.length));
+          parts.forEach(part => assignItem(part, paidAmount / parts.length));
         } else {
-          assignItem(itemStr, amt);
+          assignItem(itemStr, paidAmount);
         }
       }
 
@@ -1246,8 +1283,30 @@
       const newDebt = Math.max(0, totalDue - amount);
       const hadDebt = Math.max(0, totalDue - (orig.amount || amount));
 
+      // ✅ إعادة بناء paymentItems array من paymentItem string عشان mapAmounts تشتغل صح
+      // لو التعديل غيّر الـ paymentItem، نبني array جديد بنسب متساوية
+      let updatedPaymentItems = orig.paymentItems || null;
+      if (paymentItem !== orig.paymentItem) {
+        // البند اتغيّر — ابن array جديد بناءً على الـ string الجديد
+        const parts = paymentItem.split('+').map(s => s.trim()).filter(Boolean);
+        const share = amount / Math.max(parts.length, 1);
+        updatedPaymentItems = parts.map(item => ({
+          item, price: share, discount: 0, netPrice: share
+        }));
+      } else if (Array.isArray(orig.paymentItems) && orig.paymentItems.length > 0 && amount !== orig.amount) {
+        // المبلغ اتغيّر بس البند نفسه — اضبط netPrice نسبياً
+        const totalOrigNet = orig.paymentItems.reduce((s, pi) => s + (Number(pi.netPrice) || Number(pi.price) || 0), 0);
+        if (totalOrigNet > 0) {
+          updatedPaymentItems = orig.paymentItems.map(pi => {
+            const origNet = Number(pi.netPrice) || Number(pi.price) || 0;
+            const newNet = amount * (origNet / totalOrigNet);
+            return { ...pi, netPrice: Math.round(newNet) };
+          });
+        }
+      }
+
       // حفظ التعديل على الـ transaction
-      await db.collection('transactions').doc(editingTxId).update({
+      const updateData = {
         studentName, grade, date, amount, paymentType,
         paymentTypeName: PAYMENT_TYPES.find(p => p.value === paymentType)?.label || paymentType,
         paymentItem, receiptNumber, notes,
@@ -1255,7 +1314,9 @@
         hasDebt: newDebt > 0,
         editedBy: session.email,
         editedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      };
+      if (updatedPaymentItems) updateData.paymentItems = updatedPaymentItems;
+      await db.collection('transactions').doc(editingTxId).update(updateData);
 
       // ===== مزامنة مع debts collection =====
       if (newDebt > 0) {

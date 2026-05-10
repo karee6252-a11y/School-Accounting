@@ -184,6 +184,14 @@
           <span class="ps-val" id="statKG2">0</span>
           <span class="ps-label">KG2 — 400 ج.م</span>
         </div>
+        <div class="photo-stat" id="statGrade6Box" style="display:none">
+          <span class="ps-val" id="statGrade6">0</span>
+          <span class="ps-label">Grade 6 — 400 ج.م</span>
+        </div>
+        <div class="photo-stat" id="statPrep3Box" style="display:none">
+          <span class="ps-val" id="statPrep3">0</span>
+          <span class="ps-label">Prep 3 — 400 ج.م</span>
+        </div>
         <div class="photo-stat">
           <span class="ps-val" id="statRevenue">0</span>
           <span class="ps-label">إيراد (ج.م)</span>
@@ -207,10 +215,9 @@
             <div class="alert hidden" id="bookAlert"></div>
 
             <!-- PRICE INFO -->
-            <div class="price-pills">
+            <div class="price-pills" id="pricePills">
               <div class="price-pill"> KG1 <span class="pill-price">300 ج.م</span></div>
               <div class="price-pill"> KG2 <span class="pill-price">400 ج.م</span></div>
-              <span style="font-size:0.78rem;color:var(--text-light)">الحجز اختياري — يظهر تلقائياً على تذكرة الحفلة</span>
             </div>
 
             <!-- FILTERS -->
@@ -223,7 +230,7 @@
               <div class="form-group">
                 <label class="form-label">الصف</label>
                 <select class="form-select" id="gradeFilter" onchange="filterStudents()">
-                  <option value="">KG1 و KG2</option>
+                  <option value="">الكل</option>
                   <option value="KG1">KG1 فقط</option>
                   <option value="KG2">KG2 فقط</option>
                 </select>
@@ -352,7 +359,33 @@
   const schoolId = session.schoolId;
   const school   = SESSION.getSchool();
 
-  const PHOTO_PRICES = { 'KG1': 300, 'KG2': 400 };
+  // Grade 6 و Prep 3 بسعر 400 — لبريستول فقط
+  const PHOTO_PRICES = schoolId === 'bristol'
+    ? { 'KG1': 300, 'KG2': 400, 'Grade 6': 400, 'Prep 3': 400 }
+    : { 'KG1': 300, 'KG2': 400 };
+
+  // الصفوف المسموح بها حسب المدرسة
+  const ALLOWED_GRADES = schoolId === 'bristol'
+    ? ['KG1', 'KG2', 'Grade 6', 'Prep 3']
+    : ['KG1', 'KG2'];
+
+  // تحديث الـ UI حسب المدرسة
+  if (schoolId === 'bristol') {
+    const pills = document.getElementById('pricePills');
+    pills.innerHTML += `
+      <div class="price-pill"> Grade 6 <span class="pill-price">400 ج.م</span></div>
+      <div class="price-pill"> Prep 3 <span class="pill-price">400 ج.م</span></div>
+      <span style="font-size:0.78rem;color:var(--text-light)">الحجز اختياري — يظهر تلقائياً على تذكرة الحفلة</span>`;
+    const gradeFilter = document.getElementById('gradeFilter');
+    gradeFilter.innerHTML += `
+      <option value="Grade 6">Grade 6 فقط</option>
+      <option value="Prep 3">Prep 3 فقط</option>`;
+    document.querySelector('.photo-header-banner p').textContent =
+      'حجز اختياري لطلاب الحفلة من KG1 و KG2 و Grade 6 و Prep 3 — سيظهر الحجز تلقائياً على تذكرة الحفلة';
+  } else {
+    document.getElementById('pricePills').innerHTML +=
+      `<span style="font-size:0.78rem;color:var(--text-light)">الحجز اختياري — يظهر تلقائياً على تذكرة الحفلة</span>`;
+  }
 
   let allPartyStudents = [];
   let currentStudent   = null;
@@ -379,7 +412,7 @@
       allPartyStudents = [];
       snap.forEach(doc => {
         const d = doc.data();
-        if (d.grade === 'KG1' || d.grade === 'KG2') {
+        if (ALLOWED_GRADES.includes(d.grade)) {
           allPartyStudents.push({ id: doc.id, ...d });
         }
       });
@@ -401,12 +434,21 @@
   // ==================== STATS ====================
   function updateStats() {
     const withPhoto = allPartyStudents.filter(s => s.photoPackage);
-    const kg1 = withPhoto.filter(s => s.grade === 'KG1').length;
-    const kg2 = withPhoto.filter(s => s.grade === 'KG2').length;
+    const kg1    = withPhoto.filter(s => s.grade === 'KG1').length;
+    const kg2    = withPhoto.filter(s => s.grade === 'KG2').length;
+    const grade6 = withPhoto.filter(s => s.grade === 'Grade 6').length;
+    const prep3  = withPhoto.filter(s => s.grade === 'Prep 3').length;
     document.getElementById('statTotal').textContent   = withPhoto.length;
     document.getElementById('statKG1').textContent     = kg1;
     document.getElementById('statKG2').textContent     = kg2;
-    document.getElementById('statRevenue').textContent = (kg1 * 300 + kg2 * 400).toLocaleString('ar-EG');
+    document.getElementById('statRevenue').textContent =
+      (kg1 * 300 + kg2 * 400 + grade6 * 400 + prep3 * 400).toLocaleString('ar-EG');
+    if (schoolId === 'bristol') {
+      document.getElementById('statGrade6').textContent = grade6;
+      document.getElementById('statPrep3').textContent  = prep3;
+      document.getElementById('statGrade6Box').style.display = '';
+      document.getElementById('statPrep3Box').style.display  = '';
+    }
   }
 
   // ==================== RENDER GRID ====================

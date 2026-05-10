@@ -143,7 +143,7 @@
       overflow: hidden;
     }
     .qr-ticket::before {
-      content: '🎉';
+      content: '';
       position: absolute;
       font-size: 6rem;
       opacity: 0.07;
@@ -246,32 +246,28 @@
       <!-- STATS BAR -->
       <div class="party-stats animate-in" id="partyStats">
         <div class="party-stat">
-          <span class="ps-icon">🎓</span>
-          <span class="ps-val" id="statStudCount">0</span>
+                    <span class="ps-val" id="statStudCount">0</span>
           <span class="ps-label">طلاب مسجلين</span>
         </div>
         <div class="party-stat">
-          <span class="ps-icon">👥</span>
-          <span class="ps-val" id="statCompCount">0</span>
+                    <span class="ps-val" id="statCompCount">0</span>
           <span class="ps-label">مرافقين</span>
         </div>
         <div class="party-stat">
-          <span class="ps-icon">✅</span>
-          <span class="ps-val" id="statAttended">0</span>
+                    <span class="ps-val" id="statAttended">0</span>
           <span class="ps-label">دخلوا الحفلة</span>
         </div>
         <div class="party-stat">
-          <span class="ps-icon">💰</span>
-          <span class="ps-val" id="statRevenue">0</span>
+                    <span class="ps-val" id="statRevenue">0</span>
           <span class="ps-label">إجمالي الإيراد (ج.م)</span>
         </div>
       </div>
 
       <!-- TABS -->
       <div class="party-tabs animate-in">
-        <button class="party-tab active" onclick="showTab('register', this)">📝 تسجيل جديد</button>
-        <button class="party-tab" onclick="showTab('scan', this)">🔍 بحث بالكود</button>
-        <button class="party-tab" onclick="showTab('list', this)">📋 قائمة المسجلين</button>
+        <button class="party-tab active" onclick="showTab('register', this)">تسجيل جديد</button>
+        <button class="party-tab" onclick="showTab('scan', this)">بحث بالكود</button>
+        <button class="party-tab" onclick="showTab('list', this)">قائمة المسجلين</button>
       </div>
 
       <!-- ===================== TAB 1: REGISTER ===================== -->
@@ -281,7 +277,7 @@
           <!-- FORM -->
           <div class="card">
             <div class="card-header">
-              <span class="card-title">🎉 تسجيل في الحفلة</span>
+              <span class="card-title">تسجيل في الحفلة</span>
               <span class="badge badge-primary" id="formBadge">جديد</span>
             </div>
             <div class="card-body">
@@ -340,7 +336,7 @@
               <!-- COMPANION SECTION -->
               <div style="background:#fff8e1;border:1.5px solid #ffe082;border-radius:var(--radius);padding:1rem 1.125rem;margin-bottom:1rem">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
-                  <span style="font-weight:800;color:#856404;font-size:0.95rem">👤 المرافقين <span style="font-size:0.75rem;font-weight:400;color:var(--text-light)">(اختياري)</span></span>
+                  <span style="font-weight:800;color:#856404;font-size:0.95rem">المرافقين <span style="font-size:0.75rem;font-weight:400;color:var(--text-light)">(اختياري)</span></span>
                   <span style="font-size:0.8rem;color:var(--text-light)">150 ج.م / مرافق</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.5rem">
@@ -384,11 +380,11 @@
               <!-- PRICE DISPLAY -->
               <div style="background:var(--accent);border-radius:var(--radius-sm);padding:0.875rem 1rem;margin-bottom:1rem;border:1px solid var(--primary-light)">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
-                  <span style="font-size:0.8rem;color:var(--text-light)" id="stuPriceBreakLabel">🎓 طلاب × 1</span>
+                  <span style="font-size:0.8rem;color:var(--text-light)" id="stuPriceBreakLabel">طلاب × 1</span>
                   <span style="font-size:0.85rem;font-weight:700;color:var(--text-mid)" id="stuPriceBreak">300 ج.م</span>
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem" id="compPriceBreakRow">
-                  <span style="font-size:0.8rem;color:var(--text-light)" id="compPriceBreakLabel">👤 مرافق × 0</span>
+                  <span style="font-size:0.8rem;color:var(--text-light)" id="compPriceBreakLabel">مرافق × 0</span>
                   <span style="font-size:0.85rem;font-weight:700;color:var(--text-mid)" id="compPriceBreak">0 ج.م</span>
                 </div>
                 <div style="border-top:1px solid var(--border);margin-top:0.4rem;padding-top:0.4rem;display:flex;justify-content:space-between;align-items:center">
@@ -398,8 +394,7 @@
               </div>
 
               <div style="display:flex;gap:0.75rem">
-                <button class="btn btn-primary flex-1" id="saveRegBtn" onclick="saveRegistration()">
-                  💾 حفظ وإنشاء QR
+                <button class="btn btn-primary flex-1" id="saveRegBtn" onclick="saveRegistration()">حفظ وإنشاء QR
                 </button>
                 <button class="btn btn-outline" onclick="resetRegForm()">تفريغ</button>
               </div>
@@ -426,7 +421,7 @@
       <div id="tab-scan" style="display:none" class="animate-in">
         <div class="card">
           <div class="card-header">
-            <span class="card-title">🔍 بحث بكود التذكرة</span>
+            <span class="card-title">بحث بكود التذكرة</span>
           </div>
           <div class="card-body">
             <div style="max-width:520px;margin:0 auto">
@@ -437,10 +432,9 @@
                   style="font-family:monospace;letter-spacing:1px"
                   oninput="this.value=this.value.toUpperCase()"
                   onkeydown="if(event.key==='Enter') lookupTicket()" />
-                <button class="btn btn-primary" onclick="lookupTicket()" style="white-space:nowrap">بحث ✓</button>
+                <button class="btn btn-primary" onclick="lookupTicket()" style="white-space:nowrap">بحث </button>
               </div>
-              <div style="font-size:0.78rem;color:var(--text-light)">
-                💡 سكان الـ QR بأي تطبيق وسيُملأ الكود تلقائياً، ثم اضغط بحث
+              <div style="font-size:0.78rem;color:var(--text-light)">سكان الـ QR بأي تطبيق وسيُملأ الكود تلقائياً، ثم اضغط بحث
               </div>
             </div>
             <div id="scanResultArea" style="max-width:520px;margin:1.5rem auto 0;display:none"></div>
@@ -452,10 +446,10 @@
       <div id="tab-list" style="display:none" class="animate-in">
         <div class="card">
           <div class="card-header">
-            <span class="card-title">📋 قائمة المسجلين</span>
+            <span class="card-title">قائمة المسجلين</span>
             <div style="display:flex;gap:0.5rem">
-              <button class="btn btn-sm btn-secondary" onclick="exportListExcel()">📊 Excel</button>
-              <button class="btn btn-sm btn-secondary" onclick="exportListPDF()">📄 PDF</button>
+              <button class="btn btn-sm btn-secondary" onclick="exportListExcel()"> Excel</button>
+              <button class="btn btn-sm btn-secondary" onclick="exportListPDF()"> PDF</button>
             </div>
           </div>
           <div class="card-body" style="padding-bottom:0">
@@ -531,11 +525,10 @@
         padding: 0.75rem 1rem;
         text-align: center;
       ">
-        <div style="font-size:1rem;margin-bottom:0.3rem">🎉</div>
+        
         <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.25rem" id="qrWelcomeSchool">أهلاً بك في حفلة المدرسة</div>
-        <div style="font-size:0.72rem;opacity:0.85;line-height:1.5">
-          يسعدنا حضورك معنا في هذه المناسبة الجميلة<br>
-          <span style="color:#ffd54f;font-weight:700">⚠️ يرجى الاحتفاظ بهذا الكود للدخول إلى الحفلة</span>
+        <div style="font-size:0.72rem;opacity:0.85;line-height:1.5">يسعدنا حضورك معنا في هذه المناسبة الجميلة<br>
+          <span style="color:#ffd54f;font-weight:700">يرجى الاحتفاظ بهذا الكود للدخول إلى الحفلة</span>
         </div>
       </div>
     </div>
@@ -548,8 +541,8 @@
     </div>
 
     <div style="display:flex;gap:0.5rem">
-      <button class="btn btn-secondary flex-1" onclick="printTicket()">🖨️ طباعة</button>
-      <button class="btn btn-primary flex-1" onclick="downloadQR()">⬇️ تحميل QR</button>
+      <button class="btn btn-secondary flex-1" onclick="printTicket()">طباعة</button>
+      <button class="btn btn-primary flex-1" onclick="downloadQR()">تحميل QR</button>
     </div>
     <button class="btn btn-outline w-full" style="margin-top:0.5rem" onclick="closeQRModal()">إغلاق</button>
   </div>
@@ -569,7 +562,7 @@
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 
 <script>
-  renderLayout('party', 'تسجيل الحفلة 🎉');
+  renderLayout('party', 'تسجيل الحفلة');
 
   const session = SESSION.get();
   const schoolId = session.schoolId;
@@ -636,9 +629,9 @@
     const stuTotal  = totalStudents * PRICES.student;
     const compTotal = companionCount * PRICES.companion;
     const total     = stuTotal + compTotal;
-    document.getElementById('stuPriceBreakLabel').textContent = `🎓 طلاب × ${totalStudents}`;
+    document.getElementById('stuPriceBreakLabel').textContent = `طلاب × ${totalStudents}`;
     document.getElementById('stuPriceBreak').textContent  = stuTotal.toLocaleString('ar-EG') + ' ج.م';
-    document.getElementById('compPriceBreakLabel').textContent = `👤 مرافق × ${companionCount}`;
+    document.getElementById('compPriceBreakLabel').textContent = `مرافق × ${companionCount}`;
     document.getElementById('compPriceBreak').textContent = compTotal.toLocaleString('ar-EG') + ' ج.م';
     document.getElementById('compPriceBreakRow').style.display = companionCount > 0 ? 'flex' : 'none';
     document.getElementById('priceDisplay').textContent   = total.toLocaleString('ar-EG') + ' ج.م';
@@ -693,7 +686,7 @@
     const totalStudents = 1 + extraStudentCount;
 
     btn.disabled = true;
-    btn.textContent = '⏳ جاري الحفظ...';
+    btn.textContent = ' جاري الحفظ...';
 
     try {
       const now = new Date();
@@ -733,13 +726,13 @@
       loadStats();
       loadRecentList();
       resetRegForm();
-      showAlert('regAlert', '✅ تم التسجيل بنجاح!', 'success');
+      showAlert('regAlert', 'تم التسجيل بنجاح!', 'success');
 
     } catch(e) {
       showAlert('regAlert', 'حدث خطأ: ' + e.message, 'error');
     } finally {
       btn.disabled = false;
-      btn.textContent = '💾 حفظ وإنشاء QR';
+      btn.textContent = 'حفظ وإنشاء QR';
     }
   }
 
@@ -750,12 +743,12 @@
     document.getElementById('qrName').textContent = data.name;
 
     const totalStu = data.totalStudents || 1;
-    document.getElementById('qrInfo').textContent = '🎓 ' + (data.grade || '') + (totalStu > 1 ? ` (+${totalStu-1} طالب)` : '');
+    document.getElementById('qrInfo').textContent = ' ' + (data.grade || '') + (totalStu > 1 ? ` (+${totalStu-1} طالب)` : '');
 
     // Badge: طلاب + مرافقين + مبلغ
     const companions = data.companions || [];
-    let badgeText = `🎓 ${totalStu} طالب`;
-    if (companions.length > 0) badgeText += ` + 👤 ${companions.length} مرافق`;
+    let badgeText = ` ${totalStu} طالب`;
+    if (companions.length > 0) badgeText += ` +  ${companions.length} مرافق`;
     badgeText += ` — ${(data.amount || PRICES.student).toLocaleString('ar-EG')} ج.م`;
     document.getElementById('qrTypeBadge').textContent = badgeText;
 
@@ -769,7 +762,7 @@
     }
     if (companions.length > 0) {
       compEl.innerHTML = '<div style="margin-bottom:0.25rem;opacity:0.7;font-size:0.7rem">المرافقين:</div>' +
-        companions.map(n => `<span style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:12px;padding:0.1rem 0.6rem;margin:0.15rem">👤 ${n}</span>`).join(' ');
+        companions.map(n => `<span style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:12px;padding:0.1rem 0.6rem;margin:0.15rem"> ${n}</span>`).join(' ');
     } else {
       compEl.innerHTML = '';
     }
@@ -786,8 +779,7 @@
     if (data.photoPackage) {
       photoEl.innerHTML = `<span style="display:inline-block;background:rgba(255,255,255,0.18);
         border:1px solid rgba(255,255,255,0.35);border-radius:20px;
-        padding:0.25rem 0.9rem;font-size:0.78rem;font-weight:800;color:#fff">
-        📸 باكدج التصوير — ${data.photoPrice || 0} ج.م
+        padding:0.25rem 0.9rem;font-size:0.78rem;font-weight:800;color:#fff">باكدج التصوير — ${data.photoPrice || 0} ج.م
       </span>`;
     } else {
       photoEl.innerHTML = '';
@@ -826,25 +818,26 @@
       const totalStu2 = d2?.totalStudents || 1;
       const companions2 = d2?.companions || [];
       const schoolName2 = school?.name || 'المدرسة';
-      let waMsg = `🎉 *تذكرة حفلة ${schoolName2}*\n━━━━━━━━━━━━━━━\n🎓 *الاسم:* ${data.name}\n`;
-      if (d2?.grade) waMsg += `📚 *الصف:* ${d2.grade}\n`;
-      if (totalStu2 > 1) waMsg += `👨‍👩‍👧 *عدد الطلاب:* ${totalStu2}\n`;
+      let waMsg = ` *تذكرة حفلة ${schoolName2}*\n
+*الاسم:* ${data.name}\n`;
+      if (d2?.grade) waMsg += ` *الصف:* ${d2.grade}\n`;
+      if (totalStu2 > 1) waMsg += ` *عدد الطلاب:* ${totalStu2}\n`;
       if (companions2.length > 0) {
-        waMsg += `👥 *المرافقين (${companions2.length}):*\n`;
+        waMsg += ` *المرافقين (${companions2.length}):*\n`;
         companions2.forEach((c, i) => { waMsg += `  ${i+1}. ${c}\n`; });
       }
-      waMsg += `💰 *المبلغ:* ${(d2?.amount || PRICES.student).toLocaleString('ar-EG')} ج.م\n`;
+      waMsg += ` *المبلغ:* ${(d2?.amount || PRICES.student).toLocaleString('ar-EG')} ج.م\n`;
       if (d2?.photoPackage) {
-        waMsg += `📸 *باكدج التصوير:* محجوز — ${d2.photoPrice || 0} ج.م\n`;
+        waMsg += ` *باكدج التصوير:* محجوز — ${d2.photoPrice || 0} ج.م\n`;
       }
-      waMsg += `━━━━━━━━━━━━━━━\n`;
-      waMsg += `📌 *يرجى الاحتفاظ بصورة الـ QR للدخول للحفلة*`;
+      waMsg += `\n`;
+      waMsg += ` *يرجى الاحتفاظ بصورة الـ QR للدخول للحفلة*`;
 
       const waHref = `https://wa.me/${waPhone}?text=${encodeURIComponent(waMsg)}`;
 
       document.getElementById('sendOptions').innerHTML = `
         <a class="send-opt-btn" href="${waHref}" target="_blank" rel="noopener" style="border-color:var(--primary);background:var(--accent)">
-          <span class="opt-icon">💬</span>
+          <span class="opt-icon"></span>
           <span class="opt-text">
             <span class="opt-label">إرسال عبر واتساب</span>
             <span class="opt-sub">يفتح الشات على الرقم المسجل مع الرسالة جاهزة</span>
@@ -864,12 +857,29 @@
     const wrap = document.getElementById('qrCanvasWrap');
     const qrCvs = wrap.querySelector('canvas');
     const qrImg = wrap.querySelector('img');
-    let qrSrc = '';
-    if (qrCvs) qrSrc = qrCvs.toDataURL('image/png');
-    else if (qrImg) qrSrc = qrImg.src;
-    else return alert('QR غير جاهز، انتظر لحظة وحاول مرة أخرى');
 
-    downloadTicketImage(qrSrc);
+    if (qrCvs) {
+      // canvas موجود مباشرة — نأخذ منه
+      downloadTicketImage(qrCvs.toDataURL('image/png'));
+    } else if (qrImg) {
+      // img موجود — نحوله لـ canvas أولاً عشان نضمن صحة الـ dataURL
+      const tempCvs = document.createElement('canvas');
+      tempCvs.width = qrImg.naturalWidth || qrImg.width || 180;
+      tempCvs.height = qrImg.naturalHeight || qrImg.height || 180;
+      const tempCtx = tempCvs.getContext('2d');
+      // نحتاج ننتظر التحميل لو الصورة لسه بتتحمل
+      if (qrImg.complete) {
+        tempCtx.drawImage(qrImg, 0, 0);
+        downloadTicketImage(tempCvs.toDataURL('image/png'));
+      } else {
+        qrImg.onload = function() {
+          tempCtx.drawImage(qrImg, 0, 0);
+          downloadTicketImage(tempCvs.toDataURL('image/png'));
+        };
+      }
+    } else {
+      alert('QR غير جاهز، انتظر لحظة وحاول مرة أخرى');
+    }
   }
 
   function downloadTicketImage(qrSrc) {
@@ -906,17 +916,38 @@
         const link = document.createElement('a');
         link.href = cvs.toDataURL('image/png');
         link.download = (data.name || 'ticket') + '-ticket.png';
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
       };
       qrImage.src = qrSrc;
     };
 
     bgImg.onerror = function() {
-      // لو الصورة ما اتحملتش، نزّل الـ QR بس
-      const link = document.createElement('a');
-      link.href = qrSrc;
-      link.download = (data?.name || 'ticket') + '-QR.png';
-      link.click();
+      // لو الصورة ما اتحملتش، نرسم الـ QR على canvas بسيط وننزله
+      const fallbackCvs = document.createElement('canvas');
+      fallbackCvs.width = 200; fallbackCvs.height = 200;
+      const fallbackCtx = fallbackCvs.getContext('2d');
+      const fallbackImg = new Image();
+      fallbackImg.onload = function() {
+        fallbackCtx.drawImage(fallbackImg, 0, 0, 200, 200);
+        const link = document.createElement('a');
+        link.href = fallbackCvs.toDataURL('image/png');
+        link.download = (data?.name || 'ticket') + '-QR.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+      fallbackImg.onerror = function() {
+        // حتى الـ qrSrc فشل — نجرب مباشرة
+        const link = document.createElement('a');
+        link.href = qrSrc;
+        link.download = (data?.name || 'ticket') + '-QR.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+      fallbackImg.src = qrSrc;
     };
   }
 
@@ -981,7 +1012,7 @@
       if (snap.empty) {
         resultArea.innerHTML = `
           <div style="border:3px solid var(--danger);border-radius:var(--radius);padding:1.5rem;background:#fff5f5;display:flex;align-items:center;gap:1rem">
-            <span style="font-size:2.5rem">❌</span>
+            <span style="font-size:2.5rem"></span>
             <div>
               <div style="font-size:1.1rem;font-weight:900;color:var(--danger)">تذكرة غير موجودة</div>
               <div style="font-size:0.85rem;color:var(--text-mid);margin-top:0.25rem">الكود "${ticketId}" غير مسجل في النظام</div>
@@ -1005,7 +1036,7 @@
       resultArea.innerHTML = `
         <div style="border:3px solid ${borderColor};border-radius:var(--radius);padding:1.5rem;background:${bgColor}">
           <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
-            <span style="font-size:2.5rem">${d.type === 'student' ? '🎓' : '👤'}</span>
+            <span style="font-size:2.5rem">${d.type === 'student' ? '' : ''}</span>
             <div style="flex:1">
               <div style="font-size:1.3rem;font-weight:900;color:var(--text-dark)">${d.name}</div>
               <div style="font-size:0.85rem;color:var(--text-mid);margin-top:0.2rem">
@@ -1013,18 +1044,18 @@
               </div>
             </div>
             <span style="padding:0.3rem 0.875rem;border-radius:20px;font-size:0.8rem;font-weight:800;${isAttended ? 'background:#2e7d32;color:white' : 'background:#856404;color:white'}">
-              ${isAttended ? '✅ دخل الحفلة' : '⏳ مسجل'}
+              ${isAttended ? 'دخل الحفلة' : 'مسجل'}
             </span>
           </div>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.85rem;margin-bottom:1rem">
             <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem">
               <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">عدد الطلاب</div>
-              <div style="font-weight:700">🎓 ${d.totalStudents || 1} طالب</div>
+              <div style="font-weight:700"> ${d.totalStudents || 1} طالب</div>
             </div>
             <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem">
               <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">عدد المرافقين</div>
-              <div style="font-weight:700">👤 ${d.companionCount || 0} مرافق</div>
+              <div style="font-weight:700"> ${d.companionCount || 0} مرافق</div>
             </div>
             <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem">
               <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">المبلغ</div>
@@ -1040,32 +1071,29 @@
             </div>
             ${(d.companions && d.companions.length > 0) ? `
             <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:0.625rem 0.875rem;grid-column:span 2">
-              <div style="color:#856404;font-size:0.72rem;margin-bottom:0.4rem;font-weight:700">👥 أسماء المرافقين</div>
+              <div style="color:#856404;font-size:0.72rem;margin-bottom:0.4rem;font-weight:700">أسماء المرافقين</div>
               <div style="display:flex;flex-wrap:wrap;gap:0.3rem">
-                ${d.companions.map(c => `<span style="background:white;border:1px solid #ffe082;border-radius:12px;padding:0.15rem 0.65rem;font-size:0.8rem;font-weight:700;color:#856404">👤 ${c}</span>`).join('')}
+                ${d.companions.map(c => `<span style="background:white;border:1px solid #ffe082;border-radius:12px;padding:0.15rem 0.65rem;font-size:0.8rem;font-weight:700;color:#856404"> ${c}</span>`).join('')}
               </div>
             </div>` : ''}
             ${isAttended && attendedAt ? `
             <div style="background:white;border-radius:8px;padding:0.625rem 0.875rem;grid-column:span 2">
               <div style="color:var(--text-light);font-size:0.72rem;margin-bottom:0.2rem">وقت الدخول</div>
-              <div style="font-weight:700;color:var(--success)">✅ ${attendedAt}</div>
+              <div style="font-weight:700;color:var(--success)"> ${attendedAt}</div>
             </div>` : ''}
           </div>
 
           ${!isAttended ? `
-          <button class="btn btn-success w-full" onclick="confirmAttendance('${docId}')">
-            ✅ تأكيد الدخول
+          <button class="btn btn-success w-full" onclick="confirmAttendance('${docId}')">تأكيد الدخول
           </button>` : `
-          <div style="text-align:center;font-size:0.85rem;color:var(--success);font-weight:700">
-            ✅ هذا الشخص دخل الحفلة بالفعل${attendedAt ? ' الساعة ' + attendedAt : ''}
+          <div style="text-align:center;font-size:0.85rem;color:var(--success);font-weight:700">هذا الشخص دخل الحفلة بالفعل${attendedAt ? ' الساعة ' + attendedAt : ''}
           </div>`}
         </div>
       `;
 
     } catch(e) {
       resultArea.innerHTML = `
-        <div style="border:3px solid var(--danger);border-radius:var(--radius);padding:1.5rem;background:#fff5f5;text-align:center;color:var(--danger)">
-          ❌ خطأ: ${e.message}
+        <div style="border:3px solid var(--danger);border-radius:var(--radius);padding:1.5rem;background:#fff5f5;text-align:center;color:var(--danger)">خطأ: ${e.message}
         </div>`;
     }
   }
@@ -1073,7 +1101,7 @@
   async function confirmAttendance(docId) {
     const btn = event.target;
     btn.disabled = true;
-    btn.textContent = '⏳ جاري التأكيد...';
+    btn.textContent = 'جاري التأكيد...';
     try {
       await db.collection('partyAttendees').doc(docId).update({
         status: 'attended',
@@ -1085,7 +1113,7 @@
     } catch(e) {
       alert('خطأ: ' + e.message);
       btn.disabled = false;
-      btn.textContent = '✅ تأكيد الدخول';
+      btn.textContent = 'تأكيد الدخول';
     }
   }
 
@@ -1125,12 +1153,12 @@
         div.onmouseout  = () => div.style.background = '';
         div.onclick = () => openQRModal(d);
         div.innerHTML = `
-          <span style="font-size:1.25rem">🎓</span>
+          <span style="font-size:1.25rem"></span>
           <div style="flex:1;min-width:0">
             <div style="font-weight:700;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name}</div>
             <div style="font-size:0.72rem;color:var(--text-light)">${d.grade || ''} ${(d.totalStudents||1) > 1 ? `(${d.totalStudents} طلاب)` : ''} ${d.companionCount > 0 ? `+ ${d.companionCount} مرافق` : ''} • ${d.amount || PRICES.student} ج.م</div>
           </div>
-          <span style="font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:10px;font-weight:700;${d.status==='attended'?'background:#e8f5e9;color:#2e7d32':'background:#fff3cd;color:#856404'}">${d.status==='attended'?'✅ دخل':'⏳ مسجل'}</span>
+          <span style="font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:10px;font-weight:700;${d.status==='attended'?'background:#e8f5e9;color:#2e7d32':'background:#fff3cd;color:#856404'}">${d.status==='attended'?'دخل':'مسجل'}</span>
         `;
         container.appendChild(div);
       });
@@ -1217,14 +1245,11 @@
       tbody.closest('table').before(counterEl);
     }
     counterEl.innerHTML = `
-      <span style="background:#e3f2fd;color:#1565c0;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:800">
-        👥 التسجيلات: ${data.length}
+      <span style="background:#e3f2fd;color:#1565c0;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:800">التسجيلات: ${data.length}
       </span>
-      <span style="background:#e8f5e9;color:#2e7d32;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:800">
-        🎓 طلاب: ${studentsCount}
+      <span style="background:#e8f5e9;color:#2e7d32;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:800">طلاب: ${studentsCount}
       </span>
-      <span style="background:#fff3cd;color:#856404;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:800">
-        👤 مرافقين: ${companionsCount}
+      <span style="background:#fff3cd;color:#856404;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:800">مرافقين: ${companionsCount}
       </span>
     `;
 
@@ -1239,18 +1264,18 @@
           <td>
             <strong>${d.name}</strong>
             ${d.grade ? `<br><span class="text-sm text-muted">${d.grade}</span>` : ''}
-            ${totalStu > 1 ? `<br><span style="font-size:0.72rem;background:#e8f5e9;color:#2e7d32;padding:0.1rem 0.5rem;border-radius:10px;font-weight:700">🎓 ${totalStu} طلاب</span>` : ''}
-            ${d.companions && d.companions.length > 0 ? `<br><span style="font-size:0.72rem;background:#e3f2fd;color:#1565c0;padding:0.1rem 0.5rem;border-radius:10px;font-weight:700">👥 ${d.companions.length} مرافق</span>` : ''}
+            ${totalStu > 1 ? `<br><span style="font-size:0.72rem;background:#e8f5e9;color:#2e7d32;padding:0.1rem 0.5rem;border-radius:10px;font-weight:700"> ${totalStu} طلاب</span>` : ''}
+            ${d.companions && d.companions.length > 0 ? `<br><span style="font-size:0.72rem;background:#e3f2fd;color:#1565c0;padding:0.1rem 0.5rem;border-radius:10px;font-weight:700"> ${d.companions.length} مرافق</span>` : ''}
           </td>
-          <td><span style="font-size:1rem">🎓</span> طالب</td>
+          <td><span style="font-size:1rem"></span>طالب</td>
           <td>${d.grade || '-'}</td>
           <td dir="ltr" style="text-align:right">${d.phone}</td>
           <td><span class="badge badge-primary">${payLabels[d.paymentType]||d.paymentType}</span> <span style="font-weight:800">${d.amount || PRICES.student} ج.م</span></td>
-          <td><span style="padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:700;${d.status==='attended'?'background:#e8f5e9;color:#2e7d32;border:1px solid #4caf50':'background:#fff3cd;color:#856404;border:1px solid #ffc107'}">${d.status==='attended'?'✅ دخل الحفلة':'⏳ مسجل'}</span></td>
+          <td><span style="padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:700;${d.status==='attended'?'background:#e8f5e9;color:#2e7d32;border:1px solid #4caf50':'background:#fff3cd;color:#856404;border:1px solid #ffc107'}">${d.status==='attended'?'دخل الحفلة':'مسجل'}</span></td>
           <td style="font-size:0.8rem;color:var(--text-light)">${attendedAt}</td>
           <td>
-            ${d.status !== 'attended' ? `<button class="btn btn-sm btn-success" onclick="event.stopPropagation();markAttended('${d.id}')" style="margin-left:0.25rem">✅ دخول</button>` : ''}
-            <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();deleteAttendee('${d.id}')">🗑️</button>
+            ${d.status !== 'attended' ? `<button class="btn btn-sm btn-success" onclick="event.stopPropagation();markAttended('${d.id}')" style="margin-left:0.25rem">دخول</button>` : ''}
+            <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();deleteAttendee('${d.id}')"></button>
           </td>
         </tr>
       `;
@@ -1313,7 +1338,7 @@
       ws.addRow({
         idx:       i+1,
         name:      d.name,
-        type:      `🎓 ${d.totalStudents||1} طالب` + (d.companionCount > 0 ? ` + 👤 ${d.companionCount} مرافق` : ''),
+        type:      ` ${d.totalStudents||1} طالب` + (d.companionCount > 0 ? ` +  ${d.companionCount} مرافق` : ''),
         grade:     d.grade || '-',
         phone:     d.phone,
         pay:       ({cash:'نقدي', bank_transfer:'تحويل بنكي', instapay:'إنستاباي'})[d.paymentType] || d.paymentType,
@@ -1356,7 +1381,7 @@
         .total-row td { font-weight:900; background:#fff3cd; }
         @media print { button { display:none; } }
       </style></head><body>
-      <h2>🎉 قائمة حفلة ${school?.name||''}</h2>
+      <h2>قائمة حفلة ${school?.name||''}</h2>
       <div class="sub">إجمالي المسجلين: ${allAttendees.length} | إجمالي الإيراد: ${total.toLocaleString('ar-EG')} ج.م</div>
       <table>
         <thead><tr><th>#</th><th>الاسم</th><th>النوع</th><th>الصف</th><th>التليفون</th><th>الدفع</th><th>المبلغ</th><th>الحالة</th></tr></thead>
@@ -1370,7 +1395,7 @@
               <td dir="ltr" style="text-align:right">${d.phone}</td>
               <td>${payLabels[d.paymentType]||d.paymentType}</td>
               <td>${d.amount || PRICES.student} ج.م</td>
-              <td>${d.status==='attended'?'✅ دخل':'⏳ مسجل'}</td>
+              <td>${d.status==='attended'?'دخل':'مسجل'}</td>
             </tr>
           `).join('')}
           <tr class="total-row"><td colspan="6">الإجمالي</td><td>${total.toLocaleString('ar-EG')} ج.م</td><td></td></tr>
