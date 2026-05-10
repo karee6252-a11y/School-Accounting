@@ -89,7 +89,7 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">الصف <span class="required">*</span></label>
-                  <select class="form-select" id="gradeSelect">
+                  <select class="form-select" id="gradeSelect" onchange="onGradeChange()">
                     <option value="">اختر الصف اولا</option>
                   </select>
                 </div>
@@ -256,12 +256,37 @@
     return STAGES[stage] || null;
   }
 
-  function getStagePrice(stage, item) {
+  function getStagePrice(stage, item, grade) {
     if (isCardiff) {
-      const tier = document.getElementById('paymentTierSelect')?.value || 'normal';
-      return CARDIFF_STAGES[stage]?.prices?.[tier]?.[item] || null;
+      const stageData = CARDIFF_STAGES[stage];
+      if (!stageData) return null;
+      // المصروفات الدراسية لها منطق خاص — بترجع null عشان renderPaymentItems تتعامل معها منفصل
+      if (item === 'مصروفات دراسية') return null;
+      // أبليكيشن وفايل
+      if (item === 'أبليكيشن' || item === 'فايل') {
+        if (stage === 'international') return stageData.fees?.[item] || null;
+        const tier = document.getElementById('paymentTierSelect')?.value || 'normal';
+        return stageData.fees?.[tier]?.[item] || null;
+      }
+      // باقي البنود (باص، يونيفورم، امتحانات، رحلات)
+      return stageData.otherPrices?.[item] ?? null;
     }
     return STAGES[stage]?.prices?.[item] || null;
+  }
+
+  // يرجع بيانات الأقساط للمصروفات الدراسية في Cardiff
+  function getCardiffInstallments(stage, grade) {
+    const stageData = CARDIFF_STAGES[stage];
+    if (!stageData) return null;
+    if (stage === 'international') {
+      return stageData.gradeFees?.[grade] || null;
+    }
+    // semi_international
+    const tier = document.getElementById('paymentTierSelect')?.value || 'normal';
+    const gradeGroup = stageData.getGradeGroup(grade);
+    const fees = stageData.gradeFees?.[tier]?.[gradeGroup];
+    if (!fees) return null;
+    return fees;
   }
 
   function onPaymentTierChange() {
@@ -269,6 +294,18 @@
     selectedItems = {};
     renderPaymentItems(stage);
     updateSelectedSummary();
+    updateDiscountFields();
+  }
+
+  function onGradeChange() {
+    const stage = document.getElementById('stageSelect').value;
+    // لو Cardiff: أعد رسم الأقساط بالأسعار الجديدة للصف المختار
+    if (isCardiff && stage) {
+      selectedItems = {};
+      renderPaymentItems(stage);
+      updateSelectedSummary();
+      updateDiscountFields();
+    }
   }
 
   function onStageChange() {
@@ -280,12 +317,13 @@
     if (stageData) {
       stageData.grades.forEach(g => { gradeSelect.innerHTML += `<option value="${g}">${g}</option>`; });
     }
-    // Cardiff: اظهر نوع الدفعة
-    if (isCardiff && stage) {
+    // Cardiff: اظهر نوع الدفعة للسيمي فقط — American Section مش محتاجاها
+    if (isCardiff && stage === 'semi_international') {
       tierGroup.classList.remove('hidden');
       document.getElementById('paymentTierSelect').value = '';
     } else {
       tierGroup.classList.add('hidden');
+      if (document.getElementById('paymentTierSelect')) document.getElementById('paymentTierSelect').value = '';
     }
     const indicator = document.getElementById('stageIndicator');
     if (stage && stageData) {
@@ -301,6 +339,58 @@
   function renderPaymentItems(stage) {
     const grid = document.getElementById("paymentItemsGrid");
     grid.innerHTML = "";
+    const grade = document.getElementById('gradeSelect')?.value || '';
+
+    // Cardiff: المصروفات الدراسية تتعرض كأقساط منفصلة
+    if (isCardiff && stage) {
+      const instData = grade ? getCardiffInstallments(stage, grade) : null;
+      const numInst  = CARDIFF_STAGES[stage]?.installments || 2;
+      const instLabels = numInst === 3
+        ? ['مصروفات - قسط 1', 'مصروفات - قسط 2', 'مصروفات - قسط 3']
+        : ['مصروفات - قسط 1', 'مصروفات - قسط 2'];
+      const instKeys = numInst === 3
+        ? ['inst1', 'inst2', 'inst3']
+        : ['inst1', 'inst2'];
+
+      instLabels.forEach((label, idx) => {
+        const instKey  = instKeys[idx];
+        const instPrice = instData ? (instData[instKey] || 0) : 0;
+        const isSelected = !!selectedItems[label];
+        const cardEl = document.createElement('div');
+        cardEl.className = 'payment-item-card ' + (isSelected ? 'selected' : '');
+        cardEl.onclick = () => toggleInstallment(label, instPrice, instData?.total || 0);
+        let html = `<div class="item-check">${isSelected ? '&#10003;' : ''}</div>`;
+        html += `<div class="item-name">${label}</div>`;
+        html += instData
+          ? `<div class="item-price">${formatCurrency(instPrice)}</div>`
+          : `<div class="item-price text-muted">اختر الصف أولا</div>`;
+        cardEl.innerHTML = html;
+        grid.appendChild(cardEl);
+      });
+
+      // باقي البنود (بدون مصروفات دراسية)
+      const otherItems = ['باص', 'يونيفورم', 'فايل', 'أبليكيشن', 'رحلات', 'امتحانات'];
+      otherItems.forEach(item => {
+        const price = getStagePrice(stage, item, grade);
+        const isSelected = !!selectedItems[item];
+        const isVariable = selectedItems[item]?.variable || false;
+        const customPrice = selectedItems[item]?.customPrice || '';
+        const forceVariable = (item === 'رحلات');
+        const cardEl = document.createElement('div');
+        cardEl.className = 'payment-item-card ' + (isSelected ? 'selected' : '');
+        cardEl.onclick = () => togglePaymentItem(item, price || 0);
+        let html = `<div class="item-check">${isSelected ? '&#10003;' : ''}</div><div class="item-name">${item}</div>`;
+        if (forceVariable) html += `<div class="item-price text-muted">سعر متغير</div>`;
+        else html += price ? `<div class="item-price">${formatCurrency(price)}</div>` : `<div class="item-price text-muted">اختر المرحلة أولا</div>`;
+        if (isSelected && !forceVariable) html += `<div onclick="event.stopPropagation()" style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.75rem"><input type="checkbox" id="var_${item}" ${isVariable ? 'checked' : ''} onchange="toggleVariablePrice('${item}', this.checked)"/><label for="var_${item}" style="cursor:pointer;color:var(--text-light)">سعر متغير</label></div>`;
+        if (isSelected && (isVariable || forceVariable)) html += `<div onclick="event.stopPropagation()" style="margin-top:6px"><input type="number" class="form-input" style="font-size:0.8rem;padding:0.3rem 0.5rem;height:auto" placeholder="ادخل السعر" min="0" value="${customPrice}" oninput="setCustomPrice('${item}', this.value)"/></div>`;
+        cardEl.innerHTML = html;
+        grid.appendChild(cardEl);
+      });
+      return;
+    }
+
+    // باقي المدارس (عادي)
     PAYMENT_ITEMS.forEach(item => {
       const price = stage ? getStagePrice(stage, item) : null;
       const isSelected = !!selectedItems[item];
@@ -320,10 +410,27 @@
     });
   }
 
+  // Cardiff: toggle قسط المصروفات الدراسية
+  function toggleInstallment(label, instPrice, totalFees) {
+    const stage = document.getElementById('stageSelect').value;
+    const grade = document.getElementById('gradeSelect').value;
+    if (!stage) { showAlert('من فضلك اختر المرحلة اولا'); return; }
+    if (!grade) { showAlert('من فضلك اختر الصف أولا'); return; }
+    if (stage === 'semi_international' && !document.getElementById('paymentTierSelect').value) {
+      showAlert('من فضلك اختر نوع الدفعة أولا'); return;
+    }
+    if (selectedItems[label]) { delete selectedItems[label]; }
+    else { selectedItems[label] = { price: instPrice, discount: 0, totalFees, isInstallment: true }; }
+    renderPaymentItems(stage);
+    updateSelectedSummary();
+    updateDiscountFields();
+    calcDebt();
+  }
+
   function togglePaymentItem(item, price) {
     const stage = document.getElementById('stageSelect').value;
     if (!stage) { showAlert('من فضلك اختر المرحلة اولا'); return; }
-    if (isCardiff && !document.getElementById('paymentTierSelect').value) {
+    if (isCardiff && stage === 'semi_international' && !document.getElementById('paymentTierSelect').value) {
       showAlert('من فضلك اختر نوع الدفعة اولا'); return;
     }
     if (selectedItems[item]) { delete selectedItems[item]; }
@@ -467,7 +574,7 @@
     const notes = document.getElementById('notes').value.trim();
     if (!studentName) return showAlert('من فضلك ادخل اسم الطالب');
     if (!stage) return showAlert('من فضلك اختر المرحلة');
-    if (isCardiff && !document.getElementById('paymentTierSelect').value) return showAlert('من فضلك اختر نوع الدفعة');
+    if (isCardiff && stage === 'semi_international' && !document.getElementById('paymentTierSelect').value) return showAlert('من فضلك اختر نوع الدفعة');
     if (!grade) return showAlert('من فضلك اختر الصف');
     if (Object.keys(selectedItems).length===0) return showAlert('من فضلك اختر بند الدفع');
     if (!amount||amount<=0) return showAlert('من فضلك ادخل مبلغ صحيح');
@@ -484,8 +591,8 @@
       const transaction = {
         schoolId, schoolName:school.name, studentName, stage,
         stageName: isCardiff ? (CARDIFF_STAGES[stage]?.labelAr || stage) : (STAGES[stage]?.labelAr || stage),
-        paymentTier: isCardiff ? (document.getElementById('paymentTierSelect').value) : null,
-        paymentTierName: isCardiff ? (document.getElementById('paymentTierSelect').options[document.getElementById('paymentTierSelect').selectedIndex]?.text || '') : null,
+        paymentTier: isCardiff ? (stage === 'semi_international' ? document.getElementById('paymentTierSelect').value : null) : null,
+        paymentTierName: isCardiff ? (stage === 'semi_international' ? (document.getElementById('paymentTierSelect').options[document.getElementById('paymentTierSelect').selectedIndex]?.text || '') : null) : null,
         grade,
         paymentItems: itemsList,
         paymentItem: itemsList.map(i=>i.item).join(' + '),
