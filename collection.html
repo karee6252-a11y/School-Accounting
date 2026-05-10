@@ -482,7 +482,7 @@
     }).join('');
     document.getElementById('suggestedTotal').textContent = formatCurrency(total);
     const amountInput = document.getElementById('amountInput');
-    if (!amountInput.value) { amountInput.value = total; calcDebt(); }
+    amountInput.value = total; calcDebt();
   }
 
   function updateDiscountFields() {
