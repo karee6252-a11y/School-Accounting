@@ -19,7 +19,9 @@
       <!-- Stats -->
       <div class="stats-grid animate-in" id="statsGrid">
         <div class="stat-card">
-          <div class="stat-icon">💰</div>
+          <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
           <div>
             <div class="stat-value" id="statTodayTotal">0</div>
             <div class="stat-label">إجمالي تحصيل اليوم</div>
@@ -27,7 +29,9 @@
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">📅</div>
+          <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
           <div>
             <div class="stat-value" id="statMonthTotal">0</div>
             <div class="stat-label">إجمالي الشهر</div>
@@ -35,14 +39,18 @@
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">👨‍🎓</div>
+          <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
           <div>
             <div class="stat-value" id="statStudents">0</div>
             <div class="stat-label">طلاب دفعوا اليوم</div>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">📊</div>
+          <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </div>
           <div>
             <div class="stat-value" id="statPending">0</div>
             <div class="stat-label">معاملات هذا الأسبوع</div>
@@ -55,7 +63,7 @@
         <!-- Recent Transactions -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">⚡ آخر التحصيلات</span>
+            <span class="card-title">آخر التحصيلات</span>
             <a href="collection.html" class="btn btn-sm btn-secondary">إضافة جديد +</a>
           </div>
           <div class="table-wrapper">
@@ -78,7 +86,7 @@
         <!-- Payment Items Breakdown -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">📈 توزيع المدفوعات - الشهر الحالي</span>
+            <span class="card-title">توزيع المدفوعات - الشهر الحالي</span>
           </div>
           <div class="card-body" id="breakdownArea">
             <div class="loading-spinner"></div>
@@ -90,7 +98,7 @@
       <!-- Stage summary -->
       <div class="card mt-2 animate-in">
         <div class="card-header">
-          <span class="card-title">🏫 ملخص المراحل</span>
+            <span class="card-title">ملخص المراحل</span>
           <a href="reports.html" class="btn btn-sm btn-secondary">التقارير الكاملة</a>
         </div>
         <div class="card-body">
@@ -148,7 +156,7 @@
   function showError(msg) {
     ['recentTableBody', 'breakdownArea', 'stageStats'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.innerHTML = `<div class="empty-state"><div class="empty-state-title" style="color:var(--danger)">⚠️ ${msg}</div></div>`;
+      if (el) el.innerHTML = `<div class="empty-state"><div class="empty-state-title" style="color:var(--danger)">خطأ: ${msg}</div></div>`;
     });
     ['statTodayTotal','statMonthTotal','statStudents','statPending',
      'statTodayCount','statMonthCount'].forEach(id => {
@@ -164,7 +172,6 @@
     const tbody = document.getElementById('recentTableBody');
     if (!docs.length) {
       tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">
-        <div class="empty-state-icon">📭</div>
         <div class="empty-state-title">لا توجد تحصيلات بعد</div>
       </div></td></tr>`;
       return;
@@ -189,7 +196,7 @@
   function renderBreakdown(itemTotals) {
     const area = document.getElementById('breakdownArea');
     if (!Object.keys(itemTotals).length) {
-      area.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-title">لا توجد بيانات</div></div>`;
+      area.innerHTML = `<div class="empty-state"><div class="empty-state-title">لا توجد بيانات</div></div>`;
       return;
     }
     const maxVal = Math.max(...Object.values(itemTotals));
@@ -210,12 +217,18 @@
   // renderStages — ملخص المراحل
   // =====================================================
   function renderStages(stageTotals) {
-    const stageIcons = { pre_kg: '🧒', kg: '🌱', grade: '📚', prep: '🎓' };
+    const stageIcons = {
+      pre_kg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
+      kg:     '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',
+      grade:  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+      prep:   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>'
+    };
+    const defaultIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>';
     document.getElementById('stageStats').innerHTML = Object.entries(STAGES).map(([key, stage]) => {
       const data = stageTotals[key] || { total: 0, count: 0 };
       return `
         <div class="stat-card">
-          <div class="stat-icon">${stageIcons[key] || '🏫'}</div>
+          <div class="stat-icon">${stageIcons[key] || defaultIcon}</div>
           <div>
             <div class="stat-value" style="font-size:1.1rem">${formatCurrency(data.total)}</div>
             <div class="stat-label">${stage.labelAr}</div>
@@ -235,8 +248,8 @@
     const col = db.collection('transactions').where('schoolId', '==', schoolId);
 
     try {
-      // ✅ الـ 3 queries بيشتغلوا مع بعض — مش sequential
-      // ✅ weekCount query منفصل خفيف بدل ما نجيب كل الشهر ونفلتر
+      //  الـ 3 queries بيشتغلوا مع بعض — مش sequential
+      //  weekCount query منفصل خفيف بدل ما نجيب كل الشهر ونفلتر
       const [todaySnap, monthSnap, weekSnap, recentSnap] = await Promise.all([
         // اليوم
         col.where('date', '==', todayStr).get(),

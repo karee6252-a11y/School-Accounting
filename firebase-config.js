@@ -207,10 +207,10 @@ const CARDIFF_STAGES = {
 };
 
 const PAYMENT_TYPES = [
-  { value: "cash",          label: "نقدي",       icon: "💵" },
-  { value: "bank_transfer", label: "تحويل بنكي", icon: "🏦" },
-  { value: "check",         label: "شيك",         icon: "📄" },
-  { value: "instapay",      label: "إنستاباي",    icon: "📱" }
+  { value: "cash",          label: "نقدي",       icon: "" },
+  { value: "bank_transfer", label: "تحويل بنكي", icon: "" },
+  { value: "check",         label: "شيك",         icon: "" },
+  { value: "instapay",      label: "إنستاباي",    icon: "" }
 ];
 
 const PAYMENT_ITEMS = [
@@ -225,7 +225,7 @@ const PAYMENT_ITEMS = [
 
 // ========================================
 // ACADEMIC YEAR
-// ✅ بيتحسب تلقائياً من التاريخ الحالي — مش محتاج تعدّله كل سنة
+//  بيتحسب تلقائياً من التاريخ الحالي — مش محتاج تعدّله كل سنة
 // السنة الدراسية بتبدأ 1 يوليو كل سنة
 // ========================================
 function getAcademicYear(dateStr) {
@@ -236,7 +236,7 @@ function getAcademicYear(dateStr) {
   return `${year - 1}/${year}`;
 }
 
-// ✅ السنة الدراسية الحالية وتاريخ بدايتها — محسوبين تلقائياً
+//  السنة الدراسية الحالية وتاريخ بدايتها — محسوبين تلقائياً
 const _currentAcademicYearData = (() => {
   const now = new Date();
   const year = now.getFullYear();
@@ -287,7 +287,7 @@ function formatDate(date) {
   }).format(new Date(date));
 }
 
-// ✅ LOCAL DATE HELPER
+//  LOCAL DATE HELPER
 function localDateStr(d) {
   const date = d || new Date();
   return date.getFullYear() + '-' +

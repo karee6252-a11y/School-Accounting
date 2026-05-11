@@ -2,7 +2,7 @@
 // SHARED LAYOUT - Sidebar + Topbar
 // ========================================
 
-// ✅ Cache الـ sidebar HTML في memory — بيتبنى مرة واحدة بس طول الجلسة
+//  Cache الـ sidebar HTML في memory — بيتبنى مرة واحدة بس طول الجلسة
 let _sidebarBuilt = false;
 
 function requireAuth() {
@@ -39,19 +39,19 @@ function renderLayout(activePage, pageTitle) {
   const userName = session.name || session.email.split('@')[0];
 
   const navItems = [
-    { id: 'dashboard',      icon: '🏠', label: 'الرئيسية',             href: 'dashboard.html' },
-    { id: 'collection',     icon: '💰', label: 'تحصيل يومي',           href: 'collection.html' },
-    { id: 'student-search', icon: '🔍', label: 'بحث الطلاب',           href: 'student-search.html' },
-    { id: 'debts',          icon: '📋', label: 'المديونيات',            href: 'debts.html' },
-    { id: 'expenses',       icon: '💸', label: 'بند المصروفات',         href: 'expenses.html' },
-    { id: 'buses',          icon: '🚌', label: 'بند الباصات',           href: 'buses.html' },
-    { id: 'contractors',    icon: '🔧', label: 'الموردون والمقاولون',   href: 'contractors.html' },
-    { id: 'reports',        icon: '📊', label: 'التقارير والشيتات',     href: 'reports.html' },
-    { id: 'party',          icon: '🎉', label: 'تسجيل الحفلة',          href: 'party.html' },
-    { id: 'photo-package',  icon: '📷', label: 'باكدج التصوير',         href: 'photo-package.html' },
+    { id: 'dashboard',      icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',                                                                                                                                     label: 'الرئيسية',             href: 'dashboard.html' },
+    { id: 'collection',     icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',                                                                                                                                         label: 'تحصيل يومي',           href: 'collection.html' },
+    { id: 'student-search', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',                                                                                                                                                               label: 'بحث الطلاب',           href: 'student-search.html' },
+    { id: 'debts',          icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',                label: 'المديونيات',            href: 'debts.html' },
+    { id: 'expenses',       icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',                                                                                                                                              label: 'بند المصروفات',         href: 'expenses.html' },
+    { id: 'buses',          icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',                                                                                 label: 'بند الباصات',           href: 'buses.html' },
+    { id: 'contractors',    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',                                                                 label: 'الموردون والمقاولون',   href: 'contractors.html' },
+    { id: 'reports',        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',                                                                                                                       label: 'التقارير والشيتات',     href: 'reports.html' },
+    { id: 'party',          icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',                                                                                  label: 'تسجيل الحفلة',          href: 'party.html' },
+    { id: 'photo-package',  icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',                                                                                                           label: 'باكدج التصوير',         href: 'photo-package.html' },
   ];
 
-  // ✅ بناء الـ sidebar HTML
+  //  بناء الـ sidebar HTML
   const sidebarHTML = `
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
@@ -76,11 +76,11 @@ function renderLayout(activePage, pageTitle) {
         ${isAdmin ? `
           <div class="nav-section-title" style="margin-top:0.5rem">الأدمن</div>
           <a class="nav-item ${activePage === 'admin' ? 'active' : ''}" href="admin.html">
-            <span class="nav-icon">⚙️</span>
+            <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M19.07 4.93A10 10 0 0 1 4.93 19.07M19.07 4.93l-3.18 3.18M4.93 19.07l3.18-3.18"/></svg></span>
             <span>إدارة النظام</span>
           </a>
           <div class="nav-item" onclick="showSchoolSwitcher()" style="cursor:pointer">
-            <span class="nav-icon">🔄</span>
+            <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
             <span>تغيير المدرسة</span>
           </div>
         ` : ''}
@@ -88,14 +88,20 @@ function renderLayout(activePage, pageTitle) {
 
       <div class="sidebar-footer">
         <div class="user-info-mini">
-          <div class="user-avatar">${isAdmin ? '👑' : '👤'}</div>
+          <div class="user-avatar">
+            ${isAdmin
+              ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+              : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+            }
+          </div>
           <div class="user-details-mini">
             <div class="user-name-mini">${userName}</div>
             <div class="user-role-mini">${isAdmin ? 'مدير النظام' : 'محاسب'}</div>
           </div>
         </div>
         <button class="btn btn-outline w-full btn-sm" onclick="logout()" style="justify-content:center">
-          🚪 تسجيل الخروج
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:6px"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          تسجيل الخروج
         </button>
       </div>
     </aside>
@@ -104,7 +110,7 @@ function renderLayout(activePage, pageTitle) {
   const topbarHTML = `
     <div class="topbar">
       <div class="d-flex align-center gap-1">
-        <button class="btn btn-icon" id="sidebarToggle" onclick="toggleSidebar()" style="display:none">☰</button>
+        <button class="btn btn-icon" id="sidebarToggle" onclick="toggleSidebar()" style="display:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
         <h1 class="topbar-title">${pageTitle}</h1>
       </div>
       <div class="topbar-actions">
@@ -117,7 +123,7 @@ function renderLayout(activePage, pageTitle) {
   document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
   document.getElementById('topbarContainer').innerHTML = topbarHTML;
 
-  // ✅ تحديد visibility الـ toggle button بشكل صحيح
+  //  تحديد visibility الـ toggle button بشكل صحيح
   const toggleBtn = document.getElementById('sidebarToggle');
   if (toggleBtn) {
     toggleBtn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
@@ -143,7 +149,7 @@ function showSchoolSwitcher() {
   }
 }
 
-// ✅ debounced resize — بدل ما يتنادى كل pixel
+//  debounced resize — بدل ما يتنادى كل pixel
 let _resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(_resizeTimer);
