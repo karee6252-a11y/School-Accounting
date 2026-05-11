@@ -463,7 +463,6 @@
                 <select class="form-select" id="listTypeFilter" onchange="filterList()">
                   <option value="">الكل</option>
                   <option value="student">طلاب</option>
-                  <option value="companion">مرافقين</option>
                 </select>
               </div>
               <div>
@@ -1188,6 +1187,7 @@
       let students=0, companions=0, attended=0, revenue=0;
       snap.forEach(doc => {
         const d = doc.data();
+        if (d.type === 'photo_direct') return; // التصوير المباشر في صفحته
         const totalStu = d.totalStudents || 1;
         const compCnt  = d.companionCount || 0;
         students  += totalStu;
@@ -1220,7 +1220,10 @@
           .get();
       }
       allAttendees = [];
-      snap.forEach(doc => allAttendees.push({ id: doc.id, ...doc.data() }));
+      snap.forEach(doc => {
+        const d = doc.data();
+        if (d.type !== 'photo_direct') allAttendees.push({ id: doc.id, ...d });
+      });
       allAttendees.sort((a,b) => (b.registeredAt?.seconds||0) - (a.registeredAt?.seconds||0));
       renderAttendeeTable(allAttendees);
     } catch(e) {
