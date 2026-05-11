@@ -19,7 +19,6 @@ const auth = firebase.auth();
 
 // ========================================
 // SCHOOLS — 4 مدارس جاهزة
-// الألوان مستخرجة من اللوجوهات
 // ========================================
 
 const SCHOOLS = {
@@ -144,9 +143,7 @@ const STAGES = {
 };
 
 // ========================================
-// CARDIFF STAGES & PRICING (خاص بـ Cardiff فقط)
-// المصروفات الدراسية مقسمة لأقساط حسب الـ PDF
-// American Section  → 3 أقساط  | Semi-International → قسطين
+// CARDIFF STAGES & PRICING
 // ========================================
 const CARDIFF_STAGES = {
   "international": {
@@ -154,12 +151,10 @@ const CARDIFF_STAGES = {
     labelAr: "American Section",
     grades: ["KG1", "KG2", "Grade 1", "Grade 2", "Grade 3", "Grade 10", "Grade 11"],
     installments: 3,
-    // أبليكيشن وفايل موحدان لكل الصفوف
     fees: {
       "أبليكيشن": 1200,
       "فايل": 650
     },
-    // المصروفات الدراسية لكل grade: { total, inst1, inst2, inst3 }
     gradeFees: {
       "KG1":      { total: 63200, inst1: 25000, inst2: 20000, inst3: 18200 },
       "KG2":      { total: 64700, inst1: 25000, inst2: 20000, inst3: 19700 },
@@ -169,7 +164,6 @@ const CARDIFF_STAGES = {
       "Grade 10": { total: 74800, inst1: 30000, inst2: 25000, inst3: 19800 },
       "Grade 11": { total: 75300, inst1: 30000, inst2: 25000, inst3: 20300 }
     },
-    // الأسعار الموحدة للبنود الأخرى (باص، يونيفورم...)
     otherPrices: {
       "باص": 9000,
       "يونيفورم": 3000,
@@ -190,7 +184,6 @@ const CARDIFF_STAGES = {
       normal:  { "أبليكيشن": 800, "فايل": 450 },
       golden:  { "أبليكيشن": 800, "فايل": 450 }
     },
-    // المصروفات حسب المرحلة (KG أو Grade) والنوع
     gradeFees: {
       normal: {
         "KG":    { total: 35750, inst1: 20000, inst2: 15750 },
@@ -201,7 +194,6 @@ const CARDIFF_STAGES = {
         "Grade": { total: 35650, inst1: 20000, inst2: 15650 }
       }
     },
-    // helper: يرجع "KG" أو "Grade" بناءً على اسم الصف
     getGradeGroup: (grade) => {
       return (grade === "KG1" || grade === "KG2") ? "KG" : "Grade";
     },
@@ -215,10 +207,10 @@ const CARDIFF_STAGES = {
 };
 
 const PAYMENT_TYPES = [
-  { value: "cash",          label: "نقدي",       icon: "" },
-  { value: "bank_transfer", label: "تحويل بنكي", icon: "" },
-  { value: "check",         label: "شيك",         icon: "" },
-  { value: "instapay",      label: "إنستاباي",    icon: "" }
+  { value: "cash",          label: "نقدي",       icon: "💵" },
+  { value: "bank_transfer", label: "تحويل بنكي", icon: "🏦" },
+  { value: "check",         label: "شيك",         icon: "📄" },
+  { value: "instapay",      label: "إنستاباي",    icon: "📱" }
 ];
 
 const PAYMENT_ITEMS = [
@@ -232,19 +224,31 @@ const PAYMENT_ITEMS = [
 ];
 
 // ========================================
-// ACADEMIC YEAR - starts 1/7 each year
-// Current year: 2026/2027
+// ACADEMIC YEAR
+// ✅ بيتحسب تلقائياً من التاريخ الحالي — مش محتاج تعدّله كل سنة
+// السنة الدراسية بتبدأ 1 يوليو كل سنة
 // ========================================
-const ACADEMIC_YEAR = '2026/2027';
-const ACADEMIC_YEAR_START = '2026-07-01'; // 1 July 2026
-
 function getAcademicYear(dateStr) {
   const d = new Date(dateStr);
   const year = d.getFullYear();
   const month = d.getMonth() + 1; // 1-12
-  if (month >= 7) return `${year}/${year+1}`;
-  return `${year-1}/${year}`;
+  if (month >= 7) return `${year}/${year + 1}`;
+  return `${year - 1}/${year}`;
 }
+
+// ✅ السنة الدراسية الحالية وتاريخ بدايتها — محسوبين تلقائياً
+const _currentAcademicYearData = (() => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  if (month >= 7) {
+    return { label: `${year}/${year + 1}`, start: `${year}-07-01` };
+  }
+  return { label: `${year - 1}/${year}`, start: `${year - 1}-07-01` };
+})();
+
+const ACADEMIC_YEAR       = _currentAcademicYearData.label;   // e.g. "2025/2026"
+const ACADEMIC_YEAR_START = _currentAcademicYearData.start;   // e.g. "2025-07-01"
 
 // ========================================
 // SESSION MANAGEMENT
@@ -283,9 +287,7 @@ function formatDate(date) {
   }).format(new Date(date));
 }
 
-// ========================================
-// LOCAL DATE HELPER — بيرجع التاريخ بالتوقيت المحلي مش UTC
-// ========================================
+// ✅ LOCAL DATE HELPER
 function localDateStr(d) {
   const date = d || new Date();
   return date.getFullYear() + '-' +

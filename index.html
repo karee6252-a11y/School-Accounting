@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>تسجيل الدخول - نظام المحاسبة المدرسية</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=1.1" />
   <style>
     .login-page { background: linear-gradient(135deg, #1a2a4a 0%, #0d1b35 60%, #050d1a 100%); }
     .school-selector-section { margin-bottom: 1.5rem; }
@@ -23,7 +23,7 @@
       flex-shrink: 0;
     }
     .school-option.active::after {
-      content: '';
+      content: '✓';
       position: absolute;
       left: 0.5rem;
       top: 50%;
@@ -44,6 +44,7 @@
       color: var(--text-light);
       font-size: 1rem;
       padding: 0;
+      line-height: 1;
     }
     .login-divider {
       display: flex;
@@ -71,8 +72,7 @@
       font-weight: 700;
     }
     .admin-link a:hover { text-decoration: underline; }
-    
-    /* School selected indicator */
+
     .selected-school-preview {
       display: flex;
       align-items: center;
@@ -89,8 +89,7 @@
     .selected-school-preview.show { opacity: 1; }
     .selected-school-preview img { width: 36px; height: 36px; object-fit: contain; border-radius: 6px; }
     .selected-school-preview-name { font-size: 0.875rem; font-weight: 700; color: var(--primary); }
-    
-    /* Admin mode toggle */
+
     .admin-toggle-area {
       display: flex;
       align-items: center;
@@ -120,31 +119,27 @@
 
       <!-- Header -->
       <div class="login-header">
-        <div class="login-logo-area" id="schoolLogos">
-          <!-- School logos loaded dynamically -->
-        </div>
+        <div class="login-logo-area" id="schoolLogos"></div>
         <h1 class="login-title">نظام المحاسبة المدرسية</h1>
         <p class="login-subtitle">تسجيل الدخول للمحاسبين</p>
       </div>
 
       <!-- Alert -->
       <div class="alert alert-error hidden" id="loginAlert">
-        <span></span>
+        <span>⚠️</span>
         <span id="loginAlertMsg"></span>
       </div>
 
       <!-- Admin mode indicator -->
       <div class="admin-toggle-area" id="adminModeArea" style="display:none">
-        <span class="admin-mode-badge"> وضع الأدمن</span>
+        <span class="admin-mode-badge">👑 وضع الأدمن</span>
         <span>الدخول على كل المدارس</span>
       </div>
 
       <!-- School Selector -->
       <div class="school-selector-section" id="schoolSelectorSection">
         <div class="section-label">اختر المدرسة</div>
-        <div class="school-selector" id="schoolSelector">
-          <!-- Schools loaded dynamically -->
-        </div>
+        <div class="school-selector" id="schoolSelector"></div>
       </div>
 
       <!-- Selected School Preview -->
@@ -157,10 +152,10 @@
       <div>
         <div class="form-group">
           <label class="form-label">البريد الإلكتروني <span class="required">*</span></label>
-          <input 
-            type="email" 
-            class="form-input" 
-            id="emailInput" 
+          <input
+            type="email"
+            class="form-input"
+            id="emailInput"
             placeholder="example@school.com"
             autocomplete="email"
           />
@@ -169,15 +164,16 @@
         <div class="form-group">
           <label class="form-label">كلمة المرور <span class="required">*</span></label>
           <div class="pwd-wrapper">
-            <input 
-              type="password" 
-              class="form-input" 
+            <input
+              type="password"
+              class="form-input"
               id="passwordInput"
               placeholder="••••••••"
               style="padding-left: 2.5rem;"
               autocomplete="current-password"
             />
-            <button class="pwd-toggle" onclick="togglePassword()" type="button" id="pwdToggleBtn"></button>
+            <!-- ✅ أيقونات password toggle شغالة -->
+            <button class="pwd-toggle" onclick="togglePassword()" type="button" id="pwdToggleBtn">👁️</button>
           </div>
         </div>
 
@@ -193,7 +189,7 @@
       </div>
 
       <div class="admin-link">
-        <p>للأدمن فقط: <a href="#" onclick="toggleAdminMode(event)">الدخول كأدمن </a></p>
+        <p>للأدمن فقط: <a href="#" onclick="toggleAdminMode(event)">الدخول كأدمن 👑</a></p>
       </div>
 
     </div>
@@ -231,13 +227,11 @@
     selectedSchool = school;
     document.querySelectorAll('.school-option').forEach(el => el.classList.remove('active'));
     document.querySelector(`[data-id="${school.id}"]`).classList.add('active');
-    
-    // Update preview
+
     document.getElementById('previewLogo').src = school.logo;
     document.getElementById('previewName').textContent = school.name;
     document.getElementById('selectedPreview').classList.add('show');
-    
-    // Apply school colors
+
     document.documentElement.style.setProperty('--primary', school.primaryColor);
     document.documentElement.style.setProperty('--secondary', school.secondaryColor);
     document.documentElement.style.setProperty('--accent', school.accentColor);
@@ -249,12 +243,11 @@
     const schoolSection = document.getElementById('schoolSelectorSection');
     const adminArea = document.getElementById('adminModeArea');
     const selectedPreview = document.getElementById('selectedPreview');
-    
+
     if (isAdminMode) {
       schoolSection.style.display = 'none';
       selectedPreview.classList.remove('show');
       adminArea.style.display = 'flex';
-      // Reset colors
       document.documentElement.style.setProperty('--primary', '#1a3a6b');
       document.documentElement.style.setProperty('--secondary', '#c8a951');
       document.documentElement.style.setProperty('--accent', '#e8f0fe');
@@ -264,15 +257,16 @@
     }
   }
 
+  // ✅ Password toggle مع أيقونة واضحة
   function togglePassword() {
     const input = document.getElementById('passwordInput');
     const btn = document.getElementById('pwdToggleBtn');
     if (input.type === 'password') {
       input.type = 'text';
-      btn.textContent = '';
+      btn.textContent = '🙈';
     } else {
       input.type = 'password';
-      btn.textContent = '';
+      btn.textContent = '👁️';
     }
   }
 
@@ -292,7 +286,6 @@
     const btnText = document.getElementById('loginBtnText');
     const btnLoader = document.getElementById('loginBtnLoader');
 
-    // Validation
     if (!email || !password) {
       showAlert('من فضلك ادخل البريد الإلكتروني وكلمة المرور');
       return;
@@ -302,7 +295,6 @@
       return;
     }
 
-    // Loading state
     btn.disabled = true;
     btnText.textContent = 'جاري الدخول...';
     btnLoader.classList.remove('hidden');
@@ -311,9 +303,10 @@
       const result = await auth.signInWithEmailAndPassword(email, password);
       const user = result.user;
 
-      // Check if admin
       if (ADMINS.includes(email)) {
-        const schoolId = isAdminMode ? Object.keys(SCHOOLS)[0] : (selectedSchool?.id || Object.keys(SCHOOLS)[0]);
+        const schoolId = isAdminMode
+          ? Object.keys(SCHOOLS)[0]
+          : (selectedSchool?.id || Object.keys(SCHOOLS)[0]);
         SESSION.set({
           uid: user.uid,
           email: email,
@@ -325,7 +318,6 @@
         return;
       }
 
-      // Check if accountant for selected school
       if (!selectedSchool) {
         showAlert('من فضلك اختر المدرسة');
         return;
@@ -337,7 +329,6 @@
         return;
       }
 
-      // Save session
       SESSION.set({
         uid: user.uid,
         email: email,
@@ -347,7 +338,6 @@
         name: email.split('@')[0]
       });
 
-      // Remember me
       if (document.getElementById('rememberMe').checked) {
         localStorage.setItem('remembered_email', email);
         localStorage.setItem('remembered_school', selectedSchool.id);
@@ -357,8 +347,8 @@
 
     } catch (error) {
       let msg = 'حدث خطأ في تسجيل الدخول';
-      if (error.code === 'auth/user-not-found') msg = 'البريد الإلكتروني غير مسجل';
-      else if (error.code === 'auth/wrong-password') msg = 'كلمة المرور غير صحيحة';
+      if (error.code === 'auth/user-not-found')         msg = 'البريد الإلكتروني غير مسجل';
+      else if (error.code === 'auth/wrong-password')    msg = 'كلمة المرور غير صحيحة';
       else if (error.code === 'auth/too-many-requests') msg = 'تم تجاوز عدد المحاولات، حاول لاحقاً';
       else if (error.code === 'auth/network-request-failed') msg = 'تحقق من الاتصال بالإنترنت';
       showAlert(msg);
