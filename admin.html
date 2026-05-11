@@ -103,7 +103,7 @@
           <div id="rptDateDaily">
             <input type="date" class="form-input" id="rptDate" style="width:180px" onchange="loadOverview()" />
           </div>
-          <div id="rptDateWeekly" style="display:none;display:flex;gap:0.5rem;align-items:center">
+          <div id="rptDateWeekly" style="display:none;gap:0.5rem;align-items:center">
             <label class="form-label" style="margin:0">من</label>
             <input type="date" class="form-input" id="rptWeekFrom" style="width:160px" onchange="loadOverview()" />
             <label class="form-label" style="margin:0">الى</label>
@@ -243,10 +243,11 @@
   function showTab(tab, btn) {
     document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
     document.getElementById('tab-' + tab).classList.remove('hidden');
-    document.querySelectorAll('.period-tab').forEach(b => b.classList.remove('active'));
+    // فقط أزرار الـ main tabs (مش أزرار period داخل overview)
+    btn.closest('.d-flex').querySelectorAll('.period-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     if (tab === 'overview') loadOverview();
-    else if (tab === 'transactions') loadAllTransactions();
+    else if (tab === 'transactions') { /* لا تحمّل تلقائياً — المستخدم يضغط بحث */ }
     else if (tab === 'users') renderDynamicContent();
     else if (tab === 'prices') renderDynamicContent();
   }
@@ -263,6 +264,7 @@
 
   function getAdminDateRange() {
     const today = localDateStr();
+    if (currentReportPeriod === 'daily') {
       const d = document.getElementById('rptDate').value || today;
       return { from: d, to: d };
     } else if (currentReportPeriod === 'weekly') {
@@ -395,20 +397,49 @@
     const dateFrom = document.getElementById('adminDateFrom').value;
     const dateTo = document.getElementById('adminDateTo').value;
     const tbody = document.getElementById('allTransBody');
+
+    if (!dateFrom || !dateTo) {
+      tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-title">من فضلك حدد تاريخ البداية والنهاية</div></div></td></tr>`;
+      document.getElementById('allTransCount').textContent = '0 سجل';
+      return;
+    }
+
     tbody.innerHTML = `<tr><td colspan="8"><div class="loading-spinner"></div></td></tr>`;
     try {
-      let query = db.collection('transactions');
-      if (schoolFilter) query = query.where('schoolId', '==', schoolFilter);
-      if (dateFrom) query = query.where('date', '>=', dateFrom);
-      if (dateTo) query = query.where('date', '<=', dateTo);
-      query = query.limit(2000);
-      const snap = await query.get();
-      const limitWarning = snap.size >= 2000
-        ? ' <span style="color:#c0392b;font-weight:700;background:#fdecea;padding:0.15rem 0.5rem;border-radius:4px"> تحذير: النتايج وصلت الحد الأقصى 2000 سجل — ضيّق نطاق التاريخ لضمان اكتمال البيانات</span>'
+      let allDocs = [];
+      if (schoolFilter) {
+        // query واحد على مدرسة محددة
+        const snap = await db.collection('transactions')
+          .where('schoolId', '==', schoolFilter)
+          .where('date', '>=', dateFrom)
+          .where('date', '<=', dateTo)
+          .limit(2000)
+          .get();
+        allDocs = snap.docs;
+      } else {
+        // query منفصل لكل مدرسة — أسرع وبيتجنب الـ cross-collection index
+        const snaps = await Promise.all(
+          Object.keys(SCHOOLS).map(id =>
+            db.collection('transactions')
+              .where('schoolId', '==', id)
+              .where('date', '>=', dateFrom)
+              .where('date', '<=', dateTo)
+              .limit(500)
+              .get()
+          )
+        );
+        snaps.forEach(snap => allDocs.push(...snap.docs));
+      }
+      const limitWarning = allDocs.length >= 2000
+        ? ' <span style="color:#c0392b;font-weight:700;background:#fdecea;padding:0.15rem 0.5rem;border-radius:4px"> تحذير: النتايج وصلت الحد الأقصى — ضيّق نطاق التاريخ</span>'
         : '';
-      document.getElementById('allTransCount').textContent = snap.size + ' سجل' + limitWarning;
-      if (snap.empty) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد بيانات</div></div></td></tr>`; return; }
-      const sortedDocs = snap.docs.sort((a,b) => (b.data().date || '') > (a.data().date || '') ? 1 : -1);
+      document.getElementById('allTransCount').innerHTML = allDocs.length + ' سجل' + limitWarning;
+      if (!allDocs.length) {
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد بيانات</div></div></td></tr>`;
+        allTransactionsData = [];
+        return;
+      }
+      const sortedDocs = allDocs.sort((a,b) => (b.data().date || '') > (a.data().date || '') ? 1 : -1);
       tbody.innerHTML = '';
       sortedDocs.forEach(doc => {
         const d = doc.data();
@@ -653,6 +684,15 @@
     switcherList.innerHTML = Object.values(SCHOOLS).map(school => `<div class="admin-school-card" onclick="switchToSchool('${school.id}')"><img src="${school.logo}" onerror="this.style.display='none'" /><div class="school-info"><div class="school-name">${school.name}</div><div class="school-stats"><span class="color-swatch" style="background:${school.primaryColor}"></span>${school.users.length} محاسب</div></div></div>`).join('');
   }
   
+  // ملء الـ school select بالمدارس
+  const schoolSelectEl = document.getElementById('adminSchoolFilter');
+  Object.values(SCHOOLS).forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    schoolSelectEl.appendChild(opt);
+  });
+
   // Default dates
   const today = localDateStr();
   const firstOfMonth = new Date(); firstOfMonth.setDate(1);

@@ -598,18 +598,21 @@
     document.getElementById('breakdownArea').innerHTML = '<div class="loading-spinner"></div>';
 
     try {
+      // category filter بيتعمل client-side عشان Firestore مش بيسمح بـ where على field تاني مع range query
       let query = db.collection('expenses')
         .where('schoolId', '==', schoolId)
         .where('date', '>=', from)
         .where('date', '<=', to);
 
-      if (catFilter) query = query.where('category', '==', catFilter);
-
       const snap = await query.get();
 
       currentData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      // Client-side name filter
+      // Client-side filters
+      if (catFilter) {
+        currentData = currentData.filter(d => (d.category || '') === catFilter);
+      }
+
       if (nameFilter) {
         currentData = currentData.filter(d =>
           (d.recipientName || '').toLowerCase().includes(nameFilter)

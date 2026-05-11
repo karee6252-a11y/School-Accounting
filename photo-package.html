@@ -201,6 +201,7 @@
       <!-- TABS -->
       <div class="photo-tabs animate-in">
         <button class="photo-tab active" onclick="showTab('book', this)">حجز جديد</button>
+        <button class="photo-tab" onclick="showTab('direct', this)">إضافة طالب مباشر</button>
         <button class="photo-tab" onclick="showTab('list', this)">قائمة الحجوزات</button>
       </div>
 
@@ -253,6 +254,70 @@
         </div>
       </div>
 
+      <!-- TAB: DIRECT STUDENT -->
+      <div id="tab-direct" style="display:none" class="animate-in">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">إضافة طالب مباشر للتصوير</span>
+            <button class="btn btn-sm btn-secondary" onclick="loadDirectStudents()">تحديث</button>
+          </div>
+          <div class="card-body">
+            <p style="font-size:0.82rem;color:var(--text-light);margin-bottom:1rem">
+              يمكنك تسجيل أي طالب في باكدج التصوير بغض النظر عن اشتراكه في الحفلة
+            </p>
+
+            <div style="background:var(--accent);border:1.5px solid var(--secondary);border-radius:var(--radius-sm);padding:1.25rem;margin-bottom:1.5rem">
+              <div style="font-weight:900;color:var(--primary);margin-bottom:1rem;font-size:0.95rem">بيانات الطالب</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">اسم الطالب <span class="required">*</span></label>
+                  <input type="text" class="form-input" id="directName" placeholder="الاسم رباعي..." />
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">الصف <span class="required">*</span></label>
+                  <select class="form-select" id="directGrade" onchange="updateDirectPrice()">
+                    <option value="">اختر الصف</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">رقم التليفون</label>
+                  <input type="tel" class="form-input" id="directPhone" placeholder="01xxxxxxxxx" dir="ltr" />
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">طريقة الدفع <span class="required">*</span></label>
+                  <select class="form-select" id="directPayType">
+                    <option value="">اختر</option>
+                    <option value="cash">نقدي</option>
+                    <option value="bank_transfer">تحويل بنكي</option>
+                    <option value="instapay">إنستاباي</option>
+                    <option value="check">شيك</option>
+                  </select>
+                </div>
+              </div>
+              <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--secondary);
+                          display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:0.82rem;color:var(--primary);font-weight:700">سعر الباكدج</span>
+                <span style="font-size:1.3rem;font-weight:900;color:var(--primary)" id="directPriceDisplay">— ج.م</span>
+              </div>
+              <div class="alert hidden" id="directAlert" style="margin-top:0.75rem"></div>
+              <button class="btn btn-primary w-full" id="directSaveBtn"
+                style="margin-top:1rem;background:var(--primary);border-color:var(--primary)"
+                onclick="saveDirectStudent()">
+                حفظ وتسجيل الطالب
+              </button>
+            </div>
+
+            <!-- LIST OF DIRECT STUDENTS -->
+            <div style="font-weight:800;color:var(--text-dark);margin-bottom:0.75rem;font-size:0.9rem">
+              الطلاب المسجلين مباشرة
+            </div>
+            <div id="directStudentGrid" class="student-grid">
+              <div style="padding:2rem;text-align:center"><div class="loading-spinner"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- TAB 2: LIST -->
       <div id="tab-list" style="display:none" class="animate-in">
         <div class="card">
@@ -268,11 +333,11 @@
               <thead>
                 <tr>
                   <th>#</th><th>الاسم</th><th>الصف</th>
-                  <th>التليفون</th><th>المبلغ</th><th>طريقة الدفع</th><th>إلغاء</th>
+                  <th>التليفون</th><th>المبلغ</th><th>طريقة الدفع</th><th>المصدر</th><th>إلغاء</th>
                 </tr>
               </thead>
               <tbody id="listTableBody">
-                <tr><td colspan="7"><div class="loading-spinner"></div></td></tr>
+                <tr><td colspan="8"><div class="loading-spinner"></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -392,11 +457,156 @@
 
   // ==================== TABS ====================
   function showTab(tab, btn) {
-    document.getElementById('tab-book').style.display = tab === 'book' ? 'block' : 'none';
-    document.getElementById('tab-list').style.display = tab === 'list' ? 'block' : 'none';
+    document.getElementById('tab-book').style.display   = tab === 'book'   ? 'block' : 'none';
+    document.getElementById('tab-direct').style.display = tab === 'direct' ? 'block' : 'none';
+    document.getElementById('tab-list').style.display   = tab === 'list'   ? 'block' : 'none';
     document.querySelectorAll('.photo-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    if (tab === 'list') renderListTable();
+    if (tab === 'list')   renderListTable();
+    if (tab === 'direct') loadDirectStudents();
+  }
+
+  // ==================== DIRECT STUDENT GRADES ====================
+  (function populateDirectGrades() {
+    const allGrades = ['KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
+    const sel = document.getElementById('directGrade');
+    allGrades.forEach(g => {
+      const opt = document.createElement('option');
+      opt.value = g; opt.textContent = g;
+      sel.appendChild(opt);
+    });
+  })();
+
+  function updateDirectPrice() {
+    const grade = document.getElementById('directGrade').value;
+    const price = PHOTO_PRICES[grade] || (grade ? 400 : 0);
+    document.getElementById('directPriceDisplay').textContent = grade ? price + ' ج.م' : '— ج.م';
+  }
+
+  let allDirectStudents = [];
+
+  // ==================== SAVE DIRECT STUDENT ====================
+  async function saveDirectStudent() {
+    const name    = document.getElementById('directName').value.trim();
+    const grade   = document.getElementById('directGrade').value;
+    const phone   = document.getElementById('directPhone').value.trim();
+    const payType = document.getElementById('directPayType').value;
+
+    const alertEl = document.getElementById('directAlert');
+    function showErr(msg) {
+      alertEl.className = 'alert alert-error';
+      alertEl.textContent = msg;
+      alertEl.classList.remove('hidden');
+      setTimeout(() => alertEl.classList.add('hidden'), 3500);
+    }
+
+    if (!name)    return showErr('أدخل اسم الطالب');
+    if (!grade)   return showErr('اختر الصف');
+    if (!payType) return showErr('اختر طريقة الدفع');
+
+    const price = PHOTO_PRICES[grade] || 400;
+    const btn   = document.getElementById('directSaveBtn');
+    btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+    try {
+      const docRef = await db.collection('photoDirectStudents').add({
+        schoolId,
+        name,
+        grade,
+        phone:        phone || null,
+        payType,
+        price,
+        photoPackage: true,
+        createdAt:    firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy:    session.email,
+        academicYear: ACADEMIC_YEAR,
+      });
+
+      // أضف للـ local list
+      allDirectStudents.unshift({ id: docRef.id, name, grade, phone, payType, price, photoPackage: true });
+      renderDirectGrid();
+      updateStats();
+
+      // reset form
+      document.getElementById('directName').value    = '';
+      document.getElementById('directGrade').value   = '';
+      document.getElementById('directPhone').value   = '';
+      document.getElementById('directPayType').value = '';
+      document.getElementById('directPriceDisplay').textContent = '— ج.م';
+
+      alertEl.className = 'alert alert-success';
+      alertEl.textContent = `تم تسجيل "${name}" بنجاح `;
+      alertEl.classList.remove('hidden');
+      setTimeout(() => alertEl.classList.add('hidden'), 3000);
+
+    } catch (e) {
+      showErr('حدث خطأ: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'حفظ وتسجيل الطالب';
+    }
+  }
+
+  // ==================== LOAD DIRECT STUDENTS ====================
+  async function loadDirectStudents() {
+    document.getElementById('directStudentGrid').innerHTML =
+      '<div style="padding:2rem;text-align:center"><div class="loading-spinner"></div></div>';
+    try {
+      const snap = await db.collection('photoDirectStudents')
+        .where('schoolId', '==', schoolId)
+        .where('academicYear', '==', ACADEMIC_YEAR)
+        .orderBy('createdAt', 'desc')
+        .get();
+      allDirectStudents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderDirectGrid();
+      updateStats();
+    } catch (e) {
+      document.getElementById('directStudentGrid').innerHTML =
+        `<div class="empty-photo"><div class="ep-title">حدث خطأ: ${e.message}</div></div>`;
+    }
+  }
+
+  function renderDirectGrid() {
+    const grid = document.getElementById('directStudentGrid');
+    if (!allDirectStudents.length) {
+      grid.innerHTML = `<div class="empty-photo">
+        <div class="ep-title">لا يوجد طلاب مضافين مباشرة بعد</div>
+        <div class="ep-sub">أضف الطالب من الفورم أعلاه</div>
+      </div>`;
+      return;
+    }
+    grid.innerHTML = allDirectStudents.map(s => `
+      <div class="student-card has-photo" id="dsc-${s.id}">
+        <div class="sc-left">
+          <div class="sc-avatar" style="background:var(--primary);color:white;border-color:var(--primary)">${s.grade}</div>
+          <div>
+            <div class="sc-name">${s.name}</div>
+            <div class="sc-meta">
+              ${s.grade}
+              ${s.phone ? `&nbsp;·&nbsp;<span dir="ltr">${s.phone}</span>` : ''}
+              &nbsp;·&nbsp;${payLabel(s.payType)}
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0">
+          <span class="sc-price">${s.price || 0} ج.م</span>
+          <span class="badge-photo">مسجل مباشر</span>
+          <button class="btn btn-sm"
+            style="background:#fce4ec;color:#c62828;border:1px solid #ef9a9a;font-size:0.75rem"
+            onclick="deleteDirectStudent('${s.id}', '${s.name}')">🗑️ حذف</button>
+        </div>
+      </div>`).join('');
+  }
+
+  async function deleteDirectStudent(id, name) {
+    if (!confirm(`هل تريد حذف "${name}" من قائمة التصوير المباشر؟`)) return;
+    try {
+      await db.collection('photoDirectStudents').doc(id).delete();
+      allDirectStudents = allDirectStudents.filter(s => s.id !== id);
+      renderDirectGrid();
+      updateStats();
+    } catch (e) {
+      alert('حدث خطأ: ' + e.message);
+    }
   }
 
   // ==================== LOAD ====================
@@ -433,16 +643,17 @@
 
   // ==================== STATS ====================
   function updateStats() {
-    const withPhoto = allPartyStudents.filter(s => s.photoPackage);
-    const kg1    = withPhoto.filter(s => s.grade === 'KG1').length;
-    const kg2    = withPhoto.filter(s => s.grade === 'KG2').length;
-    const grade6 = withPhoto.filter(s => s.grade === 'Grade 6').length;
-    const prep3  = withPhoto.filter(s => s.grade === 'Prep 3').length;
-    document.getElementById('statTotal').textContent   = withPhoto.length;
+    const partyWithPhoto  = allPartyStudents.filter(s => s.photoPackage);
+    const allWithPhoto    = [...partyWithPhoto, ...allDirectStudents];
+    const kg1    = allWithPhoto.filter(s => s.grade === 'KG1').length;
+    const kg2    = allWithPhoto.filter(s => s.grade === 'KG2').length;
+    const grade6 = allWithPhoto.filter(s => s.grade === 'Grade 6').length;
+    const prep3  = allWithPhoto.filter(s => s.grade === 'Prep 3').length;
+    document.getElementById('statTotal').textContent   = allWithPhoto.length;
     document.getElementById('statKG1').textContent     = kg1;
     document.getElementById('statKG2').textContent     = kg2;
     document.getElementById('statRevenue').textContent =
-      (kg1 * 300 + kg2 * 400 + grade6 * 400 + prep3 * 400).toLocaleString('ar-EG');
+      allWithPhoto.reduce((sum, s) => sum + (s.photoPrice || s.price || PHOTO_PRICES[s.grade] || 0), 0).toLocaleString('ar-EG');
     if (schoolId === 'bristol') {
       document.getElementById('statGrade6').textContent = grade6;
       document.getElementById('statPrep3').textContent  = prep3;
@@ -633,11 +844,16 @@
 
   // ==================== LIST TABLE ====================
   function renderListTable() {
-    const tbody     = document.getElementById('listTableBody');
-    const withPhoto = allPartyStudents.filter(s => s.photoPackage);
+    const tbody      = document.getElementById('listTableBody');
+    const partyPhoto = allPartyStudents.filter(s => s.photoPackage);
+    // دمج طلاب الحفلة + الطلاب المباشرين
+    const withPhoto  = [
+      ...partyPhoto.map(s => ({ ...s, _src: 'حفلة' })),
+      ...allDirectStudents.map(s => ({ ...s, photoPayType: s.payType, photoPrice: s.price, _src: 'مباشر' }))
+    ];
 
     if (!withPhoto.length) {
-      tbody.innerHTML = `<tr><td colspan="7">
+      tbody.innerHTML = `<tr><td colspan="8">
         <div class="empty-photo">
         <div class="ep-title">لا توجد حجوزات بعد</div></div>
       </td></tr>`;
@@ -652,17 +868,25 @@
         <td dir="ltr" style="text-align:right">${s.phone || '-'}</td>
         <td style="font-weight:800;color:var(--primary)">${s.photoPrice || PHOTO_PRICES[s.grade] || 0} ج.م</td>
         <td>${payLabel(s.photoPayType)}</td>
+        <td><span class="badge" style="background:${s._src==='مباشر'?'#e8f5e9':'#e3f2fd'};color:${s._src==='مباشر'?'#2e7d32':'#1565c0'};border:none;padding:0.2rem 0.6rem;border-radius:20px;font-size:0.72rem;font-weight:700">${s._src}</span></td>
         <td>
-          <button class="btn btn-sm"
-            style="background:#fce4ec;color:#c62828;border:1px solid #ef9a9a;font-size:0.75rem"
-            onclick="cancelBooking('${s.id}', '${s.name}')">🗑️ إلغاء</button>
+          ${s._src === 'مباشر'
+            ? `<button class="btn btn-sm" style="background:#fce4ec;color:#c62828;border:1px solid #ef9a9a;font-size:0.75rem"
+                onclick="deleteDirectStudent('${s.id}','${s.name}');renderListTable()">🗑️ حذف</button>`
+            : `<button class="btn btn-sm" style="background:#fce4ec;color:#c62828;border:1px solid #ef9a9a;font-size:0.75rem"
+                onclick="cancelBooking('${s.id}', '${s.name}')">🗑️ إلغاء</button>`
+          }
         </td>
       </tr>`).join('');
   }
 
   // ==================== EXPORT ====================
   async function exportExcel() {
-    const withPhoto = allPartyStudents.filter(s => s.photoPackage);
+    const partyPhoto = allPartyStudents.filter(s => s.photoPackage);
+    const withPhoto  = [
+      ...partyPhoto.map(s => ({ ...s, photoPayType: s.photoPayType, photoPrice: s.photoPrice || PHOTO_PRICES[s.grade] || 0, _src: 'حفلة' })),
+      ...allDirectStudents.map(s => ({ ...s, photoPayType: s.payType, photoPrice: s.price, _src: 'مباشر' }))
+    ];
     if (!withPhoto.length) return alert('لا توجد حجوزات للتصدير');
 
     const rawPri = (school?.primaryColor   || '#1E2D5A').replace('#','');
@@ -763,7 +987,11 @@
   }
 
   function exportPDF() {
-    const withPhoto = allPartyStudents.filter(s => s.photoPackage);
+    const partyPhoto = allPartyStudents.filter(s => s.photoPackage);
+    const withPhoto  = [
+      ...partyPhoto.map(s => ({ ...s, photoPayType: s.photoPayType, photoPrice: s.photoPrice || PHOTO_PRICES[s.grade] || 0 })),
+      ...allDirectStudents.map(s => ({ ...s, photoPayType: s.payType, photoPrice: s.price }))
+    ];
     if (!withPhoto.length) return alert('لا توجد حجوزات للطباعة');
     const total = withPhoto.reduce((sum, s) => sum + (s.photoPrice || PHOTO_PRICES[s.grade] || 0), 0);
     const pw    = window.open('', '_blank', 'width=900,height=700');
@@ -811,6 +1039,7 @@
 
   // INIT
   loadPartyStudents();
+  loadDirectStudents();
 </script>
 </body>
 </html>
