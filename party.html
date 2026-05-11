@@ -689,6 +689,20 @@
     btn.textContent = ' جاري الحفظ...';
 
     try {
+      // ── فحص تكرار التسجيل بنفس التليفون ──
+      const dupSnap = await db.collection('partyAttendees')
+        .where('schoolId', '==', schoolId)
+        .where('phone', '==', phone)
+        .limit(1)
+        .get();
+      if (!dupSnap.empty) {
+        const dupData = dupSnap.docs[0].data();
+        showAlert('regAlert', `هذا الرقم مسجّل بالفعل باسم "${dupData.name}" — رقم التذكرة: ${dupData.ticketId}`, 'error');
+        btn.disabled = false;
+        btn.textContent = ' تسجيل وحفظ';
+        return;
+      }
+
       const now = new Date();
       const dateStr = now.getFullYear() + '-' +
         String(now.getMonth()+1).padStart(2,'0') + '-' +

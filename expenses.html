@@ -513,7 +513,7 @@
   populateCategories();
 
   //  Set today defaults 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localDateStr();
   document.getElementById('filterDate').value = todayStr;
   document.getElementById('expenseDate').value = todayStr;
   const ym = todayStr.substring(0,7);
@@ -537,7 +537,7 @@
 
   function getDateRange() {
     const today = new Date();
-    const fmt = d => d.toISOString().split('T')[0];
+    const fmt = d => localDateStr(d);
 
     if (currentPeriod === 'daily') {
       const d = document.getElementById('filterDate').value || todayStr;

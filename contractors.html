@@ -675,8 +675,8 @@ let filteredContr = [];
 
 // ─── INIT ────────────────────────────────────────────────────────
 async function init() {
-  document.getElementById('pDate').value = new Date().toISOString().split('T')[0];
-  document.getElementById('cDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('pDate').value = localDateStr();
+  document.getElementById('cDate').value = localDateStr();
   setDefaultReportDates();
   await Promise.all([ loadSuppliers(), loadPurchases(), loadContracts() ]);
   populateSupplierSelects();
@@ -688,7 +688,7 @@ function setDefaultReportDates() {
   const y = now.getFullYear(), m = now.getMonth();
   document.getElementById('reportFrom').value = `${y}-${String(m+1).padStart(2,'0')}-01`;
   const last = new Date(y, m+1, 0);
-  document.getElementById('reportTo').value = last.toISOString().split('T')[0];
+  document.getElementById('reportTo').value = localDateStr(last);
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────
@@ -1040,8 +1040,7 @@ async function deleteSupplier(id) {
 // ─── PURCHASE SAVE ────────────────────────────────────────────────
 function openPurchaseModal() {
   document.getElementById('purchaseEditId').value = '';
-  document.getElementById('pDate').value = new Date().toISOString().split('T')[0];
-  ['pSupplier','pPurpose','pWorkType','pUnit'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pDate').value = localDateStr();
   ['pDesc','pNotes'].forEach(id => document.getElementById(id).value = '');
   ['pQty','pUnitPrice','pTotal'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('purchaseAlert').classList.add('hidden');
@@ -1132,7 +1131,7 @@ async function deletePurchase(id) {
 // ─── CONTRACT SAVE ────────────────────────────────────────────────
 function openContractModal() {
   document.getElementById('contractEditId').value = '';
-  document.getElementById('cDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('cDate').value = localDateStr();
   ['cContractor','cPurpose','cWorkType'].forEach(id => document.getElementById(id).value = '');
   ['cDesc','cNotes'].forEach(id => document.getElementById(id).value = '');
   ['cArea','cPricePerM','cTotal','cFixedTotal','cPaidNow','cDebt'].forEach(id => document.getElementById(id).value = '');
@@ -1298,7 +1297,7 @@ async function confirmPay() {
 
   const newPaid      = (c.paid||0) + amount;
   const newRemaining = Math.max(0, (c.remaining||0) - amount);
-  const today        = new Date().toISOString().split('T')[0];
+  const today        = localDateStr();
   const history      = [...(c.paymentHistory||[]), { amount, method, methodLabel:PAY_LABELS[method]||method, date:today, notes, by:session.email }];
 
   try {

@@ -675,7 +675,7 @@
     const monthTxCount = transactions.filter(t => t.date && t.date.startsWith(thisMonthStr)).length;
 
     const totalDebt = debts.reduce((s, d) => s + (Number(d.remaining) || 0), 0);
-    const pendingDebts = debts.filter(d => d.status !== 'settled').length;
+    const pendingDebts = debts.filter(d => (Number(d.remaining) || 0) > 0).length;
 
     const lastTx = transactions[0];
     const lastDate = lastTx?.date || '—';
@@ -767,9 +767,9 @@
         </div>`;
     } else {
       debtsEl.innerHTML = debts.map(d => {
-        const total   = Number(d.totalDue)   || 0;
-        const paid    = Number(d.paid)        || 0;
-        const remain  = Number(d.remaining)   || 0;
+        const total   = Number(d.totalDue)  || 0;
+        const paid    = Number(d.paid)       || 0;
+        const remain  = Number(d.remaining)  || 0;
         const pct     = total > 0 ? Math.round(paid / total * 100) : 0;
         const settled = remain <= 0;
         const statusLabel = settled ? 'مسدد' : (paid > 0 ? 'جزئي' : 'معلق');
@@ -806,20 +806,29 @@
     // ── Breakdown Tab ──
     const itemMap = {};
     transactions.forEach(t => {
+      const paidAmount = Number(t.amount) || 0;
       if (Array.isArray(t.paymentItems) && t.paymentItems.length > 0) {
-        // paymentItems = [{item, price, netPrice, discount}, ...]
-        t.paymentItems.forEach(pi => {
-          const itemName = typeof pi === 'object' ? pi.item : pi;
-          const itemAmt  = typeof pi === 'object' ? (Number(pi.netPrice) || Number(pi.price) || 0) : 0;
-          if (!itemName) return;
-          if (!itemMap[itemName]) itemMap[itemName] = { total: 0, count: 0 };
-          itemMap[itemName].total += itemAmt;
-          itemMap[itemName].count++;
+        // وزّع المبلغ المدفوع نسبياً على البنود (نفس منطق mapAmounts)
+        const nets = t.paymentItems.map(pi => ({
+          item: typeof pi === 'object' ? pi.item : String(pi),
+          net:  typeof pi === 'object' ? (Number(pi.netPrice) || Number(pi.price) || 0) : 0
+        }));
+        const totalNet = nets.reduce((s, x) => s + x.net, 0);
+        nets.forEach((x, idx) => {
+          if (!x.item) return;
+          let amt = totalNet > 0
+            ? (idx === nets.length - 1
+                ? paidAmount - nets.slice(0, idx).reduce((s, n) => s + Math.round(paidAmount * n.net / totalNet), 0)
+                : Math.round(paidAmount * x.net / totalNet))
+            : paidAmount / Math.max(nets.length, 1);
+          if (!itemMap[x.item]) itemMap[x.item] = { total: 0, count: 0 };
+          itemMap[x.item].total += amt;
+          itemMap[x.item].count++;
         });
       } else {
         const itemName = t.paymentItem || '—';
         if (!itemMap[itemName]) itemMap[itemName] = { total: 0, count: 0 };
-        itemMap[itemName].total += Number(t.amount) || 0;
+        itemMap[itemName].total += paidAmount;
         itemMap[itemName].count++;
       }
     });

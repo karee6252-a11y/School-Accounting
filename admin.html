@@ -262,8 +262,7 @@
   }
 
   function getAdminDateRange() {
-    const today = new Date().toISOString().split('T')[0];
-    if (currentReportPeriod === 'daily') {
+    const today = localDateStr();
       const d = document.getElementById('rptDate').value || today;
       return { from: d, to: d };
     } else if (currentReportPeriod === 'weekly') {
@@ -402,10 +401,10 @@
       if (schoolFilter) query = query.where('schoolId', '==', schoolFilter);
       if (dateFrom) query = query.where('date', '>=', dateFrom);
       if (dateTo) query = query.where('date', '<=', dateTo);
-      query = query.limit(500);
+      query = query.limit(2000);
       const snap = await query.get();
-      const limitWarning = snap.size >= 500
-        ? ' <span style="color:#e67e22;font-weight:700"> تحذير: النتايج محدودة بـ 500 سجل — ضيّق الفلتر بالتاريخ</span>'
+      const limitWarning = snap.size >= 2000
+        ? ' <span style="color:#c0392b;font-weight:700;background:#fdecea;padding:0.15rem 0.5rem;border-radius:4px"> تحذير: النتايج وصلت الحد الأقصى 2000 سجل — ضيّق نطاق التاريخ لضمان اكتمال البيانات</span>'
         : '';
       document.getElementById('allTransCount').textContent = snap.size + ' سجل' + limitWarning;
       if (snap.empty) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد بيانات</div></div></td></tr>`; return; }
@@ -429,8 +428,8 @@
     if (!allTransactionsData.length) { alert('لا توجد بيانات للتصدير. قم بالبحث أولاً.'); return; }
     const schoolFilter = document.getElementById('adminSchoolFilter').value;
     const schoolObj = schoolFilter ? SCHOOLS[schoolFilter] : { name: 'كل المدارس', primaryColor: '#1a3a6b' };
-    const dateFrom = document.getElementById('adminDateFrom').value || new Date().toISOString().split('T')[0];
-    const dateTo = document.getElementById('adminDateTo').value || new Date().toISOString().split('T')[0];
+    const dateFrom = document.getElementById('adminDateFrom').value || localDateStr();
+    const dateTo = document.getElementById('adminDateTo').value || localDateStr();
     
     // استخدام نفس كود exportExcel من reports.html مع تعديل الإدخالات
     const data = allTransactionsData;
@@ -542,7 +541,7 @@
       const dayTotal25 = [0,0,0,0,0,0,0];
       const dayTotal26 = [0,0,0,0,0,0,0];
       list.forEach(d => {
-        const is26 = d.academicYear === '2026/2027';
+        const is26 = d.academicYear === ACADEMIC_YEAR;
         const amt = d.amount || 0;
         switch(d.paymentItem) {
           case 'مصروفات دراسية': is26 ? dayTotal26[0]+=amt : dayTotal25[0]+=amt; break;
@@ -556,7 +555,7 @@
       });
       for(let i=0;i<7;i++){ weekTotals25[i]+=dayTotal25[i]; weekTotals26[i]+=dayTotal26[i]; }
       const dateObj = new Date(from); dateObj.setDate(dateObj.getDate() + (dayIdx - dateObj.getDay() + 7)%7);
-      const dateStr = dateObj.toISOString().split('T')[0];
+      const dateStr = localDateStr(dateObj);
       const row = wsWeekly.addRow([dayIdx+1, dayNames[dayIdx], '', '', dateStr, dayTotal25[0], dayTotal26[0], dayTotal25[1], dayTotal26[1], dayTotal25[2], dayTotal26[2], dayTotal25[3], dayTotal26[3], dayTotal25[4], dayTotal26[4], dayTotal25[5], dayTotal26[5], dayTotal25[6], dayTotal26[6], dayTotal25.reduce((a,b)=>a+b,0)+dayTotal26.reduce((a,b)=>a+b,0), dayTotal25.reduce((a,b)=>a+b,0), dayTotal26.reduce((a,b)=>a+b,0)]);
       applyStyle(row, dayIdx%2===1 ? EVEN_BG : null, false, 11);
       row.height = 20;
@@ -591,7 +590,7 @@
     data.forEach(d => {
       const dObj = new Date(d.date);
       const wkStart = new Date(dObj); wkStart.setDate(dObj.getDate() - dObj.getDay());
-      const wkKey = wkStart.toISOString().split('T')[0];
+      const wkKey = localDateStr(wkStart);
       if(!weekGroups[wkKey]) weekGroups[wkKey] = [];
       weekGroups[wkKey].push(d);
     });
@@ -604,7 +603,7 @@
       const wkTotals25 = [0,0,0,0,0,0,0];
       const wkTotals26 = [0,0,0,0,0,0,0];
       wkData.forEach(d => {
-        const is26 = d.academicYear === '2026/2027';
+        const is26 = d.academicYear === ACADEMIC_YEAR;
         const amt = d.amount || 0;
         switch(d.paymentItem) {
           case 'مصروفات دراسية': is26 ? wkTotals26[0]+=amt : wkTotals25[0]+=amt; break;
@@ -617,7 +616,7 @@
         }
       });
       for(let i=0;i<7;i++){ monthTotals25[i]+=wkTotals25[i]; monthTotals26[i]+=wkTotals26[i]; }
-      const row = wsMonthly.addRow([idx+1, `الاسبوع ${idx+1}`, wk, wkEnd.toISOString().split('T')[0], wkTotals25[0],wkTotals26[0], wkTotals25[1],wkTotals26[1], wkTotals25[2],wkTotals26[2], wkTotals25[3],wkTotals26[3], wkTotals25[4],wkTotals26[4], wkTotals25[5],wkTotals26[5], wkTotals25[6],wkTotals26[6], wkTotals25.reduce((a,b)=>a+b,0)+wkTotals26.reduce((a,b)=>a+b,0)]);
+      const row = wsMonthly.addRow([idx+1, `الاسبوع ${idx+1}`, wk, localDateStr(wkEnd), wkTotals25[0],wkTotals26[0], wkTotals25[1],wkTotals26[1], wkTotals25[2],wkTotals26[2], wkTotals25[3],wkTotals26[3], wkTotals25[4],wkTotals26[4], wkTotals25[5],wkTotals26[5], wkTotals25[6],wkTotals26[6], wkTotals25.reduce((a,b)=>a+b,0)+wkTotals26.reduce((a,b)=>a+b,0)]);
       applyStyle(row, idx%2===1 ? EVEN_BG : null, false, 11);
       row.height = 20;
     });
@@ -655,15 +654,15 @@
   }
   
   // Default dates
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateStr();
   const firstOfMonth = new Date(); firstOfMonth.setDate(1);
-  document.getElementById('adminDateFrom').value = firstOfMonth.toISOString().split('T')[0];
+  document.getElementById('adminDateFrom').value = localDateStr(firstOfMonth);
   document.getElementById('adminDateTo').value = today;
   document.getElementById('rptDate').value = today;
   const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate()+6);
-  document.getElementById('rptWeekFrom').value = weekStart.toISOString().split('T')[0];
-  document.getElementById('rptWeekTo').value = weekEnd.toISOString().split('T')[0];
+  document.getElementById('rptWeekFrom').value = localDateStr(weekStart);
+  document.getElementById('rptWeekTo').value = localDateStr(weekEnd);
   document.getElementById('rptMonth').value = today.substring(0,7);
   
   renderDynamicContent();

@@ -551,7 +551,8 @@
   function generateReceiptNumber() {
     const now = new Date();
     const y=now.getFullYear(), m=String(now.getMonth()+1).padStart(2,'0'), d=String(now.getDate()).padStart(2,'0');
-    document.getElementById('receiptNumber').value = `REC-${y}${m}${d}-${String(Math.floor(Math.random()*9000)+1000)}`;
+    const ms = String(Date.now()).slice(-5);
+    document.getElementById('receiptNumber').value = `REC-${y}${m}${d}-${ms}`;
   }
 
   function showAlert(msg, type='error') {
@@ -601,9 +602,7 @@
         receiptNumber, date, notes, createdBy:session.email,
         createdAt:firebase.firestore.FieldValue.serverTimestamp(),
         year:new Date(date).getFullYear(), month:new Date(date).getMonth()+1, week:getWeekNumber(new Date(date)),
-        academicYear:'2026/2027'
-      };
-      const docRef = await db.collection('transactions').add(transaction);
+        academicYear: getAcademicYear(date)
       if (debt>0) {
         // تحقق لو فيه دين موجود لنفس الطالب ونفس البند — بدون range query عشان نتجنب Composite Index
         const existingDebtSnap = await db.collection('debts')
@@ -638,9 +637,7 @@
             totalDue, paid: amount, remaining: debt,
             transactionId: docRef.id, date,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            academicYear: '2026/2027'
-          });
-          debtDocId = newDebtRef.id;
+            academicYear: getAcademicYear(date)
         }
         // خزّن debtId في الـ transaction عشان الحذف يكون دقيق
         if (debtDocId) {
@@ -652,7 +649,6 @@
       document.getElementById('studentName').value='';
       document.getElementById('amountInput').value='';
       document.getElementById('notes').value='';
-      document.getElementById('paymentType').value='';
       document.getElementById('debtIndicator').style.display='none';
       document.getElementById('debtPreview').style.display='none';
       document.getElementById('paymentSummaryBox').style.display='none';
@@ -956,7 +952,7 @@
             date, hasDebt: true,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            academicYear: '2026/2027'
+            academicYear: getAcademicYear(date)
           });
         }
       } else if (oldDebt > 0 && newDebt === 0) {

@@ -113,7 +113,7 @@
     let from, to;
     const today = new Date();
     if (currentPeriod === 'daily') {
-      const d = document.getElementById('filterDate').value || today.toISOString().split('T')[0];
+      const d = document.getElementById('filterDate').value || localDateStr(today);
       from = d; to = d;
     } else if (currentPeriod === 'weekly') {
       const start = new Date(document.getElementById('filterWeekStart').value + 'T00:00:00');
@@ -121,7 +121,7 @@
       from = localDateStr(start);
       to = localDateStr(end);
     } else if (currentPeriod === 'monthly') {
-      const month = document.getElementById('filterMonth').value || today.toISOString().substring(0,7);
+      const month = document.getElementById('filterMonth').value || localDateStr(today).substring(0,7);
       const [y, m] = month.split('-').map(Number);
       const lastDay = new Date(y, m, 0).getDate();
       from = `${month}-01`;
@@ -248,8 +248,7 @@
 
     const periodLabels = { daily:'يومي', weekly:'اسبوعي', monthly:'شهري', custom:'مخصص' };
     const schoolName = school?.name || 'المدرسة';
-    const YEAR = '2026/2027';
-    const DAYS_AR_W = ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
+    const YEAR = ACADEMIC_YEAR;
     const GRADES_LIST = ['Pre-KG','KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
 
     // ── ألوان المدرسة ──
@@ -895,7 +894,7 @@
     const { from, to } = getDateRange();
     const periodLabels = { daily:'يومي', weekly:'أسبوعي', monthly:'شهري', custom:'مخصص' };
     const schoolName   = school?.name || 'المدرسة';
-    const YEAR         = '2026/2027';
+    const YEAR         = ACADEMIC_YEAR;
 
     // ألوان المدرسة
     function hexToRgb(hex) {

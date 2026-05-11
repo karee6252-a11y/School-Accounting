@@ -142,7 +142,12 @@ function toggleSidebar() {
 
 function showSchoolSwitcher() {
   const modal = document.getElementById('schoolSwitcherModal');
-  if (modal) modal.classList.remove('hidden');
+  if (modal) {
+    modal.classList.remove('hidden');
+  } else {
+    // المودال موجود بس في admin.html — روّح عليها
+    window.location.href = 'admin.html';
+  }
 }
 
 // Handle responsive
