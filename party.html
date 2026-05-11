@@ -227,6 +227,19 @@
       .party-stats { grid-template-columns: 1fr 1fr; }
     }
 
+    /* TABLE BORDERS */
+    .data-table { border-collapse: collapse; width: 100%; }
+    .data-table th {
+      border: 2px solid var(--primary) !important;
+      font-weight: 900 !important;
+      font-size: 0.88rem !important;
+    }
+    .data-table td {
+      border: 1.5px solid #c5cde8 !important;
+      font-weight: 700 !important;
+    }
+    .data-table tbody tr:hover td { border-color: var(--primary) !important; }
+
     /* PRINT TICKET */
     @media print {
       .app-layout > * { display: none !important; }
