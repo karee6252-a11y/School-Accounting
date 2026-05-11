@@ -554,9 +554,14 @@
       const snap = await db.collection('photoDirectStudents')
         .where('schoolId', '==', schoolId)
         .where('academicYear', '==', ACADEMIC_YEAR)
-        .orderBy('createdAt', 'desc')
         .get();
       allDirectStudents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // ترتيب محلي من الأحدث للأقدم
+      allDirectStudents.sort((a, b) => {
+        const ta = a.createdAt?.seconds || 0;
+        const tb = b.createdAt?.seconds || 0;
+        return tb - ta;
+      });
       renderDirectGrid();
       updateStats();
     } catch (e) {
