@@ -129,6 +129,15 @@ service cloud.firestore {
       allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
       allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
+
+    // ==============================
+    // photoDirectStudents — طلاب التصوير المباشر
+    // ==============================
+    match /photoDirectStudents/{docId} {
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
+    }
   }
 }
 
