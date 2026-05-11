@@ -647,9 +647,10 @@
         .limit(200).get();
       const names = new Set();
       snap.forEach(d => { if (d.data().studentName?.includes(q)) names.add(d.data().studentName); });
-      const options = [...names].slice(0,8).map(n => `<option value="${n}">`).join('');
       const dl = document.getElementById('studentSuggestList');
-      if (dl) dl.innerHTML = options;
+      dl.innerHTML = [...names].slice(0,8).map(n => `<option value="${n}">`).join('');
+      const dl2 = document.getElementById('studentSuggestList2');
+      dl2.innerHTML = dl.innerHTML;
     } catch(e) {}
   }
 
@@ -1187,10 +1188,13 @@
       let students=0, companions=0, attended=0, revenue=0;
       snap.forEach(doc => {
         const d = doc.data();
-        students  += d.totalStudents  || 1;
-        companions+= d.companionCount || 0;
-        if (d.status === 'attended') attended += (d.totalStudents || 1) + (d.companionCount || 0);
-        revenue += d.amount || 0;
+        const totalStu = d.totalStudents || 1;
+        const compCnt  = d.companionCount || 0;
+        students  += totalStu;
+        companions+= compCnt;
+        if (d.status === 'attended') attended++;
+        // نفس منطق الحساب المستخدم في Excel و PDF
+        revenue += d.amount || ((totalStu * PRICES.student) + (compCnt * PRICES.companion));
       });
       document.getElementById('statStudCount').textContent = students;
       document.getElementById('statCompCount').textContent = companions;
@@ -1228,14 +1232,11 @@
     const q = document.getElementById('listSearch').value.toLowerCase();
     const type = document.getElementById('listTypeFilter').value;
     const status = document.getElementById('listStatusFilter').value;
-    const filtered = allAttendees.filter(d => {
-      if (q && !d.name.toLowerCase().includes(q)) return false;
-      // "مرافقين" = سجلات فيها مرافقين، "طلاب" = كل السجلات (دايماً student)
-      if (type === 'companion' && !(d.companionCount > 0)) return false;
-      if (type === 'student' && d.companionCount > 0) return false;
-      if (status && d.status !== status) return false;
-      return true;
-    });
+    const filtered = allAttendees.filter(d =>
+      (!q || d.name.toLowerCase().includes(q)) &&
+      (!type || d.type === type) &&
+      (!status || d.status === status)
+    );
     renderAttendeeTable(filtered);
   }
 
@@ -1283,7 +1284,12 @@
             ${totalStu > 1 ? `<br><span style="font-size:0.72rem;background:#e8f5e9;color:#2e7d32;padding:0.1rem 0.5rem;border-radius:10px;font-weight:700"> ${totalStu} طلاب</span>` : ''}
             ${d.companions && d.companions.length > 0 ? `<br><span style="font-size:0.72rem;background:#e3f2fd;color:#1565c0;padding:0.1rem 0.5rem;border-radius:10px;font-weight:700"> ${d.companions.length} مرافق</span>` : ''}
           </td>
-          <td><span style="font-size:1rem"></span>طالب</td>
+          <td>
+            <span style="font-size:0.85rem;font-weight:700">
+              ${d.totalStudents > 1 ? `${d.totalStudents} طلاب` : 'طالب'}
+              ${d.companionCount > 0 ? `<br><span style="font-size:0.72rem;color:#856404">+${d.companionCount} مرافق</span>` : ''}
+            </span>
+          </td>
           <td>${d.grade || '-'}</td>
           <td dir="ltr" style="text-align:right">${d.phone}</td>
           <td><span class="badge badge-primary">${payLabels[d.paymentType]||d.paymentType}</span> <span style="font-weight:800">${d.amount || PRICES.student} ج.م</span></td>
@@ -1398,20 +1404,23 @@
     hdrRow.height = 24;
 
     // ── بيانات ──
-    const getAmount = d => typeof d.amount === 'number' ? d.amount : PRICES.student;
-    const total = allAttendees.reduce((s,d) => s + getAmount(d), 0);
+    const total = allAttendees.reduce((s,d) => {
+      const totalStu = d.totalStudents || 1;
+      const compCnt  = d.companionCount || 0;
+      return s + (d.amount || ((totalStu * PRICES.student) + (compCnt * PRICES.companion)));
+    }, 0);
     allAttendees.forEach((d, i) => {
-      const stuCount  = d.totalStudents || 1;
-      const compCount = d.companionCount || 0;
-      const typeLabel = `${stuCount} طالب${compCount > 0 ? ` + ${compCount} مرافق` : ''}`;
+      const totalStu = d.totalStudents || 1;
+      const compCnt  = d.companionCount || 0;
+      const rowAmount = d.amount || ((totalStu * PRICES.student) + (compCnt * PRICES.companion));
       const row = ws.addRow([
         i+1,
         d.name,
-        typeLabel,
+        `${totalStu} طالب` + (compCnt > 0 ? ` + ${compCnt} مرافق` : ''),
         d.grade || '-',
         d.phone,
         ({cash:'نقدي', bank_transfer:'تحويل بنكي', instapay:'إنستاباي'})[d.paymentType] || d.paymentType,
-        getAmount(d),
+        rowAmount,
         d.status==='attended' ? 'دخل الحفلة' : 'مسجل',
         d.attendedAt?.toDate?.() ? d.attendedAt.toDate().toLocaleString('ar-EG') : '-',
       ]);
@@ -1447,8 +1456,11 @@
   function exportListPDF() {
     if (!allAttendees.length) return alert('لا توجد بيانات للطباعة');
     const pw = window.open('', '_blank', 'width=900,height=700');
-    const getAmountPDF = d => typeof d.amount === 'number' ? d.amount : PRICES.student;
-    const total = allAttendees.reduce((s,d) => s + getAmountPDF(d), 0);
+    const total = allAttendees.reduce((s,d) => {
+      const totalStu = d.totalStudents || 1;
+      const compCnt  = d.companionCount || 0;
+      return s + (d.amount || ((totalStu * PRICES.student) + (compCnt * PRICES.companion)));
+    }, 0);
     const payLabels = { cash:'نقدي', bank_transfer:'تحويل بنكي', instapay:'إنستاباي' };
     pw.document.write(`
       <html><head><meta charset="UTF-8">
@@ -1464,22 +1476,27 @@
         @media print { button { display:none; } }
       </style></head><body>
       <h2>قائمة حفلة ${school?.name||''}</h2>
-      <div class="sub">إجمالي المسجلين: ${allAttendees.length} | إجمالي الإيراد: ${total.toLocaleString('ar-EG')} ج.م</div>
+      <div class="sub">إجمالي التسجيلات: ${allAttendees.length} | إجمالي الإيراد: ${total.toLocaleString('ar-EG')} ج.م</div>
       <table>
         <thead><tr><th>#</th><th>الاسم</th><th>النوع</th><th>الصف</th><th>التليفون</th><th>الدفع</th><th>المبلغ</th><th>الحالة</th></tr></thead>
         <tbody>
-          ${allAttendees.map((d,i) => `
+          ${allAttendees.map((d,i) => {
+            const totalStu = d.totalStudents || 1;
+            const compCnt  = d.companionCount || 0;
+            const rowAmount = d.amount || ((totalStu * PRICES.student) + (compCnt * PRICES.companion));
+            const typeLabel = `${totalStu > 1 ? totalStu + ' طلاب' : 'طالب'}${compCnt > 0 ? ' +' + compCnt + ' مرافق' : ''}`;
+            return `
             <tr>
               <td>${i+1}</td>
               <td>${d.name}</td>
-              <td>${d.type==='student'?'طالب':'مرافق'}</td>
+              <td>${typeLabel}</td>
               <td>${d.grade||'-'}</td>
               <td dir="ltr" style="text-align:right">${d.phone}</td>
               <td>${payLabels[d.paymentType]||d.paymentType}</td>
-              <td>${d.amount || PRICES.student} ج.م</td>
+              <td>${rowAmount.toLocaleString('ar-EG')} ج.م</td>
               <td>${d.status==='attended'?'دخل':'مسجل'}</td>
-            </tr>
-          `).join('')}
+            </tr>`;
+          }).join('')}
           <tr class="total-row"><td colspan="6">الإجمالي</td><td>${total.toLocaleString('ar-EG')} ج.م</td><td></td></tr>
         </tbody>
       </table>

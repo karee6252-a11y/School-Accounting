@@ -468,8 +468,9 @@
 
   // ==================== DIRECT STUDENT GRADES ====================
   (function populateDirectGrades() {
+    const allGrades = ['KG1','KG2'];
     const sel = document.getElementById('directGrade');
-    ALLOWED_GRADES.forEach(g => {
+    allGrades.forEach(g => {
       const opt = document.createElement('option');
       opt.value = g; opt.textContent = g;
       sel.appendChild(opt);
@@ -659,8 +660,15 @@
     document.getElementById('statTotal').textContent   = allWithPhoto.length;
     document.getElementById('statKG1').textContent     = kg1;
     document.getElementById('statKG2').textContent     = kg2;
-    document.getElementById('statRevenue').textContent =
-      allWithPhoto.reduce((sum, s) => sum + (s.photoPrice || s.price || PHOTO_PRICES[s.grade] || 0), 0).toLocaleString('ar-EG');
+    // الإيراد: طلاب الحفلة بـ photoPrice، المباشرين بـ price
+    const revenue = allWithPhoto.reduce((sum, s) => {
+      // المباشرين عندهم source='direct'، الباقي من الحفلة
+      const price = s.source === 'direct'
+        ? (s.price || PHOTO_PRICES[s.grade] || 0)
+        : (s.photoPrice || PHOTO_PRICES[s.grade] || 0);
+      return sum + price;
+    }, 0);
+    document.getElementById('statRevenue').textContent = revenue.toLocaleString('ar-EG');
     if (schoolId === 'bristol') {
       document.getElementById('statGrade6').textContent = grade6;
       document.getElementById('statPrep3').textContent  = prep3;
@@ -873,7 +881,11 @@
         <td><strong>${s.name}</strong></td>
         <td><span class="badge badge-primary">${s.grade}</span></td>
         <td dir="ltr" style="text-align:right">${s.phone || '-'}</td>
-        <td style="font-weight:800;color:var(--primary)">${s.photoPrice || PHOTO_PRICES[s.grade] || 0} ج.م</td>
+        <td style="font-weight:800;color:var(--primary)">${
+          s._src === 'مباشر'
+            ? (s.photoPrice || s.price || PHOTO_PRICES[s.grade] || 0)
+            : (s.photoPrice || PHOTO_PRICES[s.grade] || 0)
+        } ج.م</td>
         <td>${payLabel(s.photoPayType)}</td>
         <td><span class="badge" style="background:${s._src==='مباشر'?'#e8f5e9':'#e3f2fd'};color:${s._src==='مباشر'?'#2e7d32':'#1565c0'};border:none;padding:0.2rem 0.6rem;border-radius:20px;font-size:0.72rem;font-weight:700">${s._src}</span></td>
         <td>
@@ -942,7 +954,12 @@
     titleRow.height = 30;
 
     // ── صف 2: معلومات ──
-    const total = withPhoto.reduce((sum, s) => sum + (s.photoPrice || PHOTO_PRICES[s.grade] || 0), 0);
+    const total = withPhoto.reduce((sum, s) => {
+      const price = s._src === 'مباشر'
+        ? (s.photoPrice || s.price || PHOTO_PRICES[s.grade] || 0)
+        : (s.photoPrice || PHOTO_PRICES[s.grade] || 0);
+      return sum + price;
+    }, 0);
     const infoRow = ws.addRow([
       `إجمالي الحجوزات: ${withPhoto.length}   |   تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')}`,
       ...Array(COLS-1).fill('')
@@ -958,7 +975,9 @@
 
     // ── بيانات ──
     withPhoto.forEach((s, i) => {
-      const price = s.photoPrice || PHOTO_PRICES[s.grade] || 0;
+      const price = s._src === 'مباشر'
+        ? (s.photoPrice || s.price || PHOTO_PRICES[s.grade] || 0)
+        : (s.photoPrice || PHOTO_PRICES[s.grade] || 0);
       const row = ws.addRow([
         i+1,
         s.name,
@@ -1000,7 +1019,12 @@
       ...allDirectStudents.map(s => ({ ...s, photoPayType: s.payType, photoPrice: s.price }))
     ];
     if (!withPhoto.length) return alert('لا توجد حجوزات للطباعة');
-    const total = withPhoto.reduce((sum, s) => sum + (s.photoPrice || PHOTO_PRICES[s.grade] || 0), 0);
+    const total = withPhoto.reduce((sum, s) => {
+      const price = s._src === 'مباشر'
+        ? (s.photoPrice || s.price || PHOTO_PRICES[s.grade] || 0)
+        : (s.photoPrice || PHOTO_PRICES[s.grade] || 0);
+      return sum + price;
+    }, 0);
     const pw    = window.open('', '_blank', 'width=900,height=700');
     pw.document.write(`<html><head><meta charset="UTF-8">
       <style>
@@ -1019,12 +1043,17 @@
       <table>
         <thead><tr><th>#</th><th>الاسم</th><th>الصف</th><th>التليفون</th><th>المبلغ</th><th>طريقة الدفع</th></tr></thead>
         <tbody>
-          ${withPhoto.map((s,i) => `<tr>
+          ${withPhoto.map((s,i) => {
+            const price = s._src === 'مباشر'
+              ? (s.photoPrice || s.price || PHOTO_PRICES[s.grade] || 0)
+              : (s.photoPrice || PHOTO_PRICES[s.grade] || 0);
+            return `<tr>
             <td>${i+1}</td><td>${s.name}</td><td>${s.grade}</td>
             <td dir="ltr" style="text-align:right">${s.phone||'-'}</td>
-            <td>${s.photoPrice||PHOTO_PRICES[s.grade]||0} ج.م</td>
+            <td>${price.toLocaleString('ar-EG')} ج.م</td>
             <td>${payLabel(s.photoPayType)}</td>
-          </tr>`).join('')}
+          </tr>`;
+          }).join('')}
           <tr class="total-row"><td colspan="4">الإجمالي</td><td>${total.toLocaleString('ar-EG')} ج.م</td><td></td></tr>
         </tbody>
       </table></body></html>`);
