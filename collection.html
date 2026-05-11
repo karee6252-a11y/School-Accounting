@@ -716,7 +716,7 @@
       <div class="receipt-header">
         <img class="receipt-logo" src="${school?.logo||''}" alt="${school?.name}" onerror="this.style.display='none'" />
         <div class="receipt-school-name">${school?.name||'المدرسة'}</div>
-        <div style="font-size:0.75rem;color:#666;margin-top:0.25rem">ايصال تحصيل - السنة الدراسية 2026/2027</div>
+        <div style="font-size:0.75rem;color:#666;margin-top:0.25rem">ايصال تحصيل - السنة الدراسية ${ACADEMIC_YEAR}</div>
       </div>
       <div class="receipt-row"><span class="receipt-label">رقم الايصال</span><span class="receipt-value">${receiptNumber}</span></div>
       <div class="receipt-row"><span class="receipt-label">التاريخ</span><span class="receipt-value">${formatDate(date)}</span></div>

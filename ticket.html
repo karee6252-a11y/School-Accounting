@@ -117,6 +117,10 @@
           <div class="info-lbl">ملاحظات</div>
           <div class="info-val" id="tNotes">-</div>
         </div>
+        <div class="info-item full" id="tPhotoWrap" style="display:none;background:#e8f5e9;border:1.5px solid #a5d6a7">
+          <div class="info-lbl" style="color:#2e7d32">باكدج التصوير</div>
+          <div class="info-val" id="tPhoto" style="color:#1b5e20">-</div>
+        </div>
       </div>
       <div class="ticket-id-bar">
         <span class="tid-lbl">كود التذكرة</span>
@@ -233,6 +237,15 @@ function renderTicket(d) {
   if (d.notes) {
     document.getElementById('tNotesWrap').style.display = 'block';
     document.getElementById('tNotes').textContent = d.notes;
+  }
+
+  // باكدج التصوير
+  if (d.photoPackage) {
+    document.getElementById('tPhotoWrap').style.display = 'block';
+    const payLabels = { cash:'نقدي', bank_transfer:'تحويل بنكي', instapay:'إنستاباي', check:'شيك' };
+    const payLbl = payLabels[d.photoPayType] || '';
+    document.getElementById('tPhoto').textContent =
+      `محجوز ✓  —  ${d.photoPrice || 0} ج.م${payLbl ? '  •  ' + payLbl : ''}`;
   }
 
   const reg = d.registeredAt?.toDate?.();
