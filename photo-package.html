@@ -509,14 +509,18 @@
     btn.disabled = true; btn.textContent = 'جاري الحفظ...';
 
     try {
-      const docRef = await db.collection('photoDirectStudents').add({
+      const docRef = await db.collection('partyAttendees').add({
         schoolId,
         name,
         grade,
         phone:        phone || null,
         payType,
+        photoPayType: payType,
         price,
+        photoPrice:   price,
         photoPackage: true,
+        source:       'direct',
+        type:         'photo_direct',
         createdAt:    firebase.firestore.FieldValue.serverTimestamp(),
         createdBy:    session.email,
         academicYear: ACADEMIC_YEAR,
@@ -551,12 +555,11 @@
     document.getElementById('directStudentGrid').innerHTML =
       '<div style="padding:2rem;text-align:center"><div class="loading-spinner"></div></div>';
     try {
-      const snap = await db.collection('photoDirectStudents')
+      const snap = await db.collection('partyAttendees')
         .where('schoolId', '==', schoolId)
-        .where('academicYear', '==', ACADEMIC_YEAR)
+        .where('source', '==', 'direct')
         .get();
       allDirectStudents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // ترتيب محلي من الأحدث للأقدم
       allDirectStudents.sort((a, b) => {
         const ta = a.createdAt?.seconds || 0;
         const tb = b.createdAt?.seconds || 0;
@@ -605,7 +608,7 @@
   async function deleteDirectStudent(id, name) {
     if (!confirm(`هل تريد حذف "${name}" من قائمة التصوير المباشر؟`)) return;
     try {
-      await db.collection('photoDirectStudents').doc(id).delete();
+      await db.collection('partyAttendees').doc(id).delete();
       allDirectStudents = allDirectStudents.filter(s => s.id !== id);
       renderDirectGrid();
       updateStats();
