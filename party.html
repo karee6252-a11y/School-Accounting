@@ -647,10 +647,9 @@
         .limit(200).get();
       const names = new Set();
       snap.forEach(d => { if (d.data().studentName?.includes(q)) names.add(d.data().studentName); });
+      const options = [...names].slice(0,8).map(n => `<option value="${n}">`).join('');
       const dl = document.getElementById('studentSuggestList');
-      dl.innerHTML = [...names].slice(0,8).map(n => `<option value="${n}">`).join('');
-      const dl2 = document.getElementById('studentSuggestList2');
-      dl2.innerHTML = dl.innerHTML;
+      if (dl) dl.innerHTML = options;
     } catch(e) {}
   }
 
@@ -1190,7 +1189,7 @@
         const d = doc.data();
         students  += d.totalStudents  || 1;
         companions+= d.companionCount || 0;
-        if (d.status === 'attended') attended++;
+        if (d.status === 'attended') attended += (d.totalStudents || 1) + (d.companionCount || 0);
         revenue += d.amount || 0;
       });
       document.getElementById('statStudCount').textContent = students;
@@ -1229,11 +1228,14 @@
     const q = document.getElementById('listSearch').value.toLowerCase();
     const type = document.getElementById('listTypeFilter').value;
     const status = document.getElementById('listStatusFilter').value;
-    const filtered = allAttendees.filter(d =>
-      (!q || d.name.toLowerCase().includes(q)) &&
-      (!type || d.type === type) &&
-      (!status || d.status === status)
-    );
+    const filtered = allAttendees.filter(d => {
+      if (q && !d.name.toLowerCase().includes(q)) return false;
+      // "مرافقين" = سجلات فيها مرافقين، "طلاب" = كل السجلات (دايماً student)
+      if (type === 'companion' && !(d.companionCount > 0)) return false;
+      if (type === 'student' && d.companionCount > 0) return false;
+      if (status && d.status !== status) return false;
+      return true;
+    });
     renderAttendeeTable(filtered);
   }
 
@@ -1396,16 +1398,20 @@
     hdrRow.height = 24;
 
     // ── بيانات ──
-    const total = allAttendees.reduce((s,d) => s + (d.amount || PRICES.student), 0);
+    const getAmount = d => typeof d.amount === 'number' ? d.amount : PRICES.student;
+    const total = allAttendees.reduce((s,d) => s + getAmount(d), 0);
     allAttendees.forEach((d, i) => {
+      const stuCount  = d.totalStudents || 1;
+      const compCount = d.companionCount || 0;
+      const typeLabel = `${stuCount} طالب${compCount > 0 ? ` + ${compCount} مرافق` : ''}`;
       const row = ws.addRow([
         i+1,
         d.name,
-        `${d.totalStudents||1} طالب` + (d.companionCount > 0 ? ` + ${d.companionCount} مرافق` : ''),
+        typeLabel,
         d.grade || '-',
         d.phone,
         ({cash:'نقدي', bank_transfer:'تحويل بنكي', instapay:'إنستاباي'})[d.paymentType] || d.paymentType,
-        d.amount || PRICES.student,
+        getAmount(d),
         d.status==='attended' ? 'دخل الحفلة' : 'مسجل',
         d.attendedAt?.toDate?.() ? d.attendedAt.toDate().toLocaleString('ar-EG') : '-',
       ]);
@@ -1441,7 +1447,8 @@
   function exportListPDF() {
     if (!allAttendees.length) return alert('لا توجد بيانات للطباعة');
     const pw = window.open('', '_blank', 'width=900,height=700');
-    const total = allAttendees.reduce((s,d) => s + (d.amount || PRICES.student), 0);
+    const getAmountPDF = d => typeof d.amount === 'number' ? d.amount : PRICES.student;
+    const total = allAttendees.reduce((s,d) => s + getAmountPDF(d), 0);
     const payLabels = { cash:'نقدي', bank_transfer:'تحويل بنكي', instapay:'إنستاباي' };
     pw.document.write(`
       <html><head><meta charset="UTF-8">

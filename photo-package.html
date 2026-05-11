@@ -468,9 +468,8 @@
 
   // ==================== DIRECT STUDENT GRADES ====================
   (function populateDirectGrades() {
-    const allGrades = ['KG1','KG2'];
     const sel = document.getElementById('directGrade');
-    allGrades.forEach(g => {
+    ALLOWED_GRADES.forEach(g => {
       const opt = document.createElement('option');
       opt.value = g; opt.textContent = g;
       sel.appendChild(opt);
