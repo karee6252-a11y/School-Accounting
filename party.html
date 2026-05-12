@@ -1038,35 +1038,43 @@
     const isBristol = (schoolId === 'bristol');
 
     if (isBristol) {
-      // بريستول: حمّل الصورة الكاملة + QR فوقها
-      const wrap = document.getElementById('bristolQrCanvasWrap');
+      // بريستول: حمّل الصورة الخلفية + QR فوقها
+      const wrap = document.getElementById('qrCanvasWrap');
       const qrEl = wrap.querySelector('canvas') || wrap.querySelector('img');
       if (!qrEl) { alert('QR غير جاهز، انتظر لحظة وحاول مرة أخرى'); return; }
 
-      const ticketImg = document.querySelector('#bristolImgTicket img.ticket-bg');
-      if (!ticketImg || !ticketImg.complete || !ticketImg.naturalWidth) {
-        alert('صورة التيكيت لم تكتمل، انتظر لحظة وحاول مرة أخرى'); return;
-      }
-
-      const W = ticketImg.naturalWidth;
-      const H = ticketImg.naturalHeight;
-      const cvs = document.createElement('canvas');
-      cvs.width = W; cvs.height = H;
-      const ctx = cvs.getContext('2d');
-      ctx.drawImage(ticketImg, 0, 0, W, H);
-
-      // QR تحت الـ NOTE — عند 68% من الارتفاع، وسط أفقي
-      const qrSize = Math.round(W * 0.30);
-      const qrX = Math.round((W - qrSize) / 2);
-      const qrY = Math.round(H * 0.76);
-      ctx.drawImage(qrEl, qrX, qrY, qrSize, qrSize);
-
-      const link = document.createElement('a');
-      link.href = cvs.toDataURL('image/png');
-      link.download = (currentQRData?.name || 'bristol') + '-ticket.png';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const bgImg = new Image();
+      bgImg.crossOrigin = 'anonymous';
+      bgImg.src = TICKET_BG_SRC;
+      bgImg.onload = function() {
+        const W = bgImg.naturalWidth  || 900;
+        const H = bgImg.naturalHeight || 1600;
+        const cvs = document.createElement('canvas');
+        cvs.width = W; cvs.height = H;
+        const ctx = cvs.getContext('2d');
+        ctx.drawImage(bgImg, 0, 0, W, H);
+        const qrSize = Math.round(W * 0.30);
+        const qrX    = Math.round((W - qrSize) / 2);
+        const qrY    = Math.round(H * 0.76);
+        ctx.drawImage(qrEl, qrX, qrY, qrSize, qrSize);
+        const link = document.createElement('a');
+        link.href = cvs.toDataURL('image/png');
+        link.download = (currentQRData?.name || 'bristol') + '-ticket.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+      bgImg.onerror = function() {
+        const tempCvs = document.createElement('canvas');
+        tempCvs.width = 180; tempCvs.height = 180;
+        tempCvs.getContext('2d').drawImage(qrEl, 0, 0);
+        const link = document.createElement('a');
+        link.href = tempCvs.toDataURL('image/png');
+        link.download = (currentQRData?.name || 'bristol') + '-qr.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
       return;
     }
 
