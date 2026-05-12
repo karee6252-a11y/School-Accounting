@@ -1038,7 +1038,7 @@
     const isBristol = (schoolId === 'bristol');
 
     if (isBristol) {
-      const wrap = document.getElementById('bristolQrCanvasWrap');
+      const wrap = document.getElementById('qrCanvasWrap');
       const qrEl = wrap.querySelector('canvas') || wrap.querySelector('img');
       if (!qrEl) { alert('QR غير جاهز، انتظر لحظة وحاول مرة أخرى'); return; }
 
