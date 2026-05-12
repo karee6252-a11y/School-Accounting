@@ -284,30 +284,27 @@ async function markAttended() {
 async function loadTicket() {
   if (!ticketId) { showError('لم يتم تحديد كود التذكرة في الرابط'); return; }
   try {
-    // أولاً: جرب تجيبه بالـ document ID مباشرة (الطريقة الجديدة)
-    let data = null;
+    // الخطوة 1: نلاقي الـ docId الصح (مرة واحدة بس)
     let docId = ticketId;
-
     const directSnap = await db.collection('partyAttendees').doc(ticketId).get();
-    if (directSnap.exists) {
-      data = directSnap.data();
-    } else {
-      // ثانياً: دور على الـ ticketId كـ field (الطريقة القديمة بـ .add())
+    if (!directSnap.exists) {
       const querySnap = await db.collection('partyAttendees')
         .where('ticketId', '==', ticketId)
         .limit(1)
         .get();
-      if (!querySnap.empty) {
-        data = querySnap.docs[0].data();
-        docId = querySnap.docs[0].id; // الـ ID العشوائي القديم
-      }
+      if (querySnap.empty) { showError('هذا الكود غير مسجل في النظام'); return; }
+      docId = querySnap.docs[0].id;
     }
 
-    if (!data) { showError('هذا الكود غير مسجل في النظام'); return; }
-
-    // احفظ الـ docId الصح عشان الـ update يشتغل
     window._ticketDocId = docId;
-    renderTicket(data);
+
+    // الخطوة 2: real-time listener — بيتحدث تلقائياً لو البيانات اتغيرت
+    db.collection('partyAttendees').doc(docId).onSnapshot(snap => {
+      if (!snap.exists) { showError('هذا الكود غير مسجل في النظام'); return; }
+      renderTicket(snap.data());
+    }, err => {
+      showError('خطأ في الاتصال بقاعدة البيانات:\n' + err.message);
+    });
 
   } catch(e) {
     showError('خطأ في الاتصال بقاعدة البيانات:\n' + e.message);

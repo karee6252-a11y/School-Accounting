@@ -560,6 +560,91 @@
   </div>
 </div>
 
+<!-- ===== EDIT ATTENDEE MODAL ===== -->
+<div class="modal-overlay" id="editAttendeeModal" style="opacity:0;pointer-events:none;transition:opacity 0.25s ease">
+  <div class="modal-box" style="text-align:right;max-width:480px">
+    <div style="font-size:1.1rem;font-weight:900;color:var(--primary);margin-bottom:1.25rem;display:flex;align-items:center;gap:0.5rem">
+      ✏️ تعديل بيانات التذكرة
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem">
+      <div style="grid-column:1/-1">
+        <label class="form-label">الاسم <span class="required">*</span></label>
+        <input class="form-input form-input-ar" id="editAtName" type="text" placeholder="الاسم كاملاً" />
+      </div>
+      <div>
+        <label class="form-label">الصف</label>
+        <select class="form-select" id="editAtGrade">
+          <option value="">اختر الصف</option>
+          <option value="Pre-KG">Pre-KG</option>
+          <option value="KG1">KG1</option>
+          <option value="KG2">KG2</option>
+          <option value="Grade 1">Grade 1</option>
+          <option value="Grade 2">Grade 2</option>
+          <option value="Grade 3">Grade 3</option>
+          <option value="Grade 4">Grade 4</option>
+          <option value="Grade 5">Grade 5</option>
+          <option value="Grade 6">Grade 6</option>
+          <option value="Prep 1">Prep 1</option>
+          <option value="Prep 2">Prep 2</option>
+          <option value="Prep 3">Prep 3</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">التليفون</label>
+        <input class="form-input" id="editAtPhone" type="tel" placeholder="01xxxxxxxxx" dir="ltr" style="text-align:right" />
+      </div>
+      <div>
+        <label class="form-label">عدد الطلاب الكلي</label>
+        <div style="display:flex;align-items:center;gap:0.5rem;background:var(--accent);border:1.5px solid var(--border);border-radius:8px;padding:0.35rem 0.6rem">
+          <button type="button" onclick="editAtChange('students',-1)" style="width:30px;height:30px;border:none;background:white;border-radius:6px;font-size:1.1rem;font-weight:900;cursor:pointer;color:var(--primary)">−</button>
+          <span id="editAtStudentsDisplay" style="flex:1;text-align:center;font-weight:900;font-size:1rem;color:var(--primary)">1</span>
+          <button type="button" onclick="editAtChange('students',1)" style="width:30px;height:30px;border:none;background:white;border-radius:6px;font-size:1.1rem;font-weight:900;cursor:pointer;color:var(--primary)">+</button>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">عدد المرافقين</label>
+        <div style="display:flex;align-items:center;gap:0.5rem;background:#fff8e1;border:1.5px solid #ffe082;border-radius:8px;padding:0.35rem 0.6rem">
+          <button type="button" onclick="editAtChange('companions',-1)" style="width:30px;height:30px;border:none;background:white;border-radius:6px;font-size:1.1rem;font-weight:900;cursor:pointer;color:#856404">−</button>
+          <span id="editAtCompanionsDisplay" style="flex:1;text-align:center;font-weight:900;font-size:1rem;color:#856404">0</span>
+          <button type="button" onclick="editAtChange('companions',1)" style="width:30px;height:30px;border:none;background:white;border-radius:6px;font-size:1.1rem;font-weight:900;cursor:pointer;color:#856404">+</button>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">المبلغ المدفوع (ج.م)</label>
+        <input class="form-input" id="editAtAmount" type="number" min="0" placeholder="0" />
+      </div>
+      <div style="grid-column:1/-1">
+        <label class="form-label">ملاحظات</label>
+        <input class="form-input" id="editAtNotes" type="text" placeholder="اختياري" />
+      </div>
+    </div>
+
+    <!-- ملخص السعر -->
+    <div style="background:var(--accent);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1rem;border:1px solid var(--primary-light);font-size:0.85rem">
+      <div style="display:flex;justify-content:space-between;margin-bottom:0.25rem">
+        <span style="color:var(--text-light)" id="editAtStuBreak">طلاب × 1</span>
+        <span style="font-weight:700" id="editAtStuAmt">300 ج.م</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:0.25rem" id="editAtCompRow">
+        <span style="color:var(--text-light)" id="editAtCompBreak">مرافق × 0</span>
+        <span style="font-weight:700" id="editAtCompAmt">0 ج.م</span>
+      </div>
+      <div style="border-top:1px solid var(--border);margin-top:0.35rem;padding-top:0.35rem;display:flex;justify-content:space-between">
+        <span style="font-weight:700">الإجمالي المقترح</span>
+        <span style="font-size:1.1rem;font-weight:900;color:var(--primary)" id="editAtTotal">300 ج.م</span>
+      </div>
+    </div>
+
+    <div id="editAtSuccess" style="display:none;text-align:center;color:#2e7d32;font-weight:800;padding:0.5rem;margin-bottom:0.75rem">✅ تم التحديث بنجاح!</div>
+
+    <div style="display:flex;gap:0.75rem">
+      <button class="btn btn-primary flex-1" id="editAtSaveBtn" onclick="saveAttendeeEdit()">💾 حفظ التعديل</button>
+      <button class="btn btn-outline" onclick="closeEditAttendeeModal()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -1349,6 +1434,7 @@
               ? `<button class="btn btn-sm btn-success" onclick="event.stopPropagation();markAttended('${d.id}')" style="margin-left:0.25rem">دخول ✓</button>`
               : `<button class="btn btn-sm" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;font-size:0.75rem;padding:0.25rem 0.6rem;border-radius:6px;cursor:pointer;margin-left:0.25rem" onclick="event.stopPropagation();cancelAttendance('${d.id}')">↩ إلغاء الدخول</button>`
             }
+            <button class="btn btn-sm" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;font-size:0.75rem;padding:0.25rem 0.6rem;border-radius:6px;cursor:pointer;margin-left:0.25rem" onclick="event.stopPropagation();openEditAttendeeModal('${d.id}')">✏️ تعديل</button>
             <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();deleteAttendee('${d.id}')">🗑️</button>
           </td>
         </tr>
@@ -1603,6 +1689,123 @@
   document.getElementById('qrModal').addEventListener('click', function(e) {
     if (e.target === this) closeQRModal();
   });
+
+
+  // ==================== EDIT ATTENDEE MODAL ====================
+  let _editAtDocId = null;
+  let _editAtStudents = 1;
+  let _editAtCompanions = 0;
+
+  function openEditAttendeeModal(docId) {
+    const d = allAttendees.find(a => a.id === docId);
+    if (!d) return;
+    _editAtDocId = docId;
+    _editAtStudents   = d.totalStudents  || 1;
+    _editAtCompanions = d.companionCount || 0;
+
+    document.getElementById('editAtName').value     = d.name    || '';
+    document.getElementById('editAtGrade').value    = d.grade   || '';
+    document.getElementById('editAtPhone').value    = d.phone   || '';
+    document.getElementById('editAtAmount').value   = d.amount  || '';
+    document.getElementById('editAtNotes').value    = d.notes   || '';
+    document.getElementById('editAtStudentsDisplay').textContent  = _editAtStudents;
+    document.getElementById('editAtCompanionsDisplay').textContent= _editAtCompanions;
+    document.getElementById('editAtSuccess').style.display = 'none';
+    document.getElementById('editAtSaveBtn').disabled = false;
+    document.getElementById('editAtSaveBtn').textContent = '💾 حفظ التعديل';
+    updateEditAtPrice();
+
+    const modal = document.getElementById('editAttendeeModal');
+    modal.style.opacity = '1';
+    modal.style.pointerEvents = 'all';
+  }
+
+  function closeEditAttendeeModal() {
+    const modal = document.getElementById('editAttendeeModal');
+    modal.style.opacity = '0';
+    modal.style.pointerEvents = 'none';
+    _editAtDocId = null;
+  }
+
+  function editAtChange(type, delta) {
+    if (type === 'students') {
+      _editAtStudents = Math.max(1, _editAtStudents + delta);
+      document.getElementById('editAtStudentsDisplay').textContent = _editAtStudents;
+    } else {
+      _editAtCompanions = Math.max(0, _editAtCompanions + delta);
+      document.getElementById('editAtCompanionsDisplay').textContent = _editAtCompanions;
+    }
+    updateEditAtPrice();
+  }
+
+  function updateEditAtPrice() {
+    const stuTotal  = _editAtStudents   * PRICES.student;
+    const compTotal = _editAtCompanions * PRICES.companion;
+    const total     = stuTotal + compTotal;
+    document.getElementById('editAtStuBreak').textContent  = `طلاب × ${_editAtStudents}`;
+    document.getElementById('editAtStuAmt').textContent    = stuTotal.toLocaleString('ar-EG') + ' ج.م';
+    document.getElementById('editAtCompBreak').textContent = `مرافق × ${_editAtCompanions}`;
+    document.getElementById('editAtCompAmt').textContent   = compTotal.toLocaleString('ar-EG') + ' ج.م';
+    document.getElementById('editAtCompRow').style.display = _editAtCompanions > 0 ? 'flex' : 'none';
+    document.getElementById('editAtTotal').textContent     = total.toLocaleString('ar-EG') + ' ج.م';
+    // تحديث حقل المبلغ تلقائياً
+    document.getElementById('editAtAmount').value = total;
+  }
+
+  async function saveAttendeeEdit() {
+    const btn = document.getElementById('editAtSaveBtn');
+    const newName   = document.getElementById('editAtName').value.trim();
+    const newGrade  = document.getElementById('editAtGrade').value;
+    const newPhone  = document.getElementById('editAtPhone').value.trim();
+    const newAmount = parseFloat(document.getElementById('editAtAmount').value) || 0;
+    const newNotes  = document.getElementById('editAtNotes').value.trim();
+
+    if (!newName) { alert('من فضلك ادخل الاسم'); return; }
+    if (!_editAtDocId) return;
+
+    btn.disabled = true;
+    btn.textContent = '⏳ جاري الحفظ...';
+
+    try {
+      const updateData = {
+        name:          newName,
+        grade:         newGrade,
+        phone:         newPhone,
+        amount:        newAmount,
+        notes:         newNotes || null,
+        totalStudents: _editAtStudents,
+        companionCount:_editAtCompanions,
+        lastEditedAt:  firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      await db.collection('partyAttendees').doc(_editAtDocId).update(updateData);
+
+      // تحديث الـ cache المحلي
+      const idx = allAttendees.findIndex(a => a.id === _editAtDocId);
+      if (idx !== -1) {
+        allAttendees[idx] = { ...allAttendees[idx], ...updateData };
+      }
+
+      // إعادة رسم الجدول
+      renderAttendeeTable(allAttendees);
+      loadStats();
+
+      document.getElementById('editAtSuccess').style.display = 'block';
+      btn.textContent = '✅ تم الحفظ';
+      setTimeout(() => closeEditAttendeeModal(), 1800);
+
+    } catch(e) {
+      btn.disabled = false;
+      btn.textContent = '💾 حفظ التعديل';
+      alert('خطأ في الحفظ:\n' + e.message);
+    }
+  }
+
+  // إغلاق لو ضغط بره الـ modal
+  document.getElementById('editAttendeeModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditAttendeeModal();
+  });
+
 
   // ==================== INIT ====================
   loadStats();
