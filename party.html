@@ -650,20 +650,50 @@
   }
 
   // ==================== STUDENT SUGGESTIONS ====================
-  async function fetchStudentSuggestions() {
-    const q = document.getElementById('regName').value.trim();
-    if (q.length < 2) return;
+  // cache الأسماء في memory — نفس الـ key بتاع collection و student-search
+  let _partyNames = null;
+  let _partyNamesTs = 0;
+  const PARTY_NAMES_TTL = 30 * 60 * 1000;
+
+  async function loadPartyNames() {
+    // جرب sessionStorage الأول (مشترك مع collection و student-search)
+    const NAMES_KEY = `student_names_${schoolId}`;
+    try {
+      const raw = sessionStorage.getItem(NAMES_KEY);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        if (Date.now() - obj.ts < PARTY_NAMES_TTL) {
+          _partyNames = obj.names;
+          return;
+        }
+      }
+    } catch(e) {}
+    // مفيش cache — جيب من Firebase مرة واحدة بس
     try {
       const snap = await db.collection('transactions')
         .where('schoolId', '==', schoolId)
-        .limit(200).get();
+        .where('date', '>=', ACADEMIC_YEAR_START)
+        .get();
       const names = new Set();
-      snap.forEach(d => { if (d.data().studentName?.includes(q)) names.add(d.data().studentName); });
-      const dl = document.getElementById('studentSuggestList');
-      dl.innerHTML = [...names].slice(0,8).map(n => `<option value="${n}">`).join('');
-      const dl2 = document.getElementById('studentSuggestList2');
-      dl2.innerHTML = dl.innerHTML;
+      snap.forEach(d => { if (d.data().studentName) names.add(d.data().studentName); });
+      _partyNames = [...names].sort();
+      try {
+        sessionStorage.setItem(NAMES_KEY, JSON.stringify({ names: _partyNames, ts: Date.now() }));
+      } catch(e) {}
     } catch(e) {}
+  }
+
+  // بنجيب الأسماء مرة واحدة عند تحميل الصفحة
+  loadPartyNames();
+
+  function fetchStudentSuggestions() {
+    const q = document.getElementById('regName').value.trim().toLowerCase();
+    if (q.length < 2 || !_partyNames) return;
+    // فلترة في الميموري — صفر reads
+    const matches = _partyNames.filter(n => n.toLowerCase().includes(q)).slice(0, 8);
+    const html = matches.map(n => `<option value="${n}">`).join('');
+    document.getElementById('studentSuggestList').innerHTML = html;
+    document.getElementById('studentSuggestList2').innerHTML = html;
   }
 
   // ==================== GENERATE TICKET ID ====================
@@ -1112,8 +1142,11 @@
           ${!isAttended ? `
           <button class="btn btn-success w-full" onclick="confirmAttendance('${docId}')">تأكيد الدخول
           </button>` : `
-          <div style="text-align:center;font-size:0.85rem;color:var(--success);font-weight:700">هذا الشخص دخل الحفلة بالفعل${attendedAt ? ' الساعة ' + attendedAt : ''}
-          </div>`}
+          <div style="text-align:center;font-size:0.85rem;color:var(--success);font-weight:700;margin-bottom:0.75rem">هذا الشخص دخل الحفلة بالفعل${attendedAt ? ' الساعة ' + attendedAt : ''}
+          </div>
+          <button class="btn w-full" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;font-weight:700" onclick="cancelAttendance('${docId}')">
+            ↩ إلغاء الدخول
+          </button>`}
         </div>
       `;
 
@@ -1312,7 +1345,10 @@
           <td><span style="padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:700;${d.status==='attended'?'background:#e8f5e9;color:#2e7d32;border:1px solid #4caf50':'background:#fff3cd;color:#856404;border:1px solid #ffc107'}">${d.status==='attended'?'دخل الحفلة':'مسجل'}</span></td>
           <td style="font-size:0.8rem;color:var(--text-light)">${attendedAt}</td>
           <td>
-            ${d.status !== 'attended' ? `<button class="btn btn-sm btn-success" onclick="event.stopPropagation();markAttended('${d.id}')" style="margin-left:0.25rem">دخول</button>` : ''}
+            ${d.status !== 'attended'
+              ? `<button class="btn btn-sm btn-success" onclick="event.stopPropagation();markAttended('${d.id}')" style="margin-left:0.25rem">دخول ✓</button>`
+              : `<button class="btn btn-sm" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;font-size:0.75rem;padding:0.25rem 0.6rem;border-radius:6px;cursor:pointer;margin-left:0.25rem" onclick="event.stopPropagation();cancelAttendance('${d.id}')">↩ إلغاء الدخول</button>`
+            }
             <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();deleteAttendee('${d.id}')">🗑️</button>
           </td>
         </tr>
@@ -1336,6 +1372,25 @@
       if (idx !== -1) {
         allAttendees[idx].status = 'attended';
         allAttendees[idx].attendedAt = { toDate: () => new Date(), seconds: Date.now()/1000 };
+      }
+      renderAttendeeTable(allAttendees);
+      loadStats();
+    } catch(e) {
+      alert('حدث خطأ: ' + e.message);
+    }
+  }
+
+  async function cancelAttendance(docId) {
+    if (!confirm('إلغاء الدخول؟ سيتم تغيير الحالة إلى "مسجل" مرة أخرى')) return;
+    try {
+      await db.collection('partyAttendees').doc(docId).update({
+        status: 'registered',
+        attendedAt: null
+      });
+      const idx = allAttendees.findIndex(a => a.id === docId);
+      if (idx !== -1) {
+        allAttendees[idx].status = 'registered';
+        allAttendees[idx].attendedAt = null;
       }
       renderAttendeeTable(allAttendees);
       loadStats();
