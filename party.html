@@ -955,76 +955,46 @@
     const modal    = document.getElementById('qrModal');
     const isBristol = (schoolId === 'bristol');
 
-    document.getElementById('bristolTicketContainer').style.display  = isBristol ? 'block' : 'none';
-    document.getElementById('defaultTicketContainer').style.display  = isBristol ? 'none'  : 'block';
+    document.getElementById('bristolTicketContainer').style.display  = 'none';
+    document.getElementById('defaultTicketContainer').style.display  = 'block';
 
     const qrPayload  = `https://school-accounting-one.vercel.app/ticket.html?id=${encodeURIComponent(data.ticketId)}`;
     const totalStu   = data.totalStudents || 1;
     const companions = data.companions    || [];
 
+    // ===== DEFAULT: كل المدارس بما فيهم Bristol =====
     if (isBristol) {
-      // ===== BRISTOL: الـ QR فوق صورة التيكيت =====
-      document.getElementById('bName').textContent  = data.name;
-      document.getElementById('bGrade').textContent = data.grade ? `📚 ${data.grade}` : '';
-
-      let badgeText = `🎓 ${totalStu} طالب`;
-      if (companions.length > 0) badgeText += ` + 👤 ${companions.length} مرافق`;
-      badgeText += ` • ${(data.amount || PRICES.student).toLocaleString('ar-EG')} ج.م`;
-      document.getElementById('bBadge').textContent = badgeText;
-
-      document.getElementById('bTicketId').textContent = data.ticketId;
-
-      // رسم QR — colorLight شفاف عشان يمشي مع الصورة الذهبية
-      const bristolWrap = document.getElementById('bristolQrCanvasWrap');
-      bristolWrap.innerHTML = '';
-      const qrDiv = document.createElement('div');
-      bristolWrap.appendChild(qrDiv);
-      new QRCode(qrDiv, {
-        text:         qrPayload,
-        width:        130,
-        height:       130,
-        colorDark:    '#000000',
-        colorLight:   '#c8a93000',   // شفاف — بدون خلفية بيضا
-        correctLevel: QRCode.CorrectLevel.M
-      });
-      // ضمان إزالة أي خلفية بيضا من الـ img
-      setTimeout(() => {
-        const el = bristolWrap.querySelector('img') || bristolWrap.querySelector('canvas');
-        if (el) { el.style.background = 'transparent'; el.style.mixBlendMode = 'multiply'; }
-      }, 120);
-
-    } else {
-      // ===== DEFAULT: باقي المدارس =====
-      if (school) {
-        document.getElementById('qrTicket').style.background =
-          `linear-gradient(135deg,${school.primaryColor} 0%,${school.secondaryColor} 100%)`;
-      }
-      document.getElementById('qrSchoolName').textContent = school?.name || 'المدرسة';
-      document.getElementById('qrName').textContent       = data.name;
-      document.getElementById('qrInfo').textContent       = '📚 ' + (data.grade || '') + (totalStu > 1 ? ` (+${totalStu-1} طالب)` : '');
-
-      let badgeText = `🎓 ${totalStu} طالب`;
-      if (companions.length > 0) badgeText += ` + 👤 ${companions.length} مرافق`;
-      badgeText += ` — ${(data.amount || PRICES.student).toLocaleString('ar-EG')} ج.م`;
-      document.getElementById('qrTypeBadge').textContent = badgeText;
-      document.getElementById('qrTicketId').textContent  = data.ticketId;
-
-      const welcomeEl = document.getElementById('qrWelcomeSchool');
-      if (welcomeEl) welcomeEl.textContent = 'أهلاً بك في حفلة ' + (school?.name || 'المدرسة');
-
-      const canvasWrap = document.getElementById('qrCanvasWrap');
-      canvasWrap.innerHTML = '';
-      const qrDiv = document.createElement('div');
-      canvasWrap.appendChild(qrDiv);
-      new QRCode(qrDiv, {
-        text:         qrPayload,
-        width:        180,
-        height:       180,
-        colorDark:    '#000000',
-        colorLight:   '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
-      });
+      document.getElementById('qrTicket').style.background =
+        'linear-gradient(135deg,#1a1a1a 0%,#c8a951 100%)';
+    } else if (school) {
+      document.getElementById('qrTicket').style.background =
+        `linear-gradient(135deg,${school.primaryColor} 0%,${school.secondaryColor} 100%)`;
     }
+    document.getElementById('qrSchoolName').textContent = isBristol ? 'Bristol Language School' : (school?.name || 'المدرسة');
+    document.getElementById('qrName').textContent       = data.name;
+    document.getElementById('qrInfo').textContent       = '📚 ' + (data.grade || '') + (totalStu > 1 ? ` (+${totalStu-1} طالب)` : '');
+
+    let badgeText = `🎓 ${totalStu} طالب`;
+    if (companions.length > 0) badgeText += ` + 👤 ${companions.length} مرافق`;
+    badgeText += ` — ${(data.amount || PRICES.student).toLocaleString('ar-EG')} ج.م`;
+    document.getElementById('qrTypeBadge').textContent = badgeText;
+    document.getElementById('qrTicketId').textContent  = data.ticketId;
+
+    const welcomeEl = document.getElementById('qrWelcomeSchool');
+    if (welcomeEl) welcomeEl.textContent = 'أهلاً بك في حفلة ' + (isBristol ? 'Bristol Language School' : (school?.name || 'المدرسة'));
+
+    const canvasWrap = document.getElementById('qrCanvasWrap');
+    canvasWrap.innerHTML = '';
+    const qrDiv = document.createElement('div');
+    canvasWrap.appendChild(qrDiv);
+    new QRCode(qrDiv, {
+      text:         qrPayload,
+      width:        180,
+      height:       180,
+      colorDark:    '#000000',
+      colorLight:   '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
 
     // ===== واتساب =====
     const rawPhone = data.phone.replace(/[^0-9]/g, '');
@@ -1088,7 +1058,7 @@
       // QR تحت الـ NOTE — عند 68% من الارتفاع، وسط أفقي
       const qrSize = Math.round(W * 0.30);
       const qrX = Math.round((W - qrSize) / 2);
-      const qrY = Math.round(H * 0.68);
+      const qrY = Math.round(H * 0.76);
       ctx.drawImage(qrEl, qrX, qrY, qrSize, qrSize);
 
       const link = document.createElement('a');
