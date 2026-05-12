@@ -177,8 +177,44 @@ function showError(msg) {
 function renderTicket(d) {
   const school = SCHOOLS[d.schoolId];
   const isAtt  = d.status === 'attended';
+  const isBristol = (d.schoolId === 'bristol');
 
-  if (school) {
+  if (isBristol) {
+    // ===== BRISTOL: أسود وذهبي =====
+    document.getElementById('topStrip').style.background = 'linear-gradient(90deg,#1a1a1a,#d4a843)';
+    document.getElementById('attendBtn').style.background = '#1a1a1a';
+
+    // الهيدر ذهبي
+    const header = document.querySelector('.ticket-header');
+    if (header) {
+      header.style.background = 'linear-gradient(135deg,#c8952a 0%,#e8c96a 40%,#c8952a 70%,#b8821a 100%)';
+      header.style.color = '#1a1a1a';
+    }
+    // الـ school label والاسم
+    const schoolLbl = document.querySelector('.school-lbl');
+    if (schoolLbl) schoolLbl.style.color = '#2a2a2a';
+    const nameEl = document.querySelector('.attendee-name');
+    if (nameEl) nameEl.style.color = '#1a1a1a';
+    const subEl = document.querySelector('.attendee-sub');
+    if (subEl) subEl.style.color = '#2a2a2a';
+
+    // badge colors
+    document.querySelector('.status-badge').style.background = 'rgba(0,0,0,0.12)';
+    document.querySelector('.status-badge').style.borderColor = 'rgba(0,0,0,0.3)';
+    document.querySelector('.status-badge').style.color = '#1a1a1a';
+
+    // separator notches داكنة
+    const sep = document.querySelector('.ticket-separator');
+    if (sep) {
+      sep.style.borderTopColor = '#1a1a1a';
+      sep.style.setProperty('--notch-bg','#1a1a1a');
+    }
+
+    // amount color
+    document.querySelector('.info-item.amount .info-val').style.color = '#b8821a';
+    document.getElementById('attendBtn').style.color = '#d4a843';
+
+  } else if (school) {
     document.getElementById('topStrip').style.background = `linear-gradient(90deg,${school.p},${school.s})`;
     document.getElementById('attendBtn').style.background = school.p;
     document.querySelector('.info-item.amount .info-val').style.color = school.p;
