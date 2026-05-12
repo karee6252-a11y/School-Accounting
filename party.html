@@ -219,7 +219,7 @@
     }
     .bristol-img-ticket .b-qr-overlay {
       position: absolute;
-      bottom: 5%;
+      top: 72%;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -1033,7 +1033,7 @@
       const d2          = currentQRData;
       const totalStu2   = d2?.totalStudents || 1;
       const companions2 = d2?.companions    || [];
-      const schoolName2 = school?.name      || 'المدرسة';
+      const schoolName2 = isBristol ? 'Bristol Language School' : (school?.name || 'المدرسة');
       let waMsg = `🎉 *تذكرة حفلة ${schoolName2}*\n\n*الاسم:* ${data.name}\n`;
       if (d2?.grade)      waMsg += `📚 *الصف:* ${d2.grade}\n`;
       if (totalStu2 > 1)  waMsg += `🎓 *عدد الطلاب:* ${totalStu2}\n`;
@@ -1066,10 +1066,55 @@
 
   function downloadQR() {
     const isBristol = (schoolId === 'bristol');
-    const wrap = isBristol
-      ? document.getElementById('bristolQrCanvasWrap')
-      : document.getElementById('qrCanvasWrap');
 
+    if (isBristol) {
+      // ===== بريستول: نرسم الصورة الكاملة + QR فوقها =====
+      const wrap  = document.getElementById('bristolQrCanvasWrap');
+      const qrEl  = wrap.querySelector('canvas') || wrap.querySelector('img');
+      if (!qrEl) { alert('QR غير جاهز، انتظر لحظة وحاول مرة أخرى'); return; }
+
+      const ticketImg = document.querySelector('#bristolImgTicket img.ticket-bg');
+      if (!ticketImg) { alert('صورة التيكيت غير موجودة'); return; }
+
+      const doComposite = () => {
+        const W = ticketImg.naturalWidth  || 900;
+        const H = ticketImg.naturalHeight || 1600;
+        const cvs = document.createElement('canvas');
+        cvs.width = W; cvs.height = H;
+        const ctx = cvs.getContext('2d');
+
+        // ارسم خلفية التيكيت
+        ctx.drawImage(ticketImg, 0, 0, W, H);
+
+        // حجم الـ QR ومكانه في المنطقة الذهبية تحت الـ NOTE
+        // الـ NOTE عند ~62%، المنطقة من 68%–98% → المركز عند ~83%
+        const qrSize = Math.round(W * 0.35);          // 35% من عرض الصورة
+        const qrX    = Math.round((W - qrSize) / 2);  // وسط أفقي
+        const qrY    = Math.round(H * 0.72);          // 72% من الارتفاع
+
+        // ارسم الـ QR بدون خلفية
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.drawImage(qrEl, qrX, qrY, qrSize, qrSize);
+        ctx.globalCompositeOperation = 'source-over';
+
+        const link = document.createElement('a');
+        link.href     = cvs.toDataURL('image/png');
+        link.download = (currentQRData?.name || 'bristol') + '-ticket.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      if (ticketImg.complete && ticketImg.naturalWidth > 0) {
+        doComposite();
+      } else {
+        ticketImg.onload = doComposite;
+      }
+      return;
+    }
+
+    // ===== باقي المدارس =====
+    const wrap  = document.getElementById('qrCanvasWrap');
     const qrCvs = wrap.querySelector('canvas');
     const qrImg = wrap.querySelector('img');
 
