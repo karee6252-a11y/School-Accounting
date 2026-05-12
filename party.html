@@ -1085,7 +1085,8 @@
     }
 
     // باقي المدارس
-    const wrap  = document.getElementById('qrCanvasWrap');
+    const isCardiff = (schoolId === 'cardiff');
+    const wrap  = document.getElementById(isCardiff ? 'bristolQrCanvasWrap' : 'qrCanvasWrap');
     const qrCvs = wrap.querySelector('canvas');
     const qrImg = wrap.querySelector('img');
     if (qrCvs) {
