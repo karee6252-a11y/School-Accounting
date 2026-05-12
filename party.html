@@ -1409,8 +1409,10 @@
         ? d.attendedAt.toDate().toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'})
         : '-';
       const totalStu = d.totalStudents || 1;
+      const isAtt = d.status === 'attended';
+      const rowStyle = isAtt ? 'background:#f0fdf4;border-right:4px solid #4caf50;' : '';
       return `
-        <tr class="attendee-row" onclick="openQRModalById('${d.id}')">
+        <tr class="attendee-row" onclick="openQRModalById('${d.id}')" style="${rowStyle}">
           <td>${i+1}</td>
           <td>
             <strong>${d.name}</strong>
@@ -1427,14 +1429,14 @@
           <td>${d.grade || '-'}</td>
           <td dir="ltr" style="text-align:right">${d.phone}</td>
           <td><span class="badge badge-primary">${payLabels[d.paymentType]||d.paymentType}</span> <span style="font-weight:800">${d.amount || PRICES.student} ج.م</span></td>
-          <td><span style="padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:700;${d.status==='attended'?'background:#e8f5e9;color:#2e7d32;border:1px solid #4caf50':'background:#fff3cd;color:#856404;border:1px solid #ffc107'}">${d.status==='attended'?'دخل الحفلة':'مسجل'}</span></td>
-          <td style="font-size:0.8rem;color:var(--text-light)">${attendedAt}</td>
+          <td><span style="padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:700;${isAtt?'background:#dcfce7;color:#166534;border:1.5px solid #4caf50':'background:#fff3cd;color:#856404;border:1px solid #ffc107'}">${isAtt?'✅ دخل الحفلة':'⏳ مسجل'}</span></td>
+          <td style="font-size:0.8rem;color:${isAtt?'#166534':'var(--text-light)'};font-weight:${isAtt?'800':'400'}">${attendedAt}</td>
           <td>
-            ${d.status !== 'attended'
+            ${!isAtt
               ? `<button class="btn btn-sm btn-success" onclick="event.stopPropagation();markAttended('${d.id}')" style="margin-left:0.25rem">دخول ✓</button>`
-              : `<button class="btn btn-sm" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;font-size:0.75rem;padding:0.25rem 0.6rem;border-radius:6px;cursor:pointer;margin-left:0.25rem" onclick="event.stopPropagation();cancelAttendance('${d.id}')">↩ إلغاء الدخول</button>`
+              : `<button class="btn btn-sm" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;font-size:0.75rem;padding:0.25rem 0.6rem;border-radius:6px;cursor:pointer;margin-left:0.25rem" onclick="event.stopPropagation();cancelAttendance('${d.id}')">↩ إلغاء</button>`
             }
-            <button class="btn btn-sm" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;font-size:0.75rem;padding:0.25rem 0.6rem;border-radius:6px;cursor:pointer;margin-left:0.25rem" onclick="event.stopPropagation();openEditAttendeeModal('${d.id}')">✏️ تعديل</button>
+            <button class="btn btn-sm" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;font-size:0.75rem;padding:0.25rem 0.6rem;border-radius:6px;cursor:pointer;margin-left:0.25rem" onclick="event.stopPropagation();openEditAttendeeModal('${d.id}')">تعديل</button>
             <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();deleteAttendee('${d.id}')">🗑️</button>
           </td>
         </tr>
