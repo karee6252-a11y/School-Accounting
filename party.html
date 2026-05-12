@@ -192,7 +192,7 @@
     }
     .bristol-img-ticket .b-student-info {
       position: absolute;
-      top: 57%;
+      top: 52%;
       left: 50%;
       transform: translateX(-50%);
       width: 85%;
@@ -219,7 +219,7 @@
     }
     .bristol-img-ticket .b-qr-overlay {
       position: absolute;
-      top: 72%;
+      top: 68%;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -582,20 +582,21 @@
 <div class="modal-overlay" id="qrModal">
   <div class="modal-box">
 
-    <!-- ▌ BRISTOL: صورة التيكيت الأصلية + QR فوقها -->
+    <!-- ▌ BRISTOL: Cardiff-style ticket with Bristol gold colors -->
     <div id="bristolTicketContainer" style="display:none">
-      <div class="bristol-img-ticket" id="bristolImgTicket">
-        <img class="ticket-bg" src="IMG_2686.JPG.jpeg" alt="Bristol Ticket" />
-        <!-- اسم الطالب + الصف فوق الصورة -->
-        <div class="b-student-info">
-          <div class="b-student-name" id="bName">-</div>
-          <div class="b-student-grade" id="bGrade"></div>
-          <div class="b-student-grade" id="bBadge" style="margin-top:0.2rem;background:rgba(0,0,0,0.1)"></div>
+      <div class="qr-ticket" id="bristolQrTicket" style="background:linear-gradient(135deg,#b8942a 0%,#d4a843 40%,#c8a030 100%);margin-bottom:1rem">
+        <div class="ticket-school" style="opacity:0.8;color:#1a1a1a">Bristol Language School</div>
+        <div class="ticket-name" id="bName" style="color:#1a1a1a">-</div>
+        <div class="ticket-info" id="bGrade" style="color:#2a2a2a;opacity:0.85">-</div>
+        <div class="ticket-type-badge" id="bBadge" style="background:rgba(0,0,0,0.15);color:#1a1a1a">-</div>
+        <div class="qr-canvas-wrap" id="bristolQrCanvasWrap" style="background:white">
         </div>
-        <!-- QR تحت الـ NOTE بدون خلفية بيضا -->
-        <div class="b-qr-overlay">
-          <div id="bristolQrCanvasWrap"></div>
-          <div class="b-ticket-id" id="bTicketId">-</div>
+        <div class="ticket-id" id="bTicketId" style="color:#1a1a1a;opacity:0.5">-</div>
+        <div style="margin-top:1rem;background:rgba(0,0,0,0.1);border:1px solid rgba(0,0,0,0.15);border-radius:10px;padding:0.75rem 1rem;text-align:center">
+          <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.25rem;color:#1a1a1a">أهلاً بك في حفلة Bristol Language School</div>
+          <div style="font-size:0.72rem;color:#2a2a2a;opacity:0.9;line-height:1.5">يسعدنا حضورك معنا في هذه المناسبة الجميلة<br>
+            <span style="color:#5a3000;font-weight:700">يرجى الاحتفاظ بهذا الكود للدخول إلى الحفلة</span>
+          </div>
         </div>
       </div>
     </div>
@@ -963,35 +964,30 @@
     const companions = data.companions    || [];
 
     if (isBristol) {
-      // ===== BRISTOL: الـ QR فوق صورة التيكيت =====
+      // ===== BRISTOL: Cardiff-style display =====
       document.getElementById('bName').textContent  = data.name;
-      document.getElementById('bGrade').textContent = data.grade ? `📚 ${data.grade}` : '';
+      document.getElementById('bGrade').textContent = data.grade ? `📚 ${data.grade}` + (totalStu > 1 ? `  •  🎓 ${totalStu} طلاب` : '') : '';
 
       let badgeText = `🎓 ${totalStu} طالب`;
       if (companions.length > 0) badgeText += ` + 👤 ${companions.length} مرافق`;
-      badgeText += ` • ${(data.amount || PRICES.student).toLocaleString('ar-EG')} ج.م`;
+      badgeText += ` — ${(data.amount || PRICES.student).toLocaleString('ar-EG')} ج.م`;
       document.getElementById('bBadge').textContent = badgeText;
 
       document.getElementById('bTicketId').textContent = data.ticketId;
 
-      // رسم QR — colorLight شفاف عشان يمشي مع الصورة الذهبية
+      // رسم QR بخلفية بيضا زي كاردييف
       const bristolWrap = document.getElementById('bristolQrCanvasWrap');
       bristolWrap.innerHTML = '';
       const qrDiv = document.createElement('div');
       bristolWrap.appendChild(qrDiv);
       new QRCode(qrDiv, {
         text:         qrPayload,
-        width:        130,
-        height:       130,
+        width:        180,
+        height:       180,
         colorDark:    '#000000',
-        colorLight:   '#c8a93000',   // شفاف — بدون خلفية بيضا
+        colorLight:   '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
       });
-      // ضمان إزالة أي خلفية بيضا من الـ img
-      setTimeout(() => {
-        const el = bristolWrap.querySelector('img') || bristolWrap.querySelector('canvas');
-        if (el) { el.style.background = 'transparent'; el.style.mixBlendMode = 'multiply'; }
-      }, 120);
 
     } else {
       // ===== DEFAULT: باقي المدارس =====
@@ -1088,9 +1084,9 @@
 
         // حجم الـ QR ومكانه في المنطقة الذهبية تحت الـ NOTE
         // الـ NOTE عند ~62%، المنطقة من 68%–98% → المركز عند ~83%
-        const qrSize = Math.round(W * 0.35);          // 35% من عرض الصورة
+        const qrSize = Math.round(W * 0.28);          // 28% من عرض الصورة
         const qrX    = Math.round((W - qrSize) / 2);  // وسط أفقي
-        const qrY    = Math.round(H * 0.72);          // 72% من الارتفاع
+        const qrY    = Math.round(H * 0.80);          // 80% من الارتفاع — تحت الـ NOTE
 
         // ارسم الـ QR بدون خلفية
         ctx.globalCompositeOperation = 'multiply';
