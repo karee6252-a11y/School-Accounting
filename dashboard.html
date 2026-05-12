@@ -58,6 +58,13 @@
         </div>
       </div>
 
+      <!-- Cache bar -->
+      <div id="cacheBar" style="display:none;align-items:center;gap:0.5rem;justify-content:flex-end;font-size:0.75rem;color:var(--text-light);margin-bottom:0.5rem">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        <span id="cacheMsg"></span>
+        <button onclick="forceRefresh()" style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.75rem;text-decoration:underline;padding:0">تحديث الآن</button>
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem" class="animate-in">
 
         <!-- Recent Transactions -->
@@ -73,7 +80,7 @@
                   <th>الطالب</th>
                   <th>البند</th>
                   <th>المبلغ</th>
-                  <th>الوقت</th>
+                  <th>التاريخ</th>
                 </tr>
               </thead>
               <tbody id="recentTableBody">
@@ -98,7 +105,7 @@
       <!-- Stage summary -->
       <div class="card mt-2 animate-in">
         <div class="card-header">
-            <span class="card-title">ملخص المراحل</span>
+          <span class="card-title">ملخص المراحل</span>
           <a href="reports.html" class="btn btn-sm btn-secondary">التقارير الكاملة</a>
         </div>
         <div class="card-body">
@@ -112,7 +119,6 @@
   </div>
 </div>
 
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -121,185 +127,195 @@
 <script>
   renderLayout('dashboard', 'الرئيسية');
 
-  const session = SESSION.get();
+  const session  = SESSION.get();
   const schoolId = session.schoolId;
 
-  // =====================================================
-  // حساب التواريخ — مرة واحدة قبل أي queries
-  // =====================================================
-  function buildDateRanges() {
-    const now = new Date();
+  // ─────────────────────────────────────────
+  // CACHE — sessionStorage لمدة 10 دقائق
+  // كل مستخدم عنده cache منفصل بالـ schoolId
+  // ─────────────────────────────────────────
+  const CACHE_KEY    = `dash_v2_${schoolId}`;
+  const CACHE_TTL_MS = 10 * 60 * 1000;
 
-    const pad = n => String(n).padStart(2, '0');
-    const toStr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-
-    const todayStr = toStr(now);
-
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastOfMonth  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    // أول يوم في الأسبوع (الأحد = 0)
-    const firstOfWeek = new Date(now);
-    firstOfWeek.setDate(now.getDate() - now.getDay());
-
-    return {
-      todayStr,
-      firstOfMonthStr: toStr(firstOfMonth),
-      lastOfMonthStr:  toStr(lastOfMonth),
-      firstOfWeekStr:  toStr(firstOfWeek)
-    };
+  function getCached() {
+    try {
+      const raw = sessionStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      if (Date.now() - obj.ts > CACHE_TTL_MS) { sessionStorage.removeItem(CACHE_KEY); return null; }
+      return obj;
+    } catch { return null; }
   }
 
-  // =====================================================
-  // showError — بدل ما تفضل spinners للأبد
-  // =====================================================
+  function setCache(payload) {
+    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ...payload, ts: Date.now() })); }
+    catch { /* storage full */ }
+  }
+
+  function showCacheBar(ts) {
+    const bar  = document.getElementById('cacheBar');
+    const msg  = document.getElementById('cacheMsg');
+    const mins = Math.floor((Date.now() - ts) / 60000);
+    bar.style.display = 'flex';
+    msg.textContent = mins < 1 ? 'بيانات محدّثة للتو' : `آخر تحديث من Firebase منذ ${mins} د`;
+  }
+
+  function forceRefresh() {
+    sessionStorage.removeItem(CACHE_KEY);
+    document.getElementById('cacheBar').style.display = 'none';
+    document.getElementById('recentTableBody').innerHTML = '<tr><td colspan="4"><div class="loading-spinner"></div></td></tr>';
+    document.getElementById('breakdownArea').innerHTML  = '<div class="loading-spinner"></div>';
+    document.getElementById('stageStats').innerHTML     = '<div class="loading-spinner"></div>';
+    loadDashboard();
+  }
+
+  // ─────────────────────────────────────────
+  // حساب التواريخ
+  // ─────────────────────────────────────────
+  function buildDateRanges() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const toStr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const todayStr     = toStr(now);
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastOfMonth  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const firstOfWeek  = new Date(now);
+    firstOfWeek.setDate(now.getDate() - now.getDay());
+    return { todayStr, firstOfMonthStr: toStr(firstOfMonth),
+             lastOfMonthStr: toStr(lastOfMonth), firstOfWeekStr: toStr(firstOfWeek) };
+  }
+
+  // ─────────────────────────────────────────
+  // showError
+  // ─────────────────────────────────────────
   function showError(msg) {
-    ['recentTableBody', 'breakdownArea', 'stageStats'].forEach(id => {
+    ['recentTableBody','breakdownArea','stageStats'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = `<div class="empty-state"><div class="empty-state-title" style="color:var(--danger)">خطأ: ${msg}</div></div>`;
     });
-    ['statTodayTotal','statMonthTotal','statStudents','statPending',
-     'statTodayCount','statMonthCount'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = '—';
-    });
+    ['statTodayTotal','statMonthTotal','statStudents','statPending','statTodayCount','statMonthCount']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
   }
 
-  // =====================================================
-  // renderRecentRows — يرسم جدول آخر التحصيلات
-  // =====================================================
-  function renderRecentRows(docs) {
+  // ─────────────────────────────────────────
+  // renderAll — يرسم كل الـ UI من object جاهز
+  // ─────────────────────────────────────────
+  function renderAll(d) {
+    document.getElementById('statTodayTotal').textContent = formatCurrency(d.todayTotal);
+    document.getElementById('statTodayCount').textContent = `${d.todayCount} عملية`;
+    document.getElementById('statStudents').textContent   = d.todayStudents;
+    document.getElementById('statPending').textContent    = d.weekCount;
+    document.getElementById('statMonthTotal').textContent = formatCurrency(d.monthTotal);
+    document.getElementById('statMonthCount').textContent = `${d.monthCount} عملية`;
+
+    // آخر التحصيلات
     const tbody = document.getElementById('recentTableBody');
-    if (!docs.length) {
-      tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">
-        <div class="empty-state-title">لا توجد تحصيلات بعد</div>
-      </div></td></tr>`;
-      return;
+    if (!d.recentDocs.length) {
+      tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="empty-state-title">لا توجد تحصيلات بعد</div></div></td></tr>`;
+    } else {
+      tbody.innerHTML = '';
+      d.recentDocs.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${r.studentName}</strong><br><span class="text-sm text-muted">${r.grade}</span></td>
+          <td><span class="badge badge-primary">${r.paymentItem}</span></td>
+          <td class="text-bold text-primary">${formatCurrency(r.amount)}</td>
+          <td class="text-sm text-muted">${r.date}</td>`;
+        tbody.appendChild(tr);
+      });
     }
-    tbody.innerHTML = '';
-    docs.forEach(doc => {
-      const d = doc.data();
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><strong>${d.studentName}</strong><br><span class="text-sm text-muted">${d.grade}</span></td>
-        <td><span class="badge badge-primary">${d.paymentItem}</span></td>
-        <td class="text-bold text-primary">${formatCurrency(d.amount)}</td>
-        <td class="text-sm text-muted">${d.date}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
 
-  // =====================================================
-  // renderBreakdown — توزيع المدفوعات
-  // =====================================================
-  function renderBreakdown(itemTotals) {
+    // توزيع المدفوعات
     const area = document.getElementById('breakdownArea');
-    if (!Object.keys(itemTotals).length) {
+    if (!Object.keys(d.itemTotals).length) {
       area.innerHTML = `<div class="empty-state"><div class="empty-state-title">لا توجد بيانات</div></div>`;
-      return;
+    } else {
+      const maxVal = Math.max(...Object.values(d.itemTotals)) || 1;
+      area.innerHTML = Object.entries(d.itemTotals).map(([item, total]) => `
+        <div style="margin-bottom:0.75rem">
+          <div class="d-flex justify-between mb-1">
+            <span class="text-sm text-bold">${item}</span>
+            <span class="text-sm text-primary text-bold">${formatCurrency(total)}</span>
+          </div>
+          <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${Math.round(total/maxVal*100)}%;background:var(--primary);border-radius:4px;transition:width 1s ease"></div>
+          </div>
+        </div>`).join('');
     }
-    const maxVal = Math.max(...Object.values(itemTotals)) || 1;
-    area.innerHTML = Object.entries(itemTotals).map(([item, total]) => `
-      <div style="margin-bottom:0.75rem">
-        <div class="d-flex justify-between mb-1">
-          <span class="text-sm text-bold">${item}</span>
-          <span class="text-sm text-primary text-bold">${formatCurrency(total)}</span>
-        </div>
-        <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
-          <div style="height:100%;width:${Math.round(total/maxVal*100)}%;background:var(--primary);border-radius:4px;transition:width 1s ease"></div>
-        </div>
-      </div>
-    `).join('');
-  }
 
-  // =====================================================
-  // renderStages — ملخص المراحل
-  // =====================================================
-  function renderStages(stageTotals) {
-    const stageIcons = {
+    // ملخص المراحل
+    const icons = {
       pre_kg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
       kg:     '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',
       grade:  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
       prep:   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>'
     };
-    const defaultIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>';
+    const defIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>';
     document.getElementById('stageStats').innerHTML = Object.entries(STAGES).map(([key, stage]) => {
-      const data = stageTotals[key] || { total: 0, count: 0 };
-      return `
-        <div class="stat-card">
-          <div class="stat-icon">${stageIcons[key] || defaultIcon}</div>
-          <div>
-            <div class="stat-value" style="font-size:1.1rem">${formatCurrency(data.total)}</div>
-            <div class="stat-label">${stage.labelAr}</div>
-            <div class="stat-change">${data.count} عملية</div>
-          </div>
+      const sd = d.stageTotals[key] || { total: 0, count: 0 };
+      return `<div class="stat-card">
+        <div class="stat-icon">${icons[key] || defIcon}</div>
+        <div>
+          <div class="stat-value" style="font-size:1.1rem">${formatCurrency(sd.total)}</div>
+          <div class="stat-label">${stage.labelAr}</div>
+          <div class="stat-change">${sd.count} عملية</div>
         </div>
-      `;
+      </div>`;
     }).join('');
   }
 
-  // =====================================================
-  // loadDashboard — كل الـ queries بتشتغل مع بعض بـ Promise.all
-  // =====================================================
+  // ─────────────────────────────────────────
+  // loadDashboard
+  // التحسينات:
+  //  ✅ Cache 10 دقائق — صفر reads لو المستخدم رجع للصفحة
+  //  ✅ Query واحد للشهر بدل 3 queries (اليوم + الشهر + الأسبوع)
+  //  ✅ اليوم والأسبوع محسوبين من monthSnap في الميموري
+  //  ✅ recentSnap مع fallback لو مفيش index
+  // ─────────────────────────────────────────
   async function loadDashboard() {
-    const { todayStr, firstOfMonthStr, lastOfMonthStr, firstOfWeekStr } = buildDateRanges();
+    // 1. جرب الـ cache الأول
+    const cached = getCached();
+    if (cached) {
+      renderAll(cached);
+      showCacheBar(cached.ts);
+      return; // ✅ صفر reads من Firebase
+    }
 
+    // 2. جيب من Firebase
+    const { todayStr, firstOfMonthStr, lastOfMonthStr, firstOfWeekStr } = buildDateRanges();
     const col = db.collection('transactions').where('schoolId', '==', schoolId);
 
     try {
-      //  الـ 3 queries بيشتغلوا مع بعض — مش sequential
-      //  weekCount query منفصل خفيف بدل ما نجيب كل الشهر ونفلتر
-      const [todaySnap, monthSnap, weekSnap, recentSnap] = await Promise.all([
-        // اليوم
-        col.where('date', '==', todayStr).get(),
-
-        // الشهر — للإحصائيات والتوزيع
+      // query الشهر + آخر التحصيلات فقط — 2 بدل 4
+      const [monthSnap, recentSnap] = await Promise.all([
         col.where('date', '>=', firstOfMonthStr)
            .where('date', '<=', lastOfMonthStr)
            .get(),
-
-        // الأسبوع — query مستقل خفيف بدل filter على monthSnap
-        col.where('date', '>=', firstOfWeekStr)
-           .where('date', '<=', todayStr)
-           .get(),
-
-        // آخر 8 تحصيلات — مع fallback لو مفيش index
         col.orderBy('createdAt', 'desc').limit(8).get()
-           .catch(() => null)  // لو فيه مشكلة index، هنتعامل تحت
+           .catch(() => null)
       ]);
 
-      // ---- إحصائيات اليوم ----
-      let todayTotal = 0;
-      const todayStudents = new Set();
-      todaySnap.forEach(doc => {
-        const d = doc.data();
-        todayTotal += Number(d.amount) || 0;
-        if (d.studentName) todayStudents.add(d.studentName);
-      });
-      document.getElementById('statTodayTotal').textContent = formatCurrency(todayTotal);
-      document.getElementById('statTodayCount').textContent = `${todaySnap.size} عملية`;
-      document.getElementById('statStudents').textContent = todayStudents.size;
-
-      // ---- إحصائيات الأسبوع (من query منفصل خفيف) ----
-      document.getElementById('statPending').textContent = weekSnap.size;
-
-      // ---- إحصائيات الشهر — loop واحد بس ----
-      let monthTotal = 0;
-      const itemTotals = {};
+      // حساب كل الإحصائيات من monthSnap في loop واحد
+      let todayTotal = 0, todayCount = 0, monthTotal = 0, weekCount = 0;
+      const todayStudentsSet = new Set();
+      const itemTotals  = {};
       const stageTotals = {};
 
       monthSnap.forEach(doc => {
-        const d = doc.data();
+        const d      = doc.data();
         const amount = Number(d.amount) || 0;
-        monthTotal += amount;
+        monthTotal  += amount;
 
-        // توزيع البنود
-        if (d.paymentItem) {
-          itemTotals[d.paymentItem] = (itemTotals[d.paymentItem] || 0) + amount;
+        if (d.date === todayStr) {
+          todayTotal += amount;
+          todayCount++;
+          if (d.studentName) todayStudentsSet.add(d.studentName);
         }
+        if (d.date >= firstOfWeekStr && d.date <= todayStr) weekCount++;
 
-        // توزيع المراحل
+        if (d.paymentItem)
+          itemTotals[d.paymentItem] = (itemTotals[d.paymentItem] || 0) + amount;
+
         if (d.stage) {
           if (!stageTotals[d.stage]) stageTotals[d.stage] = { total: 0, count: 0 };
           stageTotals[d.stage].total += amount;
@@ -307,29 +323,31 @@
         }
       });
 
-      document.getElementById('statMonthTotal').textContent = formatCurrency(monthTotal);
-      document.getElementById('statMonthCount').textContent = `${monthSnap.size} عملية`;
-
-      // ---- آخر التحصيلات ----
-      // لو recentSnap نجح (index موجود) → استخدمه
-      // لو فشل (null) → fallback من monthSnap بدون sort زيادة
+      // آخر التحصيلات — بيانات خام (plain objects) عشان تتحفظ في cache
       let recentDocs;
       if (recentSnap) {
-        recentDocs = recentSnap.docs;
+        recentDocs = recentSnap.docs.map(doc => doc.data());
       } else {
-        // fallback: نرتب monthSnap في الميموري — هيحصل مرة واحدة بس لو مفيش index
         recentDocs = [...monthSnap.docs]
           .sort((a, b) => (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0))
-          .slice(0, 8);
+          .slice(0, 8)
+          .map(doc => doc.data());
       }
 
-      // ---- Render ----
-      renderRecentRows(recentDocs);
-      renderBreakdown(itemTotals);
-      renderStages(stageTotals);
+      const payload = {
+        todayTotal, todayCount,
+        todayStudents: todayStudentsSet.size,
+        weekCount,
+        monthTotal, monthCount: monthSnap.size,
+        recentDocs, itemTotals, stageTotals
+      };
+
+      setCache(payload);
+      renderAll(payload);
+      showCacheBar(Date.now());
 
     } catch (err) {
-      console.error('Dashboard load error:', err);
+      console.error('Dashboard error:', err);
       showError('حدث خطأ في تحميل البيانات، حاول مرة أخرى');
     }
   }

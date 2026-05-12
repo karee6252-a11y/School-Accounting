@@ -472,37 +472,49 @@
   let allStudentNames = [];
   let searchTimeout = null;
 
-  // Load distinct student names from transactions
+  // ── Load distinct student names — مع cache 30 دقيقة في sessionStorage ──
+  // التحسين: بدل ما نجيب كل الـ transactions (آلاف reads)،
+  //   نجيب بس آخر 3 أشهر + نحفظ النتيجة في cache
   let namesLoaded = false;
   async function loadStudentNames() {
     if (namesLoaded) return;
+    const NAMES_KEY = `student_names_${schoolId}`;
+    const NAMES_TTL = 30 * 60 * 1000; // 30 دقيقة
     try {
-      const snap = await db.collection('transactions')
-        .where('schoolId', '==', schoolId)
-        .get();
+      // جرب الـ cache الأول
+      const raw = sessionStorage.getItem(NAMES_KEY);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        if (Date.now() - obj.ts < NAMES_TTL) {
+          allStudentNames = obj.names;
+          namesLoaded = true;
+          return; // ✅ صفر reads
+        }
+      }
+      // جيب من Firebase — آخر 3 أشهر بس بدل كل السجلات
+      // جيب من بداية السنة الدراسية الحالية
       const names = new Set();
-      snap.forEach(doc => {
-        const n = doc.data().studentName;
-        if (n) names.add(n);
-      });
-      // Also from debts collection
-      try {
-        const dSnap = await db.collection('debts')
+      const [snap, dSnap] = await Promise.all([
+        db.collection('transactions')
           .where('schoolId', '==', schoolId)
-          .get();
-        dSnap.forEach(doc => {
-          const n = doc.data().studentName;
-          if (n) names.add(n);
-        });
-      } catch(e2) { /* debts collection might not exist */ }
+          .where('date', '>=', ACADEMIC_YEAR_START)
+          .get(),
+        db.collection('debts')
+          .where('schoolId', '==', schoolId)
+          .get()
+          .catch(() => null)
+      ]);
+      snap.forEach(doc => { if (doc.data().studentName) names.add(doc.data().studentName); });
+      if (dSnap) dSnap.forEach(doc => { if (doc.data().studentName) names.add(doc.data().studentName); });
       allStudentNames = [...names].sort();
       namesLoaded = true;
-      console.log('Names loaded:', allStudentNames.length);
+      // احفظ في cache
+      try { sessionStorage.setItem(NAMES_KEY, JSON.stringify({ names: allStudentNames, ts: Date.now() })); }
+      catch(e) {}
     } catch(e) {
       console.warn('loadStudentNames error:', e);
     }
   }
-  // Start loading immediately on page load
   loadStudentNames();
 
   function onSearchInput() {

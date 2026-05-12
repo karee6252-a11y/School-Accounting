@@ -829,12 +829,33 @@
   }
 
   async function loadStudentSuggestions(){
-    try{
-      const snap=await db.collection('transactions').where('schoolId','==',schoolId).limit(1000).get();
-      const names=new Set();
-      snap.forEach(doc=>names.add(doc.data().studentName));
-      document.getElementById('studentSuggestions').innerHTML=[...names].map(n=>`<option value="${n}">`).join('');
-    }catch(e){}
+    // ── Cache في sessionStorage — مش بنعمل query كل ما حد يفتح الصفحة ──
+    const NAMES_KEY = `student_names_${schoolId}`;
+    const NAMES_TTL = 30 * 60 * 1000; // 30 دقيقة
+    try {
+      // جرب الـ cache الأول
+      const raw = sessionStorage.getItem(NAMES_KEY);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        if (Date.now() - obj.ts < NAMES_TTL) {
+          document.getElementById('studentSuggestions').innerHTML =
+            obj.names.map(n => `<option value="${n}">`).join('');
+          return; // ✅ صفر reads
+        }
+      }
+      // جيب من بداية السنة الدراسية الحالية — مش 3 أشهر
+      const snap = await db.collection('transactions')
+        .where('schoolId', '==', schoolId)
+        .where('date', '>=', ACADEMIC_YEAR_START)
+        .get();
+      const names = new Set();
+      snap.forEach(doc => { if (doc.data().studentName) names.add(doc.data().studentName); });
+      const namesArr = [...names].sort();
+      // احفظ في cache
+      sessionStorage.setItem(NAMES_KEY, JSON.stringify({ names: namesArr, ts: Date.now() }));
+      document.getElementById('studentSuggestions').innerHTML =
+        namesArr.map(n => `<option value="${n}">`).join('');
+    } catch(e) {}
   }
 
   async function exportTodayPDF(){
