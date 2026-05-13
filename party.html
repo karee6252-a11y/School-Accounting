@@ -906,20 +906,40 @@
     const rawPhone = data.phone.replace(/[^0-9]/g, '');
     const waPhone  = rawPhone.startsWith('0') ? '2' + rawPhone : rawPhone;
     setTimeout(() => {
-      const d2          = currentQRData;
-      const totalStu2   = d2?.totalStudents || 1;
-      const companions2 = d2?.companions    || [];
+      const totalStu2   = data.totalStudents || 1;
+      const companions2 = data.companions    || [];
+      const companionCnt = data.companionCount || companions2.length || 0;
       const schoolName2 = isBristol ? 'Bristol Language School' : (school?.name || 'المدرسة');
-      let waMsg = `🎉 *تذكرة حفلة ${schoolName2}*\n\n*الاسم:* ${data.name}\n`;
-      if (d2?.grade)      waMsg += `📚 *الصف:* ${d2.grade}\n`;
-      if (totalStu2 > 1)  waMsg += `🎓 *عدد الطلاب:* ${totalStu2}\n`;
-      if (companions2.length > 0) {
-        waMsg += `👤 *المرافقين (${companions2.length}):*\n`;
+
+      const payLabels = { cash: 'نقدي', bank_transfer: 'تحويل بنكي', instapay: 'إنستاباي', check: 'شيك' };
+      const payLabel = payLabels[data.paymentType] || data.paymentType || '';
+
+      // حساب السعر مفصل
+      const stuPrice  = totalStu2 * PRICES.student;
+      const compPrice = companionCnt * PRICES.companion;
+      const total     = data.amount || (stuPrice + compPrice);
+
+      let waMsg = `🎉 *تذكرة حفلة ${schoolName2}*\n`;
+      waMsg += `━━━━━━━━━━━━━━━\n`;
+      waMsg += `👤 *الاسم:* ${data.name}\n`;
+      if (data.grade)   waMsg += `📚 *الصف:* ${data.grade}\n`;
+      waMsg += `🎟️ *رقم التذكرة:* ${data.ticketId}\n`;
+      waMsg += `━━━━━━━━━━━━━━━\n`;
+
+      if (totalStu2 > 1) waMsg += `🎓 *عدد الضيوف:* ${totalStu2}\n`;
+      if (companionCnt > 0) {
+        waMsg += `👥 *المرافقين (${companionCnt}):*\n`;
         companions2.forEach((c, i) => { waMsg += `  ${i+1}. ${c}\n`; });
       }
-      waMsg += `💰 *المبلغ:* ${(d2?.amount || PRICES.student).toLocaleString('ar-EG')} ج.م\n`;
-      if (d2?.photoPackage) waMsg += `📸 *باكدج التصوير:* محجوز — ${d2.photoPrice || 0} ج.م\n`;
-      waMsg += `\n📲 *يرجى الاحتفاظ بصورة الـ QR للدخول للحفلة*`;
+      waMsg += `━━━━━━━━━━━━━━━\n`;
+      waMsg += `💵 *تفاصيل السعر:*\n`;
+      waMsg += `  • ${totalStu2} ضيف × ${PRICES.student} ج.م = ${stuPrice.toLocaleString('ar-EG')} ج.م\n`;
+      if (companionCnt > 0) waMsg += `  • ${companionCnt} مرافق × ${PRICES.companion} ج.م = ${compPrice.toLocaleString('ar-EG')} ج.م\n`;
+      if (data.photoPackage && data.photoPrice) waMsg += `  • 📸 باكدج التصوير = ${data.photoPrice.toLocaleString('ar-EG')} ج.م\n`;
+      waMsg += `💰 *الإجمالي:* ${total.toLocaleString('ar-EG')} ج.م\n`;
+      if (payLabel) waMsg += `💳 *طريقة الدفع:* ${payLabel}\n`;
+      waMsg += `━━━━━━━━━━━━━━━\n`;
+      waMsg += `📲 *يرجى الاحتفاظ بصورة الـ QR للدخول للحفلة*`;
 
       const waHref = `https://wa.me/${waPhone}?text=${encodeURIComponent(waMsg)}`;
       document.getElementById('sendOptions').innerHTML = `
