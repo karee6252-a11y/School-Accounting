@@ -378,7 +378,7 @@
               <!-- PRICE DISPLAY -->
               <div style="background:var(--accent);border-radius:var(--radius-sm);padding:0.875rem 1rem;margin-bottom:1rem;border:1px solid var(--primary-light)">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
-                  <span style="font-size:0.8rem;color:var(--text-light)" id="stuPriceBreakLabel">طلاب × 1</span>
+                  <span style="font-size:0.8rem;color:var(--text-light)" id="stuPriceBreakLabel">ضيف × 1</span>
                   <span style="font-size:0.85rem;font-weight:700;color:var(--text-mid)" id="stuPriceBreak">300 ج.م</span>
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem" id="compPriceBreakRow">
@@ -706,7 +706,7 @@
     const stuTotal  = totalStudents * PRICES.student;
     const compTotal = companionCount * PRICES.companion;
     const total     = stuTotal + compTotal;
-    document.getElementById('stuPriceBreakLabel').textContent = `طلاب × ${totalStudents}`;
+    document.getElementById('stuPriceBreakLabel').textContent = `ضيف × ${totalStudents}`;
     document.getElementById('stuPriceBreak').textContent  = stuTotal.toLocaleString('ar-EG') + ' ج.م';
     document.getElementById('compPriceBreakLabel').textContent = `مرافق × ${companionCount}`;
     document.getElementById('compPriceBreak').textContent = compTotal.toLocaleString('ar-EG') + ' ج.م';
