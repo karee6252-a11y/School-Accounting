@@ -858,6 +858,7 @@
 
   // ==================== QR MODAL ====================
   function openQRModal(data) {
+    currentQRData = data;
     const modal    = document.getElementById('qrModal');
     const isBristol = (schoolId === 'bristol');
 
@@ -906,20 +907,18 @@
     const rawPhone = data.phone.replace(/[^0-9]/g, '');
     const waPhone  = rawPhone.startsWith('0') ? '2' + rawPhone : rawPhone;
     setTimeout(() => {
-      const d2          = currentQRData;
-      const totalStu2   = d2?.totalStudents || 1;
-      const companions2 = d2?.companions    || [];
+      const totalStu2   = data.totalStudents || 1;
+      const companions2 = data.companions    || [];
       const schoolName2 = isBristol ? 'Bristol Language School' : (school?.name || 'المدرسة');
       let waMsg = `🎉 *تذكرة حفلة ${schoolName2}*\n\n*الاسم:* ${data.name}\n`;
-      if (d2?.grade)      waMsg += `📚 *الصف:* ${d2.grade}\n`;
+      if (data.grade)      waMsg += `📚 *الصف:* ${data.grade}\n`;
       if (totalStu2 > 1)  waMsg += `🎓 *عدد الطلاب:* ${totalStu2}\n`;
       if (companions2.length > 0) {
         waMsg += `👤 *المرافقين (${companions2.length}):*\n`;
         companions2.forEach((c, i) => { waMsg += `  ${i+1}. ${c}\n`; });
       }
-      const calcAmount = d2?.amount || ((totalStu2 * PRICES.student) + ((companions2.length || 0) * PRICES.companion));
-      waMsg += `💰 *المبلغ:* ${calcAmount.toLocaleString('ar-EG')} ج.م\n`;
-      if (d2?.photoPackage) waMsg += `📸 *باكدج التصوير:* محجوز — ${d2.photoPrice || 0} ج.م\n`;
+      const calcAmount = data.amount || ((totalStu2 * PRICES.student) + (companions2.length * PRICES.companion));
+      if (data.photoPackage) waMsg += `📸 *باكدج التصوير:* محجوز — ${data.photoPrice || 0} ج.م\n`;
       waMsg += `\n📲 *يرجى الاحتفاظ بصورة الـ QR للدخول للحفلة*`;
 
       const waHref = `https://wa.me/${waPhone}?text=${encodeURIComponent(waMsg)}`;
