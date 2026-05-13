@@ -862,14 +862,90 @@
     const modal    = document.getElementById('qrModal');
     const isBristol = (schoolId === 'bristol');
 
-    document.getElementById('bristolTicketContainer').style.display  = 'none';
-    document.getElementById('defaultTicketContainer').style.display  = 'block';
+    // اختيار الصورة حسب المدرسة
+    let imageUrl = null;
+    if (isBristol) {
+      imageUrl = cachedImages['bristol'];
+    } else {
+      imageUrl = cachedImages['cardiff'];
+    }
+
+    // إذا لم نجد الصورة في الـ cache، نعود للوضع العادي
+    if (!imageUrl) {
+      document.getElementById('bristolTicketContainer').style.display  = 'none';
+      document.getElementById('defaultTicketContainer').style.display  = 'block';
+    } else {
+      // نعرض الصورة مع الـ QR
+      document.getElementById('defaultTicketContainer').style.display  = 'none';
+      document.getElementById('bristolTicketContainer').style.display  = 'block';
+    }
 
     const qrPayload  = `https://school-accounting-one.vercel.app/ticket.html?id=${encodeURIComponent(data.ticketId)}`;
     const totalStu   = data.totalStudents || 1;
     const companions = data.companions    || [];
 
-    // ===== DEFAULT: كل المدارس بما فيهم Bristol =====
+    // ===== إذا كانت الصورة موجودة =====
+    if (imageUrl) {
+      const container = document.getElementById('bristolTicketContainer');
+      const schoolName = isBristol ? 'Bristol' : 'Cardiff International School';
+      container.innerHTML = `
+        <div class="bristol-img-ticket">
+          <canvas class="ticket-bg" id="ticketCanvas"></canvas>
+          <div class="b-student-info">
+            <div class="b-student-name">${data.name}</div>
+            <div class="b-student-grade">${data.grade || 'بدون صف'}</div>
+          </div>
+          <div class="b-qr-overlay">
+            <canvas id="qrCanvasForImage" width="60" height="60"></canvas>
+            <div class="b-ticket-id">${data.ticketId}</div>
+          </div>
+        </div>
+        <button onclick="downloadBristolQRImage()" style="width:100%;padding:0.75rem;background:var(--primary);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;margin-top:1rem;font-family:'Cairo',sans-serif">
+          📥 تحميل الصورة مع الـ QR
+        </button>
+      `;
+
+      // إنشاء الـ QR على Canvas صغير أولاً
+      setTimeout(() => {
+        const qrCanvas = document.getElementById('qrCanvasForImage');
+        const qrCtx = qrCanvas.getContext('2d');
+
+        // إنشاء QR في canvas مؤقت ثم رسمه على الـ canvas الصغير
+        const tempDiv = document.createElement('div');
+        tempDiv.style.display = 'none';
+        document.body.appendChild(tempDiv);
+
+        new QRCode(tempDiv, {
+          text:         qrPayload,
+          width:        200,
+          height:       200,
+          colorDark:    '#000000',
+          colorLight:   '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+
+        const tempCanvas = tempDiv.querySelector('canvas');
+        if (tempCanvas) {
+          const img = new Image();
+          img.onload = () => {
+            qrCtx.drawImage(img, 0, 0, 60, 60);
+            
+            // الآن نرسم التذكرة الكاملة
+            const ticketCanvas = document.getElementById('ticketCanvas');
+            drawTicketWithQR(ticketCanvas, imageUrl, data.name, data.grade || 'بدون صف', data.ticketId, qrCanvas.toDataURL());
+          };
+          img.src = tempCanvas.toDataURL();
+        }
+        document.body.removeChild(tempDiv);
+      }, 100);
+
+      modal.classList.add('show');
+      return;
+    }
+
+    // ===== DEFAULT: كل المدارس بما فيهم Bristol (بدون صورة) =====
+    document.getElementById('defaultTicketContainer').style.display  = 'block';
+    
     if (isBristol) {
       document.getElementById('qrTicket').style.background =
         'linear-gradient(135deg,#1a1a1a 0%,#c8a951 100%)';
@@ -980,9 +1056,9 @@
   // دالة تحميل لـ Bristol (من صورة الخلفية)
   function downloadBristolQRImage() {
     const schoolName = 'Bristol';
-    const canvas = document.querySelector('.bristol-img-ticket canvas');
+    const canvas = document.getElementById('ticketCanvas');
     
-    if (canvas) {
+    if (canvas && canvas.width > 0 && canvas.height > 0) {
       try {
         canvas.toBlob(function(blob) {
           if (!blob) return;
@@ -998,6 +1074,9 @@
       } catch(e) {
         alert('حدث خطأ: ' + e.message);
       }
+    } else {
+      alert('لم يتم العثور على الصورة. حاول مجدداً');
+    }
     } else {
       // إذا لم تجد canvas، حاول تحميل من QR العادي
       downloadQRImage();
@@ -1941,7 +2020,84 @@
   });
 
 
+  // ==================== IMAGE LOADING ====================
+  // URLs من GitHub - صور التذاكر
+  const GITHUB_IMAGES = {
+    cardiff: 'https://raw.githubusercontent.com/karee6252-a11y/School-Accounting/main/assets/tickets/cis%20ticket.JPEG',
+    bristol: 'https://raw.githubusercontent.com/karee6252-a11y/School-Accounting/main/assets/tickets/bristol%20ticket.jpeg'
+  };
+  
+  let cachedImages = {};
+
+  async function preloadGithubImages() {
+    try {
+      for (const [key, url] of Object.entries(GITHUB_IMAGES)) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to load ${key}`);
+        const blob = await response.blob();
+        cachedImages[key] = URL.createObjectURL(blob);
+      }
+      console.log('✅ تم تحميل الصور من GitHub بنجاح');
+    } catch (error) {
+      console.error('❌ خطأ في تحميل الصور:', error);
+      alert('لم تتمكن من تحميل الصور. تحقق من الـ GitHub links');
+    }
+  }
+
+  function drawTicketWithQR(canvas, imageUrl, studentName, studentGrade, ticketId, qrDataUrl) {
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      // رسم الصورة الخلفية
+      ctx.drawImage(img, 0, 0);
+      
+      // رسم اسم الطالب
+      ctx.fillStyle = 'rgba(212, 168, 67, 0.6)';
+      ctx.fillRect(canvas.width * 0.1, canvas.height * 0.55, canvas.width * 0.8, canvas.height * 0.08);
+      ctx.fillStyle = '#1a1a1a';
+      ctx.font = `bold ${canvas.width * 0.08}px Cairo, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(studentName, canvas.width / 2, canvas.height * 0.605);
+      
+      // رسم الصف
+      ctx.fillStyle = 'rgba(212, 168, 67, 0.45)';
+      ctx.fillRect(canvas.width * 0.15, canvas.height * 0.64, canvas.width * 0.7, canvas.height * 0.06);
+      ctx.fillStyle = '#1a1a1a';
+      ctx.font = `bold ${canvas.width * 0.06}px Cairo, sans-serif`;
+      ctx.fillText(studentGrade, canvas.width / 2, canvas.height * 0.675);
+      
+      // رسم الـ QR code
+      const qrImg = new Image();
+      qrImg.crossOrigin = 'anonymous';
+      qrImg.onload = () => {
+        const qrSize = canvas.width * 0.15;
+        const qrX = (canvas.width - qrSize) / 2;
+        const qrY = canvas.height * 0.73;
+        
+        // خلفية بيضاء للـ QR
+        ctx.fillStyle = 'white';
+        ctx.fillRect(qrX - 3, qrY - 3, qrSize + 6, qrSize + 6);
+        ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+        
+        // رسم ID تحت الـ QR
+        ctx.fillStyle = '#1a1a1a';
+        ctx.font = `${canvas.width * 0.03}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(ticketId, canvas.width / 2, canvas.height * 0.93);
+      };
+      qrImg.src = qrDataUrl;
+    };
+    
+    img.src = imageUrl;
+  }
+
   // ==================== INIT ====================
+  preloadGithubImages();
   loadStats();
   loadRecentList();
 </script>
