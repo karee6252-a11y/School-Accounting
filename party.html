@@ -944,8 +944,8 @@
     const isBristol = (schoolId === 'bristol');
 
     if (isBristol) {
-      const wrap = document.getElementById('qrCanvasWrap');
-      const qrEl = wrap.querySelector('canvas') || wrap.querySelector('img');
+      const wrap = document.getElementById('bristolQrCanvasWrap') || document.getElementById('qrCanvasWrap');
+      const qrEl = wrap ? (wrap.querySelector('canvas') || wrap.querySelector('img')) : null;
       if (!qrEl) { alert('QR غير جاهز، انتظر لحظة وحاول مرة أخرى'); return; }
 
       const bgImg = new Image();
@@ -990,23 +990,42 @@
 
     // باقي المدارس
     const wrap  = document.getElementById('qrCanvasWrap');
+    if (!wrap) { alert('QR غير جاهز، انتظر لحظة وحاول مرة أخرى'); return; }
+
+    // مكتبة QRCode بتولد canvas + img جوا div — نبحث بعمق
     const qrCvs = wrap.querySelector('canvas');
     const qrImg = wrap.querySelector('img');
-    if (qrCvs) {
+
+    function doDownloadFromImg(img) {
+      const tempCvs = document.createElement('canvas');
+      tempCvs.width  = img.naturalWidth  || 180;
+      tempCvs.height = img.naturalHeight || 180;
+      const ctx = tempCvs.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      downloadTicketImage(tempCvs.toDataURL('image/png'));
+    }
+
+    if (qrCvs && qrCvs.width > 0) {
       downloadTicketImage(qrCvs.toDataURL('image/png'));
     } else if (qrImg) {
-      const tempCvs = document.createElement('canvas');
-      tempCvs.width  = qrImg.naturalWidth  || 180;
-      tempCvs.height = qrImg.naturalHeight || 180;
-      const ctx = tempCvs.getContext('2d');
-      if (qrImg.complete) {
-        ctx.drawImage(qrImg, 0, 0);
-        downloadTicketImage(tempCvs.toDataURL('image/png'));
+      if (qrImg.complete && qrImg.naturalWidth > 0) {
+        doDownloadFromImg(qrImg);
       } else {
-        qrImg.onload = () => { ctx.drawImage(qrImg, 0, 0); downloadTicketImage(tempCvs.toDataURL('image/png')); };
+        qrImg.onload = () => doDownloadFromImg(qrImg);
       }
     } else {
-      alert('QR غير جاهز، انتظر لحظة وحاول مرة أخرى');
+      // QRCode لسه بترسم — نستنى لحظة وبعدين نجرب
+      setTimeout(() => {
+        const cvs2 = wrap.querySelector('canvas');
+        const img2 = wrap.querySelector('img');
+        if (cvs2 && cvs2.width > 0) {
+          downloadTicketImage(cvs2.toDataURL('image/png'));
+        } else if (img2 && img2.complete) {
+          doDownloadFromImg(img2);
+        } else {
+          alert('QR غير جاهز، انتظر لحظة وحاول مرة أخرى');
+        }
+      }, 400);
     }
   }
 
