@@ -1015,69 +1015,130 @@
     const data = currentQRData;
     if (!data) return;
 
-    // أبعاد الـ ticket الأصلية (landscape)
-    const W = 900, H = 1600;
+    const isBristolDL = (schoolId === 'bristol');
+
+    // لو bristol وعندها صورة خلفية
+    if (isBristolDL && TICKET_BG_SRC) {
+      const W = 900, H = 1600;
+      const cvs = document.createElement('canvas');
+      cvs.width = W; cvs.height = H;
+      const ctx = cvs.getContext('2d');
+      const bgImg = new Image();
+      bgImg.crossOrigin = 'anonymous';
+      bgImg.src = TICKET_BG_SRC;
+      bgImg.onload = function() {
+        ctx.drawImage(bgImg, 0, 0, W, H);
+        const qrImage = new Image();
+        qrImage.onload = function() {
+          const qrSize = 310, qrX = 555, qrY = 950;
+          ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+          const link = document.createElement('a');
+          link.href = cvs.toDataURL('image/png');
+          link.download = (data.name || 'ticket') + '-ticket.png';
+          document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        };
+        qrImage.src = qrSrc;
+      };
+      bgImg.onerror = () => drawTicketCanvas(qrSrc, data);
+      return;
+    }
+
+    // باقي المدارس — ارسم ticket على canvas
+    drawTicketCanvas(qrSrc, data);
+  }
+
+  function drawTicketCanvas(qrSrc, data) {
+    const W = 600, H = 800;
     const cvs = document.createElement('canvas');
     cvs.width = W; cvs.height = H;
     const ctx = cvs.getContext('2d');
 
-    const bgImg = new Image();
-    bgImg.crossOrigin = 'anonymous';
-    // الصورة الخلفية من الـ base64 المحفوظة
-    bgImg.src = TICKET_BG_SRC;
+    // خلفية gradient
+    const pri = school?.primaryColor   || '#1E2D5A';
+    const sec = school?.secondaryColor || '#4A6FA5';
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, pri);
+    grad.addColorStop(1, sec);
+    ctx.fillStyle = grad;
+    ctx.roundRect ? ctx.roundRect(0, 0, W, H, 24) : ctx.fillRect(0, 0, W, H);
+    ctx.fill();
 
-    bgImg.onload = function() {
-      // ارسم الصورة الخلفية
-      ctx.drawImage(bgImg, 0, 0, W, H);
+    // اسم المدرسة
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = 'bold 22px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(school?.name || 'المدرسة', W/2, 60);
 
-      // ارسم الـ QR فوق المنطقة البيضاء (يمين الصورة)
-      const qrImage = new Image();
-      qrImage.onload = function() {
-        // موضع الـ QR بالظبط فوق الـ QR الموجود في الصورة
-        const qrSize = 310;
-        const qrX = 555;  // يمين تحت الخط المتقطع
-        const qrY = 950;  // تحت منتصف الصورة
+    // اسم الطالب
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 36px Arial';
+    ctx.fillText(data.name || '', W/2, 120);
 
-        // ارسم الـ QR (بدون خلفية — الصورة عندها خلفيتها الخاصة)
-        ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+    // الصف
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.font = '24px Arial';
+    ctx.fillText((data.grade || '') + (data.totalStudents > 1 ? ` (+${data.totalStudents-1})` : ''), W/2, 165);
 
-        // تنزيل الصورة
-        const link = document.createElement('a');
-        link.href = cvs.toDataURL('image/png');
-        link.download = (data.name || 'ticket') + '-ticket.png';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      };
-      qrImage.src = qrSrc;
+    // badge المبلغ
+    const badge = `${data.totalStudents || 1} ضيف` +
+      (data.companionCount > 0 ? ` + ${data.companionCount} مرافق` : '') +
+      ` — ${(data.amount || 300).toLocaleString()} ج.م`;
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    const bW = ctx.measureText(badge).width + 40;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(W/2 - bW/2, 185, bW, 38, 20);
+    else ctx.rect(W/2 - bW/2, 185, bW, 38);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText(badge, W/2, 210);
+
+    // خط فاصل
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath(); ctx.moveTo(40, 250); ctx.lineTo(W-40, 250); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // QR في المنتصف
+    const qrImage = new Image();
+    qrImage.onload = function() {
+      const qrSize = 280;
+      const qrX = (W - qrSize) / 2;
+      const qrY = 270;
+
+      // خلفية بيضاء للـ QR
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(qrX - 12, qrY - 12, qrSize + 24, qrSize + 24, 16);
+      else ctx.rect(qrX - 12, qrY - 12, qrSize + 24, qrSize + 24);
+      ctx.fill();
+
+      ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+
+      // ticket ID
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '14px monospace';
+      ctx.fillText(data.ticketId || '', W/2, qrY + qrSize + 50);
+
+      // رسالة ترحيب
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.font = '16px Arial';
+      ctx.fillText('يرجى الاحتفاظ بهذا الكود للدخول', W/2, H - 40);
+
+      const link = document.createElement('a');
+      link.href = cvs.toDataURL('image/png');
+      link.download = (data.name || 'ticket') + '-ticket.png';
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
     };
-
-    bgImg.onerror = function() {
-      // لو الصورة ما اتحملتش، نرسم الـ QR على canvas بسيط وننزله
-      const fallbackCvs = document.createElement('canvas');
-      fallbackCvs.width = 200; fallbackCvs.height = 200;
-      const fallbackCtx = fallbackCvs.getContext('2d');
-      const fallbackImg = new Image();
-      fallbackImg.onload = function() {
-        fallbackCtx.drawImage(fallbackImg, 0, 0, 200, 200);
-        const link = document.createElement('a');
-        link.href = fallbackCvs.toDataURL('image/png');
-        link.download = (data?.name || 'ticket') + '-QR.png';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      };
-      fallbackImg.onerror = function() {
-        // حتى الـ qrSrc فشل — نجرب مباشرة
-        const link = document.createElement('a');
-        link.href = qrSrc;
-        link.download = (data?.name || 'ticket') + '-QR.png';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      };
-      fallbackImg.src = qrSrc;
+    qrImage.onerror = function() {
+      // fallback — نزل الـ QR بس
+      const link = document.createElement('a');
+      link.href = qrSrc;
+      link.download = (data?.name || 'ticket') + '-QR.png';
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
     };
+    qrImage.src = qrSrc;
   }
 
   // صورة التذكرة الخلفية محولة لـ base64 عشان تشتغل offline وعلى Vercel
