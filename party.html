@@ -537,7 +537,7 @@
 
     <div style="display:flex;gap:0.5rem">
       <button class="btn btn-secondary flex-1" onclick="printTicket()">طباعة</button>
-      <button class="btn btn-primary flex-1" onclick="downloadQR()">تحميل QR</button>
+      <button class="btn btn-primary flex-1" onclick="downloadQRImage()">📥 تحميل QR</button>
     </div>
     <button class="btn btn-outline w-full" style="margin-top:0.5rem" onclick="closeQRModal()">إغلاق</button>
   </div>
@@ -938,6 +938,70 @@
 
   function closeQRModal() {
     document.getElementById('qrModal').classList.remove('show');
+  }
+
+  // ==================== DOWNLOAD QR IMAGE ====================
+  function downloadQRImage() {
+    const schoolName = school?.name || (schoolId === 'bristol' ? 'Bristol' : 'QR');
+    
+    // البحث عن Canvas داخل qrCanvasWrap
+    const qrCanvasWrap = document.getElementById('qrCanvasWrap');
+    const canvas = qrCanvasWrap ? qrCanvasWrap.querySelector('canvas') : null;
+    
+    if (!canvas) {
+      alert('حدث خطأ: لم يتم العثور على رمز QR. تأكد من إنشاء QR أولاً');
+      return;
+    }
+
+    // تحويل Canvas إلى صورة وتحميلها
+    try {
+      canvas.toBlob(function(blob) {
+        if (!blob) {
+          alert('حدث خطأ في تحويل الصورة');
+          return;
+        }
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `QR_${schoolName}_${new Date().getTime()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // تنظيف الـ URL بعد التحميل
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+      }, 'image/png');
+    } catch(e) {
+      alert('حدث خطأ أثناء التحميل: ' + e.message);
+    }
+  }
+
+  // دالة تحميل لـ Bristol (من صورة الخلفية)
+  function downloadBristolQRImage() {
+    const schoolName = 'Bristol';
+    const canvas = document.querySelector('.bristol-img-ticket canvas');
+    
+    if (canvas) {
+      try {
+        canvas.toBlob(function(blob) {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `QR_${schoolName}_${new Date().getTime()}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 100);
+        }, 'image/png');
+      } catch(e) {
+        alert('حدث خطأ: ' + e.message);
+      }
+    } else {
+      // إذا لم تجد canvas، حاول تحميل من QR العادي
+      downloadQRImage();
+    }
   }
 
   function downloadQR() {
