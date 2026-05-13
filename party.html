@@ -795,17 +795,18 @@
     btn.textContent = ' جاري الحفظ...';
 
     try {
-      // ── فحص تكرار التسجيل بنفس التليفون ──
+      // ── فحص تكرار التسجيل بنفس الاسم ونفس التليفون ──
       const dupSnap = await db.collection('partyAttendees')
         .where('schoolId', '==', schoolId)
         .where('phone', '==', phone)
+        .where('name', '==', name)
         .limit(1)
         .get();
       if (!dupSnap.empty) {
         const dupData = dupSnap.docs[0].data();
-        showAlert('regAlert', `هذا الرقم مسجّل بالفعل باسم "${dupData.name}" — رقم التذكرة: ${dupData.ticketId}`, 'error');
+        showAlert('regAlert', `هذا الشخص مسجّل بالفعل — رقم التذكرة: ${dupData.ticketId}`, 'error');
         btn.disabled = false;
-        btn.textContent = ' تسجيل وحفظ';
+        btn.textContent = 'حفظ وإنشاء QR';
         return;
       }
 
