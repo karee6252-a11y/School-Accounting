@@ -214,7 +214,7 @@
       <!-- TABS -->
       <div class="photo-tabs animate-in">
         <button class="photo-tab active" onclick="showTab('book', this)">حجز جديد</button>
-        <button class="photo-tab" onclick="showTab('direct', this)">إضافة طالب مباشر</button>
+        <button class="photo-tab" onclick="showTab('direct', this)">إضافة ضيف</button>
         <button class="photo-tab" onclick="showTab('list', this)">قائمة الحجوزات</button>
       </div>
 
@@ -222,7 +222,7 @@
       <div id="tab-book" class="animate-in">
         <div class="card">
           <div class="card-header">
-            <span class="card-title">طلاب الحفلة (KG1 و KG2)</span>
+            <span class="card-title">طلاب عاديين (KG1 و KG2)</span>
             <button class="btn btn-sm btn-secondary" onclick="loadPartyStudents()">تحديث</button>
           </div>
           <div class="card-body">
@@ -271,20 +271,20 @@
       <div id="tab-direct" style="display:none" class="animate-in">
         <div class="card">
           <div class="card-header">
-            <span class="card-title">إضافة طالب مباشر للتصوير</span>
+            <span class="card-title">إضافة ضيف للتصوير</span>
             <button class="btn btn-sm btn-secondary" onclick="loadDirectStudents()">تحديث</button>
           </div>
           <div class="card-body">
             <p style="font-size:0.82rem;color:var(--text-light);margin-bottom:1rem">
-              يمكنك تسجيل أي طالب في باكدج التصوير بغض النظر عن اشتراكه في الحفلة
+              يمكنك تسجيل أي ضيف في باكدج التصوير بغض النظر عن اشتراكه في الحفلة
             </p>
 
             <div style="background:var(--accent);border:1.5px solid var(--secondary);border-radius:var(--radius-sm);padding:1.25rem;margin-bottom:1.5rem">
               <div style="font-weight:900;color:var(--primary);margin-bottom:1rem;font-size:0.95rem">بيانات الطالب</div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
                 <div class="form-group" style="margin-bottom:0">
-                  <label class="form-label">اسم الطالب <span class="required">*</span></label>
-                  <input type="text" class="form-input" id="directName" placeholder="الاسم رباعي..." />
+                  <label class="form-label">اسم الضيف <span class="required">*</span></label>
+                  <input type="text" class="form-input" id="directName" placeholder="الاسم..." />
                 </div>
                 <div class="form-group" style="margin-bottom:0">
                   <label class="form-label">الصف <span class="required">*</span></label>
@@ -322,7 +322,7 @@
 
             <!-- LIST OF DIRECT STUDENTS -->
             <div style="font-weight:800;color:var(--text-dark);margin-bottom:0.75rem;font-size:0.9rem">
-              الطلاب المسجلين مباشرة
+              الضيوف المسجلين
             </div>
             <div id="directStudentGrid" class="student-grid">
               <div style="padding:2rem;text-align:center"><div class="loading-spinner"></div></div>
@@ -513,7 +513,7 @@
       setTimeout(() => alertEl.classList.add('hidden'), 3500);
     }
 
-    if (!name)    return showErr('أدخل اسم الطالب');
+    if (!name)    return showErr('أدخل اسم الضيف');
     if (!grade)   return showErr('اختر الصف');
     if (!payType) return showErr('اختر طريقة الدفع');
 
@@ -552,7 +552,7 @@
       document.getElementById('directPriceDisplay').textContent = '— ج.م';
 
       alertEl.className = 'alert alert-success';
-      alertEl.textContent = `تم تسجيل "${name}" بنجاح `;
+      alertEl.textContent = `تم تسجيل الضيف "${name}" بنجاح `;
       alertEl.classList.remove('hidden');
       setTimeout(() => alertEl.classList.add('hidden'), 3000);
 
@@ -573,6 +573,14 @@
         .where('source', '==', 'direct')
         .get();
       allDirectStudents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // فلترة التكرار بالاسم — خد أول سجل لكل اسم
+      const seen = new Set();
+      allDirectStudents = allDirectStudents.filter(s => {
+        const key = (s.name || '').trim().toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
       allDirectStudents.sort((a, b) => {
         const ta = a.createdAt?.seconds || 0;
         const tb = b.createdAt?.seconds || 0;
@@ -610,7 +618,7 @@
         </div>
         <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0">
           <span class="sc-price">${s.price || 0} ج.م</span>
-          <span class="badge-photo">مسجل مباشر</span>
+          <span class="badge-photo">ضيف</span>
           <button class="btn btn-sm"
             style="background:#fce4ec;color:#c62828;border:1px solid #ef9a9a;font-size:0.75rem"
             onclick="deleteDirectStudent('${s.id}', '${s.name}')">🗑️ حذف</button>

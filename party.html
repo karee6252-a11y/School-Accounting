@@ -284,7 +284,7 @@
 
       <!-- ===================== TAB 1: REGISTER ===================== -->
       <div id="tab-register" class="animate-in">
-        <div style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;align-items:start">
+        <div style="display:grid;grid-template-columns:1fr;gap:1.5rem;align-items:start">
 
           <!-- FORM -->
           <div class="card">
@@ -299,8 +299,8 @@
               <!-- STUDENT SECTION -->
               <div style="background:var(--accent);border:1.5px solid var(--primary-light);border-radius:var(--radius);padding:1rem 1.125rem;margin-bottom:1rem">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.875rem">
-                  <span style="font-weight:800;color:var(--primary);font-size:0.95rem">الضيوف</span>
-                  <span style="font-size:0.8rem;color:var(--text-light)" id="stuPriceLabel">300 ج.م ضيف/طالب</span>
+                  <span style="font-weight:800;color:var(--primary);font-size:0.95rem">الطالب / الضيف</span>
+                  <span style="font-size:0.8rem;color:var(--text-light)">300 ج.م للشخص</span>
                 </div>
 
                 <!-- الطالب الأول (إلزامي) -->
@@ -313,13 +313,13 @@
                   </div>
                   <div class="form-group" style="margin-bottom:0">
                     <label class="form-label">الصف <span class="required">*</span></label>
-                    <select class="form-select" id="regGrade" onchange="updatePriceDisplay()"></select>
+                    <select class="form-select" id="regGrade"></select>
                   </div>
                 </div>
 
                 <!-- عداد طلاب إضافيين -->
                 <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.75rem;flex-wrap:wrap">
-                  <span style="font-size:0.82rem;color:var(--text-mid);font-weight:700">ضيوف إضافيين:</span>
+                  <span style="font-size:0.82rem;color:var(--text-mid);font-weight:700">ضيف إضافي:</span>
                   <div style="display:flex;align-items:center;gap:0.5rem;background:white;border:1.5px solid var(--border);border-radius:8px;padding:0.2rem 0.4rem">
                     <button type="button" onclick="changeExtraStudentCount(-1)"
                       style="width:28px;height:28px;border:none;background:var(--accent);border-radius:6px;font-size:1.1rem;font-weight:900;cursor:pointer;color:var(--primary);display:flex;align-items:center;justify-content:center">−</button>
@@ -399,19 +399,7 @@
             </div>
           </div>
 
-          <!-- RECENT REGISTRATIONS PANEL -->
-          <div style="position:sticky;top:calc(var(--header-height) + 1.5rem)">
-            <div class="card">
-              <div class="card-header">
-                <span class="card-title">آخر التسجيلات</span>
-                <span class="badge badge-primary" id="recentCount">0</span>
-              </div>
-              <div id="recentList" style="max-height:500px;overflow-y:auto">
-                <div style="padding:1.5rem;text-align:center;color:var(--text-light)">لا يوجد بعد</div>
-              </div>
-            </div>
-          </div>
-
+        
         </div>
       </div>
 
@@ -569,7 +557,7 @@
       </div>
       <div>
         <label class="form-label">الصف</label>
-        <select class="form-select" id="editAtGrade" onchange="updateEditAtPrice()"></select>
+        <select class="form-select" id="editAtGrade"></select>
       </div>
       <div>
         <label class="form-label">التليفون</label>
@@ -647,13 +635,6 @@
   const school   = SESSION.getSchool();
 
   const PRICES = { student: 300, companion: 150 };
-
-  // سعر الطالب حسب المدرسة والصف
-  function getStudentPrice(grade) {
-    if (schoolId === 'bristol' && grade === 'KG2') return 400;
-    return PRICES.student;
-  }
-
   // currentType removed — now always student with companions array
   let allAttendees = [];
   let currentQRData = null;
@@ -722,13 +703,9 @@
 
   function updatePriceDisplay() {
     const totalStudents = 1 + extraStudentCount;
-    const grade = document.getElementById('regGrade')?.value || '';
-    const stuPrice = getStudentPrice(grade);
-    const stuTotal  = totalStudents * stuPrice;
+    const stuTotal  = totalStudents * PRICES.student;
     const compTotal = companionCount * PRICES.companion;
     const total     = stuTotal + compTotal;
-    const labelEl = document.getElementById('stuPriceLabel');
-    if (labelEl) labelEl.textContent = stuPrice + ' ج.م ضيف/طالب';
     document.getElementById('stuPriceBreakLabel').textContent = `طلاب × ${totalStudents}`;
     document.getElementById('stuPriceBreak').textContent  = stuTotal.toLocaleString('ar-EG') + ' ج.م';
     document.getElementById('compPriceBreakLabel').textContent = `مرافق × ${companionCount}`;
@@ -838,8 +815,7 @@
         String(now.getDate()).padStart(2,'0');
 
       const ticketId = generateTicketId('student');
-      const stuPrice = getStudentPrice(grade);
-      const totalAmount = (totalStudents * stuPrice) + (companionCount * PRICES.companion);
+      const totalAmount = (totalStudents * PRICES.student) + (companionCount * PRICES.companion);
 
       const doc = {
         ticketId,
@@ -1753,9 +1729,7 @@
   }
 
   function updateEditAtPrice() {
-    const grade     = document.getElementById('editAtGrade')?.value || '';
-    const stuPrice  = getStudentPrice(grade);
-    const stuTotal  = _editAtStudents   * stuPrice;
+    const stuTotal  = _editAtStudents   * PRICES.student;
     const compTotal = _editAtCompanions * PRICES.companion;
     const total     = stuTotal + compTotal;
     document.getElementById('editAtStuBreak').textContent  = `طلاب × ${_editAtStudents}`;
