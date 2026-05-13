@@ -917,7 +917,8 @@
         waMsg += `👤 *المرافقين (${companions2.length}):*\n`;
         companions2.forEach((c, i) => { waMsg += `  ${i+1}. ${c}\n`; });
       }
-      waMsg += `💰 *المبلغ:* ${(d2?.amount || PRICES.student).toLocaleString('ar-EG')} ج.م\n`;
+      const calcAmount = d2?.amount || ((totalStu2 * PRICES.student) + ((companions2.length || 0) * PRICES.companion));
+      waMsg += `💰 *المبلغ:* ${calcAmount.toLocaleString('ar-EG')} ج.م\n`;
       if (d2?.photoPackage) waMsg += `📸 *باكدج التصوير:* محجوز — ${d2.photoPrice || 0} ج.م\n`;
       waMsg += `\n📲 *يرجى الاحتفاظ بصورة الـ QR للدخول للحفلة*`;
 
