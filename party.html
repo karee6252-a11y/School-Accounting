@@ -569,7 +569,7 @@
       </div>
       <div>
         <label class="form-label">الصف</label>
-        <select class="form-select" id="editAtGrade"></select>
+        <select class="form-select" id="editAtGrade" onchange="updateEditAtPrice()"></select>
       </div>
       <div>
         <label class="form-label">التليفون</label>
@@ -1753,7 +1753,9 @@
   }
 
   function updateEditAtPrice() {
-    const stuTotal  = _editAtStudents   * PRICES.student;
+    const grade     = document.getElementById('editAtGrade')?.value || '';
+    const stuPrice  = getStudentPrice(grade);
+    const stuTotal  = _editAtStudents   * stuPrice;
     const compTotal = _editAtCompanions * PRICES.companion;
     const total     = stuTotal + compTotal;
     document.getElementById('editAtStuBreak').textContent  = `طلاب × ${_editAtStudents}`;
