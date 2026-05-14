@@ -1071,15 +1071,15 @@ function updateSummaryCards() {
   document.getElementById('sumSuppliersCount').textContent = `${allSuppliers.length} مورد/مقاول`;
   document.getElementById('sumDebts').textContent          = formatCurrency(cDebt);
   document.getElementById('sumDebtsCount').textContent     = `${allContracts.filter(c=>(c.remaining||0)>0).length} مقاول`;
-  document.getElementById('sumTotal').textContent          = formatCurrency(pTotal + cTotal);
+  document.getElementById('sumTotal').textContent          = formatCurrency(pTotal + cPaid);
 
   // ─── CUSTODIAN BAR ───
   const prevTotal = allCustodians.filter(c=>c.type==='prev').reduce((s,c)=>s+(c.amount||0),0);
   const newTotal  = allCustodians.filter(c=>c.type==='new').reduce((s,c)=>s+(c.amount||0),0);
   const custTotal = prevTotal + newTotal;
-  // المصروف من العهدة = بس اللي دفعه قسم الحسابات
+  // المصروف من العهدة = مشتريات كاملة + المدفوع فعلاً للمقاولين (بدون المديونيات)
   const spentP = allPurchases.filter(p=>(!p.payer||p.payer==='accounts')).reduce((s,p)=>s+(p.total||0),0);
-  const spentC = allContracts.filter(c=>(!c.payer||c.payer==='accounts')).reduce((s,c)=>s+(c.total||0),0);
+  const spentC = allContracts.filter(c=>(!c.payer||c.payer==='accounts')).reduce((s,c)=>s+(c.paid||0),0);
   const spent  = spentP + spentC;
   const rem       = custTotal - spent;
   document.getElementById('custPrev').textContent  = formatCurrency(prevTotal);
@@ -1599,7 +1599,7 @@ function generateReport() {
       <div class="sum-card blue"><div class="lbl">مشتريات الفترة</div><div class="val">${formatCurrency(pTotal)}</div><div class="sub">${pFiltered.length} فاتورة</div></div>
       <div class="sum-card purple"><div class="lbl">مقاولات الفترة</div><div class="val">${formatCurrency(cTotal)}</div><div class="sub">${cFiltered.length} عقد</div></div>
       <div class="sum-card red"><div class="lbl">مديونيات الفترة</div><div class="val">${formatCurrency(cDebt)}</div></div>
-      <div class="sum-card green"><div class="lbl">إجمالي الإنفاق</div><div class="val">${formatCurrency(pTotal+cTotal)}</div></div>
+      <div class="sum-card green"><div class="lbl">إجمالي الإنفاق</div><div class="val">${formatCurrency(pTotal+cFiltered.reduce((s,c)=>s+(c.paid||0),0))}</div></div>
     </div>
 
     <!-- by purpose breakdown -->
