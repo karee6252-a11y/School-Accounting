@@ -142,6 +142,41 @@
       .sum-grid { grid-template-columns:1fr 1fr; }
       .supplier-grid { grid-template-columns:1fr; }
     }
+
+    /* ===== CUSTODIAN BAR ===== */
+    .custodian-bar {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;
+      background: linear-gradient(135deg, var(--primary) 0%, #0d2247 100%);
+      border-radius: var(--radius); padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem; box-shadow: var(--shadow-lg); color: white;
+    }
+    .cust-section { display:flex; flex-direction:column; align-items:center; text-align:center; min-width:110px; }
+    .cust-lbl { font-size:0.7rem; opacity:0.75; font-weight:600; margin-bottom:2px; }
+    .cust-val { font-size:1.15rem; font-weight:900; }
+    .cust-total { color:#ffd54f; }
+    .cust-spent { color:#ff8a65; }
+    .cust-plus, .cust-minus, .cust-equals {
+      font-size:1.5rem; font-weight:900; opacity:0.6; padding:0 0.25rem;
+    }
+    .custodian-log {
+      background:var(--card-bg); border:1px solid var(--border);
+      border-radius:var(--radius); padding:1.25rem; margin-bottom:1rem;
+    }
+    .cust-log-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:0.5rem 0.75rem; border-radius:var(--radius-sm);
+      margin-bottom:0.3rem; font-size:0.83rem;
+      background:var(--bg); border:1px solid var(--border);
+    }
+    .cust-log-row .cl-date { color:var(--text-light); font-size:0.74rem; }
+    .cust-log-row .cl-amount { font-weight:800; color:var(--primary); }
+    .cust-log-row .cl-type { font-size:0.7rem; padding:0.15rem 0.5rem; border-radius:20px; font-weight:700; }
+    .cl-type.prev { background:#e3f2fd; color:#0277bd; }
+    .cl-type.new  { background:#e8f5e9; color:#2e7d32; }
+    @media (max-width:600px) {
+      .custodian-bar { flex-direction:column; align-items:flex-start; }
+      .cust-plus,.cust-minus,.cust-equals { display:none; }
+    }
   </style>
 </head>
 <body>
@@ -183,6 +218,35 @@
           <div class="lbl">إجمالي الإنفاق</div>
           <div class="val" id="sumTotal">—</div>
           <div class="sub">مشتريات + مقاولات</div>
+        </div>
+      </div>
+
+      <!-- CUSTODIAN BALANCE BAR -->
+      <div class="custodian-bar animate-in" id="custodianBar">
+        <div class="cust-section">
+          <div class="cust-lbl"> عهدة سابقة</div>
+          <div class="cust-val" id="custPrev">—</div>
+        </div>
+        <div class="cust-plus">+</div>
+        <div class="cust-section">
+          <div class="cust-lbl"> عهدة جديدة</div>
+          <div class="cust-val" id="custNew">—</div>
+          <button class="btn btn-sm btn-outline" onclick="openAddCustodian()" style="margin-top:4px;font-size:0.72rem;padding:0.2rem 0.65rem"> إضافة</button>
+        </div>
+        <div class="cust-equals">=</div>
+        <div class="cust-section">
+          <div class="cust-lbl"> إجمالي العهدة</div>
+          <div class="cust-val cust-total" id="custTotal">—</div>
+        </div>
+        <div class="cust-minus">−</div>
+        <div class="cust-section">
+          <div class="cust-lbl"> المصروف</div>
+          <div class="cust-val cust-spent" id="custSpent">—</div>
+        </div>
+        <div class="cust-equals">=</div>
+        <div class="cust-section" id="custRemSection">
+          <div class="cust-lbl"> المتبقي من العهدة</div>
+          <div class="cust-val" id="custRem" style="color:#2e7d32">—</div>
         </div>
       </div>
 
@@ -647,6 +711,42 @@
   </div>
 </div>
 
+<!-- ===== MODAL: ADD CUSTODIAN ===== -->
+<div class="modal-overlay hidden" id="custodianModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title"> إضافة عهدة</span>
+      <button class="btn-close" onclick="closeModal('custodianModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert hidden" id="custodianAlert"></div>
+      <div class="form-group">
+        <label class="form-label">نوع العهدة <span class="required">*</span></label>
+        <select class="form-select" id="custType">
+          <option value="new">عهدة جديدة</option>
+          <option value="prev">عهدة سابقة (تحميل)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">المبلغ (ج.م) <span class="required">*</span></label>
+        <input type="number" class="form-input" id="custAmount" placeholder="0.00" min="0.01" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">التاريخ <span class="required">*</span></label>
+        <input type="date" class="form-input" id="custDate" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">البيان / ملاحظات</label>
+        <input type="text" class="form-input" id="custNotes" placeholder="مثال: عهدة أول العام / إضافة من الإدارة..." />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('custodianModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveCustodian()"> حفظ العهدة</button>
+    </div>
+  </div>
+</div>
+
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -672,13 +772,15 @@ let allPurchases  = [];
 let allContracts  = [];
 let filteredPurch = [];
 let filteredContr = [];
+let allCustodians = []; // عهد مضافة
 
 // ─── INIT ────────────────────────────────────────────────────────
 async function init() {
   document.getElementById('pDate').value = localDateStr();
   document.getElementById('cDate').value = localDateStr();
+  document.getElementById('custDate').value = localDateStr();
   setDefaultReportDates();
-  await Promise.all([ loadSuppliers(), loadPurchases(), loadContracts() ]);
+  await Promise.all([ loadSuppliers(), loadPurchases(), loadContracts(), loadCustodians() ]);
   populateSupplierSelects();
   updateSummaryCards();
 }
@@ -725,6 +827,13 @@ async function loadContracts() {
     filteredContr = [...allContracts];
     renderContracts();
   } catch(e) { console.error('load contracts', e); }
+}
+
+async function loadCustodians() {
+  try {
+    const snap = await db.collection('contractors_custodians').where('schoolId','==',schoolId).get();
+    allCustodians = snap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a,b) => (a.date||'')>(b.date||'') ? 1:-1);
+  } catch(e) { console.error('load custodians', e); }
 }
 
 // ─── RENDER SUPPLIERS ─────────────────────────────────────────────
@@ -927,6 +1036,22 @@ function updateSummaryCards() {
   document.getElementById('sumDebts').textContent          = formatCurrency(cDebt);
   document.getElementById('sumDebtsCount').textContent     = `${allContracts.filter(c=>(c.remaining||0)>0).length} مقاول`;
   document.getElementById('sumTotal').textContent          = formatCurrency(pTotal + cTotal);
+
+  // ─── CUSTODIAN BAR ───
+  const prevTotal = allCustodians.filter(c=>c.type==='prev').reduce((s,c)=>s+(c.amount||0),0);
+  const newTotal  = allCustodians.filter(c=>c.type==='new').reduce((s,c)=>s+(c.amount||0),0);
+  const custTotal = prevTotal + newTotal;
+  const spent     = pTotal + cTotal; // المصروف = مشتريات + إجمالي عقود
+  const rem       = custTotal - spent;
+  document.getElementById('custPrev').textContent  = formatCurrency(prevTotal);
+  document.getElementById('custNew').textContent   = formatCurrency(newTotal);
+  document.getElementById('custTotal').textContent = formatCurrency(custTotal);
+  document.getElementById('custSpent').textContent = formatCurrency(spent);
+  const remEl = document.getElementById('custRem');
+  remEl.textContent  = formatCurrency(Math.abs(rem));
+  remEl.style.color  = rem >= 0 ? '#69f0ae' : '#ff5252';
+  document.getElementById('custRemSection').querySelector('.cust-lbl').textContent =
+    rem >= 0 ? ' المتبقي من العهدة' : ' تجاوز العهدة';
 }
 
 // ─── POPULATE SELECTS ─────────────────────────────────────────────
@@ -1114,8 +1239,7 @@ async function savePurchase() {
     closeModal('purchaseModal');
     await loadPurchases();
     updateSummaryCards();
-    toast('تم حفظ الفاتورة ✓');
-  } catch(e) { showAlert('purchaseAlert','خطأ: '+e.message); }
+    toast('تم حفظ الفاتورة ✓');  } catch(e) { showAlert('purchaseAlert','خطأ: '+e.message); }
 }
 
 async function deletePurchase(id) {
@@ -1741,6 +1865,41 @@ function exportContractsPDF() {
     <tbody>${filteredContr.map((c,i)=>`<tr><td>${i+1}</td><td>${c.date}</td><td>${c.contractorName}</td><td>${PURPOSES[c.purpose]||c.purpose}</td><td>${WORK_TYPES[c.workType]||c.workType}</td><td>${c.desc}</td><td>${formatCurrency(c.total)}</td><td style="color:#2e7d32">${formatCurrency(c.paid)}</td><td style="color:${c.remaining>0?'#c0392b':'#2e7d32'}">${c.remaining>0?formatCurrency(c.remaining):'مسدد'}</td></tr>`).join('')}
     <tr class="tot"><td colspan="6">الإجمالي</td><td>${formatCurrency(total)}</td><td>${formatCurrency(filteredContr.reduce((s,c)=>s+(c.paid||0),0))}</td><td style="color:#c0392b">${formatCurrency(filteredContr.reduce((s,c)=>s+(c.remaining||0),0))}</td></tr></tbody></table>
     <script>window.print();setTimeout(()=>window.close(),800)<\/script></body></html>`);
+}
+
+// ─── CUSTODIAN ────────────────────────────────────────────────────
+function openAddCustodian() {
+  document.getElementById('custType').value   = 'new';
+  document.getElementById('custAmount').value = '';
+  document.getElementById('custDate').value   = localDateStr();
+  document.getElementById('custNotes').value  = '';
+  document.getElementById('custodianAlert').classList.add('hidden');
+  openModal('custodianModal');
+}
+
+async function saveCustodian() {
+  const type   = document.getElementById('custType').value;
+  const amount = parseFloat(document.getElementById('custAmount').value)||0;
+  const date   = document.getElementById('custDate').value;
+  const notes  = document.getElementById('custNotes').value.trim();
+
+  if (amount <= 0) return showAlert('custodianAlert','ادخل مبلغاً صحيحاً أكبر من صفر');
+  if (!date)       return showAlert('custodianAlert','التاريخ مطلوب');
+
+  const data = {
+    schoolId, type, amount, date, notes,
+    typeLabel: type === 'prev' ? 'عهدة سابقة' : 'عهدة جديدة',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    createdBy: session.email
+  };
+
+  try {
+    await db.collection('contractors_custodians').add(data);
+    closeModal('custodianModal');
+    await loadCustodians();
+    updateSummaryCards();
+    toast(`تم إضافة عهدة ${data.typeLabel}: ${formatCurrency(amount)} ✓`);
+  } catch(e) { showAlert('custodianAlert','خطأ: '+e.message); }
 }
 
 // ─── TOAST ────────────────────────────────────────────────────────
