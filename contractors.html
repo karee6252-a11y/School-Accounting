@@ -314,7 +314,7 @@
               <thead>
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>نوع العمل</th>
-                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>جهة الدفع</th><th>ملاحظات</th><th></th>
+                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>خصم</th><th>الصافي</th><th>جهة الدفع</th><th>ملاحظات</th><th></th>
                 </tr>
               </thead>
               <tbody id="purchasesBody">
@@ -366,7 +366,7 @@
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المقاول</th><th>الغرض</th><th>نوع العمل</th>
                   <th>البيان</th><th>المساحة/الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th>
-                  <th>المدفوع</th><th>المتبقي</th><th>جهة الدفع</th><th></th>
+                  <th>المدفوع</th><th>خصم</th><th>الصافي</th><th>المتبقي</th><th>جهة الدفع</th><th></th>
                 </tr>
               </thead>
               <tbody id="contractsBody">
@@ -545,6 +545,14 @@
           <label class="form-label">الإجمالي (ج.م)</label>
           <input type="number" class="form-input" id="pTotal" placeholder="0.00" style="background:var(--accent);font-weight:800" readonly />
         </div>
+        <div class="form-group">
+          <label class="form-label">خصم (ج.م)</label>
+          <input type="number" class="form-input" id="pDiscount" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseTotal()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">الصافي بعد الخصم (ج.م)</label>
+          <input type="number" class="form-input" id="pNet" placeholder="0.00" style="background:#e8f5e9;font-weight:800;color:#2e7d32" readonly />
+        </div>
         <div class="form-group" style="grid-column:1/-1">
           <label class="form-label">ملاحظات</label>
           <textarea class="form-textarea" id="pNotes" rows="2" placeholder="رقم الفاتورة، ضمان، ملاحظات..."></textarea>
@@ -658,6 +666,14 @@
         <div class="form-group">
           <label class="form-label">المبلغ المدفوع الآن (ج.م)</label>
           <input type="number" class="form-input" id="cPaidNow" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">خصم (ج.م)</label>
+          <input type="number" class="form-input" id="cDiscount" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">الصافي بعد الخصم (ج.م)</label>
+          <input type="number" class="form-input" id="cNet" placeholder="0.00" style="background:#e8f5e9;font-weight:800;color:#2e7d32" readonly />
         </div>
         <div class="form-group">
           <label class="form-label">المتبقي (المديونية)</label>
@@ -972,6 +988,8 @@ function renderPurchases() {
       <td style="text-align:center">${p.unit||'—'}</td>
       <td style="text-align:center">${formatCurrency(p.unitPrice||0)}</td>
       <td class="text-bold text-primary">${formatCurrency(p.total||0)}</td>
+      <td style="color:#e65100;font-weight:700">${p.discount ? formatCurrency(p.discount) : '—'}</td>
+      <td style="color:#2e7d32;font-weight:800">${formatCurrency(p.net??p.total??0)}</td>
       <td>${p.payer==='chairman'
         ? '<span style="background:#fff3cd;color:#856404;border:1px solid #ffc107;padding:0.15rem 0.5rem;border-radius:20px;font-size:0.7rem;font-weight:700">رئيس مجلس الإدارة</span>'
         : '<span style="background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;padding:0.15rem 0.5rem;border-radius:20px;font-size:0.7rem;font-weight:700">قسم الحسابات</span>'
@@ -1036,6 +1054,8 @@ function renderContracts() {
       <td style="text-align:center">${upCell}</td>
       <td class="text-bold text-primary">${formatCurrency(c.total||0)}</td>
       <td style="color:#2e7d32;font-weight:700">${formatCurrency(c.paid||0)}</td>
+      <td style="color:#e65100;font-weight:700">${c.discount ? formatCurrency(c.discount) : '—'}</td>
+      <td style="color:#2e7d32;font-weight:800">${formatCurrency(c.net??c.paid??0)}</td>
       <td style="color:${hasDebt?'#c0392b':'#2e7d32'};font-weight:800">${hasDebt?formatCurrency(c.remaining||0):'مسدد ✓'}</td>
       <td>${c.payer==='chairman'
         ? '<span style="background:#fff3cd;color:#856404;border:1px solid #ffc107;padding:0.15rem 0.5rem;border-radius:20px;font-size:0.7rem;font-weight:700">رئيس مجلس الإدارة</span>'
@@ -1077,9 +1097,9 @@ function updateSummaryCards() {
   const prevTotal = allCustodians.filter(c=>c.type==='prev').reduce((s,c)=>s+(c.amount||0),0);
   const newTotal  = allCustodians.filter(c=>c.type==='new').reduce((s,c)=>s+(c.amount||0),0);
   const custTotal = prevTotal + newTotal;
-  // المصروف من العهدة = مشتريات كاملة + المدفوع فعلاً للمقاولين (بدون المديونيات)
-  const spentP = allPurchases.filter(p=>(!p.payer||p.payer==='accounts')).reduce((s,p)=>s+(p.total||0),0);
-  const spentC = allContracts.filter(c=>(!c.payer||c.payer==='accounts')).reduce((s,c)=>s+(c.paid||0),0);
+  // المصروف من العهدة = الصافي بعد الخصم (بس من قسم الحسابات)
+  const spentP = allPurchases.filter(p=>(!p.payer||p.payer==='accounts')).reduce((s,p)=>s+(p.net??p.total??0),0);
+  const spentC = allContracts.filter(c=>(!c.payer||c.payer==='accounts')).reduce((s,c)=>s+(c.net??c.paid??0),0);
   const spent  = spentP + spentC;
   const rem       = custTotal - spent;
   document.getElementById('custPrev').textContent  = formatCurrency(prevTotal);
@@ -1211,7 +1231,7 @@ function openPurchaseModal() {
   document.getElementById('purchaseEditId').value = '';
   document.getElementById('pDate').value = localDateStr();
   ['pDesc','pNotes'].forEach(id => document.getElementById(id).value = '');
-  ['pQty','pUnitPrice','pTotal'].forEach(id => document.getElementById(id).value = '');
+  ['pQty','pUnitPrice','pTotal','pDiscount','pNet'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('purchaseAlert').classList.add('hidden');
   openModal('purchaseModal');
 }
@@ -1230,6 +1250,8 @@ function openEditPurchase(id) {
   document.getElementById('pUnit').value           = p.unit||'قطعة';
   document.getElementById('pUnitPrice').value      = p.unitPrice||'';
   document.getElementById('pTotal').value          = p.total||'';
+  document.getElementById('pDiscount').value       = p.discount||'';
+  document.getElementById('pNet').value            = p.net??( (p.total||0)-(p.discount||0) );
   document.getElementById('pNotes').value          = p.notes||'';
   document.getElementById('purchaseAlert').classList.add('hidden');
   openModal('purchaseModal');
@@ -1238,9 +1260,13 @@ function openEditPurchase(id) {
 function toggleAreaMode() { /* purchases use qty always */ }
 
 function calcPurchaseTotal() {
-  const qty   = parseFloat(document.getElementById('pQty').value)       || 0;
-  const price = parseFloat(document.getElementById('pUnitPrice').value) || 0;
-  document.getElementById('pTotal').value = (qty * price).toFixed(2);
+  const qty      = parseFloat(document.getElementById('pQty').value)       || 0;
+  const price    = parseFloat(document.getElementById('pUnitPrice').value) || 0;
+  const discount = parseFloat(document.getElementById('pDiscount').value)  || 0;
+  const total    = qty * price;
+  const net      = Math.max(0, total - discount);
+  document.getElementById('pTotal').value = total.toFixed(2);
+  document.getElementById('pNet').value   = net.toFixed(2);
 }
 
 async function savePurchase() {
@@ -1263,12 +1289,14 @@ async function savePurchase() {
   if (unitPrice<=0) return showAlert('purchaseAlert','سعر الوحدة يجب أن يكون أكبر من صفر');
 
   const supp = allSuppliers.find(s => s.id === suppId);
-  const payer = document.querySelector('input[name="pPayer"]:checked')?.value || 'accounts';
+  const payer    = document.querySelector('input[name="pPayer"]:checked')?.value || 'accounts';
+  const discount = parseFloat(document.getElementById('pDiscount').value) || 0;
+  const net      = Math.max(0, total - discount);
   const data = {
     schoolId, supplierId: suppId, supplierName: supp?.name||'', date,
     purpose, purposeLabel: PURPOSES[purpose]||purpose,
     workType, workTypeLabel: WORK_TYPES[workType]||workType,
-    desc, qty, unit, unitPrice, total,
+    desc, qty, unit, unitPrice, total, discount, net,
     payer,
     payerLabel: payer === 'chairman' ? 'رئيس مجلس الإدارة' : 'قسم الحسابات',
     notes: document.getElementById('pNotes').value.trim(),
@@ -1307,7 +1335,7 @@ function openContractModal() {
   document.getElementById('cDate').value = localDateStr();
   ['cContractor','cPurpose','cWorkType'].forEach(id => document.getElementById(id).value = '');
   ['cDesc','cNotes'].forEach(id => document.getElementById(id).value = '');
-  ['cArea','cPricePerM','cTotal','cFixedTotal','cPaidNow','cDebt'].forEach(id => document.getElementById(id).value = '');
+  ['cArea','cPricePerM','cTotal','cFixedTotal','cPaidNow','cDiscount','cNet','cDebt'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('cFixedUnit').value = '';
   document.getElementById('contractAlert').classList.add('hidden');
   document.getElementById('cAreaGroup').style.display  = 'none';
@@ -1327,6 +1355,8 @@ function openEditContract(id) {
   document.getElementById('cDesc').value           = c.desc||'';
   document.getElementById('cNotes').value          = c.notes||'';
   document.getElementById('cPaidNow').value        = c.paid||'';
+  document.getElementById('cDiscount').value       = c.discount||'';
+  document.getElementById('cNet').value            = c.net??( (c.paid||0)-(c.discount||0) );
   document.getElementById('cDebt').value           = c.remaining||'';
 
   const isArea = AREA_BASED.includes(c.workType);
@@ -1370,11 +1400,14 @@ function syncFixedTotal() { calcContractDebt(); }
 function calcContractDebt() {
   const wt = document.getElementById('cWorkType').value;
   const isArea = AREA_BASED.includes(wt);
-  const total = isArea
+  const total    = isArea
     ? (parseFloat(document.getElementById('cTotal').value)||0)
     : (parseFloat(document.getElementById('cFixedTotal').value)||0);
-  const paid  = parseFloat(document.getElementById('cPaidNow').value)||0;
-  document.getElementById('cDebt').value = Math.max(0, total - paid).toFixed(2);
+  const paid     = parseFloat(document.getElementById('cPaidNow').value)   || 0;
+  const discount = parseFloat(document.getElementById('cDiscount').value)  || 0;
+  const net      = Math.max(0, paid - discount);
+  document.getElementById('cNet').value  = net.toFixed(2);
+  document.getElementById('cDebt').value = Math.max(0, total - net).toFixed(2);
 }
 
 async function saveContract() {
@@ -1405,7 +1438,9 @@ async function saveContract() {
   }
 
   const paid      = parseFloat(document.getElementById('cPaidNow').value)||0;
-  const remaining = Math.max(0, total - paid);
+  const discount  = parseFloat(document.getElementById('cDiscount').value)||0;
+  const net       = Math.max(0, paid - discount);
+  const remaining = Math.max(0, total - net);
   const contr     = allSuppliers.find(s => s.id === contId);
   const payer     = document.querySelector('input[name="cPayer"]:checked')?.value || 'accounts';
 
@@ -1413,7 +1448,7 @@ async function saveContract() {
     schoolId, contractorId: contId, contractorName: contr?.name||'',
     date, purpose, purposeLabel: PURPOSES[purpose]||purpose,
     workType, workTypeLabel: WORK_TYPES[workType]||workType,
-    desc, total, paid, remaining,
+    desc, total, paid, discount, net, remaining,
     payer,
     payerLabel: payer === 'chairman' ? 'رئيس مجلس الإدارة' : 'قسم الحسابات',
     notes: document.getElementById('cNotes').value.trim(),
