@@ -1411,7 +1411,7 @@
   }
 
   // ============================================================
-  // شيت مراجعة إيرادات كارديف 2026
+  // شيت مراجعة إيرادات المدرسة — يعمل مع كل مدرسة
   // ============================================================
   async function exportCardiffReview() {
     if (typeof ExcelJS === 'undefined') {
@@ -1422,16 +1422,22 @@
       return;
     }
 
-    // ── جلب كل transactions و debts لكارديف ──
+    // ── جلب كل transactions و debts للمدرسة الحالية ──
+    const _reviewSchoolId = schoolId; // المدرسة الحالية
     let allTx = [], allDebts = [];
     try {
       const [txSnap, debtSnap] = await Promise.all([
-        db.collection('transactions').where('schoolId','==','cardiff').get(),
-        db.collection('debts').where('schoolId','==','cardiff').get()
+        db.collection('transactions').where('schoolId','==',_reviewSchoolId).get(),
+        db.collection('debts').where('schoolId','==',_reviewSchoolId).get()
       ]);
       txSnap.forEach(doc  => allTx.push({ id: doc.id, ...doc.data() }));
       debtSnap.forEach(doc => allDebts.push({ id: doc.id, ...doc.data() }));
     } catch(e) { alert('خطأ في جلب البيانات: ' + e.message); return; }
+
+    if (allTx.length === 0 && allDebts.length === 0) {
+      alert('لا توجد بيانات لهذه المدرسة بعد.');
+      return;
+    }
 
     // =====================================================
     // ثوابت الترتيب والمراحل
