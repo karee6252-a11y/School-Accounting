@@ -365,7 +365,7 @@
               <thead>
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>نوع العمل</th>
-                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>العهدة السابقة</th><th>العهدة الجديدة</th><th>إجمالي العهدة</th><th>المصروف</th><th>المتبقي من العهدة</th><th>ملاحظات</th><th></th>
+                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>إجمالي العهدة</th><th>المصروف</th><th>المتبقي من العهدة</th><th>ملاحظات</th><th></th>
                 </tr>
               </thead>
               <tbody id="purchasesBody">
@@ -617,21 +617,7 @@
         <!-- ===== قسم العهدة ===== -->
         <div style="grid-column:1/-1;background:var(--accent);border:1px solid var(--primary-light,#c5d8f5);border-radius:var(--radius-sm);padding:0.85rem 1rem">
           <div style="font-size:0.78rem;font-weight:800;color:var(--primary);margin-bottom:0.65rem"> إدارة العهدة</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem">
-            <div class="form-group" style="margin:0">
-              <label class="form-label">العهدة السابقة (ج.م)</label>
-              <input type="number" class="form-input" id="pCustodyPrev" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseCustody()" />
-            </div>
-            <div class="form-group" style="margin:0">
-              <label class="form-label">العهدة الجديدة (ج.م)</label>
-              <input type="number" class="form-input" id="pCustodyNew" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseCustody()" />
-            </div>
-            <div class="form-group" style="margin:0">
-              <label class="form-label">إجمالي العهدة (ج.م)</label>
-              <input type="number" class="form-input" id="pCustodyTotal" placeholder="0.00" style="font-weight:800;color:var(--primary)" readonly />
-            </div>
-          </div>
-          <div style="margin-top:0.65rem;display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
             <div class="form-group" style="margin:0">
               <label class="form-label">المصروف من العهدة (ج.م)</label>
               <input type="number" class="form-input" id="pCustodySpent" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseCustody()" />
@@ -820,22 +806,28 @@
 <div class="modal-overlay hidden" id="addCustodyModal">
   <div class="modal" style="max-width:420px">
     <div class="modal-header">
-      <span class="modal-title"> إضافة عهدة جديدة</span>
+      <span class="modal-title"> إضافة عهدة</span>
       <button class="btn-close" onclick="closeModal('addCustodyModal')">×</button>
     </div>
     <div class="modal-body">
       <div class="alert hidden" id="addCustodyAlert"></div>
       <div class="form-group">
-        <label class="form-label">المبلغ (ج.م) <span class="required">*</span></label>
-        <input type="number" class="form-input" id="cwAmount" placeholder="0.00" min="0.01" step="0.01" style="font-size:1.2rem;font-weight:800" />
-      </div>
-      <div class="form-group">
         <label class="form-label">التاريخ <span class="required">*</span></label>
         <input type="date" class="form-input" id="cwDate" />
       </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+        <div class="form-group">
+          <label class="form-label">العهدة السابقة (ج.م)</label>
+          <input type="number" class="form-input" id="cwPrev" placeholder="0.00" min="0" step="0.01" oninput="calcCustodyTotal()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">العهدة الجديدة (ج.م) <span class="required">*</span></label>
+          <input type="number" class="form-input" id="cwNew" placeholder="0.00" min="0" step="0.01" oninput="calcCustodyTotal()" />
+        </div>
+      </div>
       <div class="form-group">
-        <label class="form-label">البيان / الملاحظة</label>
-        <input type="text" class="form-input" id="cwNote" placeholder="مثال: عهدة شهر مارس، دفعة من المدير..." />
+        <label class="form-label">إجمالي العهدة (ج.م)</label>
+        <input type="number" class="form-input" id="cwAmount" placeholder="0.00" readonly style="font-size:1.2rem;font-weight:800;background:var(--accent);color:var(--primary)" />
       </div>
     </div>
     <div class="modal-footer">
@@ -1018,25 +1010,33 @@ function renderCustodyWidget() {
     (pct < 15 ? ' danger' : pct < 30 ? ' warning' : '');
 }
 
+function calcCustodyTotal() {
+  const prev = parseFloat(document.getElementById('cwPrev').value) || 0;
+  const newC = parseFloat(document.getElementById('cwNew').value)  || 0;
+  document.getElementById('cwAmount').value = (prev + newC).toFixed(2);
+}
+
 function openAddCustody() {
+  document.getElementById('cwPrev').value   = '';
+  document.getElementById('cwNew').value    = '';
   document.getElementById('cwAmount').value = '';
   document.getElementById('cwDate').value   = localDateStr();
-  document.getElementById('cwNote').value   = '';
   document.getElementById('addCustodyAlert').classList.add('hidden');
   openModal('addCustodyModal');
-  setTimeout(() => document.getElementById('cwAmount').focus(), 200);
+  setTimeout(() => document.getElementById('cwPrev').focus(), 200);
 }
 
 async function saveCustodyEntry() {
-  const amount = parseFloat(document.getElementById('cwAmount').value) || 0;
+  const prev   = parseFloat(document.getElementById('cwPrev').value)   || 0;
+  const newC   = parseFloat(document.getElementById('cwNew').value)    || 0;
+  const amount = prev + newC;
   const date   = document.getElementById('cwDate').value;
-  const note   = document.getElementById('cwNote').value.trim();
-  if (amount <= 0) return showAlert('addCustodyAlert','ادخل مبلغاً أكبر من صفر');
+  if (amount <= 0) return showAlert('addCustodyAlert','ادخل مبلغ العهدة السابقة أو الجديدة');
   if (!date)       return showAlert('addCustodyAlert','التاريخ مطلوب');
 
   try {
     await db.collection('custody_entries').add({
-      schoolId, amount, date, note,
+      schoolId, amount, custodyPrev: prev, custodyNew: newC, date,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       createdBy: session.email
     });
@@ -1076,7 +1076,9 @@ function renderCustodyLog() {
     <div class="clog-row">
       <div>
         <div class="clog-amount">${formatCurrency(e.amount)}</div>
-        ${e.note ? `<div style="font-size:0.75rem;color:var(--text-light);margin-top:2px">${e.note}</div>` : ''}
+        <div style="font-size:0.72rem;color:var(--text-light);margin-top:2px">
+          سابقة: ${formatCurrency(e.custodyPrev||0)} &nbsp;|&nbsp; جديدة: ${formatCurrency(e.custodyNew||0)}
+        </div>
       </div>
       <div style="display:flex;align-items:center;gap:0.75rem">
         <div class="clog-date">${e.date||'—'}</div>
@@ -1256,8 +1258,6 @@ function renderPurchases() {
       <td class="text-bold text-primary">${formatCurrency(p.total||0)}</td>
       <td>${deductCell}</td>
       <td class="text-bold" style="color:#c0392b">${formatCurrency(netVal)}</td>
-      <td style="text-align:center">${(p.custodyPrev||0)>0?formatCurrency(p.custodyPrev):'—'}</td>
-      <td style="text-align:center">${(p.custodyNew||0)>0?formatCurrency(p.custodyNew):'—'}</td>
       <td style="text-align:center;font-weight:700;color:var(--primary)">${custTotalCell}</td>
       <td style="text-align:center">${custSpentCell}</td>
       <td>${custBalCell}</td>
@@ -1274,7 +1274,6 @@ function renderPurchases() {
     <td style="padding:0.75rem 1rem">${formatCurrency(grandTotal)}</td>
     <td style="padding:0.75rem 1rem;color:#e65100">${grandDeduction>0?formatCurrency(grandDeduction):'—'}</td>
     <td style="padding:0.75rem 1rem;color:#c0392b">${formatCurrency(grandNet)}</td>
-    <td colspan="2"></td>
     <td style="padding:0.75rem 1rem;color:var(--primary)">${grandCustodyTotal>0?formatCurrency(grandCustodyTotal):'—'}</td>
     <td style="padding:0.75rem 1rem">${grandCustodySpent>0?formatCurrency(grandCustodySpent):'—'}</td>
     <td style="padding:0.75rem 1rem;color:${grandCustodyBalance<0?'#c0392b':'#2e7d32'}">${grandCustodyTotal>0?formatCurrency(grandCustodyBalance):'—'}</td>
@@ -1478,7 +1477,7 @@ function openPurchaseModal() {
   document.getElementById('purchaseEditId').value = '';
   document.getElementById('pDate').value = localDateStr();
   ['pDesc','pNotes'].forEach(id => document.getElementById(id).value = '');
-  ['pQty','pUnitPrice','pTotal','pDeduction','pNet','pCustodyPrev','pCustodyNew','pCustodyTotal','pCustodySpent','pCustodyBalance'].forEach(id => document.getElementById(id).value = '');
+  ['pQty','pUnitPrice','pTotal','pDeduction','pNet','pCustodySpent','pCustodyBalance'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('purchaseAlert').classList.add('hidden');
   openModal('purchaseModal');
 }
@@ -1498,9 +1497,6 @@ function openEditPurchase(id) {
   document.getElementById('pTotal').value          = p.total||'';
   document.getElementById('pDeduction').value      = p.deduction||'';
   document.getElementById('pNet').value            = p.net != null ? p.net : (p.total||'');
-  document.getElementById('pCustodyPrev').value    = p.custodyPrev||'';
-  document.getElementById('pCustodyNew').value     = p.custodyNew||'';
-  document.getElementById('pCustodyTotal').value   = p.custodyTotal||'';
   document.getElementById('pCustodySpent').value   = p.custodySpent||'';
   document.getElementById('pCustodyBalance').value = p.custodyBalance != null ? p.custodyBalance : '';
   document.getElementById('pNotes').value          = p.notes||'';
@@ -1526,18 +1522,11 @@ function calcPurchaseNet() {
 }
 
 function calcPurchaseCustody() {
-  const prev  = parseFloat(document.getElementById('pCustodyPrev').value)  || 0;
-  const newC  = parseFloat(document.getElementById('pCustodyNew').value)   || 0;
   const spent = parseFloat(document.getElementById('pCustodySpent').value) || 0;
-  // الصافي من الفاتورة يتخصم من العهدة تلقائياً إذا لم يكن في مصروف يدوي
   const net   = parseFloat(document.getElementById('pNet').value)          || 0;
-  const total = prev + newC;
-  document.getElementById('pCustodyTotal').value = total.toFixed(2);
-  // المتبقي = إجمالي العهدة - المصروف المُدخل - صافي الفاتورة
+  // المتبقي = العهدة الكلية (من widget) - المصروف أو صافي الفاتورة
   const spentFinal = spent > 0 ? spent : net;
-  const balance = total - spentFinal;
-  document.getElementById('pCustodyBalance').value = balance.toFixed(2);
-  // لو المصروف = 0 نضع تلقائياً قيمة صافي الفاتورة في حقل المصروف
+  document.getElementById('pCustodyBalance').value = (-spentFinal).toFixed(2);
   if (spent === 0 && net > 0) {
     document.getElementById('pCustodySpent').placeholder = `تلقائي: ${net.toFixed(2)}`;
   } else {
@@ -1559,15 +1548,11 @@ async function savePurchase() {
   const net      = Math.max(0, total - deduction);
 
   // custody
-  const custodyPrev  = parseFloat(document.getElementById('pCustodyPrev').value)  || 0;
-  const custodyNew   = parseFloat(document.getElementById('pCustodyNew').value)   || 0;
-  const custodyTotal = custodyPrev + custodyNew;
-  // المصروف: إذا أُدخل يدوياً يُستخدم، وإلا صافي الفاتورة
   const custodySpentInput = parseFloat(document.getElementById('pCustodySpent').value);
   const custodySpent  = !isNaN(custodySpentInput) && document.getElementById('pCustodySpent').value !== ''
     ? custodySpentInput
-    : (custodyTotal > 0 ? net : 0);
-  const custodyBalance = custodyTotal - custodySpent;
+    : net;
+  const custodyBalance = -custodySpent;
 
   if (!suppId)   return showAlert('purchaseAlert','اختر المورد');
   if (!date)     return showAlert('purchaseAlert','التاريخ مطلوب');
@@ -1584,7 +1569,7 @@ async function savePurchase() {
     workType, workTypeLabel: WORK_TYPES[workType]||workType,
     desc, qty, unit, unitPrice, total,
     deduction, net,
-    custodyPrev, custodyNew, custodyTotal, custodySpent, custodyBalance,
+    custodySpent, custodyBalance,
     notes: document.getElementById('pNotes').value.trim(),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -2227,13 +2212,13 @@ function exportProfilePDF(supplierId) {
       <div class="info-item"><div class="lbl">المديونية</div><div class="val" style="color:${cDebt>0?'#c0392b':'#2e7d32'}">${formatCurrency(cDebt)}</div></div>
     </div>
     ${pList.length>0?`<h3> المشتريات (${pList.length} فاتورة)</h3>
-    <table><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>ع.سابقة</th><th>ع.جديدة</th><th>إجمالي العهدة</th><th>المصروف</th><th>المتبقي من العهدة</th></tr></thead>
+    <table><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>إجمالي العهدة</th><th>المصروف</th><th>المتبقي من العهدة</th></tr></thead>
     <tbody>${pList.map((p,i)=>{
       const pnet=p.net!=null?p.net:(p.total||0);
-      const hasCust=(p.custodyTotal||0)>0;
-      return `<tr><td>${i+1}</td><td>${p.date}</td><td>${getPurposeLabel(p.purpose)}</td><td>${WORK_TYPES[p.workType]||p.workType}</td><td>${p.desc}</td><td>${p.qty} ${p.unit}</td><td>${formatCurrency(p.total)}</td><td style="color:#e65100">${(p.deduction||0)>0?formatCurrency(p.deduction):'—'}</td><td style="color:#c0392b;font-weight:700">${formatCurrency(pnet)}</td><td>${(p.custodyPrev||0)>0?formatCurrency(p.custodyPrev):'—'}</td><td>${(p.custodyNew||0)>0?formatCurrency(p.custodyNew):'—'}</td><td style="font-weight:700">${hasCust?formatCurrency(p.custodyTotal):'—'}</td><td>${hasCust&&(p.custodySpent||0)>0?formatCurrency(p.custodySpent):'—'}</td><td style="color:${hasCust&&(p.custodyBalance||0)<0?'#c0392b':'#2e7d32'};font-weight:700">${hasCust?formatCurrency(p.custodyBalance||0):'—'}</td></tr>`;
+      const hasCust=(p.custodyTotal||0)>0||(p.custodySpent||0)>0;
+      return `<tr><td>${i+1}</td><td>${p.date}</td><td>${getPurposeLabel(p.purpose)}</td><td>${WORK_TYPES[p.workType]||p.workType}</td><td>${p.desc}</td><td>${p.qty} ${p.unit}</td><td>${formatCurrency(p.total)}</td><td style="color:#e65100">${(p.deduction||0)>0?formatCurrency(p.deduction):'—'}</td><td style="color:#c0392b;font-weight:700">${formatCurrency(pnet)}</td><td style="font-weight:700">${hasCust?formatCurrency(p.custodyTotal||0):'—'}</td><td>${hasCust&&(p.custodySpent||0)>0?formatCurrency(p.custodySpent):'—'}</td><td style="color:${hasCust&&(p.custodyBalance||0)<0?'#c0392b':'#2e7d32'};font-weight:700">${hasCust?formatCurrency(p.custodyBalance||0):'—'}</td></tr>`;
     }).join('')}
-    <tr class="total-row"><td colspan="6">الإجمالي</td><td>${formatCurrency(pTotal)}</td><td style="color:#e65100">${pDeduction>0?formatCurrency(pDeduction):'—'}</td><td>${formatCurrency(pNet)}</td><td colspan="2"></td><td>${custTotal>0?formatCurrency(custTotal):'—'}</td><td></td><td style="color:${custBal<0?'#c0392b':'#2e7d32'}">${custTotal>0?formatCurrency(custBal):'—'}</td></tr></tbody></table>`:''}
+    <tr class="total-row"><td colspan="6">الإجمالي</td><td>${formatCurrency(pTotal)}</td><td style="color:#e65100">${pDeduction>0?formatCurrency(pDeduction):'—'}</td><td>${formatCurrency(pNet)}</td><td>${custTotal>0?formatCurrency(custTotal):'—'}</td><td></td><td style="color:${custBal<0?'#c0392b':'#2e7d32'}">${custTotal>0?formatCurrency(custBal):'—'}</td></tr></tbody></table>`:''}
     ${cList.length>0?`<h3> العقود والأعمال (${cList.length} عقد)</h3>
     <table><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>التخصيم</th><th>المتبقي</th></tr></thead>
     <tbody>${cList.map((c,i)=>`<tr><td>${i+1}</td><td>${c.date}</td><td>${getPurposeLabel(c.purpose)}</td><td>${WORK_TYPES[c.workType]||c.workType}</td><td>${c.desc}</td><td>${formatCurrency(c.total)}</td><td style="color:#2e7d32">${formatCurrency(c.paid)}</td><td style="color:#e65100">${(c.deduction||0)>0?formatCurrency(c.deduction):'—'}</td><td style="color:${c.remaining>0?'#c0392b':'#2e7d32'}">${c.remaining>0?formatCurrency(c.remaining):'مسدد ✓'}</td></tr>`).join('')}
@@ -2268,13 +2253,13 @@ function exportPurchasesPDF() {
       ${custTotal>0?`<div class="si"><div class="lbl">إجمالي العهدة</div><div class="val">${formatCurrency(custTotal)}</div></div>`:''}
       ${custTotal>0?`<div class="si"><div class="lbl">المتبقي من العهدة</div><div class="val" style="color:${custBal<0?'#c0392b':'#2e7d32'}">${formatCurrency(custBal)}</div></div>`:''}
     </div>
-    <table><thead><tr><th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>ع.سابقة</th><th>ع.جديدة</th><th>إجمالي العهدة</th><th>المصروف</th><th>المتبقي من العهدة</th></tr></thead>
+    <table><thead><tr><th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>إجمالي العهدة</th><th>المصروف</th><th>المتبقي من العهدة</th></tr></thead>
     <tbody>${filteredPurch.map((p,i)=>{
       const pnet=p.net!=null?p.net:(p.total||0);
-      const hasCust=(p.custodyTotal||0)>0;
-      return `<tr><td>${i+1}</td><td>${p.date}</td><td>${p.supplierName}</td><td>${getPurposeLabel(p.purpose)}</td><td>${WORK_TYPES[p.workType]||p.workType}</td><td>${p.desc}</td><td>${p.qty} ${p.unit}</td><td>${formatCurrency(p.total)}</td><td style="color:#e65100">${(p.deduction||0)>0?formatCurrency(p.deduction):'—'}</td><td style="color:#c0392b;font-weight:700">${formatCurrency(pnet)}</td><td>${(p.custodyPrev||0)>0?formatCurrency(p.custodyPrev):'—'}</td><td>${(p.custodyNew||0)>0?formatCurrency(p.custodyNew):'—'}</td><td style="color:#1a3a6b;font-weight:700">${hasCust?formatCurrency(p.custodyTotal):'—'}</td><td>${hasCust&&(p.custodySpent||0)>0?formatCurrency(p.custodySpent):'—'}</td><td style="color:${hasCust&&(p.custodyBalance||0)<0?'#c0392b':'#2e7d32'};font-weight:700">${hasCust?formatCurrency(p.custodyBalance||0):'—'}</td></tr>`;
+      const hasCust=(p.custodyTotal||0)>0||(p.custodySpent||0)>0;
+      return `<tr><td>${i+1}</td><td>${p.date}</td><td>${p.supplierName}</td><td>${getPurposeLabel(p.purpose)}</td><td>${WORK_TYPES[p.workType]||p.workType}</td><td>${p.desc}</td><td>${p.qty} ${p.unit}</td><td>${formatCurrency(p.total)}</td><td style="color:#e65100">${(p.deduction||0)>0?formatCurrency(p.deduction):'—'}</td><td style="color:#c0392b;font-weight:700">${formatCurrency(pnet)}</td><td style="color:#1a3a6b;font-weight:700">${hasCust?formatCurrency(p.custodyTotal||0):'—'}</td><td>${hasCust&&(p.custodySpent||0)>0?formatCurrency(p.custodySpent):'—'}</td><td style="color:${hasCust&&(p.custodyBalance||0)<0?'#c0392b':'#2e7d32'};font-weight:700">${hasCust?formatCurrency(p.custodyBalance||0):'—'}</td></tr>`;
     }).join('')}
-    <tr class="tot"><td colspan="7">الإجمالي</td><td>${formatCurrency(total)}</td><td>${deduction>0?formatCurrency(deduction):'—'}</td><td>${formatCurrency(net)}</td><td colspan="2"></td><td>${custTotal>0?formatCurrency(custTotal):'—'}</td><td></td><td style="color:${custBal<0?'#c0392b':'#2e7d32'}">${custTotal>0?formatCurrency(custBal):'—'}</td></tr></tbody></table>
+    <tr class="tot"><td colspan="7">الإجمالي</td><td>${formatCurrency(total)}</td><td>${deduction>0?formatCurrency(deduction):'—'}</td><td>${formatCurrency(net)}</td><td>${custTotal>0?formatCurrency(custTotal):'—'}</td><td></td><td style="color:${custBal<0?'#c0392b':'#2e7d32'}">${custTotal>0?formatCurrency(custBal):'—'}</td></tr></tbody></table>
     <script>window.print();setTimeout(()=>window.close(),800)<\/script></body></html>`);
 }
 
