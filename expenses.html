@@ -250,6 +250,7 @@
         <div class="export-btn-group">
           <button class="btn btn-outline btn-sm" onclick="exportExcel()"> Excel</button>
           <button class="btn btn-outline btn-sm" onclick="exportPDF()"> PDF</button>
+          <button class="btn btn-outline btn-sm" onclick="exportDailyExpensesSheet()" style="background:var(--accent);color:var(--primary);border-color:var(--primary);font-weight:800"> شيت المصروفات اليومي</button>
         </div>
       </div>
 
@@ -879,8 +880,365 @@
 
   // exportExcel → defined in the top script block (ExcelJS version)
 
-  //  PDF Export 
-  function exportPDF() {
+  // ============================================================
+  // EXPORT EXCEL — بند المصروفات بـ ExcelJS وألوان المدرسة وـ borders
+  // ============================================================
+  async function exportExcel() {
+    if (typeof ExcelJS === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      document.head.appendChild(s);
+      s.onload = () => exportExcel();
+      return;
+    }
+    if (!currentData || currentData.length === 0) { alert('لا توجد بيانات للتصدير'); return; }
+
+    const school     = SESSION.getSchool();
+    const schoolName = school?.name || 'المدرسة';
+    const { from, to, label } = getDateRange();
+    const total      = currentData.reduce((s,d) => s+(d.amount||0), 0);
+    const remaining  = prevCustodian + newCustodian - allExpensesTotal;
+
+    // ── ألوان المدرسة ──
+    const rawP = (school?.primaryColor   || '#1E2D5A').replace('#','');
+    const rawS = (school?.secondaryColor || '#4A6FA5').replace('#','');
+    const rawA = (school?.accentColor    || '#D6E4F0').replace('#','');
+    const PRI  = 'FF' + rawP, SEC = 'FF' + rawS, ACC = 'FF' + rawA;
+    const WHT  = 'FFFFFFFF', BLK = 'FF000000', RED = 'FFC00000';
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = schoolName;
+    wb.views   = [{ rightToLeft: true }];
+
+    const ws = wb.addWorksheet(`مصروفات ${schoolName}`);
+    ws.views  = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:3, activeCell:'A4' }];
+    ws.columns = [
+      {width:5},   // A م
+      {width:16},  // B التاريخ
+      {width:30},  // C اسم المستلم
+      {width:22},  // D المقابل/الفئة
+      {width:16},  // E المبلغ
+      {width:32},  // F ملاحظات
+    ];
+
+    // ── دوال مساعدة ──
+    const hF  = a => ({ type:'pattern', pattern:'solid', fgColor:{ argb:a } });
+    const brd = (style='medium', c='FF444444') => {
+      const s = { style, color:{ argb:c } };
+      return { top:s, bottom:s, left:s, right:s };
+    };
+    const brdM = () => brd('medium','FF555555');
+    const brdT = () => brd('thick', 'FF222222');
+    const cAl  = () => ({ horizontal:'center', vertical:'middle', readingOrder:2 });
+    const rAl  = () => ({ horizontal:'right',  vertical:'middle', readingOrder:2 });
+
+    function styleAll(row, bg, fc=BLK, bold=false, sz=10, bFn=brdM) {
+      row.eachCell({ includeEmpty:true }, cell => {
+        if (bg) cell.fill = hF(bg);
+        cell.font      = { name:'Arial', bold, size:sz, color:{ argb:fc } };
+        cell.alignment = cAl();
+        cell.border    = bFn();
+      });
+    }
+
+    const nFmt = cell => { cell.numFmt = '#,##0;(#,##0);"-"'; };
+
+    // ── صف 1: عنوان ──
+    const r1 = ws.addRow([`بيان المصروفات — ${schoolName} — ${ACADEMIC_YEAR}`]);
+    ws.mergeCells('A1:F1');
+    styleAll(r1, PRI, WHT, true, 14, brdT);
+    r1.getCell(1).alignment = cAl();
+    r1.height = 32;
+
+    // ── صف 2: الفترة ──
+    const r2 = ws.addRow([`الفترة: ${label}          تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')}          بواسطة: ${session.email}`]);
+    ws.mergeCells('A2:F2');
+    styleAll(r2, SEC, WHT, true, 11);
+    r2.getCell(1).alignment = cAl();
+    r2.height = 22;
+
+    // ── صف 3: هيدر الأعمدة ──
+    const r3 = ws.addRow(['م','التاريخ','اسم المستلم','المقابل / الفئة','المبلغ (ج.م)','ملاحظات']);
+    styleAll(r3, SEC, WHT, true, 11, brdT);
+    r3.height = 26;
+
+    // ── بيانات ──
+    currentData.forEach((d,i) => {
+      const row = ws.addRow([
+        i+1,
+        d.date,
+        d.recipientName || '',
+        d.categoryLabel || getCatLabel(d.category) || d.category || '',
+        d.amount || 0,
+        d.notes || ''
+      ]);
+      const altBg = i%2===0 ? WHT : ('FF' + rawA);
+      styleAll(row, altBg, BLK, false, 10, brdM);
+      nFmt(row.getCell(5));
+      row.getCell(3).alignment = rAl();
+      row.height = 20;
+    });
+
+    // ── صف الإجمالي ──
+    const totRow = ws.addRow(['الإجمالي','','','', total, '']);
+    ws.mergeCells(`A${totRow.number}:D${totRow.number}`);
+    styleAll(totRow, PRI, WHT, true, 12, brdT);
+    nFmt(totRow.getCell(5));
+    totRow.height = 26;
+
+    // ── صف فراغ ──
+    ws.addRow([]);
+
+    // ── ملخص العهدة والرصيد ──
+    const summaryRows = [
+      ['العهدة السابقة',  prevCustodian,  'FF1565C0', WHT],
+      ['العهدة الجديدة',  newCustodian,   'FF2E7D32', WHT],
+      ['إجمالي المصروفات',total,           RED,        WHT],
+      ['الرصيد المتبقي',  remaining,       remaining>=0 ? 'FF1B5E20' : 'FFC00000', WHT],
+    ];
+    summaryRows.forEach(([lbl, val, bg, fc]) => {
+      const sr = ws.addRow([lbl,'','','',val,'']);
+      ws.mergeCells(`A${sr.number}:D${sr.number}`);
+      styleAll(sr, bg, fc, true, 11, brdT);
+      nFmt(sr.getCell(5));
+      sr.getCell(6).fill = hF(bg);
+      sr.getCell(6).border = brdT();
+      sr.height = 24;
+    });
+
+    // ── فوتر ──
+    ws.addRow([]);
+    const ftr = ws.addRow([`Designed by Eng. Kareem Ali Mousa — ${new Date().toLocaleDateString('ar-EG')}`]);
+    ws.mergeCells(`A${ftr.number}:F${ftr.number}`);
+    ftr.getCell(1).font      = { name:'Arial', size:9, color:{ argb:'FF888888' } };
+    ftr.getCell(1).alignment = cAl();
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob   = new Blob([buffer], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url    = URL.createObjectURL(blob);
+    const a      = document.createElement('a');
+    a.href       = url;
+    a.download   = `مصروفات_${schoolName}_${from}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ============================================================
+  // شيت المصروفات اليومي — جدولان بـ borders bold وحسابات صحيحة
+  // (منقول من التقارير لبند المصروفات)
+  // ============================================================
+  async function exportDailyExpensesSheet() {
+    if (typeof ExcelJS === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      document.head.appendChild(s);
+      s.onload = () => exportDailyExpensesSheet();
+      return;
+    }
+
+    const school     = SESSION.getSchool();
+    const schoolName = school?.name || 'المدرسة';
+    const today      = localDateStr(new Date());
+    const filterDateEl = document.getElementById('filterDate');
+    const selectedDate = (filterDateEl && filterDateEl.value) ? filterDateEl.value : today;
+
+    // جلب العهدة من Firestore
+    let custPrev = 0, custNew = 0;
+    try {
+      const custDoc = await db.collection('custodians').doc(schoolId).get();
+      if (custDoc.exists) {
+        custPrev = custDoc.data().prevAmount || 0;
+        custNew  = custDoc.data().newAmount  || 0;
+      }
+    } catch(e) { custPrev = 0; custNew = 0; }
+
+    // جلب مصروفات اليوم
+    let dayExpenses = [];
+    try {
+      const expSnap = await db.collection('expenses')
+        .where('schoolId','==', schoolId)
+        .where('date','==', selectedDate).get();
+      expSnap.forEach(doc => dayExpenses.push({ id: doc.id, ...doc.data() }));
+      dayExpenses.sort((a,b) => (a.createdAt?.seconds||0) - (b.createdAt?.seconds||0));
+    } catch(e) { dayExpenses = []; }
+
+    // جلب تحصيلات اليوم (إيرادات)
+    let dayRevenue = 0;
+    try {
+      const txSnap = await db.collection('transactions')
+        .where('schoolId','==', schoolId)
+        .where('date','==', selectedDate).get();
+      txSnap.forEach(doc => { dayRevenue += (doc.data().amount || 0); });
+    } catch(e) { dayRevenue = 0; }
+
+    const totalExpenses  = dayExpenses.reduce((s,e) => s+(e.amount||0), 0);
+    const openingBalance = custPrev + custNew;
+    const closingBalance = openingBalance + dayRevenue - totalExpenses;
+
+    // ── ألوان المدرسة ──
+    const rawP = (school?.primaryColor   || '#1E2D5A').replace('#','');
+    const rawS = (school?.secondaryColor || '#4A6FA5').replace('#','');
+    const rawA = (school?.accentColor    || '#D6E4F0').replace('#','');
+    const PRI  = 'FF'+rawP, SEC='FF'+rawS, ACC='FF'+rawA;
+    const WHT='FFFFFFFF', BLK='FF000000', RED='FFC00000', GRN='FF1B5E20';
+
+    const wb   = new ExcelJS.Workbook();
+    wb.creator = schoolName;
+    wb.views   = [{ rightToLeft:true }];
+
+    const ws = wb.addWorksheet(`شيت المصروفات ${selectedDate}`);
+    ws.views  = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:3, activeCell:'A4' }];
+    ws.columns = [
+      {width:5},  // A م
+      {width:18}, // B التاريخ / اسم المستلم
+      {width:24}, // C
+      {width:18}, // D المبلغ
+    ];
+
+    const hF   = a => ({ type:'pattern', pattern:'solid', fgColor:{argb:a} });
+    const brd  = (style='medium',c='FF444444') => { const s={style,color:{argb:c}}; return {top:s,bottom:s,left:s,right:s}; };
+    const brdM = () => brd('medium','FF555555');
+    const brdT = () => brd('thick','FF222222');
+    const cAl  = () => ({ horizontal:'center', vertical:'middle', readingOrder:2, wrapText:false });
+    const rAl  = () => ({ horizontal:'right',  vertical:'middle', readingOrder:2 });
+    const nFmt = cell => { cell.numFmt='#,##0;(#,##0);"-"'; };
+
+    function applyCell(cell, bg, fc, bold, sz, bFn, aFn) {
+      if (bg) cell.fill = hF(bg);
+      cell.font      = { name:'Arial', bold, size:sz, color:{argb:fc} };
+      cell.alignment = aFn();
+      cell.border    = bFn();
+    }
+    function styleAll(row, bg, fc=BLK, bold=false, sz=10, bFn=brdM) {
+      row.eachCell({includeEmpty:true}, cell => {
+        if (bg) cell.fill = hF(bg);
+        cell.font      = {name:'Arial',bold,size:sz,color:{argb:fc}};
+        cell.alignment = cAl();
+        cell.border    = bFn();
+      });
+    }
+
+    // ── عنوان الشيت ──
+    const titleR = ws.addRow([`شيت المصروفات اليومي — ${schoolName}`]);
+    ws.mergeCells('A1:D1');
+    styleAll(titleR, PRI, WHT, true, 14, brdT);
+    titleR.getCell(1).alignment = cAl();
+    titleR.height = 32;
+
+    const dateR = ws.addRow([`التاريخ: ${selectedDate}          العام الدراسي: ${ACADEMIC_YEAR}`]);
+    ws.mergeCells('A2:D2');
+    styleAll(dateR, SEC, WHT, true, 11);
+    dateR.getCell(1).alignment = cAl();
+    dateR.height = 22;
+
+    ws.addRow([]);
+
+    // ── ① رصيد أول اليوم ──
+    const openR = ws.addRow(['رصيد أول اليوم (عهدة سابقة + جديدة)', '', openingBalance, '']);
+    ws.mergeCells(`A${openR.number}:B${openR.number}`);
+    applyCell(openR.getCell(1), 'FF1565C0', WHT, true, 12, brdT, rAl);
+    applyCell(openR.getCell(3), 'FF1565C0', WHT, true, 14, brdT, cAl);
+    nFmt(openR.getCell(3));
+    applyCell(openR.getCell(4), 'FF1565C0', WHT, false, 10, brdT, cAl);
+    openR.height = 28;
+
+    // ── ② إيرادات اليوم ──
+    const revR = ws.addRow(['إجمالي إيرادات اليوم', '', dayRevenue, '']);
+    ws.mergeCells(`A${revR.number}:B${revR.number}`);
+    applyCell(revR.getCell(1), GRN, WHT, true, 12, brdT, rAl);
+    applyCell(revR.getCell(3), GRN, WHT, true, 14, brdT, cAl);
+    nFmt(revR.getCell(3));
+    applyCell(revR.getCell(4), GRN, WHT, false, 10, brdT, cAl);
+    revR.height = 28;
+
+    ws.addRow([]);
+
+    // ── ③ جدول المصروفات ──
+    const expHdr = ws.addRow(['م','اسم المستلم','المقابل / البيان','المبلغ (ج.م)']);
+    styleAll(expHdr, SEC, WHT, true, 11, brdT);
+    expHdr.height = 24;
+
+    if (dayExpenses.length === 0) {
+      const emptyR = ws.addRow(['-','لا توجد مصروفات في هذا اليوم','','-']);
+      ws.mergeCells(`B${emptyR.number}:C${emptyR.number}`);
+      styleAll(emptyR, ACC, BLK, false, 10, brdM);
+      emptyR.height = 20;
+    } else {
+      dayExpenses.forEach((e,i) => {
+        const r = ws.addRow([
+          i+1,
+          e.recipientName || '',
+          e.categoryLabel || getCatLabel(e.category) || e.category || '',
+          e.amount || 0
+        ]);
+        const altBg = i%2===0 ? WHT : ('FF'+rawA);
+        styleAll(r, altBg, BLK, false, 10, brdM);
+        r.getCell(4).font = {name:'Arial',bold:true,size:11,color:{argb:RED}};
+        nFmt(r.getCell(4));
+        r.height = 20;
+      });
+    }
+
+    // ── صف إجمالي المصروفات ──
+    const expTotRow = ws.addRow(['إجمالي المصروفات','', '', totalExpenses]);
+    ws.mergeCells(`A${expTotRow.number}:C${expTotRow.number}`);
+    styleAll(expTotRow, PRI, WHT, true, 12, brdT);
+    nFmt(expTotRow.getCell(4));
+    expTotRow.height = 26;
+
+    ws.addRow([]);
+
+    // ── ④ رصيد الخزنة آخر اليوم ──
+    const closingR = ws.addRow([
+      `رصيد الخزنة آخر اليوم = ${openingBalance.toLocaleString()} + ${dayRevenue.toLocaleString()} - ${totalExpenses.toLocaleString()}`,
+      '',
+      closingBalance,
+      ''
+    ]);
+    ws.mergeCells(`A${closingR.number}:B${closingR.number}`);
+    const closingBg = closingBalance >= 0 ? GRN : RED;
+    applyCell(closingR.getCell(1), closingBg, WHT, true, 12, brdT, rAl);
+    applyCell(closingR.getCell(3), closingBg, WHT, true, 14, brdT, cAl);
+    nFmt(closingR.getCell(3));
+    applyCell(closingR.getCell(4), closingBg, WHT, false, 10, brdT, cAl);
+    closingR.height = 30;
+
+    // ── ملخص نهائي ──
+    ws.addRow([]);
+    const summaryData = [
+      ['رصيد أول اليوم (عهدة)', openingBalance,  'FF1565C0'],
+      ['+ إيرادات اليوم',        dayRevenue,       GRN],
+      ['- إجمالي المصروفات',     totalExpenses,    'FF8B0000'],
+      ['= رصيد الخزنة آخر اليوم',closingBalance,   closingBalance>=0 ? GRN : 'FFC00000'],
+    ];
+    summaryData.forEach(([lbl, val, bg]) => {
+      const sr = ws.addRow(['', lbl, val, '']);
+      ws.mergeCells(`A${sr.number}:B${sr.number}`);
+      applyCell(sr.getCell(1), bg, WHT, true, 11, brdT, rAl);
+      applyCell(sr.getCell(3), bg, WHT, true, 12, brdT, cAl);
+      nFmt(sr.getCell(3));
+      applyCell(sr.getCell(4), WHT, BLK, false, 10, brdM, cAl);
+      sr.height = 24;
+    });
+
+    // ── فوتر ──
+    ws.addRow([]);
+    const ftr = ws.addRow(['', `Designed by Eng. Kareem Ali Mousa — ${new Date().toLocaleDateString('ar-EG')}`, '', '']);
+    ws.mergeCells(`A${ftr.number}:D${ftr.number}`);
+    ftr.getCell(1).font = {name:'Arial',bold:false,size:9,color:{argb:'FF888888'}};
+    ftr.getCell(1).alignment = cAl();
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob   = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url    = URL.createObjectURL(blob);
+    const a      = document.createElement('a');
+    a.href       = url;
+    a.download   = `شيت_المصروفات_اليومي_${schoolName}_${selectedDate}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+
     const school = SESSION.getSchool();
     const { from, to } = getDateRange();
     const total      = currentData.reduce((s, d) => s + (d.amount || 0), 0);
