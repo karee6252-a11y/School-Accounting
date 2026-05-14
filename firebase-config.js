@@ -254,8 +254,57 @@ const ACADEMIC_YEAR_START = _currentAcademicYearData.start;   // e.g. "2025-07-0
 // SESSION MANAGEMENT
 // ========================================
 const SESSION = {
-  get: () => JSON.parse(sessionStorage.getItem('school_session') || 'null'),
-  set: (data) => sessionStorage.setItem('school_session', JSON.stringify(data)),
+  get: () => {
+    try {
+      const raw = sessionStorage.getItem('school_session');
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+
+      // ── تحقق من صحة البيانات المخزنة ──
+      if (!s || !s.uid || !s.email || !s.role) return null;
+
+      // تحقق: الإيميل لازم يكون من ضمن القوائم المسموح بيها
+      const isKnownAdmin = ADMINS.includes(s.email);
+      const isKnownAccountant = Object.values(SCHOOLS).some(sc =>
+        sc.users.includes(s.email)
+      );
+      if (!isKnownAdmin && !isKnownAccountant) {
+        sessionStorage.removeItem('school_session');
+        return null;
+      }
+
+      // تحقق: schoolId لازم يكون مدرسة موجودة
+      if (!SCHOOLS[s.schoolId]) {
+        sessionStorage.removeItem('school_session');
+        return null;
+      }
+
+      // تحقق: لو مش أدمن، الإيميل لازم يكون مصرح له بالمدرسة دي بالتحديد
+      if (!isKnownAdmin) {
+        const allowedSchool = Object.values(SCHOOLS).find(sc =>
+          sc.users.includes(s.email)
+        );
+        if (!allowedSchool || allowedSchool.id !== s.schoolId) {
+          // محاولة تلاعب بالـ schoolId — امسح الـ session فوراً
+          sessionStorage.removeItem('school_session');
+          return null;
+        }
+      }
+
+      return s;
+    } catch (e) {
+      sessionStorage.removeItem('school_session');
+      return null;
+    }
+  },
+  set: (data) => {
+    // تحقق أساسي قبل الحفظ
+    if (!data || !data.uid || !data.email || !data.role || !data.schoolId) {
+      console.error('SESSION.set: بيانات ناقصة', data);
+      return;
+    }
+    sessionStorage.setItem('school_session', JSON.stringify(data));
+  },
   clear: () => sessionStorage.removeItem('school_session'),
   isAdmin: () => {
     const s = SESSION.get();
