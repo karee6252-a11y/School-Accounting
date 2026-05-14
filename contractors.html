@@ -365,7 +365,7 @@
               <thead>
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>نوع العمل</th>
-                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>ملاحظات</th><th></th>
+                  <th>البيان</th><th>الدفعة الأولى</th><th>تاريخها</th><th></th><th>إجمالي العقد</th><th>التخصيم</th><th>المديونية</th><th>ملاحظات</th><th></th>
                 </tr>
               </thead>
               <tbody id="purchasesBody">
@@ -420,8 +420,8 @@
               <thead>
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المقاول</th><th>الغرض</th><th>نوع العمل</th>
-                  <th>البيان</th><th>المساحة/الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th>
-                  <th>المدفوع</th><th>التخصيم</th><th>المتبقي</th><th></th>
+                  <th>البيان</th><th>المساحة/الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>إجمالي العقد</th>
+                  <th>الدفعة الأولى</th><th>الدفعة الثانية</th><th>الدفعة الثالثة</th><th>التخصيم</th><th>المديونية</th><th></th>
                 </tr>
               </thead>
               <tbody id="contractsBody">
@@ -580,10 +580,14 @@
           <input type="text" class="form-input" id="pDesc" placeholder="مثال: بلاط 60×60 أبيض / خشب سنديان..." />
         </div>
         <div class="form-group" id="pQtyGroup">
-          <label class="form-label" id="pQtyLabel">الكمية <span class="required">*</span></label>
+          <label class="form-label" id="pQtyLabel">الدفعة الأولى (ج.م) <span class="required">*</span></label>
           <input type="number" class="form-input" id="pQty" placeholder="0" min="0" step="0.01" oninput="calcPurchaseTotal()" />
         </div>
-        <div class="form-group" id="pUnitGroup">
+        <div class="form-group">
+          <label class="form-label">تاريخ الدفعة الأولى</label>
+          <input type="date" class="form-input" id="pQtyDate" />
+        </div>
+        <div class="form-group" id="pUnitGroup" style="display:none">
           <label class="form-label">وحدة القياس</label>
           <select class="form-select" id="pUnit">
             <option value="قطعة">قطعة</option>
@@ -598,20 +602,20 @@
             <option value="عدد">عدد</option>
           </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">سعر الوحدة (ج.م) <span class="required">*</span></label>
-          <input type="number" class="form-input" id="pUnitPrice" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseTotal()" />
+        <div class="form-group" style="display:none">
+          <label class="form-label">سعر الوحدة (ج.م)</label>
+          <input type="number" class="form-input" id="pUnitPrice" placeholder="0.00" min="0" step="0.01" />
         </div>
-        <div class="form-group">
-          <label class="form-label">الإجمالي (ج.م)</label>
-          <input type="number" class="form-input" id="pTotal" placeholder="0.00" style="background:var(--accent);font-weight:800" readonly />
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">إجمالي العقد (ج.م) <span class="required">*</span></label>
+          <input type="number" class="form-input" id="pTotal" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseNet()" />
         </div>
         <div class="form-group">
           <label class="form-label">التخصيم (ج.م)</label>
           <input type="number" class="form-input" id="pDeduction" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseNet()" />
         </div>
         <div class="form-group">
-          <label class="form-label">الصافي بعد التخصيم (ج.م)</label>
+          <label class="form-label">المديونية (الإجمالي - التخصيم - المدفوع)</label>
           <input type="number" class="form-input" id="pNet" placeholder="0.00" style="background:var(--accent);font-weight:800;color:#c0392b" readonly />
         </div>
         <div class="form-group" style="grid-column:1/-1">
@@ -715,15 +719,37 @@
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">المبلغ المدفوع (ج.م)</label>
-          <input type="number" class="form-input" id="cPaidNow" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
+          <label class="form-label">الدفعة الأولى (ج.م)</label>
+          <input type="number" class="form-input" id="cPay1" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
         </div>
+        <div class="form-group">
+          <label class="form-label">تاريخ الدفعة الأولى</label>
+          <input type="date" class="form-input" id="cPay1Date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">الدفعة الثانية (ج.م)</label>
+          <input type="number" class="form-input" id="cPay2" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">تاريخ الدفعة الثانية</label>
+          <input type="date" class="form-input" id="cPay2Date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">الدفعة الثالثة (ج.م)</label>
+          <input type="number" class="form-input" id="cPay3" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">تاريخ الدفعة الثالثة</label>
+          <input type="date" class="form-input" id="cPay3Date" />
+        </div>
+        <!-- حقل مخفي للتوافق مع الكود القديم -->
+        <input type="hidden" id="cPaidNow" />
         <div class="form-group">
           <label class="form-label">التخصيم (ج.م)</label>
           <input type="number" class="form-input" id="cDeduction" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
         </div>
         <div class="form-group" style="grid-column:1/-1">
-          <label class="form-label">المتبقي (المديونية)</label>
+          <label class="form-label" style="color:#c0392b;font-weight:800">المديونية = إجمالي العقد − إجمالي الدفع − التخصيم</label>
           <input type="number" class="form-input" id="cDebt" readonly style="background:var(--accent);font-weight:800;color:#c0392b" />
         </div>
         <div class="form-group" style="grid-column:1/-1">
@@ -1229,9 +1255,9 @@ function renderPurchases() {
       <td>${ppTag}</td>
       <td>${wTag}</td>
       <td>${p.desc||'—'}</td>
-      <td style="text-align:center">${p.qty??'—'}</td>
-      <td style="text-align:center">${p.unit||'—'}</td>
-      <td style="text-align:center">${formatCurrency(p.unitPrice||0)}</td>
+      <td style="color:#2e7d32;font-weight:700">${(p.pay1||0)>0?formatCurrency(p.pay1):'—'}</td>
+      <td style="font-size:0.78rem;color:var(--text-light)">${p.pay1Date||'—'}</td>
+      <td></td>
       <td class="text-bold text-primary">${formatCurrency(p.total||0)}</td>
       <td>${deductCell}</td>
       <td class="text-bold" style="color:#c0392b">${formatCurrency(netVal)}</td>
@@ -1296,7 +1322,9 @@ function renderContracts() {
       <td style="text-align:center">${isArea?'م²':'إجمالي'}</td>
       <td style="text-align:center">${upCell}</td>
       <td class="text-bold text-primary">${formatCurrency(c.total||0)}</td>
-      <td style="color:#2e7d32;font-weight:700">${formatCurrency(c.paid||0)}</td>
+      <td style="color:#2e7d32;font-weight:700">${(c.pay1||0)>0?formatCurrency(c.pay1):'—'}<br><span style="font-size:0.7rem;color:var(--text-light)">${c.pay1Date||''}</span></td>
+      <td style="color:#2e7d32;font-weight:700">${(c.pay2||0)>0?formatCurrency(c.pay2):'—'}<br><span style="font-size:0.7rem;color:var(--text-light)">${c.pay2Date||''}</span></td>
+      <td style="color:#2e7d32;font-weight:700">${(c.pay3||0)>0?formatCurrency(c.pay3):'—'}<br><span style="font-size:0.7rem;color:var(--text-light)">${c.pay3Date||''}</span></td>
       <td style="color:#e65100;font-weight:700">${(c.deduction||0)>0 ? formatCurrency(c.deduction) : '—'}</td>
       <td style="color:${hasDebt?'#c0392b':'#2e7d32'};font-weight:800">${hasDebt?formatCurrency(c.remaining||0):'مسدد ✓'}</td>
       <td>
@@ -1308,7 +1336,9 @@ function renderContracts() {
   tfoot.innerHTML = `<tr style="background:var(--accent);font-weight:800;color:var(--primary)">
     <td colspan="9" style="padding:0.75rem 1rem">الإجمالي (${filteredContr.length} عقد)</td>
     <td style="padding:0.75rem 1rem">${formatCurrency(gTotal)}</td>
-    <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(gPaid)}</td>
+    <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(filteredContr.reduce((a,c)=>a+(c.pay1||0),0))}</td>
+    <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(filteredContr.reduce((a,c)=>a+(c.pay2||0),0))}</td>
+    <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(filteredContr.reduce((a,c)=>a+(c.pay3||0),0))}</td>
     <td style="padding:0.75rem 1rem;color:#e65100">${gDeduct>0?formatCurrency(gDeduct):'—'}</td>
     <td style="padding:0.75rem 1rem;color:#c0392b">${formatCurrency(gDebt)}</td>
     <td></td>
@@ -1462,7 +1492,8 @@ function openEditPurchase(id) {
   document.getElementById('pPurpose').value        = p.purpose||'';
   document.getElementById('pWorkType').value       = p.workType||'';
   document.getElementById('pDesc').value           = p.desc||'';
-  document.getElementById('pQty').value            = p.qty??'';
+  document.getElementById('pQty').value            = p.pay1 ?? p.qty ?? '';
+  document.getElementById('pQtyDate').value        = p.pay1Date||'';
   document.getElementById('pUnit').value           = p.unit||'قطعة';
   document.getElementById('pUnitPrice').value      = p.unitPrice||'';
   document.getElementById('pTotal').value          = p.total||'';
@@ -1485,7 +1516,8 @@ function calcPurchaseTotal() {
 function calcPurchaseNet() {
   const total     = parseFloat(document.getElementById('pTotal').value)     || 0;
   const deduction = parseFloat(document.getElementById('pDeduction').value) || 0;
-  document.getElementById('pNet').value = Math.max(0, total - deduction).toFixed(2);
+  const paid      = parseFloat(document.getElementById('pQty').value)       || 0;
+  document.getElementById('pNet').value = Math.max(0, total - deduction - paid).toFixed(2);
 }
 
 async function savePurchase() {
@@ -1494,12 +1526,14 @@ async function savePurchase() {
   const purpose  = document.getElementById('pPurpose').value;
   const workType = document.getElementById('pWorkType').value;
   const desc     = document.getElementById('pDesc').value.trim();
-  const qty      = parseFloat(document.getElementById('pQty').value)       || 0;
+  const total    = parseFloat(document.getElementById('pTotal').value) || 0;
+  const pay1     = parseFloat(document.getElementById('pQty').value)   || 0;
+  const pay1Date = document.getElementById('pQtyDate').value           || '';
+  const qty      = pay1; // backward compat
   const unit     = document.getElementById('pUnit').value;
-  const unitPrice= parseFloat(document.getElementById('pUnitPrice').value) || 0;
-  const total    = qty * unitPrice;
+  const unitPrice= 0; // not used
   const deduction= parseFloat(document.getElementById('pDeduction').value) || 0;
-  const net      = Math.max(0, total - deduction);
+  const net      = Math.max(0, total - deduction - pay1);
 
   // custody
   const custodySpentInput = parseFloat(document.getElementById('pCustodySpent')?.value);
@@ -1511,8 +1545,7 @@ async function savePurchase() {
   if (!purpose)  return showAlert('purchaseAlert','اختر الغرض');
   if (!workType) return showAlert('purchaseAlert','اختر نوع العمل');
   if (!desc)     return showAlert('purchaseAlert','البيان مطلوب');
-  if (qty <= 0)  return showAlert('purchaseAlert','الكمية يجب أن تكون أكبر من صفر');
-  if (unitPrice<=0) return showAlert('purchaseAlert','سعر الوحدة يجب أن يكون أكبر من صفر');
+  if (total <= 0) return showAlert('purchaseAlert','إجمالي العقد يجب أن يكون أكبر من صفر');
 
   const supp = allSuppliers.find(s => s.id === suppId);
   const data = {
@@ -1520,6 +1553,7 @@ async function savePurchase() {
     purpose, purposeLabel: getPurposeLabel(purpose),
     workType, workTypeLabel: WORK_TYPES[workType]||workType,
     desc, qty, unit, unitPrice, total,
+    pay1, pay1Date,
     deduction, net,
     notes: document.getElementById('pNotes').value.trim(),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1559,7 +1593,7 @@ function openContractModal() {
   document.getElementById('cDate').value = localDateStr();
   ['cContractor','cPurpose','cWorkType'].forEach(id => document.getElementById(id).value = '');
   ['cDesc','cNotes'].forEach(id => document.getElementById(id).value = '');
-  ['cArea','cPricePerM','cTotal','cFixedTotal','cPaidNow','cDeduction','cDebt'].forEach(id => document.getElementById(id).value = '');
+  ['cArea','cPricePerM','cTotal','cFixedTotal','cPay1','cPay1Date','cPay2','cPay2Date','cPay3','cPay3Date','cDeduction','cDebt'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   document.getElementById('cFixedUnit').value = '';
   document.getElementById('contractAlert').classList.add('hidden');
   document.getElementById('cAreaGroup').style.display  = 'none';
@@ -1577,7 +1611,12 @@ function openEditContract(id) {
   document.getElementById('cWorkType').value       = c.workType||'';
   document.getElementById('cDesc').value           = c.desc||'';
   document.getElementById('cNotes').value          = c.notes||'';
-  document.getElementById('cPaidNow').value        = c.paid||'';
+  document.getElementById('cPay1').value           = c.pay1||'';
+  document.getElementById('cPay1Date').value       = c.pay1Date||'';
+  document.getElementById('cPay2').value           = c.pay2||'';
+  document.getElementById('cPay2Date').value       = c.pay2Date||'';
+  document.getElementById('cPay3').value           = c.pay3||'';
+  document.getElementById('cPay3Date').value       = c.pay3Date||'';
   document.getElementById('cDeduction').value      = c.deduction||'';
   document.getElementById('cDebt').value           = c.remaining||'';
 
@@ -1606,6 +1645,12 @@ function toggleContractMode() {
   document.getElementById('cPricePerM').value = '';
   document.getElementById('cTotal').value = '';
   document.getElementById('cFixedTotal').value = '';
+  document.getElementById('cPay1').value = '';
+  document.getElementById('cPay1Date').value = '';
+  document.getElementById('cPay2').value = '';
+  document.getElementById('cPay2Date').value = '';
+  document.getElementById('cPay3').value = '';
+  document.getElementById('cPay3Date').value = '';
   document.getElementById('cDeduction').value = '';
   document.getElementById('cDebt').value = '';
 }
@@ -1626,9 +1671,14 @@ function calcContractDebt() {
   const total = isArea
     ? (parseFloat(document.getElementById('cTotal').value)||0)
     : (parseFloat(document.getElementById('cFixedTotal').value)||0);
-  const paid      = parseFloat(document.getElementById('cPaidNow').value)||0;
+  const pay1      = parseFloat(document.getElementById('cPay1').value)||0;
+  const pay2      = parseFloat(document.getElementById('cPay2').value)||0;
+  const pay3      = parseFloat(document.getElementById('cPay3').value)||0;
+  const totalPaid = pay1 + pay2 + pay3;
+  // sync hidden field for backward compat
+  document.getElementById('cPaidNow').value = totalPaid;
   const deduction = parseFloat(document.getElementById('cDeduction').value)||0;
-  document.getElementById('cDebt').value = Math.max(0, total - paid - deduction).toFixed(2);
+  document.getElementById('cDebt').value = Math.max(0, total - totalPaid - deduction).toFixed(2);
 }
 
 async function saveContract() {
@@ -1658,7 +1708,13 @@ async function saveContract() {
     if (total<=0) return showAlert('contractAlert','إجمالي العقد مطلوب');
   }
 
-  const paid      = parseFloat(document.getElementById('cPaidNow').value)||0;
+  const pay1      = parseFloat(document.getElementById('cPay1').value)||0;
+  const pay1Date  = document.getElementById('cPay1Date').value||'';
+  const pay2      = parseFloat(document.getElementById('cPay2').value)||0;
+  const pay2Date  = document.getElementById('cPay2Date').value||'';
+  const pay3      = parseFloat(document.getElementById('cPay3').value)||0;
+  const pay3Date  = document.getElementById('cPay3Date').value||'';
+  const paid      = pay1 + pay2 + pay3;
   const deduction = parseFloat(document.getElementById('cDeduction').value)||0;
   const remaining = Math.max(0, total - paid - deduction);
   const contr     = allSuppliers.find(s => s.id === contId);
@@ -1667,7 +1723,7 @@ async function saveContract() {
     schoolId, contractorId: contId, contractorName: contr?.name||'',
     date, purpose, purposeLabel: getPurposeLabel(purpose),
     workType, workTypeLabel: WORK_TYPES[workType]||workType,
-    desc, total, paid, deduction, remaining, notes: document.getElementById('cNotes').value.trim(),
+    desc, total, paid, pay1, pay1Date, pay2, pay2Date, pay3, pay3Date, deduction, remaining, notes: document.getElementById('cNotes').value.trim(),
     isAreaBased: isArea,
     paymentHistory: [],
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
