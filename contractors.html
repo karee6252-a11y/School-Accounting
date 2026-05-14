@@ -922,13 +922,13 @@ function updateSummaryCards() {
   const pTotal = allPurchases.reduce((s,p) => s+(p.total||0), 0);
   const cTotal = allContracts.reduce((s,c) => s+(c.total||0), 0);
   const cPaid  = allContracts.reduce((s,c) => s+(c.paid||0),  0);
-  const cDeduct= allContracts.reduce((s,c) => s+(c.deduction||0), 0);
+  const cDebt  = allContracts.reduce((s,c) => s+(c.remaining||0), 0);
   const cDebt  = allContracts.reduce((s,c) => s+(c.remaining||0), 0);
   document.getElementById('sumPurchases').textContent      = formatCurrency(pTotal);
   document.getElementById('sumPurchasesCount').textContent = `${allPurchases.length} فاتورة`;
   document.getElementById('sumContracts').textContent      = formatCurrency(cTotal);
   document.getElementById('sumContractsCount').textContent = `${allContracts.length} عقد`;
-  document.getElementById('sumPaid').textContent           = formatCurrency(pTotal + cPaid + cDeduct);
+  document.getElementById('sumPaid').textContent           = formatCurrency(pTotal + cPaid);
   document.getElementById('sumSuppliersCount').textContent = `${allSuppliers.length} مورد/مقاول`;
   document.getElementById('sumDebts').textContent          = formatCurrency(cDebt);
   document.getElementById('sumDebtsCount').textContent     = `${allContracts.filter(c=>(c.remaining||0)>0).length} مقاول`;
