@@ -1637,10 +1637,6 @@
     const wb2 = new ExcelJS.Workbook();
     const _rs = SESSION.getSchool() || {};
     const _rsName = _rs.name || 'Cardiff International School';
-    // العام الدراسي: من global أو من بيانات المدرسة أو fallback تلقائي
-    const ACADEMIC_YEAR = (typeof window.ACADEMIC_YEAR !== 'undefined' && window.ACADEMIC_YEAR)
-      || (_rs.academicYear || _rs.academic_year || _rs.year || session?.academicYear || '')
-      || (()=>{ const y = new Date().getFullYear(); return `${y}/${y+1}`; })();
     wb2.creator = _rsName + ' Accounting';
     wb2.views   = [{ rightToLeft:true }];
 
@@ -1890,12 +1886,11 @@
 
     // تصدير
     const buffer = await wb2.xlsx.writeBuffer();
-    const _lds = (typeof localDateStr === 'function') ? localDateStr : (d => d.toISOString().slice(0,10));
     const blob   = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const url    = URL.createObjectURL(blob);
     const a2     = document.createElement('a');
     a2.href      = url;
-    a2.download  = `مراجعة_إيرادات_${_rsName}_${ACADEMIC_YEAR.replace('/','_')}_${_lds(new Date())}.xlsx`;
+    a2.download  = `مراجعة_إيرادات_${_rsName}_${ACADEMIC_YEAR.replace('/','_')}_${localDateStr(new Date())}.xlsx`;
     a2.click();
     URL.revokeObjectURL(url);
 
