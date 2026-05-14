@@ -82,13 +82,13 @@
   const session = SESSION.get();
   const schoolId = session.schoolId;
 
-  // زرار مراجعة الإيرادات — اسم المدرسة ديناميكي
+  // زرار مراجعة الإيرادات — ظاهر لكل المدارس
   (function(){
     const _s = SESSION.getSchool();
     const _b = document.getElementById('cardiffReviewBtn');
     if (_b && _s) {
       _b.textContent = ` مراجعة إيرادات ${_s.name}`;
-      if (_s.id !== 'cardiff' && !SESSION.isAdmin()) _b.style.display='none';
+      _b.style.display = 'inline-flex'; // دايماً ظاهر
     }
   })();
   let currentPeriod = 'daily';

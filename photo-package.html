@@ -199,11 +199,11 @@
         </div>
         <div class="photo-stat" id="statGrade6Box" style="display:none">
           <span class="ps-val" id="statGrade6">0</span>
-          <span class="ps-label">Grade 6 — 400 ج.م</span>
+          <span class="ps-label">Grade 6 — 500 ج.م</span>
         </div>
         <div class="photo-stat" id="statPrep3Box" style="display:none">
           <span class="ps-val" id="statPrep3">0</span>
-          <span class="ps-label">Prep 3 — 400 ج.م</span>
+          <span class="ps-label">Prep 3 — 500 ج.م</span>
         </div>
         <div class="photo-stat">
           <span class="ps-val" id="statRevenue">0</span>
@@ -434,9 +434,9 @@
   const schoolId = session.schoolId;
   const school   = SESSION.getSchool();
 
-  // Grade 6 و Prep 3 بسعر 400 — لبريستول فقط
+  // Grade 6 و Prep 3 بسعر 500 — لبريستول فقط
   const PHOTO_PRICES = schoolId === 'bristol'
-    ? { 'KG1': 300, 'KG2': 400, 'Grade 6': 400, 'Prep 3': 400 }
+    ? { 'KG1': 300, 'KG2': 400, 'Grade 6': 500, 'Prep 3': 500 }
     : { 'KG1': 300, 'KG2': 400 };
 
   // الصفوف المسموح بها حسب المدرسة
@@ -448,8 +448,8 @@
   if (schoolId === 'bristol') {
     const pills = document.getElementById('pricePills');
     pills.innerHTML += `
-      <div class="price-pill"> Grade 6 <span class="pill-price">400 ج.م</span></div>
-      <div class="price-pill"> Prep 3 <span class="pill-price">400 ج.م</span></div>
+      <div class="price-pill"> Grade 6 <span class="pill-price">500 ج.م</span></div>
+      <div class="price-pill"> Prep 3 <span class="pill-price">500 ج.م</span></div>
       <span style="font-size:0.78rem;color:var(--text-light)">الحجز اختياري — يظهر تلقائياً على تذكرة الحفلة</span>`;
     const gradeFilter = document.getElementById('gradeFilter');
     gradeFilter.innerHTML += `
