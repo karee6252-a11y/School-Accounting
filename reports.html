@@ -141,8 +141,13 @@
       snap.forEach(doc => {
         const d = { id: doc.id, ...doc.data() };
         if (filterStage && d.stage !== filterStage) return;
-        // paymentItem can be "بند1 + بند2" for multi-select — check with includes
-        if (filterItem && !(d.paymentItem || '').includes(filterItem)) return;
+        // paymentItem can be a string "بند1 + بند2" OR stored in paymentItems array
+        if (filterItem) {
+          const inString = (d.paymentItem || '').includes(filterItem);
+          const inArray  = Array.isArray(d.paymentItems) &&
+                           d.paymentItems.some(pi => (pi.item || pi || '').includes(filterItem));
+          if (!inString && !inArray) return;
+        }
         if (filterPaymentType && d.paymentType !== filterPaymentType) return;
         currentData.push(d);
       });
@@ -1208,6 +1213,34 @@
   // EXPORT REVENUE REVIEW — مراجعة الإيرادات الكاملة بالمراحل
   // ============================================================
   async function exportRevenueReview() {
+    const btn = document.getElementById('revenueReviewBtn');
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ جاري التحميل...';
+
+    try {
+      await _doExportRevenueReview();
+    } catch(e) {
+      alert('خطأ غير متوقع: ' + e.message);
+      console.error('exportRevenueReview error:', e);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  }
+
+  async function _doExportRevenueReview() {
+    // ── تحميل ExcelJS أولاً لو مش موجود ──
+    if (typeof ExcelJS === 'undefined') {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('فشل تحميل مكتبة ExcelJS'));
+        document.head.appendChild(s);
+      });
+    }
+
     const school  = SESSION.getSchool();
     const schoolName = school?.name || 'المدرسة';
 
@@ -1245,14 +1278,6 @@
 
     if (allTx.length === 0) {
       alert('لا توجد بيانات في هذا العام الدراسي');
-      return;
-    }
-
-    if (typeof ExcelJS === 'undefined') {
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
-      document.head.appendChild(s);
-      s.onload = () => exportRevenueReview();
       return;
     }
 
