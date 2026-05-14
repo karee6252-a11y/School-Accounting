@@ -212,6 +212,83 @@
 
 
   // ============================================================
+  // MAP AMOUNTS — دالة مشتركة بين Excel وRevenueReview (global scope)
+  // ============================================================
+  function mapAmounts(d) {
+    const paidAmount = d.amount || 0;
+
+    // حساب إجمالي الخصومات من paymentItems
+    let totalDiscount = 0;
+    if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
+      d.paymentItems.forEach(pi => {
+        if (typeof pi === 'object' && pi.item) {
+          const price = Number(pi.price) || 0;
+          const disc  = Number(pi.discount) || 0;
+          totalDiscount += price * disc / 100;
+        }
+      });
+    }
+
+    const out = { fees:0, disc: Math.round(totalDiscount), file:0, uni:0, bus:0, app:0, other:0 };
+
+    function assignItem(itemName, itemAmt) {
+      const name = (itemName || '').trim();
+      if      (name === 'مصروفات دراسية' || name === 'مصروفات') { out.fees += itemAmt; }
+      else if (name === 'فايل')                                   { out.file += itemAmt; }
+      else if (name === 'يونيفورم')                              { out.uni  += itemAmt; }
+      else if (name === 'باص')                                    { out.bus  += itemAmt; }
+      else if (name === 'أبليكيشن')                              { out.app  += itemAmt; }
+      else if (name.includes('مصروفات'))  { out.fees += itemAmt; }
+      else if (name.includes('فايل'))     { out.file += itemAmt; }
+      else if (name.includes('يونيفورم')) { out.uni  += itemAmt; }
+      else if (name.includes('باص'))      { out.bus  += itemAmt; }
+      else if (name.includes('أبليكيشن')) { out.app  += itemAmt; }
+      else { out.other += itemAmt; }
+    }
+
+    if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
+      const itemNetPrices = d.paymentItems.map(pi => {
+        if (typeof pi === 'object' && pi.item) {
+          const price = Number(pi.price) || 0;
+          const disc  = Number(pi.discount) || 0;
+          const net = Number(pi.netPrice) || (price * (1 - disc / 100));
+          return { item: pi.item, net };
+        }
+        return { item: String(pi), net: 0 };
+      });
+
+      const totalNet = itemNetPrices.reduce((s, x) => s + x.net, 0);
+
+      if (totalNet > 0) {
+        let assignedTotal = 0;
+        itemNetPrices.forEach((x, idx) => {
+          let amt;
+          if (idx === itemNetPrices.length - 1) {
+            amt = paidAmount - assignedTotal;
+          } else {
+            amt = Math.round(paidAmount * (x.net / totalNet));
+            assignedTotal += amt;
+          }
+          assignItem(x.item, amt);
+        });
+      } else {
+        const share = paidAmount / Math.max(itemNetPrices.length, 1);
+        itemNetPrices.forEach(x => assignItem(x.item, share));
+      }
+    } else {
+      const itemStr = d.paymentItem || '';
+      if (itemStr.includes('+')) {
+        const parts = itemStr.split('+').map(s => s.trim()).filter(Boolean);
+        parts.forEach(part => assignItem(part, paidAmount / parts.length));
+      } else {
+        assignItem(itemStr, paidAmount);
+      }
+    }
+
+    return out;
+  }
+
+  // ============================================================
   // EXPORT EXCEL — نفس هيكل الأصلي بتنسيق أجمل وبيانات Firebase
   // ============================================================
   async function exportExcel() {
@@ -336,89 +413,6 @@
     }
 
     function numFmt(cell) { cell.numFmt = '#,##0;(#,##0);"-"'; }
-
-    // دالة توزيع مبلغ على البنود — بتستخدم paymentItems (array of objects) لو موجودة
-    // ✅ مُصلَحة: بتوزع المبلغ المدفوع الفعلي (d.amount) نسبياً على البنود
-    //    عشان إجمالي الشيت يطابق إجمالي الموقع تماماً
-    function mapAmounts(d) {
-      const paidAmount = d.amount || 0;
-
-      // حساب إجمالي الخصومات من paymentItems
-      let totalDiscount = 0;
-      if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
-        d.paymentItems.forEach(pi => {
-          if (typeof pi === 'object' && pi.item) {
-            const price = Number(pi.price) || 0;
-            const disc  = Number(pi.discount) || 0;
-            totalDiscount += price * disc / 100;
-          }
-        });
-      }
-
-      const out = { fees:0, disc: Math.round(totalDiscount), file:0, uni:0, bus:0, app:0, other:0 };
-
-      function assignItem(itemName, itemAmt) {
-        const name = (itemName || '').trim();
-        if      (name === 'مصروفات دراسية' || name === 'مصروفات') { out.fees += itemAmt; }
-        else if (name === 'فايل')                                   { out.file += itemAmt; }
-        else if (name === 'يونيفورم')                              { out.uni  += itemAmt; }
-        else if (name === 'باص')                                    { out.bus  += itemAmt; }
-        else if (name === 'أبليكيشن')                              { out.app  += itemAmt; }
-        else if (name.includes('مصروفات'))  { out.fees += itemAmt; }
-        else if (name.includes('فايل'))     { out.file += itemAmt; }
-        else if (name.includes('يونيفورم')) { out.uni  += itemAmt; }
-        else if (name.includes('باص'))      { out.bus  += itemAmt; }
-        else if (name.includes('أبليكيشن')) { out.app  += itemAmt; }
-        else { out.other += itemAmt; }
-      }
-
-      if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
-        // ① حساب netPrice (بعد الخصم) لكل بند كأساس للتوزيع النسبي
-        const itemNetPrices = d.paymentItems.map(pi => {
-          if (typeof pi === 'object' && pi.item) {
-            const price = Number(pi.price) || 0;
-            const disc  = Number(pi.discount) || 0;
-            // لو موجود netPrice مباشرة استخدمه، غير كده احسبه
-            const net = Number(pi.netPrice) || (price * (1 - disc / 100));
-            return { item: pi.item, net };
-          }
-          return { item: String(pi), net: 0 };
-        });
-
-        const totalNet = itemNetPrices.reduce((s, x) => s + x.net, 0);
-
-        if (totalNet > 0) {
-          // ② وزّع المبلغ المدفوع الفعلي نسبياً على كل بند
-          let assignedTotal = 0;
-          itemNetPrices.forEach((x, idx) => {
-            let amt;
-            if (idx === itemNetPrices.length - 1) {
-              // آخر بند: خذ الباقي لتجنب فروق التقريب
-              amt = paidAmount - assignedTotal;
-            } else {
-              amt = Math.round(paidAmount * (x.net / totalNet));
-              assignedTotal += amt;
-            }
-            assignItem(x.item, amt);
-          });
-        } else {
-          // كل netPrices = 0: وزّع المبلغ بالتساوي
-          const share = paidAmount / Math.max(itemNetPrices.length, 1);
-          itemNetPrices.forEach(x => assignItem(x.item, share));
-        }
-      } else {
-        // fallback على paymentItem string
-        const itemStr = d.paymentItem || '';
-        if (itemStr.includes('+')) {
-          const parts = itemStr.split('+').map(s => s.trim()).filter(Boolean);
-          parts.forEach(part => assignItem(part, paidAmount / parts.length));
-        } else {
-          assignItem(itemStr, paidAmount);
-        }
-      }
-
-      return out;
-    }
 
     // =================================================================
     // ① التقرير اليومي — شيت واحد مفصّل
@@ -1218,12 +1212,12 @@
     const schoolName = school?.name || 'المدرسة';
 
     // ── ألوان المدرسة ──
-    const rawPrimary = (school?.primaryColor  || '#1E2D5A').replace('#','');
-    const rawSecond  = (school?.secondaryColor || '#4A6FA5').replace('#','');
-    const rawAccent  = (school?.accentColor    || '#D6E4F0').replace('#','');
-    const PRI  = 'FF' + rawPrimary.toUpperCase();
-    const SEC  = 'FF' + rawSecond.toUpperCase();
-    const ACC  = 'FF' + rawAccent.toUpperCase();
+    const rawPrimary = ((school?.primaryColor  || '#1E2D5A').replace('#','')).toUpperCase();
+    const rawSecond  = ((school?.secondaryColor || '#4A6FA5').replace('#','')).toUpperCase();
+    const rawAccent  = ((school?.accentColor    || '#D6E4F0').replace('#','')).toUpperCase();
+    const PRI  = 'FF' + (rawPrimary.length === 6 ? rawPrimary : '1E2D5A');
+    const SEC  = 'FF' + (rawSecond.length  === 6 ? rawSecond  : '4A6FA5');
+    const ACC  = 'FF' + (rawAccent.length  === 6 ? rawAccent  : 'D6E4F0');
     const WHT  = 'FFFFFFFF';
     const BLK  = 'FF1A1A1A';
     const RED  = 'FFC0392B';
@@ -1698,7 +1692,7 @@
     summaryWs.mergeCells(`A${gtr.number}:C${gtr.number}`);
     gtr.eachCell((cell, ci) => {
       applyCell(cell, {
-        fill: hFill(ci===6 && grandTotalRem>0 ? RED : ci===5 ? GRN : PRI),
+        fill: hFill(ci===6 && grandTotalRem>0 ? RED : ci===5 ? GRN : ci===7 ? PRI : PRI),
         font: { name:'Arial', bold:true, size:12, color:{argb:WHT} },
         alignment: cAlign(),
         border: thickBord(),
@@ -1706,8 +1700,10 @@
       });
     });
 
-    // ضع شيت الملخص أول
-    wb.moveSheet(summaryWs.name, 0);
+    // ضع شيت الملخص أول (بس لو فيه شيتات تانية)
+    if (wb.worksheets.length > 1) {
+      wb.moveSheet(summaryWs.name, 0);
+    }
 
     // ── تحميل الملف ──
     const buf = await wb.xlsx.writeBuffer();
