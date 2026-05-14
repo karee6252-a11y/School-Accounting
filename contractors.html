@@ -314,7 +314,7 @@
               <thead>
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>نوع العمل</th>
-                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>خصم</th><th>الصافي</th><th>جهة الدفع</th><th>ملاحظات</th><th></th>
+                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>تخصيم</th><th>المتبقي</th><th>جهة الدفع</th><th>ملاحظات</th><th></th>
                 </tr>
               </thead>
               <tbody id="purchasesBody">
@@ -366,7 +366,7 @@
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المقاول</th><th>الغرض</th><th>نوع العمل</th>
                   <th>البيان</th><th>المساحة/الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th>
-                  <th>المدفوع</th><th>خصم</th><th>الصافي</th><th>المتبقي</th><th>جهة الدفع</th><th></th>
+                  <th>المدفوع</th><th>تخصيم</th><th>المتبقي</th><th>المديونية</th><th>جهة الدفع</th><th></th>
                 </tr>
               </thead>
               <tbody id="contractsBody">
@@ -546,11 +546,11 @@
           <input type="number" class="form-input" id="pTotal" placeholder="0.00" style="background:var(--accent);font-weight:800" readonly />
         </div>
         <div class="form-group">
-          <label class="form-label">خصم (ج.م)</label>
+          <label class="form-label">تخصيم (ج.م)</label>
           <input type="number" class="form-input" id="pDiscount" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseTotal()" />
         </div>
         <div class="form-group">
-          <label class="form-label">الصافي بعد الخصم (ج.م)</label>
+          <label class="form-label">المتبقي (ج.م)</label>
           <input type="number" class="form-input" id="pNet" placeholder="0.00" style="background:#e8f5e9;font-weight:800;color:#2e7d32" readonly />
         </div>
         <div class="form-group" style="grid-column:1/-1">
@@ -668,15 +668,15 @@
           <input type="number" class="form-input" id="cPaidNow" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
         </div>
         <div class="form-group">
-          <label class="form-label">خصم (ج.م)</label>
+          <label class="form-label">تخصيم (ج.م)</label>
           <input type="number" class="form-input" id="cDiscount" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
         </div>
         <div class="form-group">
-          <label class="form-label">الصافي بعد الخصم (ج.م)</label>
+          <label class="form-label">المتبقي بعد التخصيم (ج.م)</label>
           <input type="number" class="form-input" id="cNet" placeholder="0.00" style="background:#e8f5e9;font-weight:800;color:#2e7d32" readonly />
         </div>
         <div class="form-group">
-          <label class="form-label">المتبقي (المديونية)</label>
+          <label class="form-label">المديونية (ج.م)</label>
           <input type="number" class="form-input" id="cDebt" readonly style="background:var(--accent);font-weight:800;color:#c0392b" />
         </div>
         <div class="form-group" style="grid-column:1/-1">
@@ -989,8 +989,7 @@ function renderPurchases() {
       <td style="text-align:center">${formatCurrency(p.unitPrice||0)}</td>
       <td class="text-bold text-primary">${formatCurrency(p.total||0)}</td>
       <td style="color:#e65100;font-weight:700">${p.discount ? formatCurrency(p.discount) : '—'}</td>
-      <td style="color:#2e7d32;font-weight:800">${formatCurrency(p.net??p.total??0)}</td>
-      <td>${p.payer==='chairman'
+      <td style="color:#2e7d32;font-weight:800">${formatCurrency(p.net??p.total??0)}</td>      <td>${p.payer==='chairman'
         ? '<span style="background:#fff3cd;color:#856404;border:1px solid #ffc107;padding:0.15rem 0.5rem;border-radius:20px;font-size:0.7rem;font-weight:700">رئيس مجلس الإدارة</span>'
         : '<span style="background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;padding:0.15rem 0.5rem;border-radius:20px;font-size:0.7rem;font-weight:700">قسم الحسابات</span>'
       }</td>
