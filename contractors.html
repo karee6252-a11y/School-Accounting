@@ -97,6 +97,8 @@
     .work-tag.tiling     { background:#f3e5f5; color:#6a1b9a; border-color:#ce93d8; }
     .work-tag.farming    { background:#e8f5e9; color:#2e7d32; border-color:#a5d6a7; }
     .work-tag.building   { background:#fce4ec; color:#c2185b; border-color:#f48fb1; }
+    .work-tag.ironwork   { background:#eceff1; color:#37474f; border-color:#90a4ae; }
+    .work-tag.loader     { background:#fff8e1; color:#795548; border-color:#bcaaa4; }
     .work-tag.other      { background:#eceff1; color:#455a64; border-color:#b0bec5; }
 
     /* ===== PURPOSE TAG ===== */
@@ -223,12 +225,16 @@
             <option value="tiling">تبليط</option>
             <option value="farming">زراعة</option>
             <option value="building">بناء</option>
+            <option value="ironwork">حدادة</option>
+            <option value="loader">لودر</option>
             <option value="other">أخرى</option>
           </select>
           <select class="form-select" id="purchasePurpose" onchange="filterPurchases()" style="width:170px">
             <option value="">كل الأغراض</option>
-            <option value="pool">حمام السباحة</option>
-            <option value="wc">دورات المياه</option>
+            <option value="pool_small">حمام السباحة الصغير</option>
+            <option value="pool_large">حمام السباحة الكبير</option>
+            <option value="wc_pool">دورات مياه خدمات حمام السباحة</option>
+            <option value="wc_building">دورات مياه المبنى</option>
             <option value="building">المبنى المدرسي</option>
             <option value="playground">الملاعب</option>
             <option value="other">أخرى</option>
@@ -250,7 +256,7 @@
               <thead>
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>نوع العمل</th>
-                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>ملاحظات</th><th></th>
+                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>العهدة السابقة</th><th>العهدة الجديدة</th><th>إجمالي العهدة</th><th>المصروف</th><th>المتبقي من العهدة</th><th>ملاحظات</th><th></th>
                 </tr>
               </thead>
               <tbody id="purchasesBody">
@@ -274,12 +280,16 @@
             <option value="carpentry">نجارة</option>
             <option value="plumbing">سباكة</option>
             <option value="electric">كهرباء</option>
+            <option value="ironwork">حدادة</option>
+            <option value="loader">لودر</option>
             <option value="other">أخرى</option>
           </select>
           <select class="form-select" id="contractPurpose" onchange="filterContracts()" style="width:170px">
             <option value="">كل الأغراض</option>
-            <option value="pool">حمام السباحة</option>
-            <option value="wc">دورات المياه</option>
+            <option value="pool_small">حمام السباحة الصغير</option>
+            <option value="pool_large">حمام السباحة الكبير</option>
+            <option value="wc_pool">دورات مياه خدمات حمام السباحة</option>
+            <option value="wc_building">دورات مياه المبنى</option>
             <option value="building">المبنى المدرسي</option>
             <option value="playground">الملاعب</option>
             <option value="other">أخرى</option>
@@ -385,6 +395,8 @@
             <option value="tiling">تبليط</option>
             <option value="farming">زراعة</option>
             <option value="building">بناء</option>
+            <option value="ironwork">حدادة</option>
+            <option value="loader">لودر</option>
             <option value="other">متنوع / أخرى</option>
           </select>
         </div>
@@ -430,8 +442,10 @@
           <label class="form-label">الغرض من الاستخدام <span class="required">*</span></label>
           <select class="form-select" id="pPurpose">
             <option value="">— اختر —</option>
-            <option value="pool">حمام السباحة</option>
-            <option value="wc">دورات المياه</option>
+            <option value="pool_small">حمام السباحة الصغير</option>
+            <option value="pool_large">حمام السباحة الكبير</option>
+            <option value="wc_pool">دورات مياه خدمات حمام السباحة</option>
+            <option value="wc_building">دورات مياه المبنى</option>
             <option value="building">المبنى المدرسي</option>
             <option value="playground">الملاعب</option>
             <option value="other">أخرى</option>
@@ -447,6 +461,8 @@
             <option value="tiling">تبليط</option>
             <option value="farming">زراعة</option>
             <option value="building">بناء</option>
+            <option value="ironwork">حدادة</option>
+            <option value="loader">لودر</option>
             <option value="other">أخرى</option>
           </select>
         </div>
@@ -480,6 +496,42 @@
         <div class="form-group">
           <label class="form-label">الإجمالي (ج.م)</label>
           <input type="number" class="form-input" id="pTotal" placeholder="0.00" style="background:var(--accent);font-weight:800" readonly />
+        </div>
+        <div class="form-group">
+          <label class="form-label">التخصيم (ج.م)</label>
+          <input type="number" class="form-input" id="pDeduction" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseNet()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">الصافي بعد التخصيم (ج.م)</label>
+          <input type="number" class="form-input" id="pNet" placeholder="0.00" style="background:var(--accent);font-weight:800;color:#c0392b" readonly />
+        </div>
+        <!-- ===== قسم العهدة ===== -->
+        <div style="grid-column:1/-1;background:var(--accent);border:1px solid var(--primary-light,#c5d8f5);border-radius:var(--radius-sm);padding:0.85rem 1rem">
+          <div style="font-size:0.78rem;font-weight:800;color:var(--primary);margin-bottom:0.65rem"> إدارة العهدة</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem">
+            <div class="form-group" style="margin:0">
+              <label class="form-label">العهدة السابقة (ج.م)</label>
+              <input type="number" class="form-input" id="pCustodyPrev" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseCustody()" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label">العهدة الجديدة (ج.م)</label>
+              <input type="number" class="form-input" id="pCustodyNew" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseCustody()" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label">إجمالي العهدة (ج.م)</label>
+              <input type="number" class="form-input" id="pCustodyTotal" placeholder="0.00" style="font-weight:800;color:var(--primary)" readonly />
+            </div>
+          </div>
+          <div style="margin-top:0.65rem;display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+            <div class="form-group" style="margin:0">
+              <label class="form-label">المصروف من العهدة (ج.م)</label>
+              <input type="number" class="form-input" id="pCustodySpent" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseCustody()" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label">المتبقي من العهدة (ج.م)</label>
+              <input type="number" class="form-input" id="pCustodyBalance" placeholder="0.00" style="font-weight:800;color:#2e7d32" readonly />
+            </div>
+          </div>
         </div>
         <div class="form-group" style="grid-column:1/-1">
           <label class="form-label">ملاحظات</label>
@@ -519,8 +571,10 @@
           <label class="form-label">الغرض <span class="required">*</span></label>
           <select class="form-select" id="cPurpose">
             <option value="">— اختر —</option>
-            <option value="pool">حمام السباحة</option>
-            <option value="wc">دورات المياه</option>
+            <option value="pool_small">حمام السباحة الصغير</option>
+            <option value="pool_large">حمام السباحة الكبير</option>
+            <option value="wc_pool">دورات مياه خدمات حمام السباحة</option>
+            <option value="wc_building">دورات مياه المبنى</option>
             <option value="building">المبنى المدرسي</option>
             <option value="playground">الملاعب</option>
             <option value="other">أخرى</option>
@@ -536,6 +590,8 @@
             <option value="carpentry">نجارة</option>
             <option value="plumbing">سباكة</option>
             <option value="electric">كهرباء</option>
+            <option value="ironwork">حدادة</option>
+            <option value="loader">لودر</option>
             <option value="other">أخرى</option>
           </select>
         </div>
@@ -665,8 +721,11 @@ const schoolId = session.schoolId;
 const school   = SESSION.getSchool();
 
 // ─── CONSTANTS ───────────────────────────────────────────────────
-const PURPOSES = { pool:'حمام السباحة', wc:'دورات المياه', building:'المبنى المدرسي', playground:'الملاعب', other:'أخرى' };
-const WORK_TYPES = { carpentry:'نجارة', plumbing:'سباكة', electric:'كهرباء', tiling:'تبليط', farming:'زراعة', building:'بناء', other:'أخرى' };
+const PURPOSES = { pool_small:'حمام السباحة الصغير', pool_large:'حمام السباحة الكبير', wc_pool:'دورات مياه خدمات حمام السباحة', wc_building:'دورات مياه المبنى', building:'المبنى المدرسي', playground:'الملاعب', other:'أخرى' };
+// backward compat: القيم القديمة في Firebase
+const PURPOSES_LEGACY = { pool:'حمام السباحة (قديم)', wc:'دورات المياه (قديم)' };
+function getPurposeLabel(p) { return PURPOSES[p] || PURPOSES_LEGACY[p] || p || '—'; }
+const WORK_TYPES = { carpentry:'نجارة', plumbing:'سباكة', electric:'كهرباء', tiling:'تبليط', farming:'زراعة', building:'بناء', ironwork:'حدادة', loader:'لودر', other:'أخرى' };
 const AREA_BASED = ['tiling','farming','building']; // بالمساحة
 const PAY_LABELS = { cash:'نقدي', bank_transfer:'تحويل بنكي', check:'شيك', instapay:'إنستاباي' };
 
@@ -683,8 +742,51 @@ async function init() {
   document.getElementById('cDate').value = localDateStr();
   setDefaultReportDates();
   await Promise.all([ loadSuppliers(), loadPurchases(), loadContracts() ]);
+  await migratePurchases();   // ترقية الفواتير القديمة مرة واحدة
   populateSupplierSelects();
   updateSummaryCards();
+}
+
+// ─── MIGRATION: ترقية الفواتير القديمة ───────────────────────────
+async function migratePurchases() {
+  // نجيب الفواتير اللي معندهاش حقل net (يعني قديمة قبل التحديث)
+  const oldPurchases = allPurchases.filter(p => p.net == null);
+  if (oldPurchases.length === 0) return; // مفيش قديم، خلاص
+
+  console.log(`[Migration] هيتم ترقية ${oldPurchases.length} فاتورة قديمة...`);
+
+  const batch = db.batch();
+  oldPurchases.forEach(p => {
+    const deduction     = p.deduction     || 0;
+    const net           = Math.max(0, (p.total||0) - deduction);
+    const custodyPrev   = p.custodyPrev   || 0;
+    const custodyNew    = p.custodyNew    || 0;
+    const custodyTotal  = custodyPrev + custodyNew;
+    // المصروف = الصافي لو مفيش عهدة مدخلة (يعني الفاتورة اتصرفت كلها)
+    const custodySpent  = p.custodySpent  != null ? p.custodySpent  : (custodyTotal > 0 ? net : 0);
+    const custodyBalance= custodyTotal - custodySpent;
+
+    const ref = db.collection('contractors_purchases').doc(p.id);
+    batch.update(ref, {
+      deduction, net,
+      custodyPrev, custodyNew, custodyTotal,
+      custodySpent, custodyBalance,
+      migratedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // تحديث الكاش المحلي برضو
+    Object.assign(p, { deduction, net, custodyPrev, custodyNew, custodyTotal, custodySpent, custodyBalance });
+  });
+
+  try {
+    await batch.commit();
+    filteredPurch = [...allPurchases];
+    renderPurchases();
+    updateSummaryCards();
+    console.log('[Migration] تمت الترقية بنجاح ✓');
+  } catch(e) {
+    console.error('[Migration] خطأ:', e);
+  }
 }
 
 function setDefaultReportDates() {
@@ -819,15 +921,28 @@ function renderPurchases() {
   document.getElementById('purchaseCount').textContent = filteredPurch.length;
 
   if (filteredPurch.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد فواتير</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="19"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد فواتير</div></div></td></tr>`;
     tfoot.innerHTML = ''; return;
   }
 
-  let grandTotal = 0;
+  let grandTotal = 0, grandDeduction = 0, grandNet = 0, grandCustodyTotal = 0, grandCustodySpent = 0, grandCustodyBalance = 0;
   tbody.innerHTML = filteredPurch.map((p, i) => {
-    grandTotal += p.total || 0;
+    grandTotal          += p.total || 0;
+    grandDeduction      += p.deduction || 0;
+    grandNet            += p.net != null ? p.net : (p.total || 0);
+    grandCustodyTotal   += p.custodyTotal || 0;
+    grandCustodySpent   += p.custodySpent || 0;
+    grandCustodyBalance += p.custodyBalance != null ? p.custodyBalance : 0;
     const wTag = p.workType ? `<span class="work-tag ${p.workType}">${WORK_TYPES[p.workType]||p.workType}</span>` : '—';
-    const ppTag= p.purpose  ? `<span class="purpose-tag">${PURPOSES[p.purpose]||p.purpose}</span>` : '—';
+    const ppTag= p.purpose  ? `<span class="purpose-tag">${getPurposeLabel(p.purpose)}</span>` : '—';
+    const deductCell = (p.deduction||0) > 0 ? `<span style="color:#e65100;font-weight:700">${formatCurrency(p.deduction)}</span>` : '—';
+    const netVal = p.net != null ? p.net : (p.total||0);
+    const custTotalCell = (p.custodyTotal||0) > 0 ? formatCurrency(p.custodyTotal) : '—';
+    const custSpentCell = (p.custodySpent||0) > 0 ? formatCurrency(p.custodySpent) : '—';
+    const custBalVal = p.custodyBalance != null ? p.custodyBalance : 0;
+    const custBalCell = (p.custodyTotal||0) > 0
+      ? `<span style="color:${custBalVal<0?'#c0392b':'#2e7d32'};font-weight:700">${formatCurrency(custBalVal)}</span>`
+      : '—';
     return `<tr>
       <td class="text-sm text-muted">${i+1}</td>
       <td>${p.date||'—'}</td>
@@ -839,6 +954,13 @@ function renderPurchases() {
       <td style="text-align:center">${p.unit||'—'}</td>
       <td style="text-align:center">${formatCurrency(p.unitPrice||0)}</td>
       <td class="text-bold text-primary">${formatCurrency(p.total||0)}</td>
+      <td>${deductCell}</td>
+      <td class="text-bold" style="color:#c0392b">${formatCurrency(netVal)}</td>
+      <td style="text-align:center">${(p.custodyPrev||0)>0?formatCurrency(p.custodyPrev):'—'}</td>
+      <td style="text-align:center">${(p.custodyNew||0)>0?formatCurrency(p.custodyNew):'—'}</td>
+      <td style="text-align:center;font-weight:700;color:var(--primary)">${custTotalCell}</td>
+      <td style="text-align:center">${custSpentCell}</td>
+      <td>${custBalCell}</td>
       <td class="text-sm text-muted">${p.notes||'—'}</td>
       <td>
         <button class="btn btn-sm btn-secondary" onclick="openEditPurchase('${p.id}')"></button>
@@ -850,6 +972,12 @@ function renderPurchases() {
   tfoot.innerHTML = `<tr style="background:var(--accent);font-weight:800;color:var(--primary)">
     <td colspan="9" style="padding:0.75rem 1rem">إجمالي المشتريات (${filteredPurch.length} فاتورة)</td>
     <td style="padding:0.75rem 1rem">${formatCurrency(grandTotal)}</td>
+    <td style="padding:0.75rem 1rem;color:#e65100">${grandDeduction>0?formatCurrency(grandDeduction):'—'}</td>
+    <td style="padding:0.75rem 1rem;color:#c0392b">${formatCurrency(grandNet)}</td>
+    <td colspan="2"></td>
+    <td style="padding:0.75rem 1rem;color:var(--primary)">${grandCustodyTotal>0?formatCurrency(grandCustodyTotal):'—'}</td>
+    <td style="padding:0.75rem 1rem">${grandCustodySpent>0?formatCurrency(grandCustodySpent):'—'}</td>
+    <td style="padding:0.75rem 1rem;color:${grandCustodyBalance<0?'#c0392b':'#2e7d32'}">${grandCustodyTotal>0?formatCurrency(grandCustodyBalance):'—'}</td>
     <td colspan="2"></td>
   </tr>`;
 }
@@ -885,7 +1013,7 @@ function renderContracts() {
     const qtyCell = isArea ? `${c.area||0} م²` : (c.fixedUnit||'—');
     const upCell  = isArea ? `${formatCurrency(c.pricePerM||0)}/م²` : '—';
     const wTag = c.workType ? `<span class="work-tag ${c.workType}">${WORK_TYPES[c.workType]||c.workType}</span>` : '—';
-    const ppTag= c.purpose  ? `<span class="purpose-tag">${PURPOSES[c.purpose]||c.purpose}</span>` : '—';
+    const ppTag= c.purpose  ? `<span class="purpose-tag">${getPurposeLabel(c.purpose)}</span>` : '—';
     const hasDebt = (c.remaining||0) > 0;
     return `<tr>
       <td class="text-sm text-muted">${i+1}</td>
@@ -919,19 +1047,22 @@ function renderContracts() {
 
 // ─── SUMMARY CARDS ────────────────────────────────────────────────
 function updateSummaryCards() {
-  const pTotal = allPurchases.reduce((s,p) => s+(p.total||0), 0);
-  const cTotal = allContracts.reduce((s,c) => s+(c.total||0), 0);
-  const cPaid  = allContracts.reduce((s,c) => s+(c.paid||0),  0);
-  const cDebt  = allContracts.reduce((s,c) => s+(c.remaining||0), 0);
-  document.getElementById('sumPurchases').textContent      = formatCurrency(pTotal);
-  document.getElementById('sumPurchasesCount').textContent = `${allPurchases.length} فاتورة`;
+  const pTotal     = allPurchases.reduce((s,p) => s+(p.total||0), 0);
+  const pNet       = allPurchases.reduce((s,p) => s+(p.net != null ? p.net : (p.total||0)), 0);
+  const cTotal     = allContracts.reduce((s,c) => s+(c.total||0), 0);
+  const cPaid      = allContracts.reduce((s,c) => s+(c.paid||0),  0);
+  const cDebt      = allContracts.reduce((s,c) => s+(c.remaining||0), 0);
+  const custTotal  = allPurchases.reduce((s,p) => s+(p.custodyTotal||0), 0);
+  const custBal    = allPurchases.reduce((s,p) => s+(p.custodyBalance != null ? p.custodyBalance : 0), 0);
+  document.getElementById('sumPurchases').textContent      = formatCurrency(pNet);
+  document.getElementById('sumPurchasesCount').textContent = `${allPurchases.length} فاتورة${pNet!==pTotal?' (صافي)':''}`;
   document.getElementById('sumContracts').textContent      = formatCurrency(cTotal);
   document.getElementById('sumContractsCount').textContent = `${allContracts.length} عقد`;
-  document.getElementById('sumPaid').textContent           = formatCurrency(pTotal + cPaid);
+  document.getElementById('sumPaid').textContent           = formatCurrency(pNet + cPaid);
   document.getElementById('sumSuppliersCount').textContent = `${allSuppliers.length} مورد/مقاول`;
   document.getElementById('sumDebts').textContent          = formatCurrency(cDebt);
   document.getElementById('sumDebtsCount').textContent     = `${allContracts.filter(c=>(c.remaining||0)>0).length} مقاول`;
-  document.getElementById('sumTotal').textContent          = formatCurrency(pTotal + cPaid);
+  document.getElementById('sumTotal').textContent          = formatCurrency(pNet + cPaid);
 }
 
 // ─── POPULATE SELECTS ─────────────────────────────────────────────
@@ -1047,7 +1178,7 @@ function openPurchaseModal() {
   document.getElementById('purchaseEditId').value = '';
   document.getElementById('pDate').value = localDateStr();
   ['pDesc','pNotes'].forEach(id => document.getElementById(id).value = '');
-  ['pQty','pUnitPrice','pTotal'].forEach(id => document.getElementById(id).value = '');
+  ['pQty','pUnitPrice','pTotal','pDeduction','pNet','pCustodyPrev','pCustodyNew','pCustodyTotal','pCustodySpent','pCustodyBalance'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('purchaseAlert').classList.add('hidden');
   openModal('purchaseModal');
 }
@@ -1065,6 +1196,13 @@ function openEditPurchase(id) {
   document.getElementById('pUnit').value           = p.unit||'قطعة';
   document.getElementById('pUnitPrice').value      = p.unitPrice||'';
   document.getElementById('pTotal').value          = p.total||'';
+  document.getElementById('pDeduction').value      = p.deduction||'';
+  document.getElementById('pNet').value            = p.net != null ? p.net : (p.total||'');
+  document.getElementById('pCustodyPrev').value    = p.custodyPrev||'';
+  document.getElementById('pCustodyNew').value     = p.custodyNew||'';
+  document.getElementById('pCustodyTotal').value   = p.custodyTotal||'';
+  document.getElementById('pCustodySpent').value   = p.custodySpent||'';
+  document.getElementById('pCustodyBalance').value = p.custodyBalance != null ? p.custodyBalance : '';
   document.getElementById('pNotes').value          = p.notes||'';
   document.getElementById('purchaseAlert').classList.add('hidden');
   openModal('purchaseModal');
@@ -1076,6 +1214,35 @@ function calcPurchaseTotal() {
   const qty   = parseFloat(document.getElementById('pQty').value)       || 0;
   const price = parseFloat(document.getElementById('pUnitPrice').value) || 0;
   document.getElementById('pTotal').value = (qty * price).toFixed(2);
+  calcPurchaseNet();
+}
+
+function calcPurchaseNet() {
+  const total     = parseFloat(document.getElementById('pTotal').value)     || 0;
+  const deduction = parseFloat(document.getElementById('pDeduction').value) || 0;
+  const net = Math.max(0, total - deduction);
+  document.getElementById('pNet').value = net.toFixed(2);
+  calcPurchaseCustody();
+}
+
+function calcPurchaseCustody() {
+  const prev  = parseFloat(document.getElementById('pCustodyPrev').value)  || 0;
+  const newC  = parseFloat(document.getElementById('pCustodyNew').value)   || 0;
+  const spent = parseFloat(document.getElementById('pCustodySpent').value) || 0;
+  // الصافي من الفاتورة يتخصم من العهدة تلقائياً إذا لم يكن في مصروف يدوي
+  const net   = parseFloat(document.getElementById('pNet').value)          || 0;
+  const total = prev + newC;
+  document.getElementById('pCustodyTotal').value = total.toFixed(2);
+  // المتبقي = إجمالي العهدة - المصروف المُدخل - صافي الفاتورة
+  const spentFinal = spent > 0 ? spent : net;
+  const balance = total - spentFinal;
+  document.getElementById('pCustodyBalance').value = balance.toFixed(2);
+  // لو المصروف = 0 نضع تلقائياً قيمة صافي الفاتورة في حقل المصروف
+  if (spent === 0 && net > 0) {
+    document.getElementById('pCustodySpent').placeholder = `تلقائي: ${net.toFixed(2)}`;
+  } else {
+    document.getElementById('pCustodySpent').placeholder = '0.00';
+  }
 }
 
 async function savePurchase() {
@@ -1088,6 +1255,19 @@ async function savePurchase() {
   const unit     = document.getElementById('pUnit').value;
   const unitPrice= parseFloat(document.getElementById('pUnitPrice').value) || 0;
   const total    = qty * unitPrice;
+  const deduction= parseFloat(document.getElementById('pDeduction').value) || 0;
+  const net      = Math.max(0, total - deduction);
+
+  // custody
+  const custodyPrev  = parseFloat(document.getElementById('pCustodyPrev').value)  || 0;
+  const custodyNew   = parseFloat(document.getElementById('pCustodyNew').value)   || 0;
+  const custodyTotal = custodyPrev + custodyNew;
+  // المصروف: إذا أُدخل يدوياً يُستخدم، وإلا صافي الفاتورة
+  const custodySpentInput = parseFloat(document.getElementById('pCustodySpent').value);
+  const custodySpent  = !isNaN(custodySpentInput) && document.getElementById('pCustodySpent').value !== ''
+    ? custodySpentInput
+    : (custodyTotal > 0 ? net : 0);
+  const custodyBalance = custodyTotal - custodySpent;
 
   if (!suppId)   return showAlert('purchaseAlert','اختر المورد');
   if (!date)     return showAlert('purchaseAlert','التاريخ مطلوب');
@@ -1100,9 +1280,11 @@ async function savePurchase() {
   const supp = allSuppliers.find(s => s.id === suppId);
   const data = {
     schoolId, supplierId: suppId, supplierName: supp?.name||'', date,
-    purpose, purposeLabel: PURPOSES[purpose]||purpose,
+    purpose, purposeLabel: getPurposeLabel(purpose),
     workType, workTypeLabel: WORK_TYPES[workType]||workType,
     desc, qty, unit, unitPrice, total,
+    deduction, net,
+    custodyPrev, custodyNew, custodyTotal, custodySpent, custodyBalance,
     notes: document.getElementById('pNotes').value.trim(),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -1245,7 +1427,7 @@ async function saveContract() {
 
   const data = {
     schoolId, contractorId: contId, contractorName: contr?.name||'',
-    date, purpose, purposeLabel: PURPOSES[purpose]||purpose,
+    date, purpose, purposeLabel: getPurposeLabel(purpose),
     workType, workTypeLabel: WORK_TYPES[workType]||workType,
     desc, total, paid, deduction, remaining, notes: document.getElementById('cNotes').value.trim(),
     isAreaBased: isArea,
@@ -1336,18 +1518,32 @@ function openProfile(supplierId) {
   const cDebt      = contracts.reduce((a,c)=>a+(c.remaining||0),0);
   const typeLabel  = { supplier:'مورد مشتريات', contractor:'مقاول/منفذ', both:'مورد ومقاول' }[s.type]||s.type;
 
-  const pRows = purchases.map((p,i) => `<tr>
-    <td>${i+1}</td><td>${p.date}</td>
-    <td><span class="purpose-tag">${PURPOSES[p.purpose]||p.purpose}</span></td>
-    <td><span class="work-tag ${p.workType||'other'}">${WORK_TYPES[p.workType]||p.workType||'—'}</span></td>
-    <td>${p.desc}</td><td style="text-align:center">${p.qty} ${p.unit}</td>
-    <td class="text-bold text-primary">${formatCurrency(p.total)}</td>
-  </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--text-light)">لا توجد مشتريات</td></tr>`;
+  const pNet       = purchases.reduce((a,p)=>a+(p.net!=null?p.net:(p.total||0)),0);
+  const pDeduction = purchases.reduce((a,p)=>a+(p.deduction||0),0);
+  const custTotal  = purchases.reduce((a,p)=>a+(p.custodyTotal||0),0);
+  const custBal    = purchases.reduce((a,p)=>a+(p.custodyBalance!=null?p.custodyBalance:0),0);
+
+  const pRows = purchases.map((p,i) => {
+    const net = p.net != null ? p.net : (p.total||0);
+    const hasCust = (p.custodyTotal||0) > 0;
+    return `<tr>
+      <td>${i+1}</td><td>${p.date}</td>
+      <td><span class="purpose-tag">${getPurposeLabel(p.purpose)}</span></td>
+      <td><span class="work-tag ${p.workType||'other'}">${WORK_TYPES[p.workType]||p.workType||'—'}</span></td>
+      <td>${p.desc}</td><td style="text-align:center">${p.qty} ${p.unit}</td>
+      <td class="text-bold text-primary">${formatCurrency(p.total)}</td>
+      <td style="color:#e65100;font-weight:700">${(p.deduction||0)>0?formatCurrency(p.deduction):'—'}</td>
+      <td style="color:#c0392b;font-weight:800">${formatCurrency(net)}</td>
+      <td style="text-align:center">${hasCust?formatCurrency(p.custodyTotal):'—'}</td>
+      <td style="text-align:center">${hasCust&&(p.custodySpent||0)>0?formatCurrency(p.custodySpent):'—'}</td>
+      <td style="color:${hasCust&&(p.custodyBalance||0)<0?'#c0392b':'#2e7d32'};font-weight:700">${hasCust?formatCurrency(p.custodyBalance||0):'—'}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="12" style="text-align:center;color:var(--text-light)">لا توجد مشتريات</td></tr>`;
 
   const cRows = contracts.map((c,i) => {
     return `<tr>
       <td>${i+1}</td><td>${c.date}</td>
-      <td><span class="purpose-tag">${PURPOSES[c.purpose]||c.purpose}</span></td>
+      <td><span class="purpose-tag">${getPurposeLabel(c.purpose)}</span></td>
       <td><span class="work-tag ${c.workType||'other'}">${WORK_TYPES[c.workType]||c.workType}</span></td>
       <td>${c.desc}</td>
       <td class="text-bold text-primary">${formatCurrency(c.total)}</td>
@@ -1373,16 +1569,19 @@ function openProfile(supplierId) {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
         <div class="supplier-stat"><div class="s-val">${formatCurrency(pTotal)}</div><div class="s-lbl">إجمالي المشتريات</div></div>
+        <div class="supplier-stat"><div class="s-val" style="color:#c0392b">${formatCurrency(pNet)}</div><div class="s-lbl">صافي المشتريات</div></div>
         <div class="supplier-stat"><div class="s-val">${formatCurrency(cTotal)}</div><div class="s-lbl">إجمالي المقاولات</div></div>
-        <div class="supplier-stat"><div class="s-val" style="color:#2e7d32">${formatCurrency(cPaid)}</div><div class="s-lbl">المدفوع</div></div>
-        <div class="supplier-stat"><div class="s-val" style="color:${cDebt>0?'#c0392b':'#2e7d32'}">${formatCurrency(cDebt)}</div><div class="s-lbl">المتبقي</div></div>
+        <div class="supplier-stat"><div class="s-val" style="color:#2e7d32">${formatCurrency(cPaid)}</div><div class="s-lbl">المدفوع للمقاولين</div></div>
+        <div class="supplier-stat"><div class="s-val" style="color:var(--primary)">${formatCurrency(custTotal)}</div><div class="s-lbl">إجمالي العهدة</div></div>
+        <div class="supplier-stat"><div class="s-val" style="color:${custBal<0?'#c0392b':'#2e7d32'}">${formatCurrency(custBal)}</div><div class="s-lbl">المتبقي من العهدة</div></div>
+        <div class="supplier-stat"><div class="s-val" style="color:${cDebt>0?'#c0392b':'#2e7d32'}">${formatCurrency(cDebt)}</div><div class="s-lbl">مديونية المقاولات</div></div>
       </div>
     </div>
     <!-- purchases -->
     ${purchases.length > 0 ? `
     <div style="font-size:0.85rem;font-weight:800;color:var(--primary);margin-bottom:0.5rem"> سجل المشتريات (${purchases.length})</div>
     <div class="table-wrapper" style="margin-bottom:1rem">
-      <table class="data-table"><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th></tr></thead>
+      <table class="data-table"><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>إجمالي العهدة</th><th>المصروف</th><th>المتبقي من العهدة</th></tr></thead>
       <tbody>${pRows}</tbody></table>
     </div>` : ''}
     <!-- contracts -->
@@ -1409,25 +1608,29 @@ function generateReport() {
   const pFiltered = allPurchases.filter(p => p.date>=from && p.date<=to && (!suppId||p.supplierId===suppId));
   const cFiltered = allContracts.filter(c => c.date>=from && c.date<=to && (!suppId||c.contractorId===suppId));
 
-  const pTotal = pFiltered.reduce((s,p)=>s+(p.total||0),0);
+  const pTotal    = pFiltered.reduce((s,p)=>s+(p.total||0),0);
+  const pNet      = pFiltered.reduce((s,p)=>s+(p.net!=null?p.net:(p.total||0)),0);
+  const custTotal = pFiltered.reduce((s,p)=>s+(p.custodyTotal||0),0);
+  const custBal   = pFiltered.reduce((s,p)=>s+(p.custodyBalance!=null?p.custodyBalance:0),0);
   const cTotal = cFiltered.reduce((s,c)=>s+(c.total||0),0);
   const cDebt  = cFiltered.reduce((s,c)=>s+(c.remaining||0),0);
 
   // group purchases by purpose
   const byPurpose = {};
   pFiltered.forEach(p => {
-    const k = PURPOSES[p.purpose]||p.purpose||'أخرى';
+    const k = getPurposeLabel(p.purpose)||'أخرى';
     if (!byPurpose[k]) byPurpose[k] = 0;
-    byPurpose[k] += p.total||0;
+    byPurpose[k] += (p.net!=null?p.net:(p.total||0));
   });
 
   document.getElementById('reportArea').innerHTML = `
     <!-- summary -->
     <div class="sum-grid" style="margin-bottom:1.25rem">
-      <div class="sum-card blue"><div class="lbl">مشتريات الفترة</div><div class="val">${formatCurrency(pTotal)}</div><div class="sub">${pFiltered.length} فاتورة</div></div>
+      <div class="sum-card blue"><div class="lbl">مشتريات الفترة (صافي)</div><div class="val">${formatCurrency(pNet)}</div><div class="sub">${pFiltered.length} فاتورة</div></div>
       <div class="sum-card purple"><div class="lbl">مقاولات الفترة</div><div class="val">${formatCurrency(cTotal)}</div><div class="sub">${cFiltered.length} عقد</div></div>
       <div class="sum-card red"><div class="lbl">مديونيات الفترة</div><div class="val">${formatCurrency(cDebt)}</div></div>
-      <div class="sum-card green"><div class="lbl">إجمالي الإنفاق</div><div class="val">${formatCurrency(pTotal+cTotal)}</div></div>
+      ${custTotal>0?`<div class="sum-card orange"><div class="lbl">إجمالي العهدة</div><div class="val">${formatCurrency(custTotal)}</div><div class="sub" style="color:${custBal<0?'#ffcdd2':'#c8e6c9'}">متبقي: ${formatCurrency(custBal)}</div></div>`:''}
+      <div class="sum-card green"><div class="lbl">إجمالي الإنفاق</div><div class="val">${formatCurrency(pNet+cTotal)}</div></div>
     </div>
 
     <!-- by purpose breakdown -->
@@ -1442,7 +1645,7 @@ function generateReport() {
               <strong style="color:var(--primary)">${formatCurrency(v)}</strong>
             </div>
             <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
-              <div style="height:100%;width:${Math.round(v/pTotal*100)}%;background:var(--primary);border-radius:3px"></div>
+              <div style="height:100%;width:${pNet>0?Math.round(v/pNet*100):0}%;background:var(--primary);border-radius:3px"></div>
             </div>
           </div>`).join('')}
       </div>
@@ -1456,7 +1659,7 @@ function generateReport() {
         <table class="data-table"><thead><tr><th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th></tr></thead>
         <tbody>${pFiltered.map((p,i)=>`<tr>
           <td>${i+1}</td><td>${p.date}</td><td><strong>${p.supplierName}</strong></td>
-          <td><span class="purpose-tag">${PURPOSES[p.purpose]||p.purpose}</span></td>
+          <td><span class="purpose-tag">${getPurposeLabel(p.purpose)}</span></td>
           <td><span class="work-tag ${p.workType||'other'}">${WORK_TYPES[p.workType]||p.workType}</span></td>
           <td>${p.desc}</td><td>${p.qty} ${p.unit}</td>
           <td class="text-bold text-primary">${formatCurrency(p.total)}</td>
@@ -1472,7 +1675,7 @@ function generateReport() {
         <table class="data-table"><thead><tr><th>#</th><th>التاريخ</th><th>المقاول</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
         <tbody>${cFiltered.map((c,i)=>`<tr>
           <td>${i+1}</td><td>${c.date}</td><td><strong>${c.contractorName}</strong></td>
-          <td><span class="purpose-tag">${PURPOSES[c.purpose]||c.purpose}</span></td>
+          <td><span class="purpose-tag">${getPurposeLabel(c.purpose)}</span></td>
           <td><span class="work-tag ${c.workType||'other'}">${WORK_TYPES[c.workType]||c.workType}</span></td>
           <td>${c.desc}</td>
           <td class="text-bold text-primary">${formatCurrency(c.total)}</td>
@@ -1539,7 +1742,7 @@ async function exportPurchasesExcel() {
   EX.title(ws,'سجل المشتريات — '+school?.name+' — 2026/2027','K');
   EX.subTitle(ws,`تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}  |  عدد الفواتير: ${filteredPurch.length}  |  الإجمالي: ${formatCurrency(filteredPurch.reduce((s,p)=>s+(p.total||0),0))}`,'K',2);
   EX.hdr(ws,['#','التاريخ','المورد','الغرض','نوع العمل','البيان','الكمية','الوحدة','سعر الوحدة','الإجمالي','ملاحظات']);
-  filteredPurch.forEach((p,i)=>{ const r=EX.dataRow(ws,[i+1,p.date,p.supplierName,PURPOSES[p.purpose]||p.purpose,WORK_TYPES[p.workType]||p.workType,p.desc,p.qty,p.unit,p.unitPrice,p.total,p.notes||''],i%2===1); r.getCell(9).numFmt='#,##0'; r.getCell(10).numFmt='#,##0'; });
+  filteredPurch.forEach((p,i)=>{ const r=EX.dataRow(ws,[i+1,p.date,p.supplierName,getPurposeLabel(p.purpose),WORK_TYPES[p.workType]||p.workType,p.desc,p.qty,p.unit,p.unitPrice,p.total,p.notes||''],i%2===1); r.getCell(9).numFmt='#,##0'; r.getCell(10).numFmt='#,##0'; });
   EX.totRow(ws,['','','','','','','','','الإجمالي',filteredPurch.reduce((s,p)=>s+(p.total||0),0),''],'K');
   await EX.download(wb,`مشتريات_${school?.name}`);
 }
@@ -1556,7 +1759,7 @@ async function exportContractsExcel() {
   filteredContr.forEach((c,i)=>{
     const qCell = c.isAreaBased?`${c.area||0} م²`:(c.fixedUnit||'—');
     const pCell = c.isAreaBased?c.pricePerM:0;
-    const r=EX.dataRow(ws,[i+1,c.date,c.contractorName,PURPOSES[c.purpose]||c.purpose,WORK_TYPES[c.workType]||c.workType,c.desc,qCell,pCell||'—',c.total,c.paid,c.remaining],i%2===1);
+    const r=EX.dataRow(ws,[i+1,c.date,c.contractorName,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,qCell,pCell||'—',c.total,c.paid,c.remaining],i%2===1);
     r.getCell(9).numFmt='#,##0'; r.getCell(10).numFmt='#,##0'; r.getCell(11).numFmt='#,##0';
   });
   EX.totRow(ws,['','','','','','','','الإجمالي',filteredContr.reduce((s,c)=>s+(c.total||0),0),filteredContr.reduce((s,c)=>s+(c.paid||0),0),filteredContr.reduce((s,c)=>s+(c.remaining||0),0)],'K');
@@ -1582,24 +1785,32 @@ async function exportFullExcel() {
   ws0.addRow([]);
   EX.hdr(ws0,['البيان','القيمة']);
   const rows0 = [
-    ['إجمالي المشتريات', pList.reduce((s,p)=>s+(p.total||0),0)],
+    ['إجمالي المشتريات (قبل التخصيم)', pList.reduce((s,p)=>s+(p.total||0),0)],
+    ['إجمالي التخصيم على المشتريات', pList.reduce((s,p)=>s+(p.deduction||0),0)],
+    ['صافي المشتريات', pList.reduce((s,p)=>s+(p.net!=null?p.net:(p.total||0)),0)],
+    ['إجمالي العهدة', pList.reduce((s,p)=>s+(p.custodyTotal||0),0)],
+    ['المتبقي من العهدة', pList.reduce((s,p)=>s+(p.custodyBalance!=null?p.custodyBalance:0),0)],
     ['عدد فواتير المشتريات', pList.length],
     ['إجمالي المقاولات', cList.reduce((s,c)=>s+(c.total||0),0)],
     ['عدد العقود', cList.length],
     ['إجمالي المدفوع للمقاولين', cList.reduce((s,c)=>s+(c.paid||0),0)],
     ['إجمالي المديونيات المتبقية', cList.reduce((s,c)=>s+(c.remaining||0),0)],
-    ['الإجمالي الكلي', pList.reduce((s,p)=>s+(p.total||0),0)+cList.reduce((s,c)=>s+(c.total||0),0)],
+    ['الإجمالي الكلي (صافي مشتريات + مقاولات)', pList.reduce((s,p)=>s+(p.net!=null?p.net:(p.total||0)),0)+cList.reduce((s,c)=>s+(c.total||0),0)],
   ];
   rows0.forEach((r,i)=>{ const row=EX.dataRow(ws0,r,i%2===1); row.getCell(2).numFmt='#,##0'; });
 
   // Sheet 2: مشتريات
   if (pList.length > 0) {
     const ws1 = wb.addWorksheet('المشتريات',{views:[{rightToLeft:true}]});
-    ws1.columns = [{width:5},{width:12},{width:22},{width:18},{width:14},{width:26},{width:10},{width:10},{width:14},{width:14},{width:24}];
-    EX.title(ws1,'المشتريات','K');
-    EX.hdr(ws1,['#','التاريخ','المورد','الغرض','نوع العمل','البيان','الكمية','الوحدة','سعر الوحدة','الإجمالي','ملاحظات']);
-    pList.forEach((p,i)=>{EX.dataRow(ws1,[i+1,p.date,p.supplierName,PURPOSES[p.purpose]||p.purpose,WORK_TYPES[p.workType]||p.workType,p.desc,p.qty,p.unit,p.unitPrice,p.total,p.notes||''],i%2===1);});
-    EX.totRow(ws1,['','','','','','','','','الإجمالي',pList.reduce((s,p)=>s+(p.total||0),0),''],'K');
+    ws1.columns = [{width:5},{width:12},{width:22},{width:18},{width:14},{width:26},{width:10},{width:10},{width:14},{width:14},{width:14},{width:14},{width:16},{width:16},{width:16},{width:18},{width:24}];
+    EX.title(ws1,'المشتريات','Q');
+    EX.hdr(ws1,['#','التاريخ','المورد','الغرض','نوع العمل','البيان','الكمية','الوحدة','سعر الوحدة','الإجمالي','التخصيم','الصافي','ع.سابقة','ع.جديدة','إجمالي العهدة','المتبقي من العهدة','ملاحظات']);
+    pList.forEach((p,i)=>{
+      const pnet=p.net!=null?p.net:(p.total||0);
+      EX.dataRow(ws1,[i+1,p.date,p.supplierName,getPurposeLabel(p.purpose),WORK_TYPES[p.workType]||p.workType,p.desc,p.qty,p.unit,p.unitPrice,p.total,p.deduction||0,pnet,p.custodyPrev||0,p.custodyNew||0,p.custodyTotal||0,p.custodyBalance||0,p.notes||''],i%2===1);
+    });
+    const pNet=pList.reduce((s,p)=>s+(p.net!=null?p.net:(p.total||0)),0);
+    EX.totRow(ws1,['','','','','','','','','الإجمالي',pList.reduce((s,p)=>s+(p.total||0),0),pList.reduce((s,p)=>s+(p.deduction||0),0),pNet,'','',pList.reduce((s,p)=>s+(p.custodyTotal||0),0),pList.reduce((s,p)=>s+(p.custodyBalance!=null?p.custodyBalance:0),0),''],'Q');
   }
 
   // Sheet 3: عقود
@@ -1610,7 +1821,7 @@ async function exportFullExcel() {
     EX.hdr(ws2,['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','المساحة/الوحدة','سعر المتر','الإجمالي','المدفوع','المتبقي']);
     cList.forEach((c,i)=>{
       const qCell = c.isAreaBased?`${c.area||0} م²`:(c.fixedUnit||'—');
-      EX.dataRow(ws2,[i+1,c.date,c.contractorName,PURPOSES[c.purpose]||c.purpose,WORK_TYPES[c.workType]||c.workType,c.desc,qCell,c.isAreaBased?(c.pricePerM||0):'—',c.total,c.paid,c.remaining],i%2===1);
+      EX.dataRow(ws2,[i+1,c.date,c.contractorName,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,qCell,c.isAreaBased?(c.pricePerM||0):'—',c.total,c.paid,c.remaining],i%2===1);
     });
     EX.totRow(ws2,['','','','','','','','الإجمالي',cList.reduce((s,c)=>s+(c.total||0),0),cList.reduce((s,c)=>s+(c.paid||0),0),cList.reduce((s,c)=>s+(c.remaining||0),0)],'K');
   }
@@ -1641,18 +1852,22 @@ async function exportProfileExcel(supplierId) {
 
   if (pList.length > 0) {
     const ws = wb.addWorksheet('المشتريات',{views:[{rightToLeft:true}]});
-    ws.columns=[{width:5},{width:12},{width:18},{width:14},{width:26},{width:10},{width:10},{width:14},{width:14}];
-    EX.title(ws,`مشتريات: ${s.name}`,'I');
-    EX.hdr(ws,['#','التاريخ','الغرض','نوع العمل','البيان','الكمية','الوحدة','سعر الوحدة','الإجمالي']);
-    pList.forEach((p,i)=>EX.dataRow(ws,[i+1,p.date,PURPOSES[p.purpose]||p.purpose,WORK_TYPES[p.workType]||p.workType,p.desc,p.qty,p.unit,p.unitPrice,p.total],i%2===1));
-    EX.totRow(ws,['','','','','','','','الإجمالي',pList.reduce((s,p)=>s+(p.total||0),0)],'I');
+    ws.columns=[{width:5},{width:12},{width:18},{width:14},{width:26},{width:10},{width:10},{width:14},{width:14},{width:14},{width:14},{width:16},{width:16},{width:16},{width:18}];
+    EX.title(ws,`مشتريات: ${s.name}`,'O');
+    EX.hdr(ws,['#','التاريخ','الغرض','نوع العمل','البيان','الكمية','الوحدة','سعر الوحدة','الإجمالي','التخصيم','الصافي','ع.سابقة','ع.جديدة','إجمالي العهدة','المتبقي من العهدة']);
+    pList.forEach((p,i)=>{
+      const pnet=p.net!=null?p.net:(p.total||0);
+      EX.dataRow(ws,[i+1,p.date,getPurposeLabel(p.purpose),WORK_TYPES[p.workType]||p.workType,p.desc,p.qty,p.unit,p.unitPrice,p.total,p.deduction||0,pnet,p.custodyPrev||0,p.custodyNew||0,p.custodyTotal||0,p.custodyBalance||0],i%2===1);
+    });
+    const pNet=pList.reduce((s,p)=>s+(p.net!=null?p.net:(p.total||0)),0);
+    EX.totRow(ws,['','','','','','','','الإجمالي',pList.reduce((s,p)=>s+(p.total||0),0),pList.reduce((s,p)=>s+(p.deduction||0),0),pNet,'','',pList.reduce((s,p)=>s+(p.custodyTotal||0),0),pList.reduce((s,p)=>s+(p.custodyBalance!=null?p.custodyBalance:0),0)],'O');
   }
   if (cList.length > 0) {
     const ws = wb.addWorksheet('العقود',{views:[{rightToLeft:true}]});
     ws.columns=[{width:5},{width:12},{width:18},{width:14},{width:26},{width:12},{width:14},{width:14},{width:14}];
     EX.title(ws,`عقود: ${s.name}`,'I');
     EX.hdr(ws,['#','التاريخ','الغرض','نوع العمل','البيان','المساحة/الوحدة','الإجمالي','المدفوع','المتبقي']);
-    cList.forEach((c,i)=>EX.dataRow(ws,[i+1,c.date,PURPOSES[c.purpose]||c.purpose,WORK_TYPES[c.workType]||c.workType,c.desc,c.isAreaBased?`${c.area||0} م²`:(c.fixedUnit||'—'),c.total,c.paid,c.remaining],i%2===1));
+    cList.forEach((c,i)=>EX.dataRow(ws,[i+1,c.date,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,c.isAreaBased?`${c.area||0} م²`:(c.fixedUnit||'—'),c.total,c.paid,c.remaining],i%2===1));
     EX.totRow(ws,['','','','','','الإجمالي',cList.reduce((s,c)=>s+(c.total||0),0),cList.reduce((s,c)=>s+(c.paid||0),0),cList.reduce((s,c)=>s+(c.remaining||0),0)],'I');
   }
 
@@ -1664,7 +1879,11 @@ function exportProfilePDF(supplierId) {
   if (!s) return;
   const pList = allPurchases.filter(p=>p.supplierId===supplierId);
   const cList = allContracts.filter(c=>c.contractorId===supplierId);
-  const pTotal = pList.reduce((a,p)=>a+(p.total||0),0);
+  const pTotal     = pList.reduce((a,p)=>a+(p.total||0),0);
+  const pNet       = pList.reduce((a,p)=>a+(p.net!=null?p.net:(p.total||0)),0);
+  const pDeduction = pList.reduce((a,p)=>a+(p.deduction||0),0);
+  const custTotal  = pList.reduce((a,p)=>a+(p.custodyTotal||0),0);
+  const custBal    = pList.reduce((a,p)=>a+(p.custodyBalance!=null?p.custodyBalance:0),0);
   const cTotal = cList.reduce((a,c)=>a+(c.total||0),0);
   const cDebt  = cList.reduce((a,c)=>a+(c.remaining||0),0);
   const typeLabel = {supplier:'مورد مشتريات',contractor:'مقاول/منفذ',both:'مورد ومقاول'}[s.type]||s.type;
@@ -1673,15 +1892,15 @@ function exportProfilePDF(supplierId) {
   win.document.write(`<html dir="rtl"><head><meta charset="UTF-8">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
     <style>
-      body{font-family:Cairo,sans-serif;padding:20px;direction:rtl;color:#1a1a2e;font-size:12px}
+      body{font-family:Cairo,sans-serif;padding:20px;direction:rtl;color:#1a1a2e;font-size:11px}
       .hdr{display:flex;gap:12px;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:3px solid #1a3a6b}
       .school-name{font-size:16px;font-weight:900;color:#1a3a6b}
-      .info-box{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;background:#e8f0fe;padding:10px 14px;border-radius:8px}
-      .info-item .lbl{font-size:10px;color:#666}.info-item .val{font-size:14px;font-weight:900;color:#1a3a6b}
-      h3{color:#1a3a6b;margin:14px 0 6px;font-size:13px;border-bottom:1px solid #e0e4f0;padding-bottom:4px}
+      .info-box{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;background:#e8f0fe;padding:10px 14px;border-radius:8px}
+      .info-item .lbl{font-size:9px;color:#666}.info-item .val{font-size:13px;font-weight:900;color:#1a3a6b}
+      h3{color:#1a3a6b;margin:14px 0 6px;font-size:12px;border-bottom:1px solid #e0e4f0;padding-bottom:4px}
       table{width:100%;border-collapse:collapse;margin-bottom:14px}
-      th{background:#1a3a6b;color:white;padding:6px 8px;text-align:right;font-size:10px}
-      td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px}
+      th{background:#1a3a6b;color:white;padding:5px 6px;text-align:right;font-size:9px}
+      td{padding:4px 6px;border-bottom:1px solid #eee;font-size:10px}
       tr:nth-child(even){background:#f8f9fa}
       .total-row{background:#fce4ec;font-weight:900;color:#c0392b}
       @media print{@page{size:A4 landscape}body{padding:12px}}
@@ -1696,37 +1915,62 @@ function exportProfilePDF(supplierId) {
     </div>
     <div class="info-box">
       <div class="info-item"><div class="lbl">إجمالي المشتريات</div><div class="val">${formatCurrency(pTotal)}</div></div>
+      ${pDeduction>0?`<div class="info-item"><div class="lbl">التخصيم</div><div class="val" style="color:#e65100">${formatCurrency(pDeduction)}</div></div>`:''}
+      <div class="info-item"><div class="lbl">صافي المشتريات</div><div class="val" style="color:#c0392b">${formatCurrency(pNet)}</div></div>
+      ${custTotal>0?`<div class="info-item"><div class="lbl">إجمالي العهدة</div><div class="val">${formatCurrency(custTotal)}</div></div>`:''}
+      ${custTotal>0?`<div class="info-item"><div class="lbl">المتبقي من العهدة</div><div class="val" style="color:${custBal<0?'#c0392b':'#2e7d32'}">${formatCurrency(custBal)}</div></div>`:''}
       <div class="info-item"><div class="lbl">إجمالي المقاولات</div><div class="val">${formatCurrency(cTotal)}</div></div>
       <div class="info-item"><div class="lbl">المديونية</div><div class="val" style="color:${cDebt>0?'#c0392b':'#2e7d32'}">${formatCurrency(cDebt)}</div></div>
     </div>
     ${pList.length>0?`<h3> المشتريات (${pList.length} فاتورة)</h3>
-    <table><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th></tr></thead>
-    <tbody>${pList.map((p,i)=>`<tr><td>${i+1}</td><td>${p.date}</td><td>${PURPOSES[p.purpose]||p.purpose}</td><td>${WORK_TYPES[p.workType]||p.workType}</td><td>${p.desc}</td><td>${p.qty} ${p.unit}</td><td>${formatCurrency(p.total)}</td></tr>`).join('')}
-    <tr class="total-row"><td colspan="6">الإجمالي</td><td>${formatCurrency(pTotal)}</td></tr></tbody></table>`:''}
+    <table><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>ع.سابقة</th><th>ع.جديدة</th><th>إجمالي العهدة</th><th>المصروف</th><th>المتبقي من العهدة</th></tr></thead>
+    <tbody>${pList.map((p,i)=>{
+      const pnet=p.net!=null?p.net:(p.total||0);
+      const hasCust=(p.custodyTotal||0)>0;
+      return `<tr><td>${i+1}</td><td>${p.date}</td><td>${getPurposeLabel(p.purpose)}</td><td>${WORK_TYPES[p.workType]||p.workType}</td><td>${p.desc}</td><td>${p.qty} ${p.unit}</td><td>${formatCurrency(p.total)}</td><td style="color:#e65100">${(p.deduction||0)>0?formatCurrency(p.deduction):'—'}</td><td style="color:#c0392b;font-weight:700">${formatCurrency(pnet)}</td><td>${(p.custodyPrev||0)>0?formatCurrency(p.custodyPrev):'—'}</td><td>${(p.custodyNew||0)>0?formatCurrency(p.custodyNew):'—'}</td><td style="font-weight:700">${hasCust?formatCurrency(p.custodyTotal):'—'}</td><td>${hasCust&&(p.custodySpent||0)>0?formatCurrency(p.custodySpent):'—'}</td><td style="color:${hasCust&&(p.custodyBalance||0)<0?'#c0392b':'#2e7d32'};font-weight:700">${hasCust?formatCurrency(p.custodyBalance||0):'—'}</td></tr>`;
+    }).join('')}
+    <tr class="total-row"><td colspan="6">الإجمالي</td><td>${formatCurrency(pTotal)}</td><td style="color:#e65100">${pDeduction>0?formatCurrency(pDeduction):'—'}</td><td>${formatCurrency(pNet)}</td><td colspan="2"></td><td>${custTotal>0?formatCurrency(custTotal):'—'}</td><td></td><td style="color:${custBal<0?'#c0392b':'#2e7d32'}">${custTotal>0?formatCurrency(custBal):'—'}</td></tr></tbody></table>`:''}
     ${cList.length>0?`<h3> العقود والأعمال (${cList.length} عقد)</h3>
-    <table><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
-    <tbody>${cList.map((c,i)=>`<tr><td>${i+1}</td><td>${c.date}</td><td>${PURPOSES[c.purpose]||c.purpose}</td><td>${WORK_TYPES[c.workType]||c.workType}</td><td>${c.desc}</td><td>${formatCurrency(c.total)}</td><td style="color:#2e7d32">${formatCurrency(c.paid)}</td><td style="color:${c.remaining>0?'#c0392b':'#2e7d32'}">${c.remaining>0?formatCurrency(c.remaining):'مسدد ✓'}</td></tr>`).join('')}
-    <tr class="total-row"><td colspan="5">الإجمالي</td><td>${formatCurrency(cTotal)}</td><td>${formatCurrency(cList.reduce((a,c)=>a+(c.paid||0),0))}</td><td>${formatCurrency(cDebt)}</td></tr></tbody></table>`:''}
+    <table><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>التخصيم</th><th>المتبقي</th></tr></thead>
+    <tbody>${cList.map((c,i)=>`<tr><td>${i+1}</td><td>${c.date}</td><td>${getPurposeLabel(c.purpose)}</td><td>${WORK_TYPES[c.workType]||c.workType}</td><td>${c.desc}</td><td>${formatCurrency(c.total)}</td><td style="color:#2e7d32">${formatCurrency(c.paid)}</td><td style="color:#e65100">${(c.deduction||0)>0?formatCurrency(c.deduction):'—'}</td><td style="color:${c.remaining>0?'#c0392b':'#2e7d32'}">${c.remaining>0?formatCurrency(c.remaining):'مسدد ✓'}</td></tr>`).join('')}
+    <tr class="total-row"><td colspan="5">الإجمالي</td><td>${formatCurrency(cTotal)}</td><td>${formatCurrency(cList.reduce((a,c)=>a+(c.paid||0),0))}</td><td>${formatCurrency(cList.reduce((a,c)=>a+(c.deduction||0),0))}</td><td>${formatCurrency(cDebt)}</td></tr></tbody></table>`:''}
     <script>window.print();setTimeout(()=>window.close(),800)<\/script>
   </body></html>`);
 }
 
 function exportPurchasesPDF() {
-  const total = filteredPurch.reduce((s,p)=>s+(p.total||0),0);
+  const total     = filteredPurch.reduce((s,p)=>s+(p.total||0),0);
+  const deduction = filteredPurch.reduce((s,p)=>s+(p.deduction||0),0);
+  const net       = filteredPurch.reduce((s,p)=>s+(p.net!=null?p.net:(p.total||0)),0);
+  const custTotal = filteredPurch.reduce((s,p)=>s+(p.custodyTotal||0),0);
+  const custBal   = filteredPurch.reduce((s,p)=>s+(p.custodyBalance!=null?p.custodyBalance:0),0);
   const win = window.open('','_blank');
   win.document.write(`<html dir="rtl"><head><meta charset="UTF-8">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
-    <style>body{font-family:Cairo,sans-serif;padding:20px;direction:rtl;font-size:12px}
+    <style>body{font-family:Cairo,sans-serif;padding:20px;direction:rtl;font-size:11px}
     h2{color:#1a3a6b;margin-bottom:10px}table{width:100%;border-collapse:collapse}
-    th{background:#1a3a6b;color:white;padding:6px 8px;text-align:right;font-size:10px}
-    td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px}tr:nth-child(even){background:#f8f9fa}
+    th{background:#1a3a6b;color:white;padding:5px 6px;text-align:right;font-size:9px}
+    td{padding:4px 6px;border-bottom:1px solid #eee;font-size:10px}tr:nth-child(even){background:#f8f9fa}
     .tot{background:#fce4ec;font-weight:900;color:#c0392b}
+    .summary{display:flex;gap:16px;flex-wrap:wrap;background:#e8f0fe;padding:10px 14px;border-radius:8px;margin-bottom:12px}
+    .si .lbl{font-size:9px;color:#666}.si .val{font-size:13px;font-weight:900;color:#1a3a6b}
     @media print{@page{size:A4 landscape}}</style></head><body>
     <h2>سجل المشتريات — ${school?.name} — (${filteredPurch.length} فاتورة)</h2>
-    <p style="font-size:11px;color:#666">تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}</p>
-    <table><thead><tr><th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th></tr></thead>
-    <tbody>${filteredPurch.map((p,i)=>`<tr><td>${i+1}</td><td>${p.date}</td><td>${p.supplierName}</td><td>${PURPOSES[p.purpose]||p.purpose}</td><td>${WORK_TYPES[p.workType]||p.workType}</td><td>${p.desc}</td><td>${p.qty} ${p.unit}</td><td>${formatCurrency(p.total)}</td></tr>`).join('')}
-    <tr class="tot"><td colspan="7">الإجمالي</td><td>${formatCurrency(total)}</td></tr></tbody></table>
+    <p style="font-size:10px;color:#666">تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}</p>
+    <div class="summary">
+      <div class="si"><div class="lbl">الإجمالي</div><div class="val">${formatCurrency(total)}</div></div>
+      ${deduction>0?`<div class="si"><div class="lbl">التخصيم</div><div class="val" style="color:#e65100">${formatCurrency(deduction)}</div></div>`:''}
+      <div class="si"><div class="lbl">الصافي</div><div class="val" style="color:#c0392b">${formatCurrency(net)}</div></div>
+      ${custTotal>0?`<div class="si"><div class="lbl">إجمالي العهدة</div><div class="val">${formatCurrency(custTotal)}</div></div>`:''}
+      ${custTotal>0?`<div class="si"><div class="lbl">المتبقي من العهدة</div><div class="val" style="color:${custBal<0?'#c0392b':'#2e7d32'}">${formatCurrency(custBal)}</div></div>`:''}
+    </div>
+    <table><thead><tr><th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>ع.سابقة</th><th>ع.جديدة</th><th>إجمالي العهدة</th><th>المصروف</th><th>المتبقي من العهدة</th></tr></thead>
+    <tbody>${filteredPurch.map((p,i)=>{
+      const pnet=p.net!=null?p.net:(p.total||0);
+      const hasCust=(p.custodyTotal||0)>0;
+      return `<tr><td>${i+1}</td><td>${p.date}</td><td>${p.supplierName}</td><td>${getPurposeLabel(p.purpose)}</td><td>${WORK_TYPES[p.workType]||p.workType}</td><td>${p.desc}</td><td>${p.qty} ${p.unit}</td><td>${formatCurrency(p.total)}</td><td style="color:#e65100">${(p.deduction||0)>0?formatCurrency(p.deduction):'—'}</td><td style="color:#c0392b;font-weight:700">${formatCurrency(pnet)}</td><td>${(p.custodyPrev||0)>0?formatCurrency(p.custodyPrev):'—'}</td><td>${(p.custodyNew||0)>0?formatCurrency(p.custodyNew):'—'}</td><td style="color:#1a3a6b;font-weight:700">${hasCust?formatCurrency(p.custodyTotal):'—'}</td><td>${hasCust&&(p.custodySpent||0)>0?formatCurrency(p.custodySpent):'—'}</td><td style="color:${hasCust&&(p.custodyBalance||0)<0?'#c0392b':'#2e7d32'};font-weight:700">${hasCust?formatCurrency(p.custodyBalance||0):'—'}</td></tr>`;
+    }).join('')}
+    <tr class="tot"><td colspan="7">الإجمالي</td><td>${formatCurrency(total)}</td><td>${deduction>0?formatCurrency(deduction):'—'}</td><td>${formatCurrency(net)}</td><td colspan="2"></td><td>${custTotal>0?formatCurrency(custTotal):'—'}</td><td></td><td style="color:${custBal<0?'#c0392b':'#2e7d32'}">${custTotal>0?formatCurrency(custBal):'—'}</td></tr></tbody></table>
     <script>window.print();setTimeout(()=>window.close(),800)<\/script></body></html>`);
 }
 
@@ -1744,7 +1988,7 @@ function exportContractsPDF() {
     <h2>سجل العقود والأعمال — ${school?.name} — (${filteredContr.length} عقد)</h2>
     <p style="font-size:11px;color:#666">تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}</p>
     <table><thead><tr><th>#</th><th>التاريخ</th><th>المقاول</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
-    <tbody>${filteredContr.map((c,i)=>`<tr><td>${i+1}</td><td>${c.date}</td><td>${c.contractorName}</td><td>${PURPOSES[c.purpose]||c.purpose}</td><td>${WORK_TYPES[c.workType]||c.workType}</td><td>${c.desc}</td><td>${formatCurrency(c.total)}</td><td style="color:#2e7d32">${formatCurrency(c.paid)}</td><td style="color:${c.remaining>0?'#c0392b':'#2e7d32'}">${c.remaining>0?formatCurrency(c.remaining):'مسدد'}</td></tr>`).join('')}
+    <tbody>${filteredContr.map((c,i)=>`<tr><td>${i+1}</td><td>${c.date}</td><td>${c.contractorName}</td><td>${getPurposeLabel(c.purpose)}</td><td>${WORK_TYPES[c.workType]||c.workType}</td><td>${c.desc}</td><td>${formatCurrency(c.total)}</td><td style="color:#2e7d32">${formatCurrency(c.paid)}</td><td style="color:${c.remaining>0?'#c0392b':'#2e7d32'}">${c.remaining>0?formatCurrency(c.remaining):'مسدد'}</td></tr>`).join('')}
     <tr class="tot"><td colspan="6">الإجمالي</td><td>${formatCurrency(total)}</td><td>${formatCurrency(filteredContr.reduce((s,c)=>s+(c.paid||0),0))}</td><td style="color:#c0392b">${formatCurrency(filteredContr.reduce((s,c)=>s+(c.remaining||0),0))}</td></tr></tbody></table>
     <script>window.print();setTimeout(()=>window.close(),800)<\/script></body></html>`);
 }
