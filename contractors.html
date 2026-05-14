@@ -142,41 +142,6 @@
       .sum-grid { grid-template-columns:1fr 1fr; }
       .supplier-grid { grid-template-columns:1fr; }
     }
-
-    /* ===== CUSTODIAN BAR ===== */
-    .custodian-bar {
-      display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;
-      background: linear-gradient(135deg, var(--primary) 0%, #0d2247 100%);
-      border-radius: var(--radius); padding: 1rem 1.5rem;
-      margin-bottom: 1.5rem; box-shadow: var(--shadow-lg); color: white;
-    }
-    .cust-section { display:flex; flex-direction:column; align-items:center; text-align:center; min-width:110px; }
-    .cust-lbl { font-size:0.7rem; opacity:0.75; font-weight:600; margin-bottom:2px; }
-    .cust-val { font-size:1.15rem; font-weight:900; }
-    .cust-total { color:#ffd54f; }
-    .cust-spent { color:#ff8a65; }
-    .cust-plus, .cust-minus, .cust-equals {
-      font-size:1.5rem; font-weight:900; opacity:0.6; padding:0 0.25rem;
-    }
-    .custodian-log {
-      background:var(--card-bg); border:1px solid var(--border);
-      border-radius:var(--radius); padding:1.25rem; margin-bottom:1rem;
-    }
-    .cust-log-row {
-      display:flex; justify-content:space-between; align-items:center;
-      padding:0.5rem 0.75rem; border-radius:var(--radius-sm);
-      margin-bottom:0.3rem; font-size:0.83rem;
-      background:var(--bg); border:1px solid var(--border);
-    }
-    .cust-log-row .cl-date { color:var(--text-light); font-size:0.74rem; }
-    .cust-log-row .cl-amount { font-weight:800; color:var(--primary); }
-    .cust-log-row .cl-type { font-size:0.7rem; padding:0.15rem 0.5rem; border-radius:20px; font-weight:700; }
-    .cl-type.prev { background:#e3f2fd; color:#0277bd; }
-    .cl-type.new  { background:#e8f5e9; color:#2e7d32; }
-    @media (max-width:600px) {
-      .custodian-bar { flex-direction:column; align-items:flex-start; }
-      .cust-plus,.cust-minus,.cust-equals { display:none; }
-    }
   </style>
 </head>
 <body>
@@ -218,35 +183,6 @@
           <div class="lbl">إجمالي الإنفاق</div>
           <div class="val" id="sumTotal">—</div>
           <div class="sub">مشتريات + مقاولات</div>
-        </div>
-      </div>
-
-      <!-- CUSTODIAN BALANCE BAR -->
-      <div class="custodian-bar animate-in" id="custodianBar">
-        <div class="cust-section">
-          <div class="cust-lbl"> عهدة سابقة</div>
-          <div class="cust-val" id="custPrev">—</div>
-        </div>
-        <div class="cust-plus">+</div>
-        <div class="cust-section">
-          <div class="cust-lbl"> عهدة جديدة</div>
-          <div class="cust-val" id="custNew">—</div>
-          <button class="btn btn-sm btn-outline" onclick="openAddCustodian()" style="margin-top:4px;font-size:0.72rem;padding:0.2rem 0.65rem"> إضافة</button>
-        </div>
-        <div class="cust-equals">=</div>
-        <div class="cust-section">
-          <div class="cust-lbl"> إجمالي العهدة</div>
-          <div class="cust-val cust-total" id="custTotal">—</div>
-        </div>
-        <div class="cust-minus">−</div>
-        <div class="cust-section">
-          <div class="cust-lbl"> المصروف</div>
-          <div class="cust-val cust-spent" id="custSpent">—</div>
-        </div>
-        <div class="cust-equals">=</div>
-        <div class="cust-section" id="custRemSection">
-          <div class="cust-lbl"> المتبقي من العهدة</div>
-          <div class="cust-val" id="custRem" style="color:#2e7d32">—</div>
         </div>
       </div>
 
@@ -314,7 +250,7 @@
               <thead>
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>نوع العمل</th>
-                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>تخصيم</th><th>المتبقي</th><th>جهة الدفع</th><th>ملاحظات</th><th></th>
+                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>ملاحظات</th><th></th>
                 </tr>
               </thead>
               <tbody id="purchasesBody">
@@ -366,7 +302,7 @@
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المقاول</th><th>الغرض</th><th>نوع العمل</th>
                   <th>البيان</th><th>المساحة/الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th>
-                  <th>المدفوع</th><th>تخصيم</th><th>المتبقي</th><th>المديونية</th><th>جهة الدفع</th><th></th>
+                  <th>المدفوع</th><th>المتبقي</th><th></th>
                 </tr>
               </thead>
               <tbody id="contractsBody">
@@ -545,31 +481,9 @@
           <label class="form-label">الإجمالي (ج.م)</label>
           <input type="number" class="form-input" id="pTotal" placeholder="0.00" style="background:var(--accent);font-weight:800" readonly />
         </div>
-        <div class="form-group">
-          <label class="form-label">تخصيم (ج.م)</label>
-          <input type="number" class="form-input" id="pDiscount" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseTotal()" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">المتبقي (ج.م)</label>
-          <input type="number" class="form-input" id="pNet" placeholder="0.00" style="background:#e8f5e9;font-weight:800;color:#2e7d32" readonly />
-        </div>
         <div class="form-group" style="grid-column:1/-1">
           <label class="form-label">ملاحظات</label>
           <textarea class="form-textarea" id="pNotes" rows="2" placeholder="رقم الفاتورة، ضمان، ملاحظات..."></textarea>
-        </div>
-        <div class="form-group" style="grid-column:1/-1">
-          <label class="form-label">جهة الدفع <span class="required">*</span></label>
-          <div style="display:flex;gap:1rem;margin-top:0.25rem">
-            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-weight:700;font-size:0.9rem">
-              <input type="radio" name="pPayer" id="pPayerAcc" value="accounts" checked /> قسم الحسابات
-            </label>
-            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-weight:700;font-size:0.9rem">
-              <input type="radio" name="pPayer" id="pPayerChair" value="chairman" /> رئيس مجلس الإدارة
-            </label>
-          </div>
-          <div id="pPayerNote" class="hidden" style="margin-top:0.5rem;padding:0.4rem 0.75rem;background:#fff3cd;border-radius:6px;font-size:0.78rem;color:#856404;border:1px solid #ffc107">
-             هذا المبلغ لن يُخصم من العهدة
-          </div>
         </div>
       </div>
     </div>
@@ -668,34 +582,12 @@
           <input type="number" class="form-input" id="cPaidNow" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
         </div>
         <div class="form-group">
-          <label class="form-label">تخصيم (ج.م)</label>
-          <input type="number" class="form-input" id="cDiscount" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">المتبقي بعد التخصيم (ج.م)</label>
-          <input type="number" class="form-input" id="cNet" placeholder="0.00" style="background:#e8f5e9;font-weight:800;color:#2e7d32" readonly />
-        </div>
-        <div class="form-group">
-          <label class="form-label">المديونية (ج.م)</label>
+          <label class="form-label">المتبقي (المديونية)</label>
           <input type="number" class="form-input" id="cDebt" readonly style="background:var(--accent);font-weight:800;color:#c0392b" />
         </div>
         <div class="form-group" style="grid-column:1/-1">
           <label class="form-label">ملاحظات</label>
           <textarea class="form-textarea" id="cNotes" rows="2"></textarea>
-        </div>
-        <div class="form-group" style="grid-column:1/-1">
-          <label class="form-label">جهة الدفع <span class="required">*</span></label>
-          <div style="display:flex;gap:1rem;margin-top:0.25rem">
-            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-weight:700;font-size:0.9rem">
-              <input type="radio" name="cPayer" id="cPayerAcc" value="accounts" checked /> قسم الحسابات
-            </label>
-            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-weight:700;font-size:0.9rem">
-              <input type="radio" name="cPayer" id="cPayerChair" value="chairman" /> رئيس مجلس الإدارة
-            </label>
-          </div>
-          <div id="cPayerNote" class="hidden" style="margin-top:0.5rem;padding:0.4rem 0.75rem;background:#fff3cd;border-radius:6px;font-size:0.78rem;color:#856404;border:1px solid #ffc107">
-             هذا المبلغ لن يُخصم من العهدة
-          </div>
         </div>
       </div>
     </div>
@@ -755,38 +647,36 @@
   </div>
 </div>
 
-<!-- ===== MODAL: ADD CUSTODIAN ===== -->
-<div class="modal-overlay hidden" id="custodianModal">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-header">
-      <span class="modal-title"> إضافة عهدة</span>
-      <button class="btn-close" onclick="closeModal('custodianModal')">×</button>
+<!-- ===== MODAL: DEDUCT (تخصيم) ===== -->
+<div class="modal-overlay hidden" id="deductModal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header" style="background:linear-gradient(135deg,#e65100,#bf360c);color:white;border-radius:var(--radius) var(--radius) 0 0">
+      <span class="modal-title" style="color:white"> تخصيم من المبلغ المدفوع</span>
+      <button class="btn-close" onclick="closeModal('deductModal')" style="color:white;font-size:1.3rem;line-height:1">×</button>
     </div>
     <div class="modal-body">
-      <div class="alert hidden" id="custodianAlert"></div>
-      <div class="form-group">
-        <label class="form-label">نوع العهدة <span class="required">*</span></label>
-        <select class="form-select" id="custType">
-          <option value="new">عهدة جديدة</option>
-          <option value="prev">عهدة سابقة (تحميل)</option>
-        </select>
+      <div class="alert hidden" id="deductAlert"></div>
+      <input type="hidden" id="deductContractId" />
+      <div id="deductInfo" style="background:var(--accent);border-radius:var(--radius-sm);padding:0.85rem 1rem;margin-bottom:1rem;font-size:0.85rem;border:1px solid var(--border)"></div>
+      <div style="background:#fff3e0;border:1px solid #ffe082;border-radius:var(--radius-sm);padding:0.65rem 0.85rem;margin-bottom:1rem;font-size:0.8rem;color:#e65100">
+        <strong>ملحوظة:</strong> التخصيم بيشيل مبلغ من المدفوع الحالي، فبيزيد المتبقي (المديونية) بنفس القدر.
       </div>
       <div class="form-group">
-        <label class="form-label">المبلغ (ج.م) <span class="required">*</span></label>
-        <input type="number" class="form-input" id="custAmount" placeholder="0.00" min="0.01" step="0.01" />
+        <label class="form-label">مبلغ التخصيم (ج.م) <span class="required">*</span></label>
+        <input type="number" class="form-input" id="deductAmount" placeholder="0.00" min="0.01" step="0.01" oninput="previewDeduct()" />
       </div>
-      <div class="form-group">
-        <label class="form-label">التاريخ <span class="required">*</span></label>
-        <input type="date" class="form-input" id="custDate" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">البيان / ملاحظات</label>
-        <input type="text" class="form-input" id="custNotes" placeholder="مثال: عهدة أول العام / إضافة من الإدارة..." />
+      <div id="deductPreview" style="display:none;margin-top:0.75rem;background:var(--bg);border-radius:var(--radius-sm);padding:0.75rem 1rem;border:1px solid var(--border);font-size:0.82rem">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;text-align:center">
+          <div><div style="font-size:0.7rem;color:var(--text-light);margin-bottom:2px">المدفوع قبل</div><div id="preDeductPaid" style="font-weight:800;color:#2e7d32"></div></div>
+          <div><div style="font-size:0.7rem;color:var(--text-light);margin-bottom:2px">التخصيم</div><div id="preDeductAmt" style="font-weight:800;color:#e65100"></div></div>
+          <div><div style="font-size:0.7rem;color:var(--text-light);margin-bottom:2px">المدفوع بعد</div><div id="preDeductAfter" style="font-weight:800;color:var(--primary)"></div></div>
+        </div>
+        <div style="margin-top:0.5rem;text-align:center;font-size:0.78rem;color:var(--text-light)">المتبقي (مديونية) سيصبح: <span id="preDeductRemaining" style="font-weight:900;color:#c0392b"></span></div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('custodianModal')">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveCustodian()"> حفظ العهدة</button>
+      <button class="btn btn-secondary" onclick="closeModal('deductModal')">إلغاء</button>
+      <button class="btn" style="background:#e65100;color:white" onclick="confirmDeduct()">تأكيد التخصيم</button>
     </div>
   </div>
 </div>
@@ -816,15 +706,13 @@ let allPurchases  = [];
 let allContracts  = [];
 let filteredPurch = [];
 let filteredContr = [];
-let allCustodians = []; // عهد مضافة
 
 // ─── INIT ────────────────────────────────────────────────────────
 async function init() {
   document.getElementById('pDate').value = localDateStr();
   document.getElementById('cDate').value = localDateStr();
-  document.getElementById('custDate').value = localDateStr();
   setDefaultReportDates();
-  await Promise.all([ loadSuppliers(), loadPurchases(), loadContracts(), loadCustodians() ]);
+  await Promise.all([ loadSuppliers(), loadPurchases(), loadContracts() ]);
   populateSupplierSelects();
   updateSummaryCards();
 }
@@ -871,13 +759,6 @@ async function loadContracts() {
     filteredContr = [...allContracts];
     renderContracts();
   } catch(e) { console.error('load contracts', e); }
-}
-
-async function loadCustodians() {
-  try {
-    const snap = await db.collection('contractors_custodians').where('schoolId','==',schoolId).get();
-    allCustodians = snap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a,b) => (a.date||'')>(b.date||'') ? 1:-1);
-  } catch(e) { console.error('load custodians', e); }
 }
 
 // ─── RENDER SUPPLIERS ─────────────────────────────────────────────
@@ -988,11 +869,6 @@ function renderPurchases() {
       <td style="text-align:center">${p.unit||'—'}</td>
       <td style="text-align:center">${formatCurrency(p.unitPrice||0)}</td>
       <td class="text-bold text-primary">${formatCurrency(p.total||0)}</td>
-      <td style="color:#e65100;font-weight:700">${p.discount ? formatCurrency(p.discount) : '—'}</td>
-      <td style="color:#2e7d32;font-weight:800">${formatCurrency(p.net??p.total??0)}</td>      <td>${p.payer==='chairman'
-        ? '<span style="background:#fff3cd;color:#856404;border:1px solid #ffc107;padding:0.15rem 0.5rem;border-radius:20px;font-size:0.7rem;font-weight:700">رئيس مجلس الإدارة</span>'
-        : '<span style="background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;padding:0.15rem 0.5rem;border-radius:20px;font-size:0.7rem;font-weight:700">قسم الحسابات</span>'
-      }</td>
       <td class="text-sm text-muted">${p.notes||'—'}</td>
       <td>
         <button class="btn btn-sm btn-secondary" onclick="openEditPurchase('${p.id}')"></button>
@@ -1004,7 +880,7 @@ function renderPurchases() {
   tfoot.innerHTML = `<tr style="background:var(--accent);font-weight:800;color:var(--primary)">
     <td colspan="9" style="padding:0.75rem 1rem">إجمالي المشتريات (${filteredPurch.length} فاتورة)</td>
     <td style="padding:0.75rem 1rem">${formatCurrency(grandTotal)}</td>
-    <td colspan="3"></td>
+    <td colspan="2"></td>
   </tr>`;
 }
 
@@ -1053,15 +929,10 @@ function renderContracts() {
       <td style="text-align:center">${upCell}</td>
       <td class="text-bold text-primary">${formatCurrency(c.total||0)}</td>
       <td style="color:#2e7d32;font-weight:700">${formatCurrency(c.paid||0)}</td>
-      <td style="color:#e65100;font-weight:700">${c.discount ? formatCurrency(c.discount) : '—'}</td>
-      <td style="color:#2e7d32;font-weight:800">${formatCurrency(c.net??c.paid??0)}</td>
       <td style="color:${hasDebt?'#c0392b':'#2e7d32'};font-weight:800">${hasDebt?formatCurrency(c.remaining||0):'مسدد ✓'}</td>
-      <td>${c.payer==='chairman'
-        ? '<span style="background:#fff3cd;color:#856404;border:1px solid #ffc107;padding:0.15rem 0.5rem;border-radius:20px;font-size:0.7rem;font-weight:700">رئيس مجلس الإدارة</span>'
-        : '<span style="background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;padding:0.15rem 0.5rem;border-radius:20px;font-size:0.7rem;font-weight:700">قسم الحسابات</span>'
-      }</td>
       <td>
         ${hasDebt ? `<button class="btn btn-sm btn-primary" onclick="openPayModal('${c.id}')"> دفع</button>` : ''}
+        <button class="btn btn-sm" style="background:#e65100;color:white;margin-right:3px" onclick="openDeductModal('${c.id}')" title="تخصيم من المدفوع"> تخصيم</button>
         <button class="btn btn-sm btn-secondary" onclick="openEditContract('${c.id}')" style="margin-right:3px"></button>
       </td>
     </tr>`;
@@ -1072,7 +943,7 @@ function renderContracts() {
     <td style="padding:0.75rem 1rem">${formatCurrency(gTotal)}</td>
     <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(gPaid)}</td>
     <td style="padding:0.75rem 1rem;color:#c0392b">${formatCurrency(gDebt)}</td>
-    <td colspan="2"></td>
+    <td></td>
   </tr>`;
 }
 
@@ -1090,40 +961,17 @@ function updateSummaryCards() {
   document.getElementById('sumSuppliersCount').textContent = `${allSuppliers.length} مورد/مقاول`;
   document.getElementById('sumDebts').textContent          = formatCurrency(cDebt);
   document.getElementById('sumDebtsCount').textContent     = `${allContracts.filter(c=>(c.remaining||0)>0).length} مقاول`;
-  document.getElementById('sumTotal').textContent          = formatCurrency(pTotal + cPaid);
-
-  // ─── CUSTODIAN BAR ───
-  const prevTotal = allCustodians.filter(c=>c.type==='prev').reduce((s,c)=>s+(c.amount||0),0);
-  const newTotal  = allCustodians.filter(c=>c.type==='new').reduce((s,c)=>s+(c.amount||0),0);
-  const custTotal = prevTotal + newTotal;
-  // المصروف من العهدة = الصافي بعد الخصم (بس من قسم الحسابات)
-  const spentP = allPurchases.filter(p=>(!p.payer||p.payer==='accounts')).reduce((s,p)=>s+(p.net??p.total??0),0);
-  const spentC = allContracts.filter(c=>(!c.payer||c.payer==='accounts')).reduce((s,c)=>s+(c.net??c.paid??0),0);
-  const spent  = spentP + spentC;
-  const rem       = custTotal - spent;
-  document.getElementById('custPrev').textContent  = formatCurrency(prevTotal);
-  document.getElementById('custNew').textContent   = formatCurrency(newTotal);
-  document.getElementById('custTotal').textContent = formatCurrency(custTotal);
-  document.getElementById('custSpent').textContent = formatCurrency(spent);
-  const remEl = document.getElementById('custRem');
-  remEl.textContent  = formatCurrency(Math.abs(rem));
-  remEl.style.color  = rem >= 0 ? '#69f0ae' : '#ff5252';
-  document.getElementById('custRemSection').querySelector('.cust-lbl').textContent =
-    rem >= 0 ? ' المتبقي من العهدة' : ' تجاوز العهدة';
+  document.getElementById('sumTotal').textContent          = formatCurrency(pTotal + cTotal);
 }
 
 // ─── POPULATE SELECTS ─────────────────────────────────────────────
 function populateSupplierSelects() {
-  // المشتريات: بتظهر كل الأنواع (supplier + contractor + both)
-  const allForPurchase = allSuppliers;
+  const suppOnly = allSuppliers.filter(s => s.type==='supplier'||s.type==='both');
   const contOnly = allSuppliers.filter(s => s.type==='contractor'||s.type==='both');
 
   const pSel = document.getElementById('pSupplier');
   pSel.innerHTML = '<option value="">— اختر مورداً —</option>' +
-    allForPurchase.map(s => {
-      const typeLabel = {supplier:'مورد',contractor:'مقاول',both:'مورد/مقاول'}[s.type]||s.type;
-      return `<option value="${s.id}">${s.name} (${typeLabel}) — ${s.phone||''}</option>`;
-    }).join('');
+    suppOnly.map(s => `<option value="${s.id}">${s.name} — ${s.phone||''}</option>`).join('');
 
   const cSel = document.getElementById('cContractor');
   cSel.innerHTML = '<option value="">— اختر —</option>' +
@@ -1226,17 +1074,15 @@ async function deleteSupplier(id) {
 
 // ─── PURCHASE SAVE ────────────────────────────────────────────────
 function openPurchaseModal() {
-  populateSupplierSelects();
   document.getElementById('purchaseEditId').value = '';
   document.getElementById('pDate').value = localDateStr();
   ['pDesc','pNotes'].forEach(id => document.getElementById(id).value = '');
-  ['pQty','pUnitPrice','pTotal','pDiscount','pNet'].forEach(id => document.getElementById(id).value = '');
+  ['pQty','pUnitPrice','pTotal'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('purchaseAlert').classList.add('hidden');
   openModal('purchaseModal');
 }
 
 function openEditPurchase(id) {
-  populateSupplierSelects();
   const p = allPurchases.find(x => x.id === id);
   if (!p) return;
   document.getElementById('purchaseEditId').value  = id;
@@ -1249,8 +1095,6 @@ function openEditPurchase(id) {
   document.getElementById('pUnit').value           = p.unit||'قطعة';
   document.getElementById('pUnitPrice').value      = p.unitPrice||'';
   document.getElementById('pTotal').value          = p.total||'';
-  document.getElementById('pDiscount').value       = p.discount||'';
-  document.getElementById('pNet').value            = p.net??( (p.total||0)-(p.discount||0) );
   document.getElementById('pNotes').value          = p.notes||'';
   document.getElementById('purchaseAlert').classList.add('hidden');
   openModal('purchaseModal');
@@ -1259,13 +1103,9 @@ function openEditPurchase(id) {
 function toggleAreaMode() { /* purchases use qty always */ }
 
 function calcPurchaseTotal() {
-  const qty      = parseFloat(document.getElementById('pQty').value)       || 0;
-  const price    = parseFloat(document.getElementById('pUnitPrice').value) || 0;
-  const discount = parseFloat(document.getElementById('pDiscount').value)  || 0;
-  const total    = qty * price;
-  const net      = Math.max(0, total - discount);
-  document.getElementById('pTotal').value = total.toFixed(2);
-  document.getElementById('pNet').value   = net.toFixed(2);
+  const qty   = parseFloat(document.getElementById('pQty').value)       || 0;
+  const price = parseFloat(document.getElementById('pUnitPrice').value) || 0;
+  document.getElementById('pTotal').value = (qty * price).toFixed(2);
 }
 
 async function savePurchase() {
@@ -1288,16 +1128,11 @@ async function savePurchase() {
   if (unitPrice<=0) return showAlert('purchaseAlert','سعر الوحدة يجب أن يكون أكبر من صفر');
 
   const supp = allSuppliers.find(s => s.id === suppId);
-  const payer    = document.querySelector('input[name="pPayer"]:checked')?.value || 'accounts';
-  const discount = parseFloat(document.getElementById('pDiscount').value) || 0;
-  const net      = Math.max(0, total - discount);
   const data = {
     schoolId, supplierId: suppId, supplierName: supp?.name||'', date,
     purpose, purposeLabel: PURPOSES[purpose]||purpose,
     workType, workTypeLabel: WORK_TYPES[workType]||workType,
-    desc, qty, unit, unitPrice, total, discount, net,
-    payer,
-    payerLabel: payer === 'chairman' ? 'رئيس مجلس الإدارة' : 'قسم الحسابات',
+    desc, qty, unit, unitPrice, total,
     notes: document.getElementById('pNotes').value.trim(),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -1314,7 +1149,8 @@ async function savePurchase() {
     closeModal('purchaseModal');
     await loadPurchases();
     updateSummaryCards();
-    toast('تم حفظ الفاتورة ✓');  } catch(e) { showAlert('purchaseAlert','خطأ: '+e.message); }
+    toast('تم حفظ الفاتورة ✓');
+  } catch(e) { showAlert('purchaseAlert','خطأ: '+e.message); }
 }
 
 async function deletePurchase(id) {
@@ -1329,12 +1165,11 @@ async function deletePurchase(id) {
 
 // ─── CONTRACT SAVE ────────────────────────────────────────────────
 function openContractModal() {
-  populateSupplierSelects();
   document.getElementById('contractEditId').value = '';
   document.getElementById('cDate').value = localDateStr();
   ['cContractor','cPurpose','cWorkType'].forEach(id => document.getElementById(id).value = '');
   ['cDesc','cNotes'].forEach(id => document.getElementById(id).value = '');
-  ['cArea','cPricePerM','cTotal','cFixedTotal','cPaidNow','cDiscount','cNet','cDebt'].forEach(id => document.getElementById(id).value = '');
+  ['cArea','cPricePerM','cTotal','cFixedTotal','cPaidNow','cDebt'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('cFixedUnit').value = '';
   document.getElementById('contractAlert').classList.add('hidden');
   document.getElementById('cAreaGroup').style.display  = 'none';
@@ -1343,7 +1178,6 @@ function openContractModal() {
 }
 
 function openEditContract(id) {
-  populateSupplierSelects();
   const c = allContracts.find(x => x.id === id);
   if (!c) return;
   document.getElementById('contractEditId').value  = id;
@@ -1354,8 +1188,6 @@ function openEditContract(id) {
   document.getElementById('cDesc').value           = c.desc||'';
   document.getElementById('cNotes').value          = c.notes||'';
   document.getElementById('cPaidNow').value        = c.paid||'';
-  document.getElementById('cDiscount').value       = c.discount||'';
-  document.getElementById('cNet').value            = c.net??( (c.paid||0)-(c.discount||0) );
   document.getElementById('cDebt').value           = c.remaining||'';
 
   const isArea = AREA_BASED.includes(c.workType);
@@ -1399,14 +1231,11 @@ function syncFixedTotal() { calcContractDebt(); }
 function calcContractDebt() {
   const wt = document.getElementById('cWorkType').value;
   const isArea = AREA_BASED.includes(wt);
-  const total    = isArea
+  const total = isArea
     ? (parseFloat(document.getElementById('cTotal').value)||0)
     : (parseFloat(document.getElementById('cFixedTotal').value)||0);
-  const paid     = parseFloat(document.getElementById('cPaidNow').value)   || 0;
-  const discount = parseFloat(document.getElementById('cDiscount').value)  || 0;
-  const net      = Math.max(0, paid - discount);
-  document.getElementById('cNet').value  = net.toFixed(2);
-  document.getElementById('cDebt').value = Math.max(0, total - net).toFixed(2);
+  const paid  = parseFloat(document.getElementById('cPaidNow').value)||0;
+  document.getElementById('cDebt').value = Math.max(0, total - paid).toFixed(2);
 }
 
 async function saveContract() {
@@ -1437,20 +1266,14 @@ async function saveContract() {
   }
 
   const paid      = parseFloat(document.getElementById('cPaidNow').value)||0;
-  const discount  = parseFloat(document.getElementById('cDiscount').value)||0;
-  const net       = Math.max(0, paid - discount);
-  const remaining = Math.max(0, total - net);
+  const remaining = Math.max(0, total - paid);
   const contr     = allSuppliers.find(s => s.id === contId);
-  const payer     = document.querySelector('input[name="cPayer"]:checked')?.value || 'accounts';
 
   const data = {
     schoolId, contractorId: contId, contractorName: contr?.name||'',
     date, purpose, purposeLabel: PURPOSES[purpose]||purpose,
     workType, workTypeLabel: WORK_TYPES[workType]||workType,
-    desc, total, paid, discount, net, remaining,
-    payer,
-    payerLabel: payer === 'chairman' ? 'رئيس مجلس الإدارة' : 'قسم الحسابات',
-    notes: document.getElementById('cNotes').value.trim(),
+    desc, total, paid, remaining, notes: document.getElementById('cNotes').value.trim(),
     isAreaBased: isArea,
     paymentHistory: [],
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1524,6 +1347,73 @@ async function confirmPay() {
   } catch(e) { showAlert('payAlert','خطأ: '+e.message); }
 }
 
+// ─── DEDUCT (تخصيم) ───────────────────────────────────────────────
+function openDeductModal(contractId) {
+  const c = allContracts.find(x => x.id === contractId);
+  if (!c) return;
+  if ((c.paid||0) <= 0) { alert('لا يوجد مبلغ مدفوع يمكن التخصيم منه'); return; }
+  document.getElementById('deductContractId').value = contractId;
+  document.getElementById('deductAmount').value  = '';
+  document.getElementById('deductAlert').classList.add('hidden');
+  document.getElementById('deductPreview').style.display = 'none';
+  document.getElementById('deductInfo').innerHTML = `
+    <strong>${c.contractorName}</strong> — ${c.desc}<br>
+    إجمالي العقد: <strong>${formatCurrency(c.total)}</strong> |
+    المدفوع حالياً: <strong style="color:#2e7d32">${formatCurrency(c.paid)}</strong> |
+    المتبقي: <strong style="color:#c0392b">${formatCurrency(c.remaining)}</strong>
+  `;
+  openModal('deductModal');
+}
+
+function previewDeduct() {
+  const contractId = document.getElementById('deductContractId').value;
+  const c = allContracts.find(x => x.id === contractId);
+  if (!c) return;
+  const amt = parseFloat(document.getElementById('deductAmount').value) || 0;
+  const preview = document.getElementById('deductPreview');
+  if (amt <= 0) { preview.style.display = 'none'; return; }
+  const newPaid      = Math.max(0, (c.paid||0) - amt);
+  const newRemaining = c.total - newPaid;
+  preview.style.display = 'block';
+  document.getElementById('preDeductPaid').textContent      = formatCurrency(c.paid||0);
+  document.getElementById('preDeductAmt').textContent       = '- ' + formatCurrency(amt);
+  document.getElementById('preDeductAfter').textContent     = formatCurrency(newPaid);
+  document.getElementById('preDeductRemaining').textContent = formatCurrency(newRemaining);
+}
+
+async function confirmDeduct() {
+  const contractId = document.getElementById('deductContractId').value;
+  const amt        = parseFloat(document.getElementById('deductAmount').value) || 0;
+
+  if (amt <= 0)   return showAlert('deductAlert', 'ادخل مبلغ تخصيم صحيح');
+
+  const c = allContracts.find(x => x.id === contractId);
+  if (!c) return;
+  if (amt > (c.paid||0) + 0.01) return showAlert('deductAlert', `المبلغ أكبر من المدفوع الحالي (${formatCurrency(c.paid||0)})`);
+
+  const newPaid      = Math.max(0, (c.paid||0) - amt);
+  const newRemaining = Math.max(0, c.total - newPaid);
+  const today        = localDateStr();
+  const history      = [...(c.paymentHistory||[]), {
+    amount: -amt,
+    method: 'deduction',
+    methodLabel: 'تخصيم',
+    date: today,
+    by: session.email
+  }];
+
+  try {
+    await db.collection('contractors_contracts').doc(contractId).update({
+      paid: newPaid, remaining: newRemaining, paymentHistory: history,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    closeModal('deductModal');
+    await loadContracts();
+    updateSummaryCards();
+    toast(`تم تخصيم ${formatCurrency(amt)} ✓`);
+  } catch(e) { showAlert('deductAlert', 'خطأ: ' + e.message); }
+}
+
 // ─── SUPPLIER PROFILE ─────────────────────────────────────────────
 function openProfile(supplierId) {
   const s = allSuppliers.find(x => x.id === supplierId);
@@ -1548,9 +1438,13 @@ function openProfile(supplierId) {
   </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--text-light)">لا توجد مشتريات</td></tr>`;
 
   const cRows = contracts.map((c,i) => {
-    const history = (c.paymentHistory||[]).map(ph =>
-      `<div class="ph-row"><span>${ph.date} — ${ph.methodLabel||ph.method}</span><span class="ph-amount">${formatCurrency(ph.amount)}</span></div>`
-    ).join('');
+    const history = (c.paymentHistory||[]).map(ph => {
+      const isDeduct = ph.method === 'deduction';
+      return `<div class="ph-row" style="${isDeduct ? 'background:#fff3e0;border-color:#ffe082' : ''}">
+        <span>${ph.date} — <span style="color:${isDeduct ? '#e65100' : 'var(--primary)'};font-weight:700">${ph.methodLabel||ph.method}</span>${ph.reason ? ` (${ph.reason})` : ''}</span>
+        <span class="ph-amount" style="color:${isDeduct ? '#e65100' : 'var(--primary)'}">${isDeduct ? '- ' : ''}${formatCurrency(Math.abs(ph.amount))}</span>
+      </div>`;
+    }).join('');
     return `<tr>
       <td>${i+1}</td><td>${c.date}</td>
       <td><span class="purpose-tag">${PURPOSES[c.purpose]||c.purpose}</span></td>
@@ -1560,8 +1454,11 @@ function openProfile(supplierId) {
       <td style="color:#2e7d32;font-weight:700">${formatCurrency(c.paid)}</td>
       <td style="color:${c.remaining>0?'#c0392b':'#2e7d32'};font-weight:800">${c.remaining>0?formatCurrency(c.remaining):'مسدد ✓'}</td>
       <td>${history||'—'}</td>
+      <td>
+        ${(c.paid||0)>0 ? `<button class="btn btn-sm" style="background:#e65100;color:white;font-size:0.7rem" onclick="closeModal('profileModal');openDeductModal('${c.id}')"> تخصيم</button>` : '—'}
+      </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--text-light)">لا توجد عقود</td></tr>`;
+  }).join('') || `<tr><td colspan="10" style="text-align:center;color:var(--text-light)">لا توجد عقود</td></tr>`;
 
   document.getElementById('profileBody').innerHTML = `
     <!-- info -->
@@ -1595,7 +1492,7 @@ function openProfile(supplierId) {
     ${contracts.length > 0 ? `
     <div style="font-size:0.85rem;font-weight:800;color:var(--primary);margin-bottom:0.5rem"> سجل العقود والأعمال (${contracts.length})</div>
     <div class="table-wrapper">
-      <table class="data-table"><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>سجل الدفع</th></tr></thead>
+      <table class="data-table"><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>سجل الدفع</th><th></th></tr></thead>
       <tbody>${cRows}</tbody></table>
     </div>` : ''}
     <div style="margin-top:1rem;display:flex;gap:0.5rem;justify-content:flex-end">
@@ -1633,7 +1530,7 @@ function generateReport() {
       <div class="sum-card blue"><div class="lbl">مشتريات الفترة</div><div class="val">${formatCurrency(pTotal)}</div><div class="sub">${pFiltered.length} فاتورة</div></div>
       <div class="sum-card purple"><div class="lbl">مقاولات الفترة</div><div class="val">${formatCurrency(cTotal)}</div><div class="sub">${cFiltered.length} عقد</div></div>
       <div class="sum-card red"><div class="lbl">مديونيات الفترة</div><div class="val">${formatCurrency(cDebt)}</div></div>
-      <div class="sum-card green"><div class="lbl">إجمالي الإنفاق</div><div class="val">${formatCurrency(pTotal+cFiltered.reduce((s,c)=>s+(c.paid||0),0))}</div></div>
+      <div class="sum-card green"><div class="lbl">إجمالي الإنفاق</div><div class="val">${formatCurrency(pTotal+cTotal)}</div></div>
     </div>
 
     <!-- by purpose breakdown -->
@@ -1953,51 +1850,6 @@ function exportContractsPDF() {
     <tbody>${filteredContr.map((c,i)=>`<tr><td>${i+1}</td><td>${c.date}</td><td>${c.contractorName}</td><td>${PURPOSES[c.purpose]||c.purpose}</td><td>${WORK_TYPES[c.workType]||c.workType}</td><td>${c.desc}</td><td>${formatCurrency(c.total)}</td><td style="color:#2e7d32">${formatCurrency(c.paid)}</td><td style="color:${c.remaining>0?'#c0392b':'#2e7d32'}">${c.remaining>0?formatCurrency(c.remaining):'مسدد'}</td></tr>`).join('')}
     <tr class="tot"><td colspan="6">الإجمالي</td><td>${formatCurrency(total)}</td><td>${formatCurrency(filteredContr.reduce((s,c)=>s+(c.paid||0),0))}</td><td style="color:#c0392b">${formatCurrency(filteredContr.reduce((s,c)=>s+(c.remaining||0),0))}</td></tr></tbody></table>
     <script>window.print();setTimeout(()=>window.close(),800)<\/script></body></html>`);
-}
-
-// ─── PAYER RADIO TOGGLE ───────────────────────────────────────────
-document.addEventListener('change', function(e) {
-  if (e.target.name === 'pPayer') {
-    document.getElementById('pPayerNote').classList.toggle('hidden', e.target.value !== 'chairman');
-  }
-  if (e.target.name === 'cPayer') {
-    document.getElementById('cPayerNote').classList.toggle('hidden', e.target.value !== 'chairman');
-  }
-});
-
-// ─── CUSTODIAN ────────────────────────────────────────────────────
-function openAddCustodian() {
-  document.getElementById('custType').value   = 'new';
-  document.getElementById('custAmount').value = '';
-  document.getElementById('custDate').value   = localDateStr();
-  document.getElementById('custNotes').value  = '';
-  document.getElementById('custodianAlert').classList.add('hidden');
-  openModal('custodianModal');
-}
-
-async function saveCustodian() {
-  const type   = document.getElementById('custType').value;
-  const amount = parseFloat(document.getElementById('custAmount').value)||0;
-  const date   = document.getElementById('custDate').value;
-  const notes  = document.getElementById('custNotes').value.trim();
-
-  if (amount <= 0) return showAlert('custodianAlert','ادخل مبلغاً صحيحاً أكبر من صفر');
-  if (!date)       return showAlert('custodianAlert','التاريخ مطلوب');
-
-  const data = {
-    schoolId, type, amount, date, notes,
-    typeLabel: type === 'prev' ? 'عهدة سابقة' : 'عهدة جديدة',
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    createdBy: session.email
-  };
-
-  try {
-    await db.collection('contractors_custodians').add(data);
-    closeModal('custodianModal');
-    await loadCustodians();
-    updateSummaryCards();
-    toast(`تم إضافة عهدة ${data.typeLabel}: ${formatCurrency(amount)} ✓`);
-  } catch(e) { showAlert('custodianAlert','خطأ: '+e.message); }
 }
 
 // ─── TOAST ────────────────────────────────────────────────────────
