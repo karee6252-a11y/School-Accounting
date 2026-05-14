@@ -302,7 +302,7 @@
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المقاول</th><th>الغرض</th><th>نوع العمل</th>
                   <th>البيان</th><th>المساحة/الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th>
-                  <th>المدفوع</th><th>المتبقي</th><th></th>
+                  <th>المدفوع</th><th>التخصيم</th><th>المتبقي</th><th></th>
                 </tr>
               </thead>
               <tbody id="contractsBody">
@@ -578,10 +578,14 @@
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">المبلغ المدفوع الآن (ج.م)</label>
+          <label class="form-label">المبلغ المدفوع (ج.م)</label>
           <input type="number" class="form-input" id="cPaidNow" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
         </div>
         <div class="form-group">
+          <label class="form-label">التخصيم (ج.م)</label>
+          <input type="number" class="form-input" id="cDeduction" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
           <label class="form-label">المتبقي (المديونية)</label>
           <input type="number" class="form-input" id="cDebt" readonly style="background:var(--accent);font-weight:800;color:#c0392b" />
         </div>
@@ -643,40 +647,6 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('payModal')">إلغاء</button>
       <button class="btn btn-primary" onclick="confirmPay()"> تأكيد السداد</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== MODAL: DEDUCT (تخصيم) ===== -->
-<div class="modal-overlay hidden" id="deductModal">
-  <div class="modal" style="max-width:440px">
-    <div class="modal-header" style="background:linear-gradient(135deg,#e65100,#bf360c);color:white;border-radius:var(--radius) var(--radius) 0 0">
-      <span class="modal-title" style="color:white"> تخصيم من المبلغ المدفوع</span>
-      <button class="btn-close" onclick="closeModal('deductModal')" style="color:white;font-size:1.3rem;line-height:1">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="alert hidden" id="deductAlert"></div>
-      <input type="hidden" id="deductContractId" />
-      <div id="deductInfo" style="background:var(--accent);border-radius:var(--radius-sm);padding:0.85rem 1rem;margin-bottom:1rem;font-size:0.85rem;border:1px solid var(--border)"></div>
-      <div style="background:#fff3e0;border:1px solid #ffe082;border-radius:var(--radius-sm);padding:0.65rem 0.85rem;margin-bottom:1rem;font-size:0.8rem;color:#e65100">
-        <strong>ملحوظة:</strong> التخصيم بيشيل مبلغ من المدفوع الحالي، فبيزيد المتبقي (المديونية) بنفس القدر.
-      </div>
-      <div class="form-group">
-        <label class="form-label">مبلغ التخصيم (ج.م) <span class="required">*</span></label>
-        <input type="number" class="form-input" id="deductAmount" placeholder="0.00" min="0.01" step="0.01" oninput="previewDeduct()" />
-      </div>
-      <div id="deductPreview" style="display:none;margin-top:0.75rem;background:var(--bg);border-radius:var(--radius-sm);padding:0.75rem 1rem;border:1px solid var(--border);font-size:0.82rem">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;text-align:center">
-          <div><div style="font-size:0.7rem;color:var(--text-light);margin-bottom:2px">المدفوع قبل</div><div id="preDeductPaid" style="font-weight:800;color:#2e7d32"></div></div>
-          <div><div style="font-size:0.7rem;color:var(--text-light);margin-bottom:2px">التخصيم</div><div id="preDeductAmt" style="font-weight:800;color:#e65100"></div></div>
-          <div><div style="font-size:0.7rem;color:var(--text-light);margin-bottom:2px">المدفوع بعد</div><div id="preDeductAfter" style="font-weight:800;color:var(--primary)"></div></div>
-        </div>
-        <div style="margin-top:0.5rem;text-align:center;font-size:0.78rem;color:var(--text-light)">المتبقي (مديونية) سيصبح: <span id="preDeductRemaining" style="font-weight:900;color:#c0392b"></span></div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('deductModal')">إلغاء</button>
-      <button class="btn" style="background:#e65100;color:white" onclick="confirmDeduct()">تأكيد التخصيم</button>
     </div>
   </div>
 </div>
@@ -908,9 +878,9 @@ function renderContracts() {
     tfoot.innerHTML = ''; return;
   }
 
-  let gTotal = 0, gPaid = 0, gDebt = 0;
+  let gTotal = 0, gPaid = 0, gDeduct = 0, gDebt = 0;
   tbody.innerHTML = filteredContr.map((c, i) => {
-    gTotal += c.total||0; gPaid += c.paid||0; gDebt += c.remaining||0;
+    gTotal += c.total||0; gPaid += c.paid||0; gDeduct += c.deduction||0; gDebt += c.remaining||0;
     const isArea = AREA_BASED.includes(c.workType);
     const qtyCell = isArea ? `${c.area||0} م²` : (c.fixedUnit||'—');
     const upCell  = isArea ? `${formatCurrency(c.pricePerM||0)}/م²` : '—';
@@ -929,10 +899,9 @@ function renderContracts() {
       <td style="text-align:center">${upCell}</td>
       <td class="text-bold text-primary">${formatCurrency(c.total||0)}</td>
       <td style="color:#2e7d32;font-weight:700">${formatCurrency(c.paid||0)}</td>
+      <td style="color:#e65100;font-weight:700">${(c.deduction||0)>0 ? formatCurrency(c.deduction) : '—'}</td>
       <td style="color:${hasDebt?'#c0392b':'#2e7d32'};font-weight:800">${hasDebt?formatCurrency(c.remaining||0):'مسدد ✓'}</td>
       <td>
-        ${hasDebt ? `<button class="btn btn-sm btn-primary" onclick="openPayModal('${c.id}')"> دفع</button>` : ''}
-        <button class="btn btn-sm" style="background:#e65100;color:white;margin-right:3px" onclick="openDeductModal('${c.id}')" title="تخصيم من المدفوع"> تخصيم</button>
         <button class="btn btn-sm btn-secondary" onclick="openEditContract('${c.id}')" style="margin-right:3px"></button>
       </td>
     </tr>`;
@@ -942,6 +911,7 @@ function renderContracts() {
     <td colspan="9" style="padding:0.75rem 1rem">الإجمالي (${filteredContr.length} عقد)</td>
     <td style="padding:0.75rem 1rem">${formatCurrency(gTotal)}</td>
     <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(gPaid)}</td>
+    <td style="padding:0.75rem 1rem;color:#e65100">${gDeduct>0?formatCurrency(gDeduct):'—'}</td>
     <td style="padding:0.75rem 1rem;color:#c0392b">${formatCurrency(gDebt)}</td>
     <td></td>
   </tr>`;
@@ -952,12 +922,13 @@ function updateSummaryCards() {
   const pTotal = allPurchases.reduce((s,p) => s+(p.total||0), 0);
   const cTotal = allContracts.reduce((s,c) => s+(c.total||0), 0);
   const cPaid  = allContracts.reduce((s,c) => s+(c.paid||0),  0);
+  const cDeduct= allContracts.reduce((s,c) => s+(c.deduction||0), 0);
   const cDebt  = allContracts.reduce((s,c) => s+(c.remaining||0), 0);
   document.getElementById('sumPurchases').textContent      = formatCurrency(pTotal);
   document.getElementById('sumPurchasesCount').textContent = `${allPurchases.length} فاتورة`;
   document.getElementById('sumContracts').textContent      = formatCurrency(cTotal);
   document.getElementById('sumContractsCount').textContent = `${allContracts.length} عقد`;
-  document.getElementById('sumPaid').textContent           = formatCurrency(pTotal + cPaid);
+  document.getElementById('sumPaid').textContent           = formatCurrency(pTotal + cPaid + cDeduct);
   document.getElementById('sumSuppliersCount').textContent = `${allSuppliers.length} مورد/مقاول`;
   document.getElementById('sumDebts').textContent          = formatCurrency(cDebt);
   document.getElementById('sumDebtsCount').textContent     = `${allContracts.filter(c=>(c.remaining||0)>0).length} مقاول`;
@@ -1169,7 +1140,7 @@ function openContractModal() {
   document.getElementById('cDate').value = localDateStr();
   ['cContractor','cPurpose','cWorkType'].forEach(id => document.getElementById(id).value = '');
   ['cDesc','cNotes'].forEach(id => document.getElementById(id).value = '');
-  ['cArea','cPricePerM','cTotal','cFixedTotal','cPaidNow','cDebt'].forEach(id => document.getElementById(id).value = '');
+  ['cArea','cPricePerM','cTotal','cFixedTotal','cPaidNow','cDeduction','cDebt'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('cFixedUnit').value = '';
   document.getElementById('contractAlert').classList.add('hidden');
   document.getElementById('cAreaGroup').style.display  = 'none';
@@ -1188,6 +1159,7 @@ function openEditContract(id) {
   document.getElementById('cDesc').value           = c.desc||'';
   document.getElementById('cNotes').value          = c.notes||'';
   document.getElementById('cPaidNow').value        = c.paid||'';
+  document.getElementById('cDeduction').value      = c.deduction||'';
   document.getElementById('cDebt').value           = c.remaining||'';
 
   const isArea = AREA_BASED.includes(c.workType);
@@ -1215,6 +1187,7 @@ function toggleContractMode() {
   document.getElementById('cPricePerM').value = '';
   document.getElementById('cTotal').value = '';
   document.getElementById('cFixedTotal').value = '';
+  document.getElementById('cDeduction').value = '';
   document.getElementById('cDebt').value = '';
 }
 
@@ -1234,8 +1207,9 @@ function calcContractDebt() {
   const total = isArea
     ? (parseFloat(document.getElementById('cTotal').value)||0)
     : (parseFloat(document.getElementById('cFixedTotal').value)||0);
-  const paid  = parseFloat(document.getElementById('cPaidNow').value)||0;
-  document.getElementById('cDebt').value = Math.max(0, total - paid).toFixed(2);
+  const paid      = parseFloat(document.getElementById('cPaidNow').value)||0;
+  const deduction = parseFloat(document.getElementById('cDeduction').value)||0;
+  document.getElementById('cDebt').value = Math.max(0, total - paid - deduction).toFixed(2);
 }
 
 async function saveContract() {
@@ -1266,14 +1240,15 @@ async function saveContract() {
   }
 
   const paid      = parseFloat(document.getElementById('cPaidNow').value)||0;
-  const remaining = Math.max(0, total - paid);
+  const deduction = parseFloat(document.getElementById('cDeduction').value)||0;
+  const remaining = Math.max(0, total - paid - deduction);
   const contr     = allSuppliers.find(s => s.id === contId);
 
   const data = {
     schoolId, contractorId: contId, contractorName: contr?.name||'',
     date, purpose, purposeLabel: PURPOSES[purpose]||purpose,
     workType, workTypeLabel: WORK_TYPES[workType]||workType,
-    desc, total, paid, remaining, notes: document.getElementById('cNotes').value.trim(),
+    desc, total, paid, deduction, remaining, notes: document.getElementById('cNotes').value.trim(),
     isAreaBased: isArea,
     paymentHistory: [],
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1347,73 +1322,6 @@ async function confirmPay() {
   } catch(e) { showAlert('payAlert','خطأ: '+e.message); }
 }
 
-// ─── DEDUCT (تخصيم) ───────────────────────────────────────────────
-function openDeductModal(contractId) {
-  const c = allContracts.find(x => x.id === contractId);
-  if (!c) return;
-  if ((c.paid||0) <= 0) { alert('لا يوجد مبلغ مدفوع يمكن التخصيم منه'); return; }
-  document.getElementById('deductContractId').value = contractId;
-  document.getElementById('deductAmount').value  = '';
-  document.getElementById('deductAlert').classList.add('hidden');
-  document.getElementById('deductPreview').style.display = 'none';
-  document.getElementById('deductInfo').innerHTML = `
-    <strong>${c.contractorName}</strong> — ${c.desc}<br>
-    إجمالي العقد: <strong>${formatCurrency(c.total)}</strong> |
-    المدفوع حالياً: <strong style="color:#2e7d32">${formatCurrency(c.paid)}</strong> |
-    المتبقي: <strong style="color:#c0392b">${formatCurrency(c.remaining)}</strong>
-  `;
-  openModal('deductModal');
-}
-
-function previewDeduct() {
-  const contractId = document.getElementById('deductContractId').value;
-  const c = allContracts.find(x => x.id === contractId);
-  if (!c) return;
-  const amt = parseFloat(document.getElementById('deductAmount').value) || 0;
-  const preview = document.getElementById('deductPreview');
-  if (amt <= 0) { preview.style.display = 'none'; return; }
-  const newPaid      = Math.max(0, (c.paid||0) - amt);
-  const newRemaining = c.total - newPaid;
-  preview.style.display = 'block';
-  document.getElementById('preDeductPaid').textContent      = formatCurrency(c.paid||0);
-  document.getElementById('preDeductAmt').textContent       = '- ' + formatCurrency(amt);
-  document.getElementById('preDeductAfter').textContent     = formatCurrency(newPaid);
-  document.getElementById('preDeductRemaining').textContent = formatCurrency(newRemaining);
-}
-
-async function confirmDeduct() {
-  const contractId = document.getElementById('deductContractId').value;
-  const amt        = parseFloat(document.getElementById('deductAmount').value) || 0;
-
-  if (amt <= 0)   return showAlert('deductAlert', 'ادخل مبلغ تخصيم صحيح');
-
-  const c = allContracts.find(x => x.id === contractId);
-  if (!c) return;
-  if (amt > (c.paid||0) + 0.01) return showAlert('deductAlert', `المبلغ أكبر من المدفوع الحالي (${formatCurrency(c.paid||0)})`);
-
-  const newPaid      = Math.max(0, (c.paid||0) - amt);
-  const newRemaining = Math.max(0, c.total - newPaid);
-  const today        = localDateStr();
-  const history      = [...(c.paymentHistory||[]), {
-    amount: -amt,
-    method: 'deduction',
-    methodLabel: 'تخصيم',
-    date: today,
-    by: session.email
-  }];
-
-  try {
-    await db.collection('contractors_contracts').doc(contractId).update({
-      paid: newPaid, remaining: newRemaining, paymentHistory: history,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    closeModal('deductModal');
-    await loadContracts();
-    updateSummaryCards();
-    toast(`تم تخصيم ${formatCurrency(amt)} ✓`);
-  } catch(e) { showAlert('deductAlert', 'خطأ: ' + e.message); }
-}
-
 // ─── SUPPLIER PROFILE ─────────────────────────────────────────────
 function openProfile(supplierId) {
   const s = allSuppliers.find(x => x.id === supplierId);
@@ -1438,13 +1346,6 @@ function openProfile(supplierId) {
   </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--text-light)">لا توجد مشتريات</td></tr>`;
 
   const cRows = contracts.map((c,i) => {
-    const history = (c.paymentHistory||[]).map(ph => {
-      const isDeduct = ph.method === 'deduction';
-      return `<div class="ph-row" style="${isDeduct ? 'background:#fff3e0;border-color:#ffe082' : ''}">
-        <span>${ph.date} — <span style="color:${isDeduct ? '#e65100' : 'var(--primary)'};font-weight:700">${ph.methodLabel||ph.method}</span>${ph.reason ? ` (${ph.reason})` : ''}</span>
-        <span class="ph-amount" style="color:${isDeduct ? '#e65100' : 'var(--primary)'}">${isDeduct ? '- ' : ''}${formatCurrency(Math.abs(ph.amount))}</span>
-      </div>`;
-    }).join('');
     return `<tr>
       <td>${i+1}</td><td>${c.date}</td>
       <td><span class="purpose-tag">${PURPOSES[c.purpose]||c.purpose}</span></td>
@@ -1452,13 +1353,10 @@ function openProfile(supplierId) {
       <td>${c.desc}</td>
       <td class="text-bold text-primary">${formatCurrency(c.total)}</td>
       <td style="color:#2e7d32;font-weight:700">${formatCurrency(c.paid)}</td>
+      <td style="color:#e65100;font-weight:700">${(c.deduction||0)>0 ? formatCurrency(c.deduction) : '—'}</td>
       <td style="color:${c.remaining>0?'#c0392b':'#2e7d32'};font-weight:800">${c.remaining>0?formatCurrency(c.remaining):'مسدد ✓'}</td>
-      <td>${history||'—'}</td>
-      <td>
-        ${(c.paid||0)>0 ? `<button class="btn btn-sm" style="background:#e65100;color:white;font-size:0.7rem" onclick="closeModal('profileModal');openDeductModal('${c.id}')"> تخصيم</button>` : '—'}
-      </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="10" style="text-align:center;color:var(--text-light)">لا توجد عقود</td></tr>`;
+  }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--text-light)">لا توجد عقود</td></tr>`;
 
   document.getElementById('profileBody').innerHTML = `
     <!-- info -->
@@ -1492,7 +1390,7 @@ function openProfile(supplierId) {
     ${contracts.length > 0 ? `
     <div style="font-size:0.85rem;font-weight:800;color:var(--primary);margin-bottom:0.5rem"> سجل العقود والأعمال (${contracts.length})</div>
     <div class="table-wrapper">
-      <table class="data-table"><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>سجل الدفع</th><th></th></tr></thead>
+      <table class="data-table"><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>التخصيم</th><th>المتبقي</th></tr></thead>
       <tbody>${cRows}</tbody></table>
     </div>` : ''}
     <div style="margin-top:1rem;display:flex;gap:0.5rem;justify-content:flex-end">
