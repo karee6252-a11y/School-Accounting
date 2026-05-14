@@ -82,16 +82,13 @@
   const session = SESSION.get();
   const schoolId = session.schoolId;
 
-  // تحديث زرار مراجعة الإيرادات باسم المدرسة الحقيقي
-  (function() {
-    const _sch = SESSION.getSchool();
-    const _btn = document.getElementById('cardiffReviewBtn');
-    if (_btn && _sch) {
-      _btn.textContent = ` مراجعة إيرادات ${_sch.name}`;
-      // الزرار ده خاص بكارديف — لو مدرسة تانية والمستخدم مش أدمن، اخفيه
-      if (_sch.id !== 'cardiff' && !SESSION.isAdmin()) {
-        _btn.style.display = 'none';
-      }
+  // زرار مراجعة الإيرادات — اسم المدرسة ديناميكي
+  (function(){
+    const _s = SESSION.getSchool();
+    const _b = document.getElementById('cardiffReviewBtn');
+    if (_b && _s) {
+      _b.textContent = ` مراجعة إيرادات ${_s.name}`;
+      if (_s.id !== 'cardiff' && !SESSION.isAdmin()) _b.style.display='none';
     }
   })();
   let currentPeriod = 'daily';
@@ -1617,19 +1614,19 @@
     // بناء Excel
     // =====================================================
     const wb2 = new ExcelJS.Workbook();
-    const _revSchool = SESSION.getSchool() || {};
-    const _revSchoolName = _revSchool.name || 'Cardiff International School';
-    wb2.creator = _revSchoolName + ' Accounting';
+    const _rs = SESSION.getSchool() || {};
+    const _rsName = _rs.name || 'Cardiff International School';
+    wb2.creator = _rsName + ' Accounting';
     wb2.views   = [{ rightToLeft:true }];
 
-    const ws = wb2.addWorksheet(`مراجعة إيرادات ${_revSchoolName} ${ACADEMIC_YEAR}`);
+    const ws = wb2.addWorksheet(`مراجعة إيرادات ${_rsName} ${ACADEMIC_YEAR}`);
     ws.views   = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:4, activeCell:'A5' }];
 
-    // ── ألوان المدرسة الحالية ──
-    const _rawP = (_revSchool.primaryColor   || '#6B1A1A').replace('#','');
-    const _rawS = (_revSchool.secondaryColor || '#A05050').replace('#','');
-    const _rawA = (_revSchool.accentColor    || '#F5EAEA').replace('#','');
-    const C_PRI = 'FF' + _rawP, C_SEC = 'FF' + _rawS, C_ACC = 'FF' + _rawA;
+    // ألوان المدرسة الحالية
+    const _rawP = (_rs.primaryColor   || '#6B1A1A').replace('#','');
+    const _rawS = (_rs.secondaryColor || '#A05050').replace('#','');
+    const _rawA = (_rs.accentColor    || '#F5EAEA').replace('#','');
+    const C_PRI = 'FF'+_rawP, C_SEC='FF'+_rawS, C_ACC='FF'+_rawA;
     const WHT='FFFFFFFF', BLK='FF000000', RED='FFC00000', GRN='FF1B5E20';
     const LGRY='FFF2F2F2', DGRY='FFE0D0D0', DGRY2='FFD8B8B8';
 
@@ -1682,7 +1679,7 @@
     }
 
     // ── صف 1: عنوان كبير ──
-    const r1 = ws.addRow([`مراجعة إيرادات ${_revSchoolName} — العام الدراسي ${ACADEMIC_YEAR}`]);
+    const r1 = ws.addRow([`مراجعة إيرادات ${_rsName} — العام الدراسي ${ACADEMIC_YEAR}`]);
     ws.mergeCells(`A1:${LC}1`);
     styleAll(r1, C_PRI, WHT, true, 15, brdT, true);
     r1.height = 34;
@@ -1872,30 +1869,12 @@
     const url    = URL.createObjectURL(blob);
     const a2     = document.createElement('a');
     a2.href      = url;
-    a2.download  = `مراجعة_إيرادات_${_revSchoolName}_${ACADEMIC_YEAR.replace('/','_')}_${localDateStr(new Date())}.xlsx`;
+    a2.download  = `مراجعة_إيرادات_${_rsName}_${ACADEMIC_YEAR.replace('/','_')}_${localDateStr(new Date())}.xlsx`;
     a2.click();
     URL.revokeObjectURL(url);
   }
 
-  // ============================================================
-  // شيت المصروفات اليومي — جدولان بـ borders bold وحسابات صحيحة
-  // ============================================================
-  async function exportDailyExpensesSheet() {
-    if (typeof ExcelJS === 'undefined') {
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
-      document.head.appendChild(s);
-      s.onload = () => exportDailyExpensesSheet();
-      return;
-    }
-
-    const school = SESSION.getSchool();
-    const schoolName = school?.name || 'المدرسة';
-    const today = localDateStr(new Date());
-
-    // اختار التاريخ من الفلتر اليومي لو موجود
-    const filterDateEl = document.getElementById('filterDate');
-    const selectedDate = (filterDateEl && filterDateEl.value) ? filterDateEl.value : today;
+</script>
 
     // جلب العهدة من Firestore
     let custPrev = 0, custNew = 0;
