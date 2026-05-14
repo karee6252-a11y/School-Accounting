@@ -314,7 +314,7 @@
               <thead>
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>نوع العمل</th>
-                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>ملاحظات</th><th></th>
+                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>جهة الدفع</th><th>ملاحظات</th><th></th>
                 </tr>
               </thead>
               <tbody id="purchasesBody">
@@ -366,7 +366,7 @@
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المقاول</th><th>الغرض</th><th>نوع العمل</th>
                   <th>البيان</th><th>المساحة/الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th>
-                  <th>المدفوع</th><th>المتبقي</th><th></th>
+                  <th>المدفوع</th><th>المتبقي</th><th>جهة الدفع</th><th></th>
                 </tr>
               </thead>
               <tbody id="contractsBody">
@@ -549,6 +549,20 @@
           <label class="form-label">ملاحظات</label>
           <textarea class="form-textarea" id="pNotes" rows="2" placeholder="رقم الفاتورة، ضمان، ملاحظات..."></textarea>
         </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">جهة الدفع <span class="required">*</span></label>
+          <div style="display:flex;gap:1rem;margin-top:0.25rem">
+            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-weight:700;font-size:0.9rem">
+              <input type="radio" name="pPayer" id="pPayerAcc" value="accounts" checked /> قسم الحسابات
+            </label>
+            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-weight:700;font-size:0.9rem">
+              <input type="radio" name="pPayer" id="pPayerChair" value="chairman" /> رئيس مجلس الإدارة
+            </label>
+          </div>
+          <div id="pPayerNote" class="hidden" style="margin-top:0.5rem;padding:0.4rem 0.75rem;background:#fff3cd;border-radius:6px;font-size:0.78rem;color:#856404;border:1px solid #ffc107">
+             هذا المبلغ لن يُخصم من العهدة
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -652,6 +666,20 @@
         <div class="form-group" style="grid-column:1/-1">
           <label class="form-label">ملاحظات</label>
           <textarea class="form-textarea" id="cNotes" rows="2"></textarea>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">جهة الدفع <span class="required">*</span></label>
+          <div style="display:flex;gap:1rem;margin-top:0.25rem">
+            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-weight:700;font-size:0.9rem">
+              <input type="radio" name="cPayer" id="cPayerAcc" value="accounts" checked /> قسم الحسابات
+            </label>
+            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-weight:700;font-size:0.9rem">
+              <input type="radio" name="cPayer" id="cPayerChair" value="chairman" /> رئيس مجلس الإدارة
+            </label>
+          </div>
+          <div id="cPayerNote" class="hidden" style="margin-top:0.5rem;padding:0.4rem 0.75rem;background:#fff3cd;border-radius:6px;font-size:0.78rem;color:#856404;border:1px solid #ffc107">
+             هذا المبلغ لن يُخصم من العهدة
+          </div>
         </div>
       </div>
     </div>
@@ -944,6 +972,10 @@ function renderPurchases() {
       <td style="text-align:center">${p.unit||'—'}</td>
       <td style="text-align:center">${formatCurrency(p.unitPrice||0)}</td>
       <td class="text-bold text-primary">${formatCurrency(p.total||0)}</td>
+      <td>${p.payer==='chairman'
+        ? '<span style="background:#fff3cd;color:#856404;border:1px solid #ffc107;padding:0.15rem 0.5rem;border-radius:20px;font-size:0.7rem;font-weight:700">رئيس مجلس الإدارة</span>'
+        : '<span style="background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;padding:0.15rem 0.5rem;border-radius:20px;font-size:0.7rem;font-weight:700">قسم الحسابات</span>'
+      }</td>
       <td class="text-sm text-muted">${p.notes||'—'}</td>
       <td>
         <button class="btn btn-sm btn-secondary" onclick="openEditPurchase('${p.id}')"></button>
@@ -955,7 +987,7 @@ function renderPurchases() {
   tfoot.innerHTML = `<tr style="background:var(--accent);font-weight:800;color:var(--primary)">
     <td colspan="9" style="padding:0.75rem 1rem">إجمالي المشتريات (${filteredPurch.length} فاتورة)</td>
     <td style="padding:0.75rem 1rem">${formatCurrency(grandTotal)}</td>
-    <td colspan="2"></td>
+    <td colspan="3"></td>
   </tr>`;
 }
 
@@ -1005,6 +1037,10 @@ function renderContracts() {
       <td class="text-bold text-primary">${formatCurrency(c.total||0)}</td>
       <td style="color:#2e7d32;font-weight:700">${formatCurrency(c.paid||0)}</td>
       <td style="color:${hasDebt?'#c0392b':'#2e7d32'};font-weight:800">${hasDebt?formatCurrency(c.remaining||0):'مسدد ✓'}</td>
+      <td>${c.payer==='chairman'
+        ? '<span style="background:#fff3cd;color:#856404;border:1px solid #ffc107;padding:0.15rem 0.5rem;border-radius:20px;font-size:0.7rem;font-weight:700">رئيس مجلس الإدارة</span>'
+        : '<span style="background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;padding:0.15rem 0.5rem;border-radius:20px;font-size:0.7rem;font-weight:700">قسم الحسابات</span>'
+      }</td>
       <td>
         ${hasDebt ? `<button class="btn btn-sm btn-primary" onclick="openPayModal('${c.id}')"> دفع</button>` : ''}
         <button class="btn btn-sm btn-secondary" onclick="openEditContract('${c.id}')" style="margin-right:3px"></button>
@@ -1017,7 +1053,7 @@ function renderContracts() {
     <td style="padding:0.75rem 1rem">${formatCurrency(gTotal)}</td>
     <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(gPaid)}</td>
     <td style="padding:0.75rem 1rem;color:#c0392b">${formatCurrency(gDebt)}</td>
-    <td></td>
+    <td colspan="2"></td>
   </tr>`;
 }
 
@@ -1041,7 +1077,10 @@ function updateSummaryCards() {
   const prevTotal = allCustodians.filter(c=>c.type==='prev').reduce((s,c)=>s+(c.amount||0),0);
   const newTotal  = allCustodians.filter(c=>c.type==='new').reduce((s,c)=>s+(c.amount||0),0);
   const custTotal = prevTotal + newTotal;
-  const spent     = pTotal + cTotal; // المصروف = مشتريات + إجمالي عقود
+  // المصروف من العهدة = بس اللي دفعه قسم الحسابات
+  const spentP = allPurchases.filter(p=>(!p.payer||p.payer==='accounts')).reduce((s,p)=>s+(p.total||0),0);
+  const spentC = allContracts.filter(c=>(!c.payer||c.payer==='accounts')).reduce((s,c)=>s+(c.total||0),0);
+  const spent  = spentP + spentC;
   const rem       = custTotal - spent;
   document.getElementById('custPrev').textContent  = formatCurrency(prevTotal);
   document.getElementById('custNew').textContent   = formatCurrency(newTotal);
@@ -1056,12 +1095,16 @@ function updateSummaryCards() {
 
 // ─── POPULATE SELECTS ─────────────────────────────────────────────
 function populateSupplierSelects() {
-  const suppOnly = allSuppliers.filter(s => s.type==='supplier'||s.type==='both');
+  // المشتريات: بتظهر كل الأنواع (supplier + contractor + both)
+  const allForPurchase = allSuppliers;
   const contOnly = allSuppliers.filter(s => s.type==='contractor'||s.type==='both');
 
   const pSel = document.getElementById('pSupplier');
   pSel.innerHTML = '<option value="">— اختر مورداً —</option>' +
-    suppOnly.map(s => `<option value="${s.id}">${s.name} — ${s.phone||''}</option>`).join('');
+    allForPurchase.map(s => {
+      const typeLabel = {supplier:'مورد',contractor:'مقاول',both:'مورد/مقاول'}[s.type]||s.type;
+      return `<option value="${s.id}">${s.name} (${typeLabel}) — ${s.phone||''}</option>`;
+    }).join('');
 
   const cSel = document.getElementById('cContractor');
   cSel.innerHTML = '<option value="">— اختر —</option>' +
@@ -1164,6 +1207,7 @@ async function deleteSupplier(id) {
 
 // ─── PURCHASE SAVE ────────────────────────────────────────────────
 function openPurchaseModal() {
+  populateSupplierSelects();
   document.getElementById('purchaseEditId').value = '';
   document.getElementById('pDate').value = localDateStr();
   ['pDesc','pNotes'].forEach(id => document.getElementById(id).value = '');
@@ -1173,6 +1217,7 @@ function openPurchaseModal() {
 }
 
 function openEditPurchase(id) {
+  populateSupplierSelects();
   const p = allPurchases.find(x => x.id === id);
   if (!p) return;
   document.getElementById('purchaseEditId').value  = id;
@@ -1218,11 +1263,14 @@ async function savePurchase() {
   if (unitPrice<=0) return showAlert('purchaseAlert','سعر الوحدة يجب أن يكون أكبر من صفر');
 
   const supp = allSuppliers.find(s => s.id === suppId);
+  const payer = document.querySelector('input[name="pPayer"]:checked')?.value || 'accounts';
   const data = {
     schoolId, supplierId: suppId, supplierName: supp?.name||'', date,
     purpose, purposeLabel: PURPOSES[purpose]||purpose,
     workType, workTypeLabel: WORK_TYPES[workType]||workType,
     desc, qty, unit, unitPrice, total,
+    payer,
+    payerLabel: payer === 'chairman' ? 'رئيس مجلس الإدارة' : 'قسم الحسابات',
     notes: document.getElementById('pNotes').value.trim(),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -1254,6 +1302,7 @@ async function deletePurchase(id) {
 
 // ─── CONTRACT SAVE ────────────────────────────────────────────────
 function openContractModal() {
+  populateSupplierSelects();
   document.getElementById('contractEditId').value = '';
   document.getElementById('cDate').value = localDateStr();
   ['cContractor','cPurpose','cWorkType'].forEach(id => document.getElementById(id).value = '');
@@ -1267,6 +1316,7 @@ function openContractModal() {
 }
 
 function openEditContract(id) {
+  populateSupplierSelects();
   const c = allContracts.find(x => x.id === id);
   if (!c) return;
   document.getElementById('contractEditId').value  = id;
@@ -1357,12 +1407,16 @@ async function saveContract() {
   const paid      = parseFloat(document.getElementById('cPaidNow').value)||0;
   const remaining = Math.max(0, total - paid);
   const contr     = allSuppliers.find(s => s.id === contId);
+  const payer     = document.querySelector('input[name="cPayer"]:checked')?.value || 'accounts';
 
   const data = {
     schoolId, contractorId: contId, contractorName: contr?.name||'',
     date, purpose, purposeLabel: PURPOSES[purpose]||purpose,
     workType, workTypeLabel: WORK_TYPES[workType]||workType,
-    desc, total, paid, remaining, notes: document.getElementById('cNotes').value.trim(),
+    desc, total, paid, remaining,
+    payer,
+    payerLabel: payer === 'chairman' ? 'رئيس مجلس الإدارة' : 'قسم الحسابات',
+    notes: document.getElementById('cNotes').value.trim(),
     isAreaBased: isArea,
     paymentHistory: [],
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1866,6 +1920,16 @@ function exportContractsPDF() {
     <tr class="tot"><td colspan="6">الإجمالي</td><td>${formatCurrency(total)}</td><td>${formatCurrency(filteredContr.reduce((s,c)=>s+(c.paid||0),0))}</td><td style="color:#c0392b">${formatCurrency(filteredContr.reduce((s,c)=>s+(c.remaining||0),0))}</td></tr></tbody></table>
     <script>window.print();setTimeout(()=>window.close(),800)<\/script></body></html>`);
 }
+
+// ─── PAYER RADIO TOGGLE ───────────────────────────────────────────
+document.addEventListener('change', function(e) {
+  if (e.target.name === 'pPayer') {
+    document.getElementById('pPayerNote').classList.toggle('hidden', e.target.value !== 'chairman');
+  }
+  if (e.target.name === 'cPayer') {
+    document.getElementById('cPayerNote').classList.toggle('hidden', e.target.value !== 'chairman');
+  }
+});
 
 // ─── CUSTODIAN ────────────────────────────────────────────────────
 function openAddCustodian() {
