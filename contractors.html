@@ -365,7 +365,7 @@
               <thead>
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>نوع العمل</th>
-                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>إجمالي العهدة</th><th>المصروف</th><th>المتبقي من العهدة</th><th>ملاحظات</th><th></th>
+                  <th>البيان</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>ملاحظات</th><th></th>
                 </tr>
               </thead>
               <tbody id="purchasesBody">
@@ -613,20 +613,6 @@
         <div class="form-group">
           <label class="form-label">الصافي بعد التخصيم (ج.م)</label>
           <input type="number" class="form-input" id="pNet" placeholder="0.00" style="background:var(--accent);font-weight:800;color:#c0392b" readonly />
-        </div>
-        <!-- ===== قسم العهدة ===== -->
-        <div style="grid-column:1/-1;background:var(--accent);border:1px solid var(--primary-light,#c5d8f5);border-radius:var(--radius-sm);padding:0.85rem 1rem">
-          <div style="font-size:0.78rem;font-weight:800;color:var(--primary);margin-bottom:0.65rem"> إدارة العهدة</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-            <div class="form-group" style="margin:0">
-              <label class="form-label">المصروف من العهدة (ج.م)</label>
-              <input type="number" class="form-input" id="pCustodySpent" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseCustody()" />
-            </div>
-            <div class="form-group" style="margin:0">
-              <label class="form-label">المتبقي من العهدة (ج.م)</label>
-              <input type="number" class="form-input" id="pCustodyBalance" placeholder="0.00" style="font-weight:800;color:#2e7d32" readonly />
-            </div>
-          </div>
         </div>
         <div class="form-group" style="grid-column:1/-1">
           <label class="form-label">ملاحظات</label>
@@ -1227,24 +1213,15 @@ function renderPurchases() {
     tfoot.innerHTML = ''; return;
   }
 
-  let grandTotal = 0, grandDeduction = 0, grandNet = 0, grandCustodyTotal = 0, grandCustodySpent = 0, grandCustodyBalance = 0;
+  let grandTotal = 0, grandDeduction = 0, grandNet = 0;
   tbody.innerHTML = filteredPurch.map((p, i) => {
-    grandTotal          += p.total || 0;
-    grandDeduction      += p.deduction || 0;
-    grandNet            += p.net != null ? p.net : (p.total || 0);
-    grandCustodyTotal   += p.custodyTotal || 0;
-    grandCustodySpent   += p.custodySpent || 0;
-    grandCustodyBalance += p.custodyBalance != null ? p.custodyBalance : 0;
+    grandTotal     += p.total || 0;
+    grandDeduction += p.deduction || 0;
+    grandNet       += p.net != null ? p.net : (p.total || 0);
     const wTag = p.workType ? `<span class="work-tag ${p.workType}">${WORK_TYPES[p.workType]||p.workType}</span>` : '—';
     const ppTag= p.purpose  ? `<span class="purpose-tag">${getPurposeLabel(p.purpose)}</span>` : '—';
     const deductCell = (p.deduction||0) > 0 ? `<span style="color:#e65100;font-weight:700">${formatCurrency(p.deduction)}</span>` : '—';
     const netVal = p.net != null ? p.net : (p.total||0);
-    const custTotalCell = (p.custodyTotal||0) > 0 ? formatCurrency(p.custodyTotal) : '—';
-    const custSpentCell = (p.custodySpent||0) > 0 ? formatCurrency(p.custodySpent) : '—';
-    const custBalVal = p.custodyBalance != null ? p.custodyBalance : 0;
-    const custBalCell = (p.custodyTotal||0) > 0
-      ? `<span style="color:${custBalVal<0?'#c0392b':'#2e7d32'};font-weight:700">${formatCurrency(custBalVal)}</span>`
-      : '—';
     return `<tr>
       <td class="text-sm text-muted">${i+1}</td>
       <td>${p.date||'—'}</td>
@@ -1258,9 +1235,6 @@ function renderPurchases() {
       <td class="text-bold text-primary">${formatCurrency(p.total||0)}</td>
       <td>${deductCell}</td>
       <td class="text-bold" style="color:#c0392b">${formatCurrency(netVal)}</td>
-      <td style="text-align:center;font-weight:700;color:var(--primary)">${custTotalCell}</td>
-      <td style="text-align:center">${custSpentCell}</td>
-      <td>${custBalCell}</td>
       <td class="text-sm text-muted">${p.notes||'—'}</td>
       <td>
         <button class="btn btn-sm btn-secondary" onclick="openEditPurchase('${p.id}')"></button>
@@ -1274,9 +1248,6 @@ function renderPurchases() {
     <td style="padding:0.75rem 1rem">${formatCurrency(grandTotal)}</td>
     <td style="padding:0.75rem 1rem;color:#e65100">${grandDeduction>0?formatCurrency(grandDeduction):'—'}</td>
     <td style="padding:0.75rem 1rem;color:#c0392b">${formatCurrency(grandNet)}</td>
-    <td style="padding:0.75rem 1rem;color:var(--primary)">${grandCustodyTotal>0?formatCurrency(grandCustodyTotal):'—'}</td>
-    <td style="padding:0.75rem 1rem">${grandCustodySpent>0?formatCurrency(grandCustodySpent):'—'}</td>
-    <td style="padding:0.75rem 1rem;color:${grandCustodyBalance<0?'#c0392b':'#2e7d32'}">${grandCustodyTotal>0?formatCurrency(grandCustodyBalance):'—'}</td>
     <td colspan="2"></td>
   </tr>`;
 }
@@ -1477,7 +1448,7 @@ function openPurchaseModal() {
   document.getElementById('purchaseEditId').value = '';
   document.getElementById('pDate').value = localDateStr();
   ['pDesc','pNotes'].forEach(id => document.getElementById(id).value = '');
-  ['pQty','pUnitPrice','pTotal','pDeduction','pNet','pCustodySpent','pCustodyBalance'].forEach(id => document.getElementById(id).value = '');
+  ['pQty','pUnitPrice','pTotal','pDeduction','pNet'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('purchaseAlert').classList.add('hidden');
   openModal('purchaseModal');
 }
@@ -1497,8 +1468,6 @@ function openEditPurchase(id) {
   document.getElementById('pTotal').value          = p.total||'';
   document.getElementById('pDeduction').value      = p.deduction||'';
   document.getElementById('pNet').value            = p.net != null ? p.net : (p.total||'');
-  document.getElementById('pCustodySpent').value   = p.custodySpent||'';
-  document.getElementById('pCustodyBalance').value = p.custodyBalance != null ? p.custodyBalance : '';
   document.getElementById('pNotes').value          = p.notes||'';
   document.getElementById('purchaseAlert').classList.add('hidden');
   openModal('purchaseModal');
@@ -1516,22 +1485,7 @@ function calcPurchaseTotal() {
 function calcPurchaseNet() {
   const total     = parseFloat(document.getElementById('pTotal').value)     || 0;
   const deduction = parseFloat(document.getElementById('pDeduction').value) || 0;
-  const net = Math.max(0, total - deduction);
-  document.getElementById('pNet').value = net.toFixed(2);
-  calcPurchaseCustody();
-}
-
-function calcPurchaseCustody() {
-  const spent = parseFloat(document.getElementById('pCustodySpent').value) || 0;
-  const net   = parseFloat(document.getElementById('pNet').value)          || 0;
-  // المتبقي = العهدة الكلية (من widget) - المصروف أو صافي الفاتورة
-  const spentFinal = spent > 0 ? spent : net;
-  document.getElementById('pCustodyBalance').value = (-spentFinal).toFixed(2);
-  if (spent === 0 && net > 0) {
-    document.getElementById('pCustodySpent').placeholder = `تلقائي: ${net.toFixed(2)}`;
-  } else {
-    document.getElementById('pCustodySpent').placeholder = '0.00';
-  }
+  document.getElementById('pNet').value = Math.max(0, total - deduction).toFixed(2);
 }
 
 async function savePurchase() {
@@ -1548,10 +1502,8 @@ async function savePurchase() {
   const net      = Math.max(0, total - deduction);
 
   // custody
-  const custodySpentInput = parseFloat(document.getElementById('pCustodySpent').value);
-  const custodySpent  = !isNaN(custodySpentInput) && document.getElementById('pCustodySpent').value !== ''
-    ? custodySpentInput
-    : net;
+  const custodySpentInput = parseFloat(document.getElementById('pCustodySpent')?.value);
+  const custodySpent  = !isNaN(custodySpentInput) ? custodySpentInput : net;
   const custodyBalance = -custodySpent;
 
   if (!suppId)   return showAlert('purchaseAlert','اختر المورد');
@@ -1569,7 +1521,6 @@ async function savePurchase() {
     workType, workTypeLabel: WORK_TYPES[workType]||workType,
     desc, qty, unit, unitPrice, total,
     deduction, net,
-    custodySpent, custodyBalance,
     notes: document.getElementById('pNotes').value.trim(),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -2171,8 +2122,6 @@ function exportProfilePDF(supplierId) {
   const pTotal     = pList.reduce((a,p)=>a+(p.total||0),0);
   const pNet       = pList.reduce((a,p)=>a+(p.net!=null?p.net:(p.total||0)),0);
   const pDeduction = pList.reduce((a,p)=>a+(p.deduction||0),0);
-  const custTotal  = pList.reduce((a,p)=>a+(p.custodyTotal||0),0);
-  const custBal    = pList.reduce((a,p)=>a+(p.custodyBalance!=null?p.custodyBalance:0),0);
   const cTotal = cList.reduce((a,c)=>a+(c.total||0),0);
   const cDebt  = cList.reduce((a,c)=>a+(c.remaining||0),0);
   const typeLabel = {supplier:'مورد مشتريات',contractor:'مقاول/منفذ',both:'مورد ومقاول'}[s.type]||s.type;
@@ -2206,19 +2155,16 @@ function exportProfilePDF(supplierId) {
       <div class="info-item"><div class="lbl">إجمالي المشتريات</div><div class="val">${formatCurrency(pTotal)}</div></div>
       ${pDeduction>0?`<div class="info-item"><div class="lbl">التخصيم</div><div class="val" style="color:#e65100">${formatCurrency(pDeduction)}</div></div>`:''}
       <div class="info-item"><div class="lbl">صافي المشتريات</div><div class="val" style="color:#c0392b">${formatCurrency(pNet)}</div></div>
-      ${custTotal>0?`<div class="info-item"><div class="lbl">إجمالي العهدة</div><div class="val">${formatCurrency(custTotal)}</div></div>`:''}
-      ${custTotal>0?`<div class="info-item"><div class="lbl">المتبقي من العهدة</div><div class="val" style="color:${custBal<0?'#c0392b':'#2e7d32'}">${formatCurrency(custBal)}</div></div>`:''}
       <div class="info-item"><div class="lbl">إجمالي المقاولات</div><div class="val">${formatCurrency(cTotal)}</div></div>
       <div class="info-item"><div class="lbl">المديونية</div><div class="val" style="color:${cDebt>0?'#c0392b':'#2e7d32'}">${formatCurrency(cDebt)}</div></div>
     </div>
     ${pList.length>0?`<h3> المشتريات (${pList.length} فاتورة)</h3>
-    <table><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>إجمالي العهدة</th><th>المصروف</th><th>المتبقي من العهدة</th></tr></thead>
+    <table><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>ملاحظات</th></tr></thead>
     <tbody>${pList.map((p,i)=>{
       const pnet=p.net!=null?p.net:(p.total||0);
-      const hasCust=(p.custodyTotal||0)>0||(p.custodySpent||0)>0;
-      return `<tr><td>${i+1}</td><td>${p.date}</td><td>${getPurposeLabel(p.purpose)}</td><td>${WORK_TYPES[p.workType]||p.workType}</td><td>${p.desc}</td><td>${p.qty} ${p.unit}</td><td>${formatCurrency(p.total)}</td><td style="color:#e65100">${(p.deduction||0)>0?formatCurrency(p.deduction):'—'}</td><td style="color:#c0392b;font-weight:700">${formatCurrency(pnet)}</td><td style="font-weight:700">${hasCust?formatCurrency(p.custodyTotal||0):'—'}</td><td>${hasCust&&(p.custodySpent||0)>0?formatCurrency(p.custodySpent):'—'}</td><td style="color:${hasCust&&(p.custodyBalance||0)<0?'#c0392b':'#2e7d32'};font-weight:700">${hasCust?formatCurrency(p.custodyBalance||0):'—'}</td></tr>`;
+      return `<tr><td>${i+1}</td><td>${p.date}</td><td>${getPurposeLabel(p.purpose)}</td><td>${WORK_TYPES[p.workType]||p.workType}</td><td>${p.desc}</td><td>${p.qty} ${p.unit}</td><td>${formatCurrency(p.total)}</td><td style="color:#e65100">${(p.deduction||0)>0?formatCurrency(p.deduction):'—'}</td><td style="color:#c0392b;font-weight:700">${formatCurrency(pnet)}</td><td>${p.notes||'—'}</td></tr>`;
     }).join('')}
-    <tr class="total-row"><td colspan="6">الإجمالي</td><td>${formatCurrency(pTotal)}</td><td style="color:#e65100">${pDeduction>0?formatCurrency(pDeduction):'—'}</td><td>${formatCurrency(pNet)}</td><td>${custTotal>0?formatCurrency(custTotal):'—'}</td><td></td><td style="color:${custBal<0?'#c0392b':'#2e7d32'}">${custTotal>0?formatCurrency(custBal):'—'}</td></tr></tbody></table>`:''}
+    <tr class="total-row"><td colspan="6">الإجمالي</td><td>${formatCurrency(pTotal)}</td><td style="color:#e65100">${pDeduction>0?formatCurrency(pDeduction):'—'}</td><td>${formatCurrency(pNet)}</td><td></td></tr></tbody></table>`:''}
     ${cList.length>0?`<h3> العقود والأعمال (${cList.length} عقد)</h3>
     <table><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>التخصيم</th><th>المتبقي</th></tr></thead>
     <tbody>${cList.map((c,i)=>`<tr><td>${i+1}</td><td>${c.date}</td><td>${getPurposeLabel(c.purpose)}</td><td>${WORK_TYPES[c.workType]||c.workType}</td><td>${c.desc}</td><td>${formatCurrency(c.total)}</td><td style="color:#2e7d32">${formatCurrency(c.paid)}</td><td style="color:#e65100">${(c.deduction||0)>0?formatCurrency(c.deduction):'—'}</td><td style="color:${c.remaining>0?'#c0392b':'#2e7d32'}">${c.remaining>0?formatCurrency(c.remaining):'مسدد ✓'}</td></tr>`).join('')}
@@ -2231,8 +2177,6 @@ function exportPurchasesPDF() {
   const total     = filteredPurch.reduce((s,p)=>s+(p.total||0),0);
   const deduction = filteredPurch.reduce((s,p)=>s+(p.deduction||0),0);
   const net       = filteredPurch.reduce((s,p)=>s+(p.net!=null?p.net:(p.total||0)),0);
-  const custTotal = filteredPurch.reduce((s,p)=>s+(p.custodyTotal||0),0);
-  const custBal   = filteredPurch.reduce((s,p)=>s+(p.custodyBalance!=null?p.custodyBalance:0),0);
   const win = window.open('','_blank');
   win.document.write(`<html dir="rtl"><head><meta charset="UTF-8">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
@@ -2250,16 +2194,13 @@ function exportPurchasesPDF() {
       <div class="si"><div class="lbl">الإجمالي</div><div class="val">${formatCurrency(total)}</div></div>
       ${deduction>0?`<div class="si"><div class="lbl">التخصيم</div><div class="val" style="color:#e65100">${formatCurrency(deduction)}</div></div>`:''}
       <div class="si"><div class="lbl">الصافي</div><div class="val" style="color:#c0392b">${formatCurrency(net)}</div></div>
-      ${custTotal>0?`<div class="si"><div class="lbl">إجمالي العهدة</div><div class="val">${formatCurrency(custTotal)}</div></div>`:''}
-      ${custTotal>0?`<div class="si"><div class="lbl">المتبقي من العهدة</div><div class="val" style="color:${custBal<0?'#c0392b':'#2e7d32'}">${formatCurrency(custBal)}</div></div>`:''}
     </div>
-    <table><thead><tr><th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>إجمالي العهدة</th><th>المصروف</th><th>المتبقي من العهدة</th></tr></thead>
+    <table><thead><tr><th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>ملاحظات</th></tr></thead>
     <tbody>${filteredPurch.map((p,i)=>{
       const pnet=p.net!=null?p.net:(p.total||0);
-      const hasCust=(p.custodyTotal||0)>0||(p.custodySpent||0)>0;
-      return `<tr><td>${i+1}</td><td>${p.date}</td><td>${p.supplierName}</td><td>${getPurposeLabel(p.purpose)}</td><td>${WORK_TYPES[p.workType]||p.workType}</td><td>${p.desc}</td><td>${p.qty} ${p.unit}</td><td>${formatCurrency(p.total)}</td><td style="color:#e65100">${(p.deduction||0)>0?formatCurrency(p.deduction):'—'}</td><td style="color:#c0392b;font-weight:700">${formatCurrency(pnet)}</td><td style="color:#1a3a6b;font-weight:700">${hasCust?formatCurrency(p.custodyTotal||0):'—'}</td><td>${hasCust&&(p.custodySpent||0)>0?formatCurrency(p.custodySpent):'—'}</td><td style="color:${hasCust&&(p.custodyBalance||0)<0?'#c0392b':'#2e7d32'};font-weight:700">${hasCust?formatCurrency(p.custodyBalance||0):'—'}</td></tr>`;
+      return `<tr><td>${i+1}</td><td>${p.date}</td><td>${p.supplierName}</td><td>${getPurposeLabel(p.purpose)}</td><td>${WORK_TYPES[p.workType]||p.workType}</td><td>${p.desc}</td><td>${p.qty} ${p.unit}</td><td>${formatCurrency(p.total)}</td><td style="color:#e65100">${(p.deduction||0)>0?formatCurrency(p.deduction):'—'}</td><td style="color:#c0392b;font-weight:700">${formatCurrency(pnet)}</td><td>${p.notes||'—'}</td></tr>`;
     }).join('')}
-    <tr class="tot"><td colspan="7">الإجمالي</td><td>${formatCurrency(total)}</td><td>${deduction>0?formatCurrency(deduction):'—'}</td><td>${formatCurrency(net)}</td><td>${custTotal>0?formatCurrency(custTotal):'—'}</td><td></td><td style="color:${custBal<0?'#c0392b':'#2e7d32'}">${custTotal>0?formatCurrency(custBal):'—'}</td></tr></tbody></table>
+    <tr class="tot"><td colspan="7">الإجمالي</td><td>${formatCurrency(total)}</td><td>${deduction>0?formatCurrency(deduction):'—'}</td><td>${formatCurrency(net)}</td><td></td></tr></tbody></table>
     <script>window.print();setTimeout(()=>window.close(),800)<\/script></body></html>`);
 }
 
