@@ -140,6 +140,82 @@
       box-shadow:var(--shadow); margin-bottom:1rem; flex-wrap:wrap;
     }
 
+    /* ===== CUSTODY WIDGET ===== */
+    .custody-widget {
+      background: linear-gradient(135deg, #0d2247 0%, #1a3a6b 60%, #1e4d8c 100%);
+      border-radius: var(--radius); padding: 1.3rem 1.5rem;
+      margin-bottom: 1.25rem; box-shadow: 0 4px 24px rgba(26,58,107,0.22);
+      border: 1px solid rgba(255,255,255,0.08); position: relative; overflow: hidden;
+    }
+    .custody-widget::before {
+      content:''; position:absolute; top:-40px; left:-40px;
+      width:180px; height:180px; border-radius:50%;
+      background:rgba(255,255,255,0.04); pointer-events:none;
+    }
+    .custody-widget::after {
+      content:''; position:absolute; bottom:-30px; right:10%;
+      width:120px; height:120px; border-radius:50%;
+      background:rgba(255,255,255,0.03); pointer-events:none;
+    }
+    .custody-header {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:1rem;
+    }
+    .custody-title {
+      font-size:0.82rem; font-weight:800; color:rgba(255,255,255,0.75);
+      letter-spacing:0.04em; text-transform:uppercase;
+    }
+    .custody-actions { display:flex; gap:0.5rem; position:relative; z-index:1; }
+    .custody-btn {
+      padding:0.35rem 0.9rem; border-radius:20px; border:1.5px solid rgba(255,255,255,0.3);
+      background:rgba(255,255,255,0.1); color:white; font-family:'Cairo',sans-serif;
+      font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s;
+    }
+    .custody-btn:hover { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.6); }
+    .custody-btn.primary { background:rgba(255,255,255,0.18); border-color:rgba(255,255,255,0.5); }
+    .custody-numbers {
+      display:grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap:1rem; align-items:end;
+    }
+    .custody-main { }
+    .custody-main .c-lbl { font-size:0.72rem; color:rgba(255,255,255,0.6); font-weight:600; margin-bottom:0.2rem; }
+    .custody-main .c-val {
+      font-size:2.4rem; font-weight:900; color:white; line-height:1;
+      text-shadow:0 2px 8px rgba(0,0,0,0.2);
+    }
+    .custody-main .c-sub { font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:0.2rem; }
+    .custody-stat { text-align:center; }
+    .custody-stat .cs-lbl { font-size:0.68rem; color:rgba(255,255,255,0.55); font-weight:600; margin-bottom:0.25rem; }
+    .custody-stat .cs-val { font-size:1.1rem; font-weight:800; color:rgba(255,255,255,0.9); }
+    .custody-stat.danger .cs-val { color:#ff6b6b; }
+    .custody-stat.success .cs-val { color:#69db7c; }
+    .custody-progress {
+      margin-top:1rem; height:6px; background:rgba(255,255,255,0.12);
+      border-radius:3px; overflow:hidden;
+    }
+    .custody-progress-bar {
+      height:100%; border-radius:3px; transition:width 0.5s ease;
+      background:linear-gradient(90deg,#69db7c,#40c057);
+    }
+    .custody-progress-bar.warning { background:linear-gradient(90deg,#ffd43b,#fab005); }
+    .custody-progress-bar.danger  { background:linear-gradient(90deg,#ff6b6b,#fa5252); }
+
+    /* custody log modal */
+    .clog-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:0.55rem 0.85rem; border-radius:var(--radius-sm);
+      margin-bottom:0.35rem; background:var(--bg); border:1px solid var(--border);
+      font-size:0.83rem;
+    }
+    .clog-row .clog-amount { font-weight:800; color:var(--primary); }
+    .clog-row .clog-date   { font-size:0.72rem; color:var(--text-light); }
+    .clog-row .clog-del    { background:none; border:none; color:#e74c3c; cursor:pointer; font-size:1rem; padding:0 4px; }
+
+    @media (max-width:768px) {
+      .custody-numbers { grid-template-columns:1fr 1fr; }
+      .custody-main .c-val { font-size:1.8rem; }
+    }
+
     @media (max-width:768px) {
       .sum-grid { grid-template-columns:1fr 1fr; }
       .supplier-grid { grid-template-columns:1fr; }
@@ -153,6 +229,39 @@
     <div id="topbarContainer"></div>
 
     <div class="page-content">
+
+      <!-- ===== CUSTODY WIDGET ===== -->
+      <div class="custody-widget animate-in" id="custodyWidget">
+        <div class="custody-header">
+          <div class="custody-title"> العهدة الإجمالية — صندوق المشتريات</div>
+          <div class="custody-actions">
+            <button class="custody-btn" onclick="openCustodyLog()"> السجل</button>
+            <button class="custody-btn primary" onclick="openAddCustody()"> إضافة عهدة</button>
+          </div>
+        </div>
+        <div class="custody-numbers">
+          <div class="custody-main">
+            <div class="c-lbl">المتبقي من العهدة</div>
+            <div class="c-val" id="cwBalance">—</div>
+            <div class="c-sub" id="cwBalanceSub">جاري التحميل...</div>
+          </div>
+          <div class="custody-stat">
+            <div class="cs-lbl">إجمالي العهدة</div>
+            <div class="cs-val" id="cwTotal">—</div>
+          </div>
+          <div class="custody-stat danger">
+            <div class="cs-lbl">المصروف (مشتريات + مقاولات)</div>
+            <div class="cs-val" id="cwSpent">—</div>
+          </div>
+          <div class="custody-stat">
+            <div class="cs-lbl">عدد دفعات العهدة</div>
+            <div class="cs-val" id="cwCount">—</div>
+          </div>
+        </div>
+        <div class="custody-progress">
+          <div class="custody-progress-bar" id="cwProgressBar" style="width:0%"></div>
+        </div>
+      </div>
 
       <!-- SUMMARY CARDS -->
       <div class="sum-grid animate-in" id="mainSumGrid">
@@ -707,6 +816,67 @@
   </div>
 </div>
 
+<!-- ===== MODAL: ADD CUSTODY ===== -->
+<div class="modal-overlay hidden" id="addCustodyModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title"> إضافة عهدة جديدة</span>
+      <button class="btn-close" onclick="closeModal('addCustodyModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert hidden" id="addCustodyAlert"></div>
+      <div class="form-group">
+        <label class="form-label">المبلغ (ج.م) <span class="required">*</span></label>
+        <input type="number" class="form-input" id="cwAmount" placeholder="0.00" min="0.01" step="0.01" style="font-size:1.2rem;font-weight:800" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">التاريخ <span class="required">*</span></label>
+        <input type="date" class="form-input" id="cwDate" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">البيان / الملاحظة</label>
+        <input type="text" class="form-input" id="cwNote" placeholder="مثال: عهدة شهر مارس، دفعة من المدير..." />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addCustodyModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveCustodyEntry()"> حفظ العهدة</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: CUSTODY LOG ===== -->
+<div class="modal-overlay hidden" id="custodyLogModal">
+  <div class="modal" style="max-width:560px;max-height:85vh;overflow-y:auto">
+    <div class="modal-header">
+      <span class="modal-title"> سجل العهدة</span>
+      <button class="btn-close" onclick="closeModal('custodyLogModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- ملخص -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:1.25rem">
+        <div class="supplier-stat">
+          <div class="s-val" id="clogTotal">—</div>
+          <div class="s-lbl">إجمالي العهدة</div>
+        </div>
+        <div class="supplier-stat">
+          <div class="s-val" style="color:#c0392b" id="clogSpent">—</div>
+          <div class="s-lbl">المصروف (مشتريات + مقاولات)</div>
+        </div>
+        <div class="supplier-stat">
+          <div class="s-val" id="clogBalance">—</div>
+          <div class="s-lbl">المتبقي</div>
+        </div>
+      </div>
+      <!-- سجل الدفعات -->
+      <div style="font-size:0.82rem;font-weight:800;color:var(--primary);margin-bottom:0.65rem"> دفعات العهدة المُضافة</div>
+      <div id="custodyLogList">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -735,16 +905,19 @@ let allPurchases  = [];
 let allContracts  = [];
 let filteredPurch = [];
 let filteredContr = [];
+let custodyEntries = [];   // دفعات العهدة المستقلة
 
 // ─── INIT ────────────────────────────────────────────────────────
 async function init() {
   document.getElementById('pDate').value = localDateStr();
   document.getElementById('cDate').value = localDateStr();
+  document.getElementById('cwDate').value = localDateStr();
   setDefaultReportDates();
-  await Promise.all([ loadSuppliers(), loadPurchases(), loadContracts() ]);
+  await Promise.all([ loadCustodyEntries(), loadSuppliers(), loadPurchases(), loadContracts() ]);
   await migratePurchases();   // ترقية الفواتير القديمة مرة واحدة
   populateSupplierSelects();
   updateSummaryCards();
+  renderCustodyWidget();
 }
 
 // ─── MIGRATION: ترقية الفواتير القديمة ───────────────────────────
@@ -795,6 +968,133 @@ function setDefaultReportDates() {
   document.getElementById('reportFrom').value = `${y}-${String(m+1).padStart(2,'0')}-01`;
   const last = new Date(y, m+1, 0);
   document.getElementById('reportTo').value = localDateStr(last);
+}
+
+// ─── CUSTODY (العهدة المستقلة) ────────────────────────────────────
+async function loadCustodyEntries() {
+  try {
+    const snap = await db.collection('custody_entries')
+      .where('schoolId','==',schoolId)
+      .orderBy('date','desc')
+      .get();
+    custodyEntries = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+  } catch(e) {
+    // لو index مش موجود نجيب بدون ترتيب
+    try {
+      const snap = await db.collection('custody_entries').where('schoolId','==',schoolId).get();
+      custodyEntries = snap.docs.map(d => ({ id:d.id, ...d.data() }))
+        .sort((a,b) => (b.date||'') > (a.date||'') ? 1 : -1);
+    } catch(e2) { console.error('loadCustodyEntries:', e2); }
+  }
+}
+
+function renderCustodyWidget() {
+  // إجمالي العهدة = مجموع كل الدفعات المضافة
+  const cwTotal  = custodyEntries.reduce((s,e) => s+(e.amount||0), 0);
+  // المصروف = صافي الفواتير (المشتريات) + المدفوع للمقاولين
+  const cwSpent  = allPurchases.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0)
+                 + allContracts.reduce((s,c) => s+(c.paid||0), 0);
+  const cwBalance = cwTotal - cwSpent;
+  const pct = cwTotal > 0 ? Math.max(0, Math.min(100, Math.round(cwBalance/cwTotal*100))) : 0;
+
+  // تحديث الأرقام
+  document.getElementById('cwTotal').textContent   = formatCurrency(cwTotal);
+  document.getElementById('cwSpent').textContent   = formatCurrency(cwSpent);
+  document.getElementById('cwCount').textContent   = custodyEntries.length + ' دفعة';
+  document.getElementById('cwBalance').textContent = formatCurrency(cwBalance);
+  document.getElementById('cwBalanceSub').textContent =
+    cwBalance < 0
+      ? '⚠️ العهدة تجاوزت الرصيد!'
+      : `نسبة المتبقي ${pct}% من إجمالي العهدة`;
+
+  // لون الـ balance
+  const balEl = document.getElementById('cwBalance');
+  balEl.style.color = cwBalance < 0 ? '#ff6b6b' : cwBalance < cwTotal*0.15 ? '#ffd43b' : 'white';
+
+  // progress bar
+  const bar = document.getElementById('cwProgressBar');
+  bar.style.width = pct + '%';
+  bar.className = 'custody-progress-bar' +
+    (pct < 15 ? ' danger' : pct < 30 ? ' warning' : '');
+}
+
+function openAddCustody() {
+  document.getElementById('cwAmount').value = '';
+  document.getElementById('cwDate').value   = localDateStr();
+  document.getElementById('cwNote').value   = '';
+  document.getElementById('addCustodyAlert').classList.add('hidden');
+  openModal('addCustodyModal');
+  setTimeout(() => document.getElementById('cwAmount').focus(), 200);
+}
+
+async function saveCustodyEntry() {
+  const amount = parseFloat(document.getElementById('cwAmount').value) || 0;
+  const date   = document.getElementById('cwDate').value;
+  const note   = document.getElementById('cwNote').value.trim();
+  if (amount <= 0) return showAlert('addCustodyAlert','ادخل مبلغاً أكبر من صفر');
+  if (!date)       return showAlert('addCustodyAlert','التاريخ مطلوب');
+
+  try {
+    await db.collection('custody_entries').add({
+      schoolId, amount, date, note,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: session.email
+    });
+    closeModal('addCustodyModal');
+    await loadCustodyEntries();
+    renderCustodyWidget();
+    toast(`تم إضافة عهدة ${formatCurrency(amount)} ✓`);
+  } catch(e) { showAlert('addCustodyAlert','خطأ: '+e.message); }
+}
+
+function openCustodyLog() {
+  openModal('custodyLogModal');
+  renderCustodyLog();
+}
+
+function renderCustodyLog() {
+  const cwTotal   = custodyEntries.reduce((s,e) => s+(e.amount||0), 0);
+  const cwSpent   = allPurchases.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0)
+                  + allContracts.reduce((s,c) => s+(c.paid||0), 0);
+  const cwBalance = cwTotal - cwSpent;
+
+  document.getElementById('clogTotal').textContent   = formatCurrency(cwTotal);
+  document.getElementById('clogSpent').textContent   = formatCurrency(cwSpent);
+  const balEl = document.getElementById('clogBalance');
+  balEl.textContent = formatCurrency(cwBalance);
+  balEl.style.color = cwBalance < 0 ? '#c0392b' : '#2e7d32';
+
+  const list = document.getElementById('custodyLogList');
+  if (custodyEntries.length === 0) {
+    list.innerHTML = `<div class="empty-state" style="padding:2rem">
+      <div class="empty-state-icon"></div>
+      <div class="empty-state-title">لا توجد دفعات عهدة بعد</div>
+    </div>`;
+    return;
+  }
+  list.innerHTML = custodyEntries.map(e => `
+    <div class="clog-row">
+      <div>
+        <div class="clog-amount">${formatCurrency(e.amount)}</div>
+        ${e.note ? `<div style="font-size:0.75rem;color:var(--text-light);margin-top:2px">${e.note}</div>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <div class="clog-date">${e.date||'—'}</div>
+        <button class="clog-del" onclick="deleteCustodyEntry('${e.id}')" title="حذف">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function deleteCustodyEntry(id) {
+  if (!confirm('هل تريد حذف هذه الدفعة نهائياً؟')) return;
+  try {
+    await db.collection('custody_entries').doc(id).delete();
+    await loadCustodyEntries();
+    renderCustodyWidget();
+    renderCustodyLog();
+    toast('تم الحذف ✓');
+  } catch(e) { alert('خطأ: '+e.message); }
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────
@@ -1301,6 +1601,7 @@ async function savePurchase() {
     closeModal('purchaseModal');
     await loadPurchases();
     updateSummaryCards();
+    renderCustodyWidget();
     toast('تم حفظ الفاتورة ✓');
   } catch(e) { showAlert('purchaseAlert','خطأ: '+e.message); }
 }
@@ -1311,6 +1612,7 @@ async function deletePurchase(id) {
     await db.collection('contractors_purchases').doc(id).delete();
     await loadPurchases();
     updateSummaryCards();
+    renderCustodyWidget();
     toast('تم الحذف');
   } catch(e) { alert('خطأ: '+e.message); }
 }
@@ -1452,6 +1754,7 @@ async function saveContract() {
     closeModal('contractModal');
     await loadContracts();
     updateSummaryCards();
+    renderCustodyWidget();
     toast('تم حفظ العقد ✓');
   } catch(e) { showAlert('contractAlert','خطأ: '+e.message); }
 }
@@ -1499,6 +1802,7 @@ async function confirmPay() {
     closeModal('payModal');
     await loadContracts();
     updateSummaryCards();
+    renderCustodyWidget();
     toast(`تم تسجيل دفع ${formatCurrency(amount)} ✓`);
   } catch(e) { showAlert('payAlert','خطأ: '+e.message); }
 }
