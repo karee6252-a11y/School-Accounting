@@ -96,6 +96,46 @@
     /*  Export Buttons  */
     .export-btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
+    /*  Table Styling - Header فقط ملون */
+    .data-table {
+      background: #ffffff;
+      border-collapse: collapse;
+      width: 100%;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .data-table thead th {
+      background: var(--primary);
+      color: white;
+      padding: 1rem 0.75rem;
+      font-weight: 800;
+      text-align: right;
+      font-size: 0.85rem;
+    }
+    .data-table tbody td {
+      padding: 0.85rem 0.75rem;
+      border-bottom: 1px solid #e5e7eb;
+      color: var(--text-dark);
+      font-size: 0.9rem;
+      background: #ffffff;
+    }
+    .data-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .data-table tbody tr:hover {
+      background: #f9fafb;
+    }
+    .data-table tfoot tr {
+      background: #f3f4f6;
+      border-top: 2px solid var(--primary);
+    }
+    .data-table tfoot td {
+      padding: 1rem 0.75rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
     /*  Breakdown bars  */
     .breakdown-bar { margin-bottom: 0.6rem; }
     .breakdown-bar-label {
@@ -120,7 +160,7 @@
 
     /*  Table footer total  */
     .table-footer-total {
-      background: var(--accent);
+      background: #f3f4f6;
       font-weight: 800;
       color: var(--primary);
     }
@@ -1013,18 +1053,12 @@
       dayExpenses.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
     } catch(e) {}
 
-    // جلب إيرادات اليوم
-    let dayRevenue=0;
-    try {
-      const ts = await db.collection('transactions')
-        .where('schoolId','==',schoolId)
-        .where('date','==',selectedDate).get();
-      ts.forEach(doc => { dayRevenue+=(doc.data().amount||0); });
-    } catch(e) {}
+    // نظام العهدة فقط - لا نحتاج إيرادات اليوم
+    // العملية تقتصر على: صرف من العهدة + تحصيل بـ العهدة
 
     const totalExpenses  = dayExpenses.reduce((s,e)=>s+(e.amount||0),0);
     const openingBalance = custPrev + custNew;
-    const closingBalance = openingBalance + dayRevenue - totalExpenses;
+    const closingBalance = openingBalance - totalExpenses;
 
     // ============================================================
     // ألوان المدرسة
@@ -1150,16 +1184,15 @@
     r2.height = 22;
 
     // ============================================================
-    // صف 4 — شريط رصيد الخزنة (3 خانات جنباً لجنب)
+    // صف 4 — شريط الرصيد (عهدة سابقة + عهدة جديدة + رصيد أول اليوم)
     // ============================================================
     const rBal = ws.addRow([
       'العهدة السابقة','','',
       'العهدة الجديدة','','',
-      'إيرادات اليوم','','',
       'رصيد أول اليوم','',''
     ]);
-    merge(rBal.number,'A','C'); merge(rBal.number,'D','F'); merge(rBal.number,'G','I'); merge(rBal.number,'J',LC);
-    [[1,BLUE,WHT],[4,GRN,WHT],[7,SEC,WHT],[10,PRI,WHT]].forEach(([ci,bg,fc])=>{
+    merge(rBal.number,'A','C'); merge(rBal.number,'D','F'); merge(rBal.number,'G','I');
+    [[1,BLUE,WHT],[4,GRN,WHT],[7,PRI,WHT]].forEach(([ci,bg,fc])=>{
       const lbl = rBal.getCell(ci);
       lbl.fill=hF(bg); lbl.font={name:'Arial',bold:true,size:11,color:{argb:fc}};
       lbl.alignment=cAl(true); lbl.border=brdTk();
@@ -1170,11 +1203,10 @@
     const rBalV = ws.addRow([
       custPrev,'','',
       custNew,'','',
-      dayRevenue,'','',
       openingBalance,'',''
     ]);
-    merge(rBalV.number,'A','C'); merge(rBalV.number,'D','F'); merge(rBalV.number,'G','I'); merge(rBalV.number,'J',LC);
-    [[1,BLUE,WHT],[4,GRN,WHT],[7,SEC,WHT],[10,PRI,WHT]].forEach(([ci,bg,fc])=>{
+    merge(rBalV.number,'A','C'); merge(rBalV.number,'D','F'); merge(rBalV.number,'G','I');
+    [[1,BLUE,WHT],[4,GRN,WHT],[7,PRI,WHT]].forEach(([ci,bg,fc])=>{
       const v = rBalV.getCell(ci);
       v.fill=hF(bg); v.font={name:'Arial',bold:true,size:16,color:{argb:fc}};
       v.alignment=cAl(); v.border=brdTk();
@@ -1309,7 +1341,6 @@
     // جدول الملخص — كل سطر: وصف (A:H) | مبلغ (I:K)
     const finRows = [
       { lbl:`رصيد الخزنة في بداية اليوم (العهدة السابقة ${custPrev.toLocaleString('ar-EG')} + الجديدة ${custNew.toLocaleString('ar-EG')})`, val:openingBalance, bg:BLUE,                              prefix:'◈' },
-      { lbl:'( + ) إيرادات اليوم من تحصيل المصروفات الدراسية',                                                                              val:dayRevenue,     bg:GRN,                               prefix:'➕' },
       { lbl:'( - ) إجمالي المصروفات والمدفوعات خلال اليوم',                                                                                  val:totalExpenses,  bg:DRED,                              prefix:'➖' },
       { lbl:'( = ) رصيد الخزنة في نهاية اليوم',                                                                                              val:closingBalance, bg:closingBalance>=0?GRN:RED,          prefix:'◆' },
     ];
