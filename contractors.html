@@ -2546,13 +2546,13 @@ async function exportContractsExcel() {
 
   const totVals = [
     '', '', '', '', '', 'الإجمالي',
-    `=SUM(G${dataStart}:G${dataEnd})`,
-    `=SUM(H${dataStart}:H${dataEnd})`,
-    `=SUM(I${dataStart}:I${dataEnd})`,
-    `=SUM(J${dataStart}:J${dataEnd})`,
-    `=SUM(K${dataStart}:K${dataEnd})`,
-    `=SUM(L${dataStart}:L${dataEnd})`,
-    `=SUM(M${dataStart}:M${dataEnd})`,
+    filteredContr.reduce((s,c)=>s+(c.total||0),0),
+    filteredContr.reduce((s,c)=>s+(c.deduction||0),0),
+    filteredContr.reduce((s,c)=>s+(c.pay1||0),0),
+    filteredContr.reduce((s,c)=>s+(c.pay2||0),0),
+    filteredContr.reduce((s,c)=>s+(c.pay3||0),0),
+    filteredContr.reduce((s,c)=>s+(c.paid||0),0),
+    filteredContr.reduce((s,c)=>s+(c.remaining||0),0),
   ];
   totVals.forEach((val, idx) => {
     const cell = totRow.getCell(idx + 1);
