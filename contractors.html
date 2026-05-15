@@ -2458,7 +2458,8 @@ async function exportContractsExcel() {
   ];
 
   const LAST = 'M';
-  const numFmt = '#,##0';
+  // الأرقام بفاصلة الآلاف، الصفر يظهر كـ — بدل 0
+  const numFmt    = '#,##0;-#,##0;"-"';
   const thin = { style:'thin' };
   const border = { top:thin, bottom:thin, left:thin, right:thin };
 
