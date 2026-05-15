@@ -236,34 +236,6 @@
       .sum-grid { grid-template-columns:1fr 1fr; }
       .supplier-grid { grid-template-columns:1fr; }
     }
-
-    /* ===== TABLE SCROLL FIX ===== */
-    .table-wrapper {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      width: 100%;
-    }
-    .data-table {
-      min-width: max-content;
-      width: 100%;
-    }
-    /* Prevent page from overflowing horizontally */
-    .main-content,
-    .page-content {
-      min-width: 0;
-      max-width: 100%;
-      overflow-x: hidden;
-    }
-    .app-layout {
-      min-width: 0;
-      max-width: 100vw;
-      overflow-x: hidden;
-    }
-    /* Fix card overflow */
-    .card {
-      min-width: 0;
-      overflow: hidden;
-    }
   </style>
 </head>
 <body>
@@ -1151,9 +1123,16 @@ async function init() {
 
 // ─── MIGRATION: ترقية الفواتير القديمة ───────────────────────────
 async function migratePurchases() {
+  // لو سبق وعملنا الـ migration لهذه المدرسة، منعملهاش تاني
+  const flagKey = `migration_done_${schoolId}`;
+  if (localStorage.getItem(flagKey)) return;
+
   // نجيب الفواتير اللي معندهاش حقل net (يعني قديمة قبل التحديث)
   const oldPurchases = allPurchases.filter(p => p.net == null);
-  if (oldPurchases.length === 0) return; // مفيش قديم، خلاص
+  if (oldPurchases.length === 0) {
+    localStorage.setItem(flagKey, '1'); // مفيش قديم، نضع الـ flag
+    return;
+  }
 
   console.log(`[Migration] هيتم ترقية ${oldPurchases.length} فاتورة قديمة...`);
 
@@ -1182,6 +1161,7 @@ async function migratePurchases() {
 
   try {
     await batch.commit();
+    localStorage.setItem(flagKey, '1'); // نسجل إن الـ migration اتعمل
     filteredPurch = [...allPurchases];
     renderPurchases();
     updateSummaryCards();
@@ -1298,8 +1278,15 @@ function openCustodyLog() {
 
 function renderCustodyLog() {
   const cwTotal   = custodyEntries.reduce((s,e) => s+(e.amount||0), 0);
-  const cwSpent   = allPurchases.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0)
-                  + allContracts.reduce((s,c) => s+(c.paid||0), 0);
+  // نفس منطق renderCustodyWidget: رئيس مجلس الإدارة لا يُخصم من العهدة
+  const cwSpent   = allPurchases.reduce((s,p) => {
+    const fromCustody = p.paySource ? p.deductsFromCustody : true;
+    return fromCustody ? s+(p.net!=null?p.net:(p.total||0)) : s;
+  }, 0)
+  + allContracts.reduce((s,c) => {
+    const fromCustody = c.paySource ? c.deductsFromCustody : true;
+    return fromCustody ? s+(c.paid||0) : s;
+  }, 0);
   const cwBalance = cwTotal - cwSpent;
 
   document.getElementById('clogTotal').textContent   = formatCurrency(cwTotal);
@@ -1338,7 +1325,11 @@ async function deleteCustodyEntry(id) {
     await db.collection('custody_entries').doc(id).delete();
     await loadCustodyEntries();
     renderCustodyWidget();
-    renderCustodyLog();
+    // نحدث سجل العهدة بس لو المودال لسه مفتوح
+    const logModal = document.getElementById('custodyLogModal');
+    if (!logModal.classList.contains('hidden')) {
+      renderCustodyLog();
+    }
     toast('تم الحذف ✓');
   } catch(e) { alert('خطأ: '+e.message); }
 }
@@ -1613,7 +1604,7 @@ function updateSummaryCards() {
   document.getElementById('sumSuppliersCount').textContent = `${allSuppliers.length} مورد/مقاول`;
   document.getElementById('sumDebts').textContent          = formatCurrency(cDebt);
   document.getElementById('sumDebtsCount').textContent     = `${allContracts.filter(c=>(c.remaining||0)>0).length} مقاول`;
-  document.getElementById('sumTotal').textContent          = formatCurrency(pNet + cPaid);
+  document.getElementById('sumTotal').textContent          = formatCurrency(pNet + cTotal);
 }
 
 // ─── POPULATE SELECTS ─────────────────────────────────────────────
@@ -1751,6 +1742,7 @@ function openEditPurchase(id) {
   document.getElementById('pPurpose').value        = p.purpose||'';
   document.getElementById('pWorkType').value       = p.workType||'';
   document.getElementById('pDesc').value           = p.desc||'';
+  document.getElementById('pQtyHidden').value      = p.qty||'';
   document.getElementById('pQty').value            = p.pay1 ?? p.qty ?? '';
   document.getElementById('pQtyDate').value        = p.pay1Date||'';
   document.getElementById('pUnit').value           = p.unit||'قطعة';
@@ -1783,7 +1775,7 @@ function openEditPurchase(id) {
 function toggleAreaMode() { /* purchases use qty always */ }
 
 function calcPurchaseTotal() {
-  const qty   = parseFloat(document.getElementById('pQty').value)       || 0;
+  const qty   = parseFloat(document.getElementById('pQtyHidden').value) || 0;
   const price = parseFloat(document.getElementById('pUnitPrice').value) || 0;
   document.getElementById('pTotal').value = (qty * price).toFixed(2);
   calcPurchaseNet();
@@ -1825,7 +1817,9 @@ async function savePurchase() {
   // custody
   const custodySpentInput = parseFloat(document.getElementById('pCustodySpent')?.value);
   const custodySpent  = !isNaN(custodySpentInput) ? custodySpentInput : (deductsFromCustody ? net : 0);
-  const custodyBalance = -custodySpent;
+  // المتبقي من العهدة = صفر لأن الفاتورة وحدها مش عندها "إجمالي عهدة" خاص بيها
+  // custodyBalance بيتحسب على مستوى الكل في renderCustodyWidget
+  const custodyBalance = 0;
 
   if (!suppId)   return showAlert('purchaseAlert','اختر المورد');
   if (!date)     return showAlert('purchaseAlert','التاريخ مطلوب');
@@ -2056,7 +2050,6 @@ async function saveContract() {
     deductsFromCustody,
     notes: document.getElementById('cNotes').value.trim(),
     isAreaBased: isArea,
-    paymentHistory: [],
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   if (isArea)   { data.area = area; data.pricePerM = pricePerM; }
@@ -2065,13 +2058,14 @@ async function saveContract() {
   const editId = document.getElementById('contractEditId').value;
   try {
     if (editId) {
-      // preserve existing paymentHistory
+      // نحافظ على paymentHistory الموجود عند التعديل
       const existing = allContracts.find(c => c.id === editId);
       data.paymentHistory = existing?.paymentHistory || [];
       await db.collection('contractors_contracts').doc(editId).update(data);
     } else {
       data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
       data.createdBy = session.email;
+      data.paymentHistory = [];  // فقط عند الإنشاء الجديد
       await db.collection('contractors_contracts').add(data);
     }
     closeModal('contractModal');
@@ -2196,6 +2190,24 @@ async function confirmPay() {
   const newPaid      = (c.paid||0) + amount;
   const newRemaining = Math.max(0, (c.remaining||0) - amount);
   const today        = localDateStr();
+
+  // نحدد الدفعة الجاية (pay1 → pay2 → pay3)
+  const paySlotUpdates = {};
+  if (!(c.pay1 > 0)) {
+    paySlotUpdates.pay1 = amount;
+    paySlotUpdates.pay1Date = today;
+  } else if (!(c.pay2 > 0)) {
+    paySlotUpdates.pay2 = amount;
+    paySlotUpdates.pay2Date = today;
+  } else if (!(c.pay3 > 0)) {
+    paySlotUpdates.pay3 = amount;
+    paySlotUpdates.pay3Date = today;
+  }
+  // لو الدفعات الثلاثة ممتلئة نضيف على pay3 (إجمالاً)
+  if (Object.keys(paySlotUpdates).length === 0) {
+    paySlotUpdates.pay3 = (c.pay3||0) + amount;
+  }
+
   const notesWithSource = paySource === 'chairman'
     ? (notes ? notes + ' — لا يُخصم من العهدة' : 'لا يُخصم من العهدة')
     : notes;
@@ -2208,6 +2220,7 @@ async function confirmPay() {
   try {
     await db.collection('contractors_contracts').doc(contractId).update({
       paid: newPaid, remaining: newRemaining, paymentHistory: history,
+      ...paySlotUpdates,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     closeModal('payModal');
