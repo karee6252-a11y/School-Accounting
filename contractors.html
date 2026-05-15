@@ -101,6 +101,7 @@
     .work-tag.loader     { background:#fff8e1; color:#795548; border-color:#bcaaa4; }
     .work-tag.other      { background:#eceff1; color:#455a64; border-color:#b0bec5; }
 
+
     /* ===== PURPOSE TAG ===== */
     .purpose-tag {
       display:inline-flex; align-items:center; gap:0.3rem;
@@ -336,6 +337,14 @@
             <option value="building">بناء</option>
             <option value="ironwork">حدادة</option>
             <option value="loader">لودر</option>
+            <option value="sand">رمل</option>
+            <option value="gravel">ظلط</option>
+            <option value="cement">اسمنت</option>
+            <option value="blacksmith">حداد</option>
+            <option value="loader_big">لودر كبير</option>
+            <option value="loader_small">لودر صغير</option>
+            <option value="interlock">بناء انترلوك</option>
+            <option value="painter">نقاش</option>
             <option value="other">أخرى</option>
           </select>
           <select class="form-select" id="purchasePurpose" onchange="filterPurchases()" style="width:170px">
@@ -346,6 +355,12 @@
             <option value="wc_building">دورات مياه المبنى</option>
             <option value="building">المبنى المدرسي</option>
             <option value="playground">الملاعب</option>
+            <option value="pool_small_s">حمام سباحة صغير</option>
+            <option value="pool_large_s">حمام سباحة كبيرة</option>
+            <option value="ironwork_s">حدادة</option>
+            <option value="pool_services">خدمات حمام السباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
             <option value="other">أخرى</option>
           </select>
           <button class="btn btn-primary" onclick="openPurchaseModal()"> إضافة فاتورة</button>
@@ -391,6 +406,14 @@
             <option value="electric">كهرباء</option>
             <option value="ironwork">حدادة</option>
             <option value="loader">لودر</option>
+            <option value="sand">رمل</option>
+            <option value="gravel">ظلط</option>
+            <option value="cement">اسمنت</option>
+            <option value="blacksmith">حداد</option>
+            <option value="loader_big">لودر كبير</option>
+            <option value="loader_small">لودر صغير</option>
+            <option value="interlock">بناء انترلوك</option>
+            <option value="painter">نقاش</option>
             <option value="other">أخرى</option>
           </select>
           <select class="form-select" id="contractPurpose" onchange="filterContracts()" style="width:170px">
@@ -401,6 +424,12 @@
             <option value="wc_building">دورات مياه المبنى</option>
             <option value="building">المبنى المدرسي</option>
             <option value="playground">الملاعب</option>
+            <option value="pool_small_s">حمام سباحة صغير</option>
+            <option value="pool_large_s">حمام سباحة كبيرة</option>
+            <option value="ironwork_s">حدادة</option>
+            <option value="pool_services">خدمات حمام السباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
             <option value="other">أخرى</option>
           </select>
           <button class="btn btn-primary" onclick="openContractModal()"> إضافة عقد/عمل</button>
@@ -557,6 +586,12 @@
             <option value="wc_building">دورات مياه المبنى</option>
             <option value="building">المبنى المدرسي</option>
             <option value="playground">الملاعب</option>
+            <option value="pool_small_s">حمام سباحة صغير</option>
+            <option value="pool_large_s">حمام سباحة كبيرة</option>
+            <option value="ironwork_s">حدادة</option>
+            <option value="pool_services">خدمات حمام السباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
             <option value="other">أخرى</option>
           </select>
         </div>
@@ -572,6 +607,14 @@
             <option value="building">بناء</option>
             <option value="ironwork">حدادة</option>
             <option value="loader">لودر</option>
+            <option value="sand">رمل</option>
+            <option value="gravel">ظلط</option>
+            <option value="cement">اسمنت</option>
+            <option value="blacksmith">حداد</option>
+            <option value="loader_big">لودر كبير</option>
+            <option value="loader_small">لودر صغير</option>
+            <option value="interlock">بناء انترلوك</option>
+            <option value="painter">نقاش</option>
             <option value="other">أخرى</option>
           </select>
         </div>
@@ -579,13 +622,9 @@
           <label class="form-label">بيان الصنف / الوصف <span class="required">*</span></label>
           <input type="text" class="form-input" id="pDesc" placeholder="مثال: بلاط 60×60 أبيض / خشب سنديان..." />
         </div>
-        <div class="form-group" id="pQtyGroup">
-          <label class="form-label" id="pQtyLabel">الدفعة الأولى (ج.م) <span class="required">*</span></label>
+        <div class="form-group" id="pQtyGroup" style="display:none">
+          <label class="form-label" id="pQtyLabel">الدفعة الأولى (ج.م)</label>
           <input type="number" class="form-input" id="pQty" placeholder="0" min="0" step="0.01" oninput="calcPurchaseTotal()" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">تاريخ الدفعة الأولى</label>
-          <input type="date" class="form-input" id="pQtyDate" />
         </div>
         <div class="form-group" id="pUnitGroup" style="display:none">
           <label class="form-label">وحدة القياس</label>
@@ -609,6 +648,14 @@
         <div class="form-group" style="grid-column:1/-1">
           <label class="form-label">إجمالي العقد (ج.م) <span class="required">*</span></label>
           <input type="number" class="form-input" id="pTotal" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseNet()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">الدفعة الأولى (ج.م)</label>
+          <input type="number" class="form-input" id="pQty" placeholder="0" min="0" step="0.01" oninput="calcPurchaseTotal()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">تاريخ الدفعة الأولى</label>
+          <input type="date" class="form-input" id="pQtyDate" />
         </div>
         <div class="form-group">
           <label class="form-label">التخصيم (ج.م)</label>
@@ -662,6 +709,12 @@
             <option value="wc_building">دورات مياه المبنى</option>
             <option value="building">المبنى المدرسي</option>
             <option value="playground">الملاعب</option>
+            <option value="pool_small_s">حمام سباحة صغير</option>
+            <option value="pool_large_s">حمام سباحة كبيرة</option>
+            <option value="ironwork_s">حدادة</option>
+            <option value="pool_services">خدمات حمام السباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
             <option value="other">أخرى</option>
           </select>
         </div>
@@ -677,6 +730,14 @@
             <option value="electric">كهرباء</option>
             <option value="ironwork">حدادة</option>
             <option value="loader">لودر</option>
+            <option value="sand">رمل</option>
+            <option value="gravel">ظلط</option>
+            <option value="cement">اسمنت</option>
+            <option value="blacksmith">حداد</option>
+            <option value="loader_big">لودر كبير</option>
+            <option value="loader_small">لودر صغير</option>
+            <option value="interlock">بناء انترلوك</option>
+            <option value="painter">نقاش</option>
             <option value="other">أخرى</option>
           </select>
         </div>
@@ -802,6 +863,24 @@
           <option value="instapay">إنستاباي</option>
         </select>
       </div>
+      <!-- جهة الصرف -->
+      <div class="form-group" style="margin-top:0.25rem">
+        <label class="form-label" style="font-weight:800">جهة الصرف <span class="required">*</span></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.4rem">
+          <label id="paySourceChairmanLabel" style="display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.85rem;border-radius:var(--radius-sm);border:2px solid var(--border);cursor:pointer;transition:all 0.18s;background:var(--bg)" onclick="selectPaySource('chairman')">
+            <input type="radio" name="paySource" id="paySourceChairman" value="chairman" style="accent-color:var(--primary);width:16px;height:16px" />
+            <span style="font-size:0.83rem;font-weight:700"> رئيس مجلس الإدارة</span>
+          </label>
+          <label id="paySourceAccountsLabel" style="display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.85rem;border-radius:var(--radius-sm);border:2px solid var(--border);cursor:pointer;transition:all 0.18s;background:var(--bg)" onclick="selectPaySource('accounts')">
+            <input type="radio" name="paySource" id="paySourceAccounts" value="accounts" style="accent-color:var(--primary);width:16px;height:16px" />
+            <span style="font-size:0.83rem;font-weight:700"> مكتب الحسابات</span>
+          </label>
+        </div>
+        <!-- ملاحظة رئيس مجلس الإدارة -->
+        <div id="chairmanNote" style="display:none;margin-top:0.55rem;background:#fff8e1;border:1px solid #ffe082;border-radius:var(--radius-sm);padding:0.55rem 0.85rem;font-size:0.8rem;font-weight:700;color:#e65100;display:none;align-items:center;gap:0.4rem">
+          <span style="font-size:1rem">⚠️</span> لا يُخصم من العهدة
+        </div>
+      </div>
       <div class="form-group">
         <label class="form-label">ملاحظات</label>
         <input type="text" class="form-input" id="payNotes" placeholder="اختياري..." />
@@ -895,11 +974,11 @@ const schoolId = session.schoolId;
 const school   = SESSION.getSchool();
 
 // ─── CONSTANTS ───────────────────────────────────────────────────
-const PURPOSES = { pool_small:'حمام السباحة الصغير', pool_large:'حمام السباحة الكبير', wc_pool:'دورات مياه خدمات حمام السباحة', wc_building:'دورات مياه المبنى', building:'المبنى المدرسي', playground:'الملاعب', other:'أخرى' };
+const PURPOSES = { pool_small:'حمام السباحة الصغير', pool_large:'حمام السباحة الكبير', wc_pool:'دورات مياه خدمات حمام السباحة', wc_building:'دورات مياه المبنى', building:'المبنى المدرسي', playground:'الملاعب', pool_small_s:'حمام سباحة صغير', pool_large_s:'حمام سباحة كبيرة', ironwork_s:'حدادة', pool_services:'خدمات حمام السباحة', interlock_services:'خدمات انترلوك', paint_services:'خدمات دهان', other:'أخرى' };
 // backward compat: القيم القديمة في Firebase
 const PURPOSES_LEGACY = { pool:'حمام السباحة (قديم)', wc:'دورات المياه (قديم)' };
 function getPurposeLabel(p) { return PURPOSES[p] || PURPOSES_LEGACY[p] || p || '—'; }
-const WORK_TYPES = { carpentry:'نجارة', plumbing:'سباكة', electric:'كهرباء', tiling:'تبليط', farming:'زراعة', building:'بناء', ironwork:'حدادة', loader:'لودر', other:'أخرى' };
+const WORK_TYPES = { carpentry:'نجارة', plumbing:'سباكة', electric:'كهرباء', tiling:'تبليط', farming:'زراعة', building:'بناء', ironwork:'حدادة', loader:'لودر', sand:'رمل', gravel:'ظلط', cement:'اسمنت', blacksmith:'حداد', loader_big:'لودر كبير', loader_small:'لودر صغير', interlock:'بناء انترلوك', painter:'نقاش', other:'أخرى' };
 const AREA_BASED = ['tiling','farming','building']; // بالمساحة
 const PAY_LABELS = { cash:'نقدي', bank_transfer:'تحويل بنكي', check:'شيك', instapay:'إنستاباي' };
 
@@ -1760,6 +1839,14 @@ function openPayModal(contractId) {
   document.getElementById('payMethod').value = 'cash';
   document.getElementById('payNotes').value  = '';
   document.getElementById('payAlert').classList.add('hidden');
+  // reset جهة الصرف
+  document.getElementById('paySourceChairman').checked = false;
+  document.getElementById('paySourceAccounts').checked  = false;
+  document.getElementById('chairmanNote').style.display = 'none';
+  ['paySourceChairmanLabel','paySourceAccountsLabel'].forEach(id => {
+    document.getElementById(id).style.borderColor = 'var(--border)';
+    document.getElementById(id).style.background  = 'var(--bg)';
+  });
   document.getElementById('payInfo').innerHTML = `
     <strong>${c.contractorName}</strong> — ${c.desc}<br>
     إجمالي العقد: <strong>${formatCurrency(c.total)}</strong> |
@@ -1769,13 +1856,38 @@ function openPayModal(contractId) {
   openModal('payModal');
 }
 
+function selectPaySource(src) {
+  document.getElementById('paySourceChairman').checked = (src === 'chairman');
+  document.getElementById('paySourceAccounts').checked  = (src === 'accounts');
+  const note = document.getElementById('chairmanNote');
+  const chairmanLbl = document.getElementById('paySourceChairmanLabel');
+  const accountsLbl = document.getElementById('paySourceAccountsLabel');
+  if (src === 'chairman') {
+    note.style.display = 'flex';
+    chairmanLbl.style.borderColor = '#e65100';
+    chairmanLbl.style.background  = '#fff8e1';
+    accountsLbl.style.borderColor = 'var(--border)';
+    accountsLbl.style.background  = 'var(--bg)';
+  } else {
+    note.style.display = 'none';
+    accountsLbl.style.borderColor = 'var(--primary)';
+    accountsLbl.style.background  = 'var(--accent)';
+    chairmanLbl.style.borderColor = 'var(--border)';
+    chairmanLbl.style.background  = 'var(--bg)';
+  }
+}
+
 async function confirmPay() {
   const contractId = document.getElementById('payContractId').value;
   const amount     = parseFloat(document.getElementById('payAmount').value)||0;
   const method     = document.getElementById('payMethod').value;
   const notes      = document.getElementById('payNotes').value.trim();
+  const srcEl      = document.querySelector('input[name="paySource"]:checked');
+  const paySource  = srcEl ? srcEl.value : '';
+  const PAY_SOURCE_LABELS = { chairman:'رئيس مجلس الإدارة', accounts:'مكتب الحسابات' };
 
   if (amount <= 0) return showAlert('payAlert','ادخل مبلغاً صحيحاً');
+  if (!paySource)  return showAlert('payAlert','اختر جهة الصرف (رئيس مجلس الإدارة / مكتب الحسابات)');
 
   const c = allContracts.find(x => x.id === contractId);
   if (!c) return;
@@ -1784,7 +1896,14 @@ async function confirmPay() {
   const newPaid      = (c.paid||0) + amount;
   const newRemaining = Math.max(0, (c.remaining||0) - amount);
   const today        = localDateStr();
-  const history      = [...(c.paymentHistory||[]), { amount, method, methodLabel:PAY_LABELS[method]||method, date:today, notes, by:session.email }];
+  const notesWithSource = paySource === 'chairman'
+    ? (notes ? notes + ' — لا يُخصم من العهدة' : 'لا يُخصم من العهدة')
+    : notes;
+  const history = [...(c.paymentHistory||[]), {
+    amount, method, methodLabel: PAY_LABELS[method]||method,
+    paySource, paySourceLabel: PAY_SOURCE_LABELS[paySource]||paySource,
+    date: today, notes: notesWithSource, by: session.email
+  }];
 
   try {
     await db.collection('contractors_contracts').doc(contractId).update({
