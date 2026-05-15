@@ -384,7 +384,7 @@
                 </tr>
               </thead>
               <tbody id="purchasesBody">
-                <tr><td colspan="12"><div class="loading-spinner"></div></td></tr>
+                <tr><td colspan="14"><div class="loading-spinner"></div></td></tr>
               </tbody>
               <tfoot id="purchasesFoot"></tfoot>
             </table>
@@ -454,7 +454,7 @@
                 </tr>
               </thead>
               <tbody id="contractsBody">
-                <tr><td colspan="13"><div class="loading-spinner"></div></td></tr>
+                <tr><td colspan="16"><div class="loading-spinner"></div></td></tr>
               </tbody>
               <tfoot id="contractsFoot"></tfoot>
             </table>
@@ -651,7 +651,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">الدفعة الأولى (ج.م)</label>
-          <input type="number" class="form-input" id="pQty" placeholder="0" min="0" step="0.01" oninput="calcPurchaseTotal()" />
+          <input type="number" class="form-input" id="pQty" placeholder="0" min="0" step="0.01" oninput="calcPurchaseNet()" />
         </div>
         <div class="form-group">
           <label class="form-label">تاريخ الدفعة الأولى</label>
@@ -877,7 +877,7 @@
           </label>
         </div>
         <!-- ملاحظة رئيس مجلس الإدارة -->
-        <div id="chairmanNote" style="display:none;margin-top:0.55rem;background:#fff8e1;border:1px solid #ffe082;border-radius:var(--radius-sm);padding:0.55rem 0.85rem;font-size:0.8rem;font-weight:700;color:#e65100;display:none;align-items:center;gap:0.4rem">
+        <div id="chairmanNote" style="display:none;margin-top:0.55rem;background:#fff8e1;border:1px solid #ffe082;border-radius:var(--radius-sm);padding:0.55rem 0.85rem;font-size:0.8rem;font-weight:700;color:#e65100;align-items:center;gap:0.4rem">
           <span style="font-size:1rem">⚠️</span> لا يُخصم من العهدة
         </div>
       </div>
@@ -1314,7 +1314,7 @@ function renderPurchases() {
   document.getElementById('purchaseCount').textContent = filteredPurch.length;
 
   if (filteredPurch.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="19"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد فواتير</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد فواتير</div></div></td></tr>`;
     tfoot.innerHTML = ''; return;
   }
 
@@ -1377,7 +1377,7 @@ function renderContracts() {
   document.getElementById('contractCount').textContent = filteredContr.length;
 
   if (filteredContr.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد عقود</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="16"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد عقود</div></div></td></tr>`;
     tfoot.innerHTML = ''; return;
   }
 
@@ -2172,8 +2172,8 @@ async function exportContractsExcel() {
   EX.subTitle(ws,`تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}  |  عدد العقود: ${filteredContr.length}  |  الإجمالي: ${formatCurrency(filteredContr.reduce((s,c)=>s+(c.total||0),0))}`,'K',2);
   EX.hdr(ws,['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','المساحة/الوحدة','سعر المتر','الإجمالي','المدفوع','المتبقي']);
   filteredContr.forEach((c,i)=>{
-    const qCell = c.isAreaBased?`${c.area||0} م²`:(c.fixedUnit||'—');
-    const pCell = c.isAreaBased?c.pricePerM:0;
+    const qCell = AREA_BASED.includes(c.workType)?`${c.area||0} م²`:(c.fixedUnit||'—');
+    const pCell = AREA_BASED.includes(c.workType)?c.pricePerM:0;
     const r=EX.dataRow(ws,[i+1,c.date,c.contractorName,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,qCell,pCell||'—',c.total,c.paid,c.remaining],i%2===1);
     r.getCell(9).numFmt='#,##0'; r.getCell(10).numFmt='#,##0'; r.getCell(11).numFmt='#,##0';
   });
@@ -2235,8 +2235,8 @@ async function exportFullExcel() {
     EX.title(ws2,'العقود والأعمال','K');
     EX.hdr(ws2,['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','المساحة/الوحدة','سعر المتر','الإجمالي','المدفوع','المتبقي']);
     cList.forEach((c,i)=>{
-      const qCell = c.isAreaBased?`${c.area||0} م²`:(c.fixedUnit||'—');
-      EX.dataRow(ws2,[i+1,c.date,c.contractorName,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,qCell,c.isAreaBased?(c.pricePerM||0):'—',c.total,c.paid,c.remaining],i%2===1);
+      const qCell = AREA_BASED.includes(c.workType)?`${c.area||0} م²`:(c.fixedUnit||'—');
+      EX.dataRow(ws2,[i+1,c.date,c.contractorName,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,qCell,AREA_BASED.includes(c.workType)?(c.pricePerM||0):'—',c.total,c.paid,c.remaining],i%2===1);
     });
     EX.totRow(ws2,['','','','','','','','الإجمالي',cList.reduce((s,c)=>s+(c.total||0),0),cList.reduce((s,c)=>s+(c.paid||0),0),cList.reduce((s,c)=>s+(c.remaining||0),0)],'K');
   }
@@ -2282,7 +2282,7 @@ async function exportProfileExcel(supplierId) {
     ws.columns=[{width:5},{width:12},{width:18},{width:14},{width:26},{width:12},{width:14},{width:14},{width:14}];
     EX.title(ws,`عقود: ${s.name}`,'I');
     EX.hdr(ws,['#','التاريخ','الغرض','نوع العمل','البيان','المساحة/الوحدة','الإجمالي','المدفوع','المتبقي']);
-    cList.forEach((c,i)=>EX.dataRow(ws,[i+1,c.date,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,c.isAreaBased?`${c.area||0} م²`:(c.fixedUnit||'—'),c.total,c.paid,c.remaining],i%2===1));
+    cList.forEach((c,i)=>EX.dataRow(ws,[i+1,c.date,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,AREA_BASED.includes(c.workType)?`${c.area||0} م²`:(c.fixedUnit||'—'),c.total,c.paid,c.remaining],i%2===1));
     EX.totRow(ws,['','','','','','الإجمالي',cList.reduce((s,c)=>s+(c.total||0),0),cList.reduce((s,c)=>s+(c.paid||0),0),cList.reduce((s,c)=>s+(c.remaining||0),0)],'I');
   }
 
