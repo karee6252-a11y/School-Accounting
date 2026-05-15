@@ -91,15 +91,30 @@
       padding:0.18rem 0.55rem; border-radius:20px;
       font-size:0.7rem; font-weight:700; border:1px solid;
     }
-    .work-tag.carpentry  { background:#fff8e1; color:#f57f17; border-color:#ffe082; }
-    .work-tag.plumbing   { background:#e3f2fd; color:#0277bd; border-color:#90caf9; }
-    .work-tag.electric   { background:#fff3e0; color:#e65100; border-color:#ffcc02; }
-    .work-tag.tiling     { background:#f3e5f5; color:#6a1b9a; border-color:#ce93d8; }
-    .work-tag.farming    { background:#e8f5e9; color:#2e7d32; border-color:#a5d6a7; }
-    .work-tag.building   { background:#fce4ec; color:#c2185b; border-color:#f48fb1; }
-    .work-tag.ironwork   { background:#eceff1; color:#37474f; border-color:#90a4ae; }
-    .work-tag.loader     { background:#fff8e1; color:#795548; border-color:#bcaaa4; }
-    .work-tag.other      { background:#eceff1; color:#455a64; border-color:#b0bec5; }
+    .work-tag.carpentry         { background:#fff8e1; color:#f57f17; border-color:#ffe082; }
+    .work-tag.plumbing          { background:#e3f2fd; color:#0277bd; border-color:#90caf9; }
+    .work-tag.electric          { background:#fff3e0; color:#e65100; border-color:#ffcc02; }
+    .work-tag.tiling            { background:#f3e5f5; color:#6a1b9a; border-color:#ce93d8; }
+    .work-tag.farming           { background:#e8f5e9; color:#2e7d32; border-color:#a5d6a7; }
+    .work-tag.building          { background:#fce4ec; color:#c2185b; border-color:#f48fb1; }
+    .work-tag.ironwork          { background:#eceff1; color:#37474f; border-color:#90a4ae; }
+    .work-tag.loader            { background:#fff8e1; color:#795548; border-color:#bcaaa4; }
+    .work-tag.sand              { background:#fdf3e3; color:#8d6e29; border-color:#f0c060; }
+    .work-tag.gravel            { background:#f5f0e8; color:#6d5c3f; border-color:#c9b97a; }
+    .work-tag.cement            { background:#f0f0f0; color:#555555; border-color:#bbbbbb; }
+    .work-tag.blacksmith        { background:#e8eaf6; color:#3949ab; border-color:#9fa8da; }
+    .work-tag.loader_big        { background:#fff3e0; color:#bf360c; border-color:#ffab91; }
+    .work-tag.loader_small      { background:#fbe9e7; color:#d84315; border-color:#ffccbc; }
+    .work-tag.interlock         { background:#e8f5e9; color:#1b5e20; border-color:#81c784; }
+    .work-tag.painter           { background:#e1f5fe; color:#01579b; border-color:#81d4fa; }
+    .work-tag.pool_services     { background:#e0f7fa; color:#00695c; border-color:#80cbc4; }
+    .work-tag.interlock_services{ background:#f1f8e9; color:#33691e; border-color:#aed581; }
+    .work-tag.paint_services    { background:#fce4ec; color:#880e4f; border-color:#f48fb1; }
+    .work-tag.cleaning          { background:#e0f2f1; color:#00695c; border-color:#80cbc4; }
+    .work-tag.miscellaneous     { background:#fafafa; color:#546e7a; border-color:#b0bec5; }
+    .work-tag.marble            { background:#f3e5f5; color:#4a148c; border-color:#ba68c8; }
+    .work-tag.aluminum          { background:#e8eaf6; color:#1a237e; border-color:#7986cb; }
+    .work-tag.other             { background:#eceff1; color:#455a64; border-color:#b0bec5; }
 
 
     /* ===== PURPOSE TAG ===== */
@@ -345,6 +360,13 @@
             <option value="loader_small">لودر صغير</option>
             <option value="interlock">بناء انترلوك</option>
             <option value="painter">نقاش</option>
+            <option value="pool_services">خدمات حمام سباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
+            <option value="cleaning">نضافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="marble">رخام</option>
+            <option value="aluminum">الومنتال</option>
             <option value="other">أخرى</option>
           </select>
           <select class="form-select" id="purchasePurpose" onchange="filterPurchases()" style="width:170px">
@@ -355,12 +377,16 @@
             <option value="wc_building">دورات مياه المبنى</option>
             <option value="building">المبنى المدرسي</option>
             <option value="playground">الملاعب</option>
-            <option value="pool_small_s">حمام سباحة صغير</option>
-            <option value="pool_large_s">حمام سباحة كبيرة</option>
             <option value="ironwork_s">حدادة</option>
             <option value="pool_services">خدمات حمام السباحة</option>
             <option value="interlock_services">خدمات انترلوك</option>
             <option value="paint_services">خدمات دهان</option>
+            <option value="fountain">نافورة</option>
+            <option value="cleaning">نظافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="agriculture_followup">متابعة الزراعة</option>
+            <option value="aluminum">الوميتال</option>
+            <option value="marble">رخام</option>
             <option value="other">أخرى</option>
           </select>
           <button class="btn btn-primary" onclick="openPurchaseModal()"> إضافة فاتورة</button>
@@ -414,6 +440,13 @@
             <option value="loader_small">لودر صغير</option>
             <option value="interlock">بناء انترلوك</option>
             <option value="painter">نقاش</option>
+            <option value="pool_services">خدمات حمام سباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
+            <option value="cleaning">نضافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="marble">رخام</option>
+            <option value="aluminum">الومنتال</option>
             <option value="other">أخرى</option>
           </select>
           <select class="form-select" id="contractPurpose" onchange="filterContracts()" style="width:170px">
@@ -424,12 +457,16 @@
             <option value="wc_building">دورات مياه المبنى</option>
             <option value="building">المبنى المدرسي</option>
             <option value="playground">الملاعب</option>
-            <option value="pool_small_s">حمام سباحة صغير</option>
-            <option value="pool_large_s">حمام سباحة كبيرة</option>
             <option value="ironwork_s">حدادة</option>
             <option value="pool_services">خدمات حمام السباحة</option>
             <option value="interlock_services">خدمات انترلوك</option>
             <option value="paint_services">خدمات دهان</option>
+            <option value="fountain">نافورة</option>
+            <option value="cleaning">نظافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="agriculture_followup">متابعة الزراعة</option>
+            <option value="aluminum">الوميتال</option>
+            <option value="marble">رخام</option>
             <option value="other">أخرى</option>
           </select>
           <button class="btn btn-primary" onclick="openContractModal()"> إضافة عقد/عمل</button>
@@ -535,6 +572,17 @@
             <option value="building">بناء</option>
             <option value="ironwork">حدادة</option>
             <option value="loader">لودر</option>
+            <option value="sand">رمل ظلط</option>
+            <option value="gravel">ظلط</option>
+            <option value="cement">اسمنت</option>
+            <option value="blacksmith">حداد</option>
+            <option value="loader_big">لودر كبير</option>
+            <option value="loader_small">لودر صغير</option>
+            <option value="interlock">بناء انترلوك</option>
+            <option value="painter">نقاش</option>
+            <option value="pool_services">خدمات حمام سباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
             <option value="other">متنوع / أخرى</option>
           </select>
         </div>
@@ -586,12 +634,16 @@
             <option value="wc_building">دورات مياه المبنى</option>
             <option value="building">المبنى المدرسي</option>
             <option value="playground">الملاعب</option>
-            <option value="pool_small_s">حمام سباحة صغير</option>
-            <option value="pool_large_s">حمام سباحة كبيرة</option>
             <option value="ironwork_s">حدادة</option>
             <option value="pool_services">خدمات حمام السباحة</option>
             <option value="interlock_services">خدمات انترلوك</option>
             <option value="paint_services">خدمات دهان</option>
+            <option value="fountain">نافورة</option>
+            <option value="cleaning">نظافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="agriculture_followup">متابعة الزراعة</option>
+            <option value="aluminum">الوميتال</option>
+            <option value="marble">رخام</option>
             <option value="other">أخرى</option>
           </select>
         </div>
@@ -615,6 +667,13 @@
             <option value="loader_small">لودر صغير</option>
             <option value="interlock">بناء انترلوك</option>
             <option value="painter">نقاش</option>
+            <option value="pool_services">خدمات حمام سباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
+            <option value="cleaning">نضافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="marble">رخام</option>
+            <option value="aluminum">الومنتال</option>
             <option value="other">أخرى</option>
           </select>
         </div>
@@ -709,12 +768,16 @@
             <option value="wc_building">دورات مياه المبنى</option>
             <option value="building">المبنى المدرسي</option>
             <option value="playground">الملاعب</option>
-            <option value="pool_small_s">حمام سباحة صغير</option>
-            <option value="pool_large_s">حمام سباحة كبيرة</option>
             <option value="ironwork_s">حدادة</option>
             <option value="pool_services">خدمات حمام السباحة</option>
             <option value="interlock_services">خدمات انترلوك</option>
             <option value="paint_services">خدمات دهان</option>
+            <option value="fountain">نافورة</option>
+            <option value="cleaning">نظافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="agriculture_followup">متابعة الزراعة</option>
+            <option value="aluminum">الوميتال</option>
+            <option value="marble">رخام</option>
             <option value="other">أخرى</option>
           </select>
         </div>
@@ -738,6 +801,13 @@
             <option value="loader_small">لودر صغير</option>
             <option value="interlock">بناء انترلوك</option>
             <option value="painter">نقاش</option>
+            <option value="pool_services">خدمات حمام سباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
+            <option value="cleaning">نضافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="marble">رخام</option>
+            <option value="aluminum">الومنتال</option>
             <option value="other">أخرى</option>
           </select>
         </div>
@@ -974,11 +1044,11 @@ const schoolId = session.schoolId;
 const school   = SESSION.getSchool();
 
 // ─── CONSTANTS ───────────────────────────────────────────────────
-const PURPOSES = { pool_small:'حمام السباحة الصغير', pool_large:'حمام السباحة الكبير', wc_pool:'دورات مياه خدمات حمام السباحة', wc_building:'دورات مياه المبنى', building:'المبنى المدرسي', playground:'الملاعب', pool_small_s:'حمام سباحة صغير', pool_large_s:'حمام سباحة كبيرة', ironwork_s:'حدادة', pool_services:'خدمات حمام السباحة', interlock_services:'خدمات انترلوك', paint_services:'خدمات دهان', other:'أخرى' };
+const PURPOSES = { pool_small:'حمام السباحة الصغير', pool_large:'حمام السباحة الكبير', wc_pool:'دورات مياه خدمات حمام السباحة', wc_building:'دورات مياه المبنى', building:'المبنى المدرسي', playground:'الملاعب', ironwork_s:'حدادة', pool_services:'خدمات حمام السباحة', interlock_services:'خدمات انترلوك', paint_services:'خدمات دهان', fountain:'نافورة', cleaning:'نظافة', miscellaneous:'نثريات', agriculture_followup:'متابعة الزراعة', aluminum:'الوميتال', marble:'رخام', other:'أخرى' };
 // backward compat: القيم القديمة في Firebase
 const PURPOSES_LEGACY = { pool:'حمام السباحة (قديم)', wc:'دورات المياه (قديم)' };
 function getPurposeLabel(p) { return PURPOSES[p] || PURPOSES_LEGACY[p] || p || '—'; }
-const WORK_TYPES = { carpentry:'نجارة', plumbing:'سباكة', electric:'كهرباء', tiling:'تبليط', farming:'زراعة', building:'بناء', ironwork:'حدادة', loader:'لودر', sand:'رمل', gravel:'ظلط', cement:'اسمنت', blacksmith:'حداد', loader_big:'لودر كبير', loader_small:'لودر صغير', interlock:'بناء انترلوك', painter:'نقاش', other:'أخرى' };
+const WORK_TYPES = { carpentry:'نجارة', plumbing:'سباكة', electric:'كهرباء', tiling:'تبليط', farming:'زراعة', building:'بناء', ironwork:'حدادة', loader:'لودر', sand:'رمل', gravel:'ظلط', cement:'اسمنت', blacksmith:'حداد', loader_big:'لودر كبير', loader_small:'لودر صغير', interlock:'بناء انترلوك', painter:'نقاش', pool_services:'خدمات حمام سباحة', interlock_services:'خدمات انترلوك', paint_services:'خدمات دهان', cleaning:'نضافة', miscellaneous:'نثريات', marble:'رخام', aluminum:'الومنتال', other:'أخرى' };
 const AREA_BASED = ['tiling','farming','building']; // بالمساحة
 const PAY_LABELS = { cash:'نقدي', bank_transfer:'تحويل بنكي', check:'شيك', instapay:'إنستاباي' };
 
@@ -1408,6 +1478,7 @@ function renderContracts() {
       <td style="color:${hasDebt?'#c0392b':'#2e7d32'};font-weight:800">${hasDebt?formatCurrency(c.remaining||0):'مسدد ✓'}</td>
       <td>
         <button class="btn btn-sm btn-secondary" onclick="openEditContract('${c.id}')" style="margin-right:3px"></button>
+        <button class="btn btn-sm" onclick="deleteContract('${c.id}')" style="background:#fdecea;color:#c0392b;border:1px solid #f5c6cb;margin-right:3px" title="حذف">🗑️</button>
       </td>
     </tr>`;
   }).join('');
@@ -1828,6 +1899,17 @@ async function saveContract() {
     renderCustodyWidget();
     toast('تم حفظ العقد ✓');
   } catch(e) { showAlert('contractAlert','خطأ: '+e.message); }
+}
+
+async function deleteContract(id) {
+  if (!confirm('هل تريد حذف هذا العقد نهائياً؟')) return;
+  try {
+    await db.collection('contractors_contracts').doc(id).delete();
+    await loadContracts();
+    updateSummaryCards();
+    renderCustodyWidget();
+    toast('تم حذف العقد ✓');
+  } catch(e) { alert('خطأ: ' + e.message); }
 }
 
 // ─── PAY CONTRACTOR ───────────────────────────────────────────────
