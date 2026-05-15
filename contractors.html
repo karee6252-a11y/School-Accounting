@@ -406,7 +406,7 @@
               <thead>
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>نوع العمل</th>
-                  <th>البيان</th><th>الدفعة الأولى</th><th>تاريخها</th><th>طريقة / جهة الصرف</th><th>إجمالي العقد</th><th>التخصيم</th><th>الصافي</th><th>ملاحظات</th><th></th>
+                  <th>البيان</th><th>الدفعة الأولى</th><th>تاريخها</th><th>طريقة / جهة الصرف</th><th>إجمالي العقد</th><th>التخصيم</th><th>المديونية</th><th>ملاحظات</th><th></th>
                 </tr>
               </thead>
               <tbody id="purchasesBody">
@@ -1577,16 +1577,15 @@ function updateSummaryCards() {
   const cDebt      = allContracts.reduce((s,c) => s+(c.remaining||0), 0);
   const custTotal  = allPurchases.reduce((s,p) => s+(p.custodyTotal||0), 0);
   const custBal    = allPurchases.reduce((s,p) => s+(p.custodyBalance != null ? p.custodyBalance : 0), 0);
-  document.getElementById('sumPurchases').textContent      = formatCurrency(pNet);
-  document.getElementById('sumPurchasesCount').textContent = `${allPurchases.length} فاتورة${pNet!==pTotal?' (صافي)':''}`;
+  document.getElementById('sumPurchases').textContent      = formatCurrency(pTotal);
+  document.getElementById('sumPurchasesCount').textContent = `${allPurchases.length} فاتورة`;
   document.getElementById('sumContracts').textContent      = formatCurrency(cTotal);
   document.getElementById('sumContractsCount').textContent = `${allContracts.length} عقد`;
-  const pPaid = allPurchases.reduce((s,p) => s+(p.pay1||0), 0);
-  document.getElementById('sumPaid').textContent           = formatCurrency(pPaid + cPaid);
+  document.getElementById('sumPaid').textContent           = formatCurrency(pNet + cPaid);
   document.getElementById('sumSuppliersCount').textContent = `${allSuppliers.length} مورد/مقاول`;
   document.getElementById('sumDebts').textContent          = formatCurrency(cDebt);
   document.getElementById('sumDebtsCount').textContent     = `${allContracts.filter(c=>(c.remaining||0)>0).length} مقاول`;
-  document.getElementById('sumTotal').textContent          = formatCurrency(pNet + cTotal);
+  document.getElementById('sumTotal').textContent          = formatCurrency(pNet + cPaid);
 }
 
 // ─── POPULATE SELECTS ─────────────────────────────────────────────
@@ -1765,7 +1764,8 @@ function calcPurchaseTotal() {
 function calcPurchaseNet() {
   const total     = parseFloat(document.getElementById('pTotal').value)     || 0;
   const deduction = parseFloat(document.getElementById('pDeduction').value) || 0;
-  document.getElementById('pNet').value = Math.max(0, total - deduction).toFixed(2);
+  const paid      = parseFloat(document.getElementById('pQty').value)       || 0;
+  document.getElementById('pNet').value = Math.max(0, total - deduction - paid).toFixed(2);
 }
 
 async function savePurchase() {
@@ -1781,7 +1781,7 @@ async function savePurchase() {
   const unit     = document.getElementById('pUnit').value;
   const unitPrice= 0; // not used
   const deduction= parseFloat(document.getElementById('pDeduction').value) || 0;
-  const net      = Math.max(0, total - deduction);
+  const net      = Math.max(0, total - deduction - pay1);
 
   // جهة الصرف وطريقة الدفع
   const payMethod = document.getElementById('pPayMethod').value;
