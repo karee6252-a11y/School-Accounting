@@ -1123,16 +1123,9 @@ async function init() {
 
 // ─── MIGRATION: ترقية الفواتير القديمة ───────────────────────────
 async function migratePurchases() {
-  // لو سبق وعملنا الـ migration لهذه المدرسة، منعملهاش تاني
-  const flagKey = `migration_done_${schoolId}`;
-  if (localStorage.getItem(flagKey)) return;
-
   // نجيب الفواتير اللي معندهاش حقل net (يعني قديمة قبل التحديث)
   const oldPurchases = allPurchases.filter(p => p.net == null);
-  if (oldPurchases.length === 0) {
-    localStorage.setItem(flagKey, '1'); // مفيش قديم، نضع الـ flag
-    return;
-  }
+  if (oldPurchases.length === 0) return; // مفيش قديم، خلاص
 
   console.log(`[Migration] هيتم ترقية ${oldPurchases.length} فاتورة قديمة...`);
 
@@ -1161,7 +1154,6 @@ async function migratePurchases() {
 
   try {
     await batch.commit();
-    localStorage.setItem(flagKey, '1'); // نسجل إن الـ migration اتعمل
     filteredPurch = [...allPurchases];
     renderPurchases();
     updateSummaryCards();
@@ -1278,15 +1270,8 @@ function openCustodyLog() {
 
 function renderCustodyLog() {
   const cwTotal   = custodyEntries.reduce((s,e) => s+(e.amount||0), 0);
-  // نفس منطق renderCustodyWidget: رئيس مجلس الإدارة لا يُخصم من العهدة
-  const cwSpent   = allPurchases.reduce((s,p) => {
-    const fromCustody = p.paySource ? p.deductsFromCustody : true;
-    return fromCustody ? s+(p.net!=null?p.net:(p.total||0)) : s;
-  }, 0)
-  + allContracts.reduce((s,c) => {
-    const fromCustody = c.paySource ? c.deductsFromCustody : true;
-    return fromCustody ? s+(c.paid||0) : s;
-  }, 0);
+  const cwSpent   = allPurchases.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0)
+                  + allContracts.reduce((s,c) => s+(c.paid||0), 0);
   const cwBalance = cwTotal - cwSpent;
 
   document.getElementById('clogTotal').textContent   = formatCurrency(cwTotal);
@@ -1325,11 +1310,7 @@ async function deleteCustodyEntry(id) {
     await db.collection('custody_entries').doc(id).delete();
     await loadCustodyEntries();
     renderCustodyWidget();
-    // نحدث سجل العهدة بس لو المودال لسه مفتوح
-    const logModal = document.getElementById('custodyLogModal');
-    if (!logModal.classList.contains('hidden')) {
-      renderCustodyLog();
-    }
+    renderCustodyLog();
     toast('تم الحذف ✓');
   } catch(e) { alert('خطأ: '+e.message); }
 }
@@ -1604,7 +1585,7 @@ function updateSummaryCards() {
   document.getElementById('sumSuppliersCount').textContent = `${allSuppliers.length} مورد/مقاول`;
   document.getElementById('sumDebts').textContent          = formatCurrency(cDebt);
   document.getElementById('sumDebtsCount').textContent     = `${allContracts.filter(c=>(c.remaining||0)>0).length} مقاول`;
-  document.getElementById('sumTotal').textContent          = formatCurrency(pNet + cTotal);
+  document.getElementById('sumTotal').textContent          = formatCurrency(pNet + cPaid);
 }
 
 // ─── POPULATE SELECTS ─────────────────────────────────────────────
@@ -1742,7 +1723,6 @@ function openEditPurchase(id) {
   document.getElementById('pPurpose').value        = p.purpose||'';
   document.getElementById('pWorkType').value       = p.workType||'';
   document.getElementById('pDesc').value           = p.desc||'';
-  document.getElementById('pQtyHidden').value      = p.qty||'';
   document.getElementById('pQty').value            = p.pay1 ?? p.qty ?? '';
   document.getElementById('pQtyDate').value        = p.pay1Date||'';
   document.getElementById('pUnit').value           = p.unit||'قطعة';
@@ -1775,7 +1755,7 @@ function openEditPurchase(id) {
 function toggleAreaMode() { /* purchases use qty always */ }
 
 function calcPurchaseTotal() {
-  const qty   = parseFloat(document.getElementById('pQtyHidden').value) || 0;
+  const qty   = parseFloat(document.getElementById('pQty').value)       || 0;
   const price = parseFloat(document.getElementById('pUnitPrice').value) || 0;
   document.getElementById('pTotal').value = (qty * price).toFixed(2);
   calcPurchaseNet();
@@ -1817,9 +1797,7 @@ async function savePurchase() {
   // custody
   const custodySpentInput = parseFloat(document.getElementById('pCustodySpent')?.value);
   const custodySpent  = !isNaN(custodySpentInput) ? custodySpentInput : (deductsFromCustody ? net : 0);
-  // المتبقي من العهدة = صفر لأن الفاتورة وحدها مش عندها "إجمالي عهدة" خاص بيها
-  // custodyBalance بيتحسب على مستوى الكل في renderCustodyWidget
-  const custodyBalance = 0;
+  const custodyBalance = -custodySpent;
 
   if (!suppId)   return showAlert('purchaseAlert','اختر المورد');
   if (!date)     return showAlert('purchaseAlert','التاريخ مطلوب');
@@ -2050,6 +2028,7 @@ async function saveContract() {
     deductsFromCustody,
     notes: document.getElementById('cNotes').value.trim(),
     isAreaBased: isArea,
+    paymentHistory: [],
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   if (isArea)   { data.area = area; data.pricePerM = pricePerM; }
@@ -2058,14 +2037,13 @@ async function saveContract() {
   const editId = document.getElementById('contractEditId').value;
   try {
     if (editId) {
-      // نحافظ على paymentHistory الموجود عند التعديل
+      // preserve existing paymentHistory
       const existing = allContracts.find(c => c.id === editId);
       data.paymentHistory = existing?.paymentHistory || [];
       await db.collection('contractors_contracts').doc(editId).update(data);
     } else {
       data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
       data.createdBy = session.email;
-      data.paymentHistory = [];  // فقط عند الإنشاء الجديد
       await db.collection('contractors_contracts').add(data);
     }
     closeModal('contractModal');
@@ -2190,24 +2168,6 @@ async function confirmPay() {
   const newPaid      = (c.paid||0) + amount;
   const newRemaining = Math.max(0, (c.remaining||0) - amount);
   const today        = localDateStr();
-
-  // نحدد الدفعة الجاية (pay1 → pay2 → pay3)
-  const paySlotUpdates = {};
-  if (!(c.pay1 > 0)) {
-    paySlotUpdates.pay1 = amount;
-    paySlotUpdates.pay1Date = today;
-  } else if (!(c.pay2 > 0)) {
-    paySlotUpdates.pay2 = amount;
-    paySlotUpdates.pay2Date = today;
-  } else if (!(c.pay3 > 0)) {
-    paySlotUpdates.pay3 = amount;
-    paySlotUpdates.pay3Date = today;
-  }
-  // لو الدفعات الثلاثة ممتلئة نضيف على pay3 (إجمالاً)
-  if (Object.keys(paySlotUpdates).length === 0) {
-    paySlotUpdates.pay3 = (c.pay3||0) + amount;
-  }
-
   const notesWithSource = paySource === 'chairman'
     ? (notes ? notes + ' — لا يُخصم من العهدة' : 'لا يُخصم من العهدة')
     : notes;
@@ -2220,7 +2180,6 @@ async function confirmPay() {
   try {
     await db.collection('contractors_contracts').doc(contractId).update({
       paid: newPaid, remaining: newRemaining, paymentHistory: history,
-      ...paySlotUpdates,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     closeModal('payModal');
@@ -2479,19 +2438,106 @@ async function exportContractsExcel() {
   if (!filteredContr.length) { alert('لا توجد بيانات'); return; }
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Eng. Kareem Ali Mousa';
-  const ws = wb.addWorksheet('العقود',{views:[{rightToLeft:true}]});
-  ws.columns = [{width:5},{width:12},{width:22},{width:18},{width:14},{width:26},{width:12},{width:12},{width:14},{width:14},{width:14}];
-  EX.title(ws,'سجل العقود والأعمال — '+school?.name+' — 2026/2027','K');
-  EX.subTitle(ws,`تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}  |  عدد العقود: ${filteredContr.length}  |  الإجمالي: ${formatCurrency(filteredContr.reduce((s,c)=>s+(c.total||0),0))}`,'K',2);
-  EX.hdr(ws,['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','المساحة/الوحدة','سعر المتر','الإجمالي','المدفوع','المتبقي']);
-  filteredContr.forEach((c,i)=>{
-    const qCell = AREA_BASED.includes(c.workType)?`${c.area||0} م²`:(c.fixedUnit||'—');
-    const pCell = AREA_BASED.includes(c.workType)?c.pricePerM:0;
-    const r=EX.dataRow(ws,[i+1,c.date,c.contractorName,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,qCell,pCell||'—',c.total,c.paid,c.remaining],i%2===1);
-    r.getCell(9).numFmt='#,##0'; r.getCell(10).numFmt='#,##0'; r.getCell(11).numFmt='#,##0';
+  const ws = wb.addWorksheet('أعمال المقاولين', { views:[{rightToLeft:true}] });
+
+  // الأعمدة: #، التاريخ، المقاول، الغرض، نوع العمل، البيان، الإجمالي، التخصيم، دفعة1، دفعة2، دفعة3، المدفوع، المتبقي
+  ws.columns = [
+    { width: 5  }, // #
+    { width: 13 }, // التاريخ
+    { width: 24 }, // المقاول
+    { width: 20 }, // الغرض
+    { width: 16 }, // نوع العمل
+    { width: 36 }, // البيان — عريض عشان النص الطويل
+    { width: 14 }, // الإجمالي
+    { width: 12 }, // التخصيم
+    { width: 14 }, // دفعة 1
+    { width: 14 }, // دفعة 2
+    { width: 14 }, // دفعة 3
+    { width: 14 }, // المدفوع
+    { width: 14 }, // المتبقي
+  ];
+
+  const LAST_COL = 'M';
+  const numFmt = '#,##0.##';
+  const wrapStyle = (bg, bold, sz, fc) => {
+    const s = EX.S(bg, bold, sz, fc);
+    s.alignment = { horizontal:'right', vertical:'middle', wrapText:true, readingOrder:2 };
+    return s;
+  };
+
+  // العنوان والترويسة
+  EX.title(ws, 'سجل أعمال المقاولين — ' + (school?.name||'') + ' — 2026/2027', LAST_COL);
+  EX.subTitle(ws,
+    `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}  |  عدد العقود: ${filteredContr.length}  |  الإجمالي: ${formatCurrency(filteredContr.reduce((s,c)=>s+(c.total||0),0))}  |  المتبقي: ${formatCurrency(filteredContr.reduce((s,c)=>s+(c.remaining||0),0))}`,
+    LAST_COL, 2);
+  EX.hdr(ws, ['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','الإجمالي','التخصيم','دفعة 1','دفعة 2','دفعة 3','المدفوع','المتبقي']);
+
+  // البيانات
+  filteredContr.forEach((c, i) => {
+    const even = i % 2 === 1;
+    const bg   = even ? 'F5F0F0' : null;
+    const row  = ws.addRow([
+      i + 1,
+      c.date || '',
+      c.contractorName || '',
+      getPurposeLabel(c.purpose),
+      WORK_TYPES[c.workType] || c.workType || '',
+      c.desc || '',
+      c.total   || 0,
+      c.deduction || 0,
+      c.pay1    || 0,
+      c.pay2    || 0,
+      c.pay3    || 0,
+      c.paid    || 0,
+      c.remaining || 0,
+    ]);
+
+    // تنسيق كل خلية مع wrapText
+    row.eachCell({ includeEmpty: true }, cell => {
+      cell.style = wrapStyle(bg, false, 11);
+    });
+
+    // تنسيق أرقام للخلايا المالية (7 → 13)
+    [7,8,9,10,11,12,13].forEach(col => {
+      const cell = row.getCell(col);
+      cell.numFmt = numFmt;
+      // المتبقي باللون الأحمر لو موجود
+      if (col === 13 && (c.remaining||0) > 0) {
+        cell.font = { name:'Arial', bold:true, size:11, color:{ argb:'FFC0392B' } };
+      }
+      // المدفوع باللون الأخضر
+      if (col === 12 && (c.paid||0) > 0) {
+        cell.font = { name:'Arial', bold:true, size:11, color:{ argb:'FF2E7D32' } };
+      }
+    });
+
+    // ارتفاع الصف يكفي للنص الطويل (بناءً على طول البيان)
+    const descLen = (c.desc||'').length;
+    row.height = descLen > 60 ? 60 : descLen > 30 ? 40 : 22;
   });
-  EX.totRow(ws,['','','','','','','','الإجمالي',filteredContr.reduce((s,c)=>s+(c.total||0),0),filteredContr.reduce((s,c)=>s+(c.paid||0),0),filteredContr.reduce((s,c)=>s+(c.remaining||0),0)],'K');
-  await EX.download(wb,`عقود_${school?.name}`);
+
+  // صف الإجمالي
+  const totRow = ws.addRow([
+    '', '', '', '', '', 'الإجمالي',
+    filteredContr.reduce((s,c)=>s+(c.total||0),0),
+    filteredContr.reduce((s,c)=>s+(c.deduction||0),0),
+    filteredContr.reduce((s,c)=>s+(c.pay1||0),0),
+    filteredContr.reduce((s,c)=>s+(c.pay2||0),0),
+    filteredContr.reduce((s,c)=>s+(c.pay3||0),0),
+    filteredContr.reduce((s,c)=>s+(c.paid||0),0),
+    filteredContr.reduce((s,c)=>s+(c.remaining||0),0),
+  ]);
+  totRow.height = 26;
+  totRow.eachCell({ includeEmpty:true }, cell => {
+    cell.style = EX.S('1A3A6B', true, 12, 'FFFFFF');
+    cell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+  });
+  [7,8,9,10,11,12,13].forEach(col => { totRow.getCell(col).numFmt = numFmt; });
+
+  // تجميد الصف الأول (الهيدر) بعد الترويسة
+  ws.views = [{ state:'frozen', ySplit:3, rightToLeft:true }];
+
+  await EX.download(wb, `أعمال_المقاولين_${school?.name||''}`);
 }
 
 async function exportFullExcel() {
@@ -2544,14 +2590,41 @@ async function exportFullExcel() {
   // Sheet 3: عقود
   if (cList.length > 0) {
     const ws2 = wb.addWorksheet('العقود والأعمال',{views:[{rightToLeft:true}]});
-    ws2.columns = [{width:5},{width:12},{width:22},{width:18},{width:14},{width:26},{width:14},{width:12},{width:14},{width:14},{width:14}];
-    EX.title(ws2,'العقود والأعمال','K');
-    EX.hdr(ws2,['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','المساحة/الوحدة','سعر المتر','الإجمالي','المدفوع','المتبقي']);
+    ws2.columns = [
+      {width:5},{width:13},{width:24},{width:20},{width:16},{width:36},
+      {width:14},{width:12},{width:14},{width:14},{width:14},{width:14},{width:14}
+    ];
+    EX.title(ws2,'العقود والأعمال','M');
+    EX.hdr(ws2,['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','الإجمالي','التخصيم','دفعة 1','دفعة 2','دفعة 3','المدفوع','المتبقي']);
+    const numFmt='#,##0.##';
     cList.forEach((c,i)=>{
-      const qCell = AREA_BASED.includes(c.workType)?`${c.area||0} م²`:(c.fixedUnit||'—');
-      EX.dataRow(ws2,[i+1,c.date,c.contractorName,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,qCell,AREA_BASED.includes(c.workType)?(c.pricePerM||0):'—',c.total,c.paid,c.remaining],i%2===1);
+      const even=i%2===1;
+      const row=ws2.addRow([i+1,c.date,c.contractorName,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,c.total||0,c.deduction||0,c.pay1||0,c.pay2||0,c.pay3||0,c.paid||0,c.remaining||0]);
+      row.eachCell({includeEmpty:true},cell=>{
+        cell.style=EX.S(even?'F5F0F0':null,false,11);
+        cell.alignment={horizontal:'right',vertical:'middle',wrapText:true,readingOrder:2};
+      });
+      [7,8,9,10,11,12,13].forEach(col=>{
+        const cell=row.getCell(col); cell.numFmt=numFmt;
+        if(col===13&&(c.remaining||0)>0) cell.font={name:'Arial',bold:true,size:11,color:{argb:'FFC0392B'}};
+        if(col===12&&(c.paid||0)>0)     cell.font={name:'Arial',bold:true,size:11,color:{argb:'FF2E7D32'}};
+      });
+      const dl=(c.desc||'').length;
+      row.height=dl>60?60:dl>30?40:22;
     });
-    EX.totRow(ws2,['','','','','','','','الإجمالي',cList.reduce((s,c)=>s+(c.total||0),0),cList.reduce((s,c)=>s+(c.paid||0),0),cList.reduce((s,c)=>s+(c.remaining||0),0)],'K');
+    const tot=ws2.addRow(['','','','','','الإجمالي',
+      cList.reduce((s,c)=>s+(c.total||0),0),
+      cList.reduce((s,c)=>s+(c.deduction||0),0),
+      cList.reduce((s,c)=>s+(c.pay1||0),0),
+      cList.reduce((s,c)=>s+(c.pay2||0),0),
+      cList.reduce((s,c)=>s+(c.pay3||0),0),
+      cList.reduce((s,c)=>s+(c.paid||0),0),
+      cList.reduce((s,c)=>s+(c.remaining||0),0),
+    ]);
+    tot.height=26;
+    tot.eachCell({includeEmpty:true},cell=>{cell.style=EX.S('1A3A6B',true,12,'FFFFFF');cell.alignment={horizontal:'center',vertical:'middle',readingOrder:2};});
+    [7,8,9,10,11,12,13].forEach(col=>{tot.getCell(col).numFmt=numFmt;});
+    ws2.views=[{state:'frozen',ySplit:3,rightToLeft:true}];
   }
 
   // Sheet 4: موردين وأرصدتهم
@@ -2592,11 +2665,38 @@ async function exportProfileExcel(supplierId) {
   }
   if (cList.length > 0) {
     const ws = wb.addWorksheet('العقود',{views:[{rightToLeft:true}]});
-    ws.columns=[{width:5},{width:12},{width:18},{width:14},{width:26},{width:12},{width:14},{width:14},{width:14}];
-    EX.title(ws,`عقود: ${s.name}`,'I');
-    EX.hdr(ws,['#','التاريخ','الغرض','نوع العمل','البيان','المساحة/الوحدة','الإجمالي','المدفوع','المتبقي']);
-    cList.forEach((c,i)=>EX.dataRow(ws,[i+1,c.date,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,AREA_BASED.includes(c.workType)?`${c.area||0} م²`:(c.fixedUnit||'—'),c.total,c.paid,c.remaining],i%2===1));
-    EX.totRow(ws,['','','','','','الإجمالي',cList.reduce((s,c)=>s+(c.total||0),0),cList.reduce((s,c)=>s+(c.paid||0),0),cList.reduce((s,c)=>s+(c.remaining||0),0)],'I');
+    ws.columns=[{width:5},{width:13},{width:20},{width:16},{width:36},{width:14},{width:12},{width:14},{width:14},{width:14},{width:14},{width:14}];
+    EX.title(ws,`عقود: ${s.name}`,'L');
+    EX.hdr(ws,['#','التاريخ','الغرض','نوع العمل','البيان','الإجمالي','التخصيم','دفعة 1','دفعة 2','دفعة 3','المدفوع','المتبقي']);
+    const numFmt='#,##0.##';
+    cList.forEach((c,i)=>{
+      const even=i%2===1;
+      const row=ws.addRow([i+1,c.date,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,c.total||0,c.deduction||0,c.pay1||0,c.pay2||0,c.pay3||0,c.paid||0,c.remaining||0]);
+      row.eachCell({includeEmpty:true},cell=>{
+        cell.style=EX.S(even?'F5F0F0':null,false,11);
+        cell.alignment={horizontal:'right',vertical:'middle',wrapText:true,readingOrder:2};
+      });
+      [6,7,8,9,10,11,12].forEach(col=>{
+        const cell=row.getCell(col); cell.numFmt=numFmt;
+        if(col===12&&(c.remaining||0)>0) cell.font={name:'Arial',bold:true,size:11,color:{argb:'FFC0392B'}};
+        if(col===11&&(c.paid||0)>0)     cell.font={name:'Arial',bold:true,size:11,color:{argb:'FF2E7D32'}};
+      });
+      const dl=(c.desc||'').length;
+      row.height=dl>60?60:dl>30?40:22;
+    });
+    const tot=ws.addRow(['','','','','الإجمالي',
+      cList.reduce((s,c)=>s+(c.total||0),0),
+      cList.reduce((s,c)=>s+(c.deduction||0),0),
+      cList.reduce((s,c)=>s+(c.pay1||0),0),
+      cList.reduce((s,c)=>s+(c.pay2||0),0),
+      cList.reduce((s,c)=>s+(c.pay3||0),0),
+      cList.reduce((s,c)=>s+(c.paid||0),0),
+      cList.reduce((s,c)=>s+(c.remaining||0),0),
+    ]);
+    tot.height=26;
+    tot.eachCell({includeEmpty:true},cell=>{cell.style=EX.S('1A3A6B',true,12,'FFFFFF');cell.alignment={horizontal:'center',vertical:'middle',readingOrder:2};});
+    [6,7,8,9,10,11,12].forEach(col=>{tot.getCell(col).numFmt=numFmt;});
+    ws.views=[{state:'frozen',ySplit:3,rightToLeft:true}];
   }
 
   await EX.download(wb,`ملف_${s.name}`);
