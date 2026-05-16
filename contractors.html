@@ -1601,11 +1601,11 @@ function updateSummaryCards() {
   document.getElementById('sumPurchasesCount').textContent = `${allPurchases.length} فاتورة`;
   document.getElementById('sumContracts').textContent      = formatCurrency(cTotal);
   document.getElementById('sumContractsCount').textContent = `${allContracts.length} عقد`;
-  document.getElementById('sumPaid').textContent           = formatCurrency(pNet + cPaid);
+  document.getElementById('sumPaid').textContent           = formatCurrency(cPaid);
   document.getElementById('sumSuppliersCount').textContent = `${allSuppliers.length} مورد/مقاول`;
   document.getElementById('sumDebts').textContent          = formatCurrency(cDebt);
   document.getElementById('sumDebtsCount').textContent     = `${allContracts.filter(c=>(c.remaining||0)>0).length} مقاول`;
-  document.getElementById('sumTotal').textContent          = formatCurrency(pNet + cPaid);
+  document.getElementById('sumTotal').textContent          = formatCurrency(pNet + cTotal);
 }
 
 // ─── POPULATE SELECTS ─────────────────────────────────────────────
@@ -2444,14 +2444,122 @@ async function exportPurchasesExcel() {
   if (!filteredPurch.length) { alert('لا توجد بيانات'); return; }
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Eng. Kareem Ali Mousa';
-  const ws = wb.addWorksheet('المشتريات',{views:[{rightToLeft:true}]});
-  ws.columns = [{width:5},{width:12},{width:22},{width:18},{width:14},{width:26},{width:10},{width:10},{width:14},{width:14},{width:24}];
-  EX.title(ws,'سجل المشتريات — '+school?.name+' — 2026/2027','K');
-  EX.subTitle(ws,`تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}  |  عدد الفواتير: ${filteredPurch.length}  |  الإجمالي: ${formatCurrency(filteredPurch.reduce((s,p)=>s+(p.total||0),0))}`,'K',2);
-  EX.hdr(ws,['#','التاريخ','المورد','الغرض','نوع العمل','البيان','الكمية','الوحدة','سعر الوحدة','الإجمالي','ملاحظات']);
-  filteredPurch.forEach((p,i)=>{ const r=EX.dataRow(ws,[i+1,p.date,p.supplierName,getPurposeLabel(p.purpose),WORK_TYPES[p.workType]||p.workType,p.desc,p.qty,p.unit,p.unitPrice,p.total,p.notes||''],i%2===1); r.getCell(9).numFmt='#,##0'; r.getCell(10).numFmt='#,##0'; });
-  EX.totRow(ws,['','','','','','','','','الإجمالي',filteredPurch.reduce((s,p)=>s+(p.total||0),0),''],'K');
-  await EX.download(wb,`مشتريات_${school?.name}`);
+  const ws = wb.addWorksheet('المشتريات', { views:[{ rightToLeft:true }] });
+
+  // عرض الأعمدة بالظبط زي الشيت المرجعي
+  ws.columns = [
+    { width: 7.85  },  // A  #
+    { width: 21.4  },  // B  التاريخ
+    { width: 18    },  // C  المورد
+    { width: 18    },  // D  الغرض
+    { width: 14    },  // E  نوع العمل
+    { width: 38.5  },  // F  البيان
+    { width: 21.4  },  // G  الإجمالي
+    { width: 21.4  },  // H  المدفوع
+    { width: 21.4  },  // I  المتبقي
+  ];
+
+  const numFmt = '#,##0';
+  const thin   = { style:'thin' };
+  const border = { top:thin, bottom:thin, left:thin, right:thin };
+  const centerWrap   = { horizontal:'center', vertical:'middle', wrapText:true, readingOrder:2 };
+  const centerNoWrap = { horizontal:'center', vertical:'middle', readingOrder:2 };
+
+  const pTotal = filteredPurch.reduce((s,p) => s+(p.total||0), 0);
+  const pPaid  = filteredPurch.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0);
+  const pDebt  = pTotal - pPaid;
+
+  // ── صف 1: العنوان ─────────────────────────────────────────────
+  ws.mergeCells('A1:I1');
+  const r1 = ws.getRow(1); r1.height = 33.95;
+  const t1 = r1.getCell(1);
+  t1.value     = `سجل المشتريات — ${school?.name||''} — 2026/2027`;
+  t1.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FFC00000' } };
+  t1.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFDDD9C4' } };
+  t1.alignment = centerWrap;
+  t1.border    = border;
+
+  // ── صف 2: الترويسة ────────────────────────────────────────────
+  ws.mergeCells('A2:I2');
+  const r2 = ws.getRow(2); r2.height = 20.1;
+  const t2 = r2.getCell(1);
+  t2.value     = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}  |  عدد الفواتير: ${filteredPurch.length}  |  الإجمالي: ${formatCurrency(pTotal)}  |  المدفوع: ${formatCurrency(pPaid)}  |  المتبقي: ${formatCurrency(pDebt)}`;
+  t2.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FF000000' } };
+  t2.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFD8E4BC' } };
+  t2.alignment = centerWrap;
+  t2.border    = border;
+
+  // ── صف 3: الهيدر ──────────────────────────────────────────────
+  const headers = ['#','التاريخ','المورد','الغرض','نوع العمل','البيان','الإجمالي','المدفوع','المتبقي'];
+  const r3 = ws.getRow(3); r3.height = 24;
+  headers.forEach((h, idx) => {
+    const cell     = r3.getCell(idx + 1);
+    cell.value     = h;
+    cell.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FFFFFFFF' } };
+    cell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFAD818A' } };
+    cell.alignment = centerNoWrap;
+    cell.border    = border;
+  });
+
+  // ── صفوف البيانات ─────────────────────────────────────────────
+  filteredPurch.forEach((p, i) => {
+    const even    = i % 2 === 1;
+    const bgArgb  = even ? 'FFF5F0F0' : null;
+    const net     = p.net != null ? p.net : (p.total || 0);
+    const remaining = (p.total || 0) - net;
+
+    const row = ws.getRow(4 + i);
+    row.height = 30;
+
+    const vals = [
+      i + 1,
+      p.date || '',
+      p.supplierName || '',
+      getPurposeLabel(p.purpose) || '',
+      WORK_TYPES[p.workType] || p.workType || '',
+      p.desc || '',
+      p.total  || 0,
+      net,
+      remaining,
+    ];
+
+    vals.forEach((val, idx) => {
+      const cell     = row.getCell(idx + 1);
+      cell.value     = val;
+      cell.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FF000000' } };
+      cell.alignment = centerWrap;
+      cell.border    = border;
+      if (bgArgb) cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:bgArgb } };
+      // تنسيق الأرقام (G,H,I = col 7,8,9)
+      if (idx >= 6) cell.numFmt = numFmt;
+    });
+  });
+
+  // ── صف الإجمالي ───────────────────────────────────────────────
+  const dataCount = filteredPurch.length;
+  const totRow    = ws.getRow(4 + dataCount);
+  totRow.height   = 24;
+
+  const totVals = [
+    'الإجمالي', '', '', '', '', '',
+    filteredPurch.reduce((s,p) => s+(p.total||0), 0),
+    filteredPurch.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0),
+    filteredPurch.reduce((s,p) => s+((p.total||0)-(p.net!=null?p.net:(p.total||0))), 0),
+  ];
+  totVals.forEach((val, idx) => {
+    const cell     = totRow.getCell(idx + 1);
+    cell.value     = val;
+    cell.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FFFFFFFF' } };
+    cell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF1A3A6B' } };
+    cell.alignment = centerNoWrap;
+    cell.border    = border;
+    if (idx >= 6) cell.numFmt = numFmt;
+  });
+
+  // تجميد الصفوف الأولى
+  ws.views = [{ state:'frozen', ySplit:3, rightToLeft:true }];
+
+  await EX.download(wb, `مشتريات_${school?.name||''}`);
 }
 
 async function exportContractsExcel() {
