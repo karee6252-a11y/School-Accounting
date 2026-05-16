@@ -709,7 +709,7 @@
     if (!students.length) {
       const isEmpty = allPartyStudents.length === 0;
       grid.innerHTML = `<div class="empty-photo">
-        <div class="ep-title">${isEmpty ? 'لا يوجد طلاب KG1/KG2 مسجلين في الحفلة' : 'لا توجد نتائج'}</div>
+        <div class="ep-title">${isEmpty ? 'لا يوجد طلاب مسجلين في الحفلة' : 'لا توجد نتائج'}</div>
         <div class="ep-sub">${isEmpty ? 'سجّل الطلاب أولاً من صفحة تسجيل الحفلة' : 'جرّب تعديل الفلتر'}</div>
       </div>`;
       return;
@@ -718,8 +718,16 @@
     grid.innerHTML = students.map(s => {
       const price    = PHOTO_PRICES[s.grade] || 0;
       const hasPhoto = !!s.photoPackage;
+
+      // فحص لو الطالب محجوز مسبقاً كـ direct (بالاسم)
+      const directBooking = !hasPhoto && allDirectStudents.find(
+        d => (d.name || '').trim().toLowerCase() === (s.name || '').trim().toLowerCase()
+      );
+
+      const isBooked = hasPhoto || !!directBooking;
+
       return `
-        <div class="student-card ${hasPhoto ? 'has-photo' : ''}" id="sc-${s.id}">
+        <div class="student-card ${isBooked ? 'has-photo' : ''}" id="sc-${s.id}">
           <div class="sc-left">
             <div class="sc-avatar">${s.grade}</div>
             <div>
@@ -728,6 +736,7 @@
                 ${s.grade}
                 ${s.phone ? `&nbsp;·&nbsp;<span dir="ltr">${s.phone}</span>` : ''}
                 ${hasPhoto && s.photoPayType ? `&nbsp;·&nbsp;${payLabel(s.photoPayType)}` : ''}
+                ${directBooking ? `&nbsp;·&nbsp;<span style="color:#2e7d32;font-weight:800">محجوز مباشر</span>` : ''}
               </div>
             </div>
           </div>
@@ -737,7 +746,14 @@
               ? `<span class="badge-photo">محجوز</span>
                  <button class="btn btn-sm" style="background:#fce4ec;color:#c62828;border:1px solid #ef9a9a;font-size:0.75rem"
                    onclick="cancelBooking('${s.id}', '${s.name}')">🗑️ إلغاء</button>`
-              : `<button class="btn btn-sm btn-primary"
+              : directBooking
+                ? `<span class="badge-photo" style="background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7">محجوز مباشر</span>
+                   <button class="btn btn-sm" style="background:#fce4ec;color:#c62828;border:1px solid #ef9a9a;font-size:0.75rem"
+                     onclick="deleteDirectStudent('${directBooking.id}','${directBooking.name}')">🗑️ إلغاء</button>
+                   <button class="btn btn-sm btn-primary"
+                     style="background:var(--primary);border-color:var(--primary);white-space:nowrap;font-size:0.75rem"
+                     onclick="openConfirm('${s.id}')">تحويل لحفلة</button>`
+                : `<button class="btn btn-sm btn-primary"
                    style="background:var(--primary);border-color:var(--primary);white-space:nowrap"
                    onclick="openConfirm('${s.id}')"> حجز</button>`
             }
@@ -808,6 +824,17 @@
       // تحديث الـ local cache
       const idx = allPartyStudents.findIndex(x => x.id === currentStudent.id);
       if (idx !== -1) Object.assign(allPartyStudents[idx], { photoPackage: true, photoPrice: price, photoPayType: payType });
+
+      // لو كان الطالب محجوز مسبقاً كـ direct، احذفه تلقائياً عشان مايتكررش
+      const directDup = allDirectStudents.find(
+        d => (d.name || '').trim().toLowerCase() === (currentStudent.name || '').trim().toLowerCase()
+      );
+      if (directDup) {
+        try {
+          await db.collection('partyAttendees').doc(directDup.id).delete();
+          allDirectStudents = allDirectStudents.filter(d => d.id !== directDup.id);
+        } catch(e2) { /* مش مشكلة لو فشل الحذف */ }
+      }
 
       updateStats();
       filterStudents();
@@ -1101,9 +1128,8 @@
     setTimeout(() => el.classList.add('hidden'), 3500);
   }
 
-  // INIT
-  loadPartyStudents();
-  loadDirectStudents();
+  // INIT — نحمّل الـ direct students الأول عشان renderStudentGrid يعرف مين محجوز مباشر
+  loadDirectStudents().then(() => loadPartyStudents());
 </script>
 </body>
 </html>
