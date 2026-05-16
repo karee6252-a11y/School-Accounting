@@ -302,34 +302,34 @@
       <!-- SUMMARY CARDS -->
       <div class="sum-grid animate-in" id="mainSumGrid">
         <div class="sum-card blue">
-          <div class="icon"></div>
-          <div class="lbl">إجمالي المشتريات</div>
-          <div class="val" id="sumPurchases">—</div>
-          <div class="sub" id="sumPurchasesCount">0 فاتورة</div>
-        </div>
-        <div class="sum-card purple">
-          <div class="icon"></div>
-          <div class="lbl">إجمالي المقاولات</div>
-          <div class="val" id="sumContracts">—</div>
-          <div class="sub" id="sumContractsCount">0 عقد</div>
-        </div>
-        <div class="sum-card orange">
-          <div class="icon"></div>
-          <div class="lbl">المدفوع للموردين</div>
-          <div class="val" id="sumPaid">—</div>
-          <div class="sub" id="sumSuppliersCount">0 مورد</div>
+          <div class="icon">🛒</div>
+          <div class="lbl">إجمالي المدفوعات للمشتريات</div>
+          <div class="val" id="sumPurchasesPaid">—</div>
+          <div class="sub" id="sumPurchasesPaidSub">إجمالي العقد − المديونية</div>
         </div>
         <div class="sum-card red">
-          <div class="icon"></div>
-          <div class="lbl">مديونيات المقاولين</div>
-          <div class="val" id="sumDebts">—</div>
-          <div class="sub" id="sumDebtsCount">0 مقاول</div>
+          <div class="icon">📋</div>
+          <div class="lbl">مديونية المشتريات</div>
+          <div class="val" id="sumPurchasesDebt">—</div>
+          <div class="sub" id="sumPurchasesDebtCount">0 فاتورة</div>
+        </div>
+        <div class="sum-card purple">
+          <div class="icon">🏗️</div>
+          <div class="lbl">صافي المقاولات المستحق</div>
+          <div class="val" id="sumContractsNet">—</div>
+          <div class="sub">إجمالي − التخصيم − المديونية</div>
         </div>
         <div class="sum-card green">
-          <div class="icon"></div>
-          <div class="lbl">إجمالي الإنفاق</div>
-          <div class="val" id="sumTotal">—</div>
-          <div class="sub">مشتريات + مقاولات</div>
+          <div class="icon">💸</div>
+          <div class="lbl">المدفوع للمقاولين الفعلي</div>
+          <div class="val" id="sumContractsPaid">—</div>
+          <div class="sub" id="sumContractsPaidCount">0 عقد</div>
+        </div>
+        <div class="sum-card orange">
+          <div class="icon">⚠️</div>
+          <div class="lbl">مديونية المقاولين</div>
+          <div class="val" id="sumContractsDebt">—</div>
+          <div class="sub" id="sumContractsDebtCount">0 مقاول</div>
         </div>
       </div>
 
@@ -506,8 +506,8 @@
               <thead>
                 <tr>
                   <th>#</th><th>التاريخ</th><th>المقاول</th><th>الغرض</th><th>نوع العمل</th>
-                  <th>البيان</th><th>المساحة/الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>إجمالي العقد</th>
-                  <th>الدفعة الأولى</th><th>الدفعة الثانية</th><th>الدفعة الثالثة</th><th>التخصيم</th><th>طريقة / جهة الصرف</th><th>المديونية</th><th></th>
+                  <th>البيان</th><th>إجمالي العقد</th>
+                  <th>الدفعة الأولى</th><th>الدفعة الثانية</th><th>الدفعة الثالثة</th><th>الدفعة الرابعة</th><th>التخصيم</th><th>طريقة / جهة الصرف</th><th>المديونية</th><th></th>
                 </tr>
               </thead>
               <tbody id="contractsBody">
@@ -882,14 +882,10 @@
         </div>
         <!-- Fixed mode (نجارة/سباكة/كهرباء) -->
         <div id="cFixedGroup" style="grid-column:1/-1">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+          <div style="display:grid;grid-template-columns:1fr;gap:0.75rem">
             <div class="form-group">
               <label class="form-label">إجمالي العقد (ج.م) <span class="required">*</span></label>
               <input type="number" class="form-input" id="cFixedTotal" placeholder="0.00" min="0" step="0.01" oninput="syncFixedTotal()" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">الكمية / الوحدة</label>
-              <input type="text" class="form-input" id="cFixedUnit" placeholder="مثال: 5 أبواب / 3 نقط كهرباء" />
             </div>
           </div>
         </div>
@@ -916,6 +912,14 @@
         <div class="form-group">
           <label class="form-label">تاريخ الدفعة الثالثة</label>
           <input type="date" class="form-input" id="cPay3Date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">الدفعة الرابعة (ج.م)</label>
+          <input type="number" class="form-input" id="cPay4" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">تاريخ الدفعة الرابعة</label>
+          <input type="date" class="form-input" id="cPay4Date" />
         </div>
         <!-- حقل مخفي للتوافق مع الكود القديم -->
         <input type="hidden" id="cPaidNow" />
@@ -1152,8 +1156,9 @@ async function migratePurchases() {
 
   const batch = db.batch();
   oldPurchases.forEach(p => {
-    const deduction     = p.deduction     || 0;
-    const net           = Math.max(0, (p.total||0) - deduction);
+    const deduction = p.deduction || 0;
+    const pay1      = p.pay1      || p.qty || 0; // الدفعة الأولى أو الكمية للتوافق القديم
+    const net       = Math.max(0, (p.total||0) - deduction - pay1);
     const custodyPrev   = p.custodyPrev   || 0;
     const custodyNew    = p.custodyNew    || 0;
     const custodyTotal  = custodyPrev + custodyNew;
@@ -1539,16 +1544,13 @@ function renderContracts() {
   document.getElementById('contractCount').textContent = filteredContr.length;
 
   if (filteredContr.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="16"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد عقود</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="15"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد عقود</div></div></td></tr>`;
     tfoot.innerHTML = ''; return;
   }
 
   let gTotal = 0, gPaid = 0, gDeduct = 0, gDebt = 0;
   tbody.innerHTML = filteredContr.map((c, i) => {
     gTotal += c.total||0; gPaid += c.paid||0; gDeduct += c.deduction||0; gDebt += c.remaining||0;
-    const isArea = AREA_BASED.includes(c.workType);
-    const qtyCell = isArea ? `${c.area||0} م²` : (c.fixedUnit||'—');
-    const upCell  = isArea ? `${formatCurrency(c.pricePerM||0)}/م²` : '—';
     const wTag = c.workType ? `<span class="work-tag ${c.workType}">${WORK_TYPES[c.workType]||c.workType}</span>` : '—';
     const ppTag= c.purpose  ? `<span class="purpose-tag">${getPurposeLabel(c.purpose)}</span>` : '—';
     const hasDebt = (c.remaining||0) > 0;
@@ -1567,13 +1569,11 @@ function renderContracts() {
       <td>${ppTag}</td>
       <td>${wTag}</td>
       <td>${c.desc||'—'}</td>
-      <td style="text-align:center">${qtyCell}</td>
-      <td style="text-align:center">${isArea?'م²':'إجمالي'}</td>
-      <td style="text-align:center">${upCell}</td>
       <td class="text-bold text-primary">${formatCurrency(c.total||0)}</td>
       <td style="color:#2e7d32;font-weight:700">${(c.pay1||0)>0?formatCurrency(c.pay1):'—'}<br><span style="font-size:0.7rem;color:var(--text-light)">${c.pay1Date||''}</span></td>
       <td style="color:#2e7d32;font-weight:700">${(c.pay2||0)>0?formatCurrency(c.pay2):'—'}<br><span style="font-size:0.7rem;color:var(--text-light)">${c.pay2Date||''}</span></td>
       <td style="color:#2e7d32;font-weight:700">${(c.pay3||0)>0?formatCurrency(c.pay3):'—'}<br><span style="font-size:0.7rem;color:var(--text-light)">${c.pay3Date||''}</span></td>
+      <td style="color:#2e7d32;font-weight:700">${(c.pay4||0)>0?formatCurrency(c.pay4):'—'}<br><span style="font-size:0.7rem;color:var(--text-light)">${c.pay4Date||''}</span></td>
       <td style="color:#e65100;font-weight:700">${(c.deduction||0)>0 ? formatCurrency(c.deduction) : '—'}</td>
       <td>${methodBadge}<br/>${srcBadge}</td>
       <td style="color:${hasDebt?'#c0392b':'#2e7d32'};font-weight:800">${hasDebt?formatCurrency(c.remaining||0):'مسدد ✓'}</td>
@@ -1585,11 +1585,12 @@ function renderContracts() {
   }).join('');
 
   tfoot.innerHTML = `<tr style="background:var(--accent);font-weight:800;color:var(--primary)">
-    <td colspan="9" style="padding:0.75rem 1rem">الإجمالي (${filteredContr.length} عقد)</td>
+    <td colspan="6" style="padding:0.75rem 1rem">الإجمالي (${filteredContr.length} عقد)</td>
     <td style="padding:0.75rem 1rem">${formatCurrency(gTotal)}</td>
     <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(filteredContr.reduce((a,c)=>a+(c.pay1||0),0))}</td>
     <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(filteredContr.reduce((a,c)=>a+(c.pay2||0),0))}</td>
     <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(filteredContr.reduce((a,c)=>a+(c.pay3||0),0))}</td>
+    <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(filteredContr.reduce((a,c)=>a+(c.pay4||0),0))}</td>
     <td style="padding:0.75rem 1rem;color:#e65100">${gDeduct>0?formatCurrency(gDeduct):'—'}</td>
     <td></td>
     <td style="padding:0.75rem 1rem;color:#c0392b">${formatCurrency(gDebt)}</td>
@@ -1599,22 +1600,36 @@ function renderContracts() {
 
 // ─── SUMMARY CARDS ────────────────────────────────────────────────
 function updateSummaryCards() {
-  const pTotal     = allPurchases.reduce((s,p) => s+(p.total||0), 0);
-  const pNet       = allPurchases.reduce((s,p) => s+(p.net != null ? p.net : (p.total||0)), 0);
+  // ── المشتريات ──
+  const pTotal = allPurchases.reduce((s,p) => s+(p.total||0), 0);
+  const pDebt  = allPurchases.reduce((s,p) => s+(p.net != null ? p.net : (p.total||0)), 0);
+  const pPaid  = pTotal - pDebt;
+
+  // ── المقاولات ──
   const cTotal     = allContracts.reduce((s,c) => s+(c.total||0), 0);
-  const cPaid      = allContracts.reduce((s,c) => s+(c.paid||0),  0);
+  const cDeduction = allContracts.reduce((s,c) => s+(c.deduction||0), 0);
   const cDebt      = allContracts.reduce((s,c) => s+(c.remaining||0), 0);
-  const custTotal  = allPurchases.reduce((s,p) => s+(p.custodyTotal||0), 0);
-  const custBal    = allPurchases.reduce((s,p) => s+(p.custodyBalance != null ? p.custodyBalance : 0), 0);
-  document.getElementById('sumPurchases').textContent      = formatCurrency(pTotal);
-  document.getElementById('sumPurchasesCount').textContent = `${allPurchases.length} فاتورة`;
-  document.getElementById('sumContracts').textContent      = formatCurrency(cTotal);
-  document.getElementById('sumContractsCount').textContent = `${allContracts.length} عقد`;
-  document.getElementById('sumPaid').textContent           = formatCurrency(cPaid);
-  document.getElementById('sumSuppliersCount').textContent = `${allSuppliers.length} مورد/مقاول`;
-  document.getElementById('sumDebts').textContent          = formatCurrency(cDebt);
-  document.getElementById('sumDebtsCount').textContent     = `${allContracts.filter(c=>(c.remaining||0)>0).length} مقاول`;
-  document.getElementById('sumTotal').textContent          = formatCurrency(pNet + cTotal);
+  const cPaid      = allContracts.reduce((s,c) => s+(c.paid||0), 0);
+  const cNet       = cTotal - cDeduction - cDebt;
+
+  // كارت 1: إجمالي المدفوعات للمشتريات
+  document.getElementById('sumPurchasesPaid').textContent    = formatCurrency(pPaid);
+  document.getElementById('sumPurchasesPaidSub').textContent = `إجمالي العقد − المديونية`;
+
+  // كارت 2: مديونية المشتريات
+  document.getElementById('sumPurchasesDebt').textContent      = formatCurrency(pDebt);
+  document.getElementById('sumPurchasesDebtCount').textContent = `${allPurchases.filter(p=>(p.net||0)>0).length} فاتورة لم تُسدَّد`;
+
+  // كارت 3: صافي المقاولات المستحق
+  document.getElementById('sumContractsNet').textContent = formatCurrency(cNet);
+
+  // كارت 4: المدفوع للمقاولين الفعلي
+  document.getElementById('sumContractsPaid').textContent      = formatCurrency(cPaid);
+  document.getElementById('sumContractsPaidCount').textContent = `${allContracts.length} عقد`;
+
+  // كارت 5: مديونية المقاولين
+  document.getElementById('sumContractsDebt').textContent      = formatCurrency(cDebt);
+  document.getElementById('sumContractsDebtCount').textContent = `${allContracts.filter(c=>(c.remaining||0)>0).length} مقاول`;
 }
 
 // ─── POPULATE SELECTS ─────────────────────────────────────────────
@@ -1884,7 +1899,7 @@ function openContractModal() {
   document.getElementById('cDate').value = localDateStr();
   ['cContractor','cPurpose','cWorkType'].forEach(id => document.getElementById(id).value = '');
   ['cDesc','cNotes'].forEach(id => document.getElementById(id).value = '');
-  ['cArea','cPricePerM','cTotal','cFixedTotal','cPay1','cPay1Date','cPay2','cPay2Date','cPay3','cPay3Date','cDeduction','cDebt'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  ['cArea','cPricePerM','cTotal','cFixedTotal','cPay1','cPay1Date','cPay2','cPay2Date','cPay3','cPay3Date','cPay4','cPay4Date','cDeduction','cDebt'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   document.getElementById('cFixedUnit').value = '';
   document.getElementById('cPayMethod').value = 'cash';
   document.getElementById('cPaySourceChairman').checked = false;
@@ -1916,6 +1931,8 @@ function openEditContract(id) {
   document.getElementById('cPay2Date').value       = c.pay2Date||'';
   document.getElementById('cPay3').value           = c.pay3||'';
   document.getElementById('cPay3Date').value       = c.pay3Date||'';
+  document.getElementById('cPay4').value           = c.pay4||'';
+  document.getElementById('cPay4Date').value       = c.pay4Date||'';
   document.getElementById('cDeduction').value      = c.deduction||'';
   document.getElementById('cDebt').value           = c.remaining||'';
 
@@ -1967,6 +1984,8 @@ function toggleContractMode() {
   document.getElementById('cPay2Date').value = '';
   document.getElementById('cPay3').value = '';
   document.getElementById('cPay3Date').value = '';
+  document.getElementById('cPay4').value = '';
+  document.getElementById('cPay4Date').value = '';
   document.getElementById('cDeduction').value = '';
   document.getElementById('cDebt').value = '';
 }
@@ -1990,7 +2009,8 @@ function calcContractDebt() {
   const pay1      = parseFloat(document.getElementById('cPay1').value)||0;
   const pay2      = parseFloat(document.getElementById('cPay2').value)||0;
   const pay3      = parseFloat(document.getElementById('cPay3').value)||0;
-  const totalPaid = pay1 + pay2 + pay3;
+  const pay4      = parseFloat(document.getElementById('cPay4').value)||0;
+  const totalPaid = pay1 + pay2 + pay3 + pay4;
   // sync hidden field for backward compat
   document.getElementById('cPaidNow').value = totalPaid;
   const deduction = parseFloat(document.getElementById('cDeduction').value)||0;
@@ -2020,7 +2040,7 @@ async function saveContract() {
     if (area<=0||pricePerM<=0) return showAlert('contractAlert','ادخل المساحة وسعر المتر');
   } else {
     total     = parseFloat(document.getElementById('cFixedTotal').value)||0;
-    fixedUnit = document.getElementById('cFixedUnit').value.trim();
+    fixedUnit = ''; // تم حذف حقل الكمية/الوحدة
     if (total<=0) return showAlert('contractAlert','إجمالي العقد مطلوب');
   }
 
@@ -2030,7 +2050,9 @@ async function saveContract() {
   const pay2Date  = document.getElementById('cPay2Date').value||'';
   const pay3      = parseFloat(document.getElementById('cPay3').value)||0;
   const pay3Date  = document.getElementById('cPay3Date').value||'';
-  const paid      = pay1 + pay2 + pay3;
+  const pay4      = parseFloat(document.getElementById('cPay4').value)||0;
+  const pay4Date  = document.getElementById('cPay4Date').value||'';
+  const paid      = pay1 + pay2 + pay3 + pay4;
   const deduction = parseFloat(document.getElementById('cDeduction').value)||0;
   const remaining = Math.max(0, total - paid - deduction);
   const contr     = allSuppliers.find(s => s.id === contId);
@@ -2050,7 +2072,7 @@ async function saveContract() {
     schoolId, contractorId: contId, contractorName: contr?.name||'',
     date, purpose, purposeLabel: getPurposeLabel(purpose),
     workType, workTypeLabel: WORK_TYPES[workType]||workType,
-    desc, total, paid, pay1, pay1Date, pay2, pay2Date, pay3, pay3Date, deduction, remaining,
+    desc, total, paid, pay1, pay1Date, pay2, pay2Date, pay3, pay3Date, pay4, pay4Date, deduction, remaining,
     payMethod: cPayMethod,
     paySource: cPaySource,
     paySourceLabel: PAY_SOURCE_LABELS[cPaySource]||cPaySource,
@@ -2206,8 +2228,10 @@ async function confirmPay() {
     paySlotUpdates.pay2 = amount; paySlotUpdates.pay2Date = today;
   } else if (!(c.pay3 > 0)) {
     paySlotUpdates.pay3 = amount; paySlotUpdates.pay3Date = today;
+  } else if (!(c.pay4 > 0)) {
+    paySlotUpdates.pay4 = amount; paySlotUpdates.pay4Date = today;
   } else {
-    paySlotUpdates.pay3 = (c.pay3||0) + amount; // أكثر من 3 دفعات تتجمع في pay3
+    paySlotUpdates.pay4 = (c.pay4||0) + amount; // أكثر من 4 دفعات تتجمع في pay4
   }
 
   const notesWithSource = paySource === 'chairman'
@@ -2488,9 +2512,10 @@ async function exportPurchasesExcel() {
   const centerWrap   = { horizontal:'center', vertical:'middle', wrapText:true, readingOrder:2 };
   const centerNoWrap = { horizontal:'center', vertical:'middle', readingOrder:2 };
 
-  const pTotal = filteredPurch.reduce((s,p) => s+(p.total||0), 0);
-  const pPaid  = filteredPurch.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0);
-  const pDebt  = pTotal - pPaid;
+  const pTotal     = filteredPurch.reduce((s,p) => s+(p.total||0), 0);
+  const pDeduction = filteredPurch.reduce((s,p) => s+(p.deduction||0), 0);
+  const pNet       = filteredPurch.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0); // المديونية (الصافي المتبقي)
+  const pPaid      = pTotal - pNet; // المدفوع فعلاً = إجمالي العقد - المديونية
 
   // ── صف 1: العنوان ─────────────────────────────────────────────
   ws.mergeCells('A1:I1');
@@ -2506,7 +2531,7 @@ async function exportPurchasesExcel() {
   ws.mergeCells('A2:I2');
   const r2 = ws.getRow(2); r2.height = 20.1;
   const t2 = r2.getCell(1);
-  t2.value     = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}  |  عدد الفواتير: ${filteredPurch.length}  |  الإجمالي: ${formatCurrency(pTotal)}  |  المدفوع: ${formatCurrency(pPaid)}  |  المتبقي: ${formatCurrency(pDebt)}`;
+  t2.value     = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}  |  عدد الفواتير: ${filteredPurch.length}  |  الإجمالي: ${formatCurrency(pTotal)}  |  المدفوع: ${formatCurrency(pPaid)}  |  المديونية: ${formatCurrency(pNet)}`;
   t2.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FF000000' } };
   t2.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFD8E4BC' } };
   t2.alignment = centerWrap;
@@ -2524,12 +2549,12 @@ async function exportPurchasesExcel() {
     cell.border    = border;
   });
 
-  // ── صفوف البيانات ─────────────────────────────────────────────
+  // صفوف البيانات
   filteredPurch.forEach((p, i) => {
     const even    = i % 2 === 1;
     const bgArgb  = even ? 'FFF5F0F0' : null;
-    const net     = p.net != null ? p.net : (p.total || 0);
-    const remaining = (p.total || 0) - net;
+    const pDebt   = p.net != null ? p.net : (p.total || 0); // المديونية
+    const pPaidRow = (p.total || 0) - pDebt;                // المدفوع
 
     const row = ws.getRow(4 + i);
     row.height = 30;
@@ -2541,9 +2566,9 @@ async function exportPurchasesExcel() {
       getPurposeLabel(p.purpose) || '',
       WORK_TYPES[p.workType] || p.workType || '',
       p.desc || '',
-      p.total  || 0,
-      net,
-      remaining,
+      p.total   || 0,   // G: إجمالي العقد
+      pPaidRow,          // H: المدفوع
+      pDebt,             // I: المديونية
     ];
 
     vals.forEach((val, idx) => {
@@ -2565,9 +2590,9 @@ async function exportPurchasesExcel() {
 
   const totVals = [
     'الإجمالي', '', '', '', '', '',
-    filteredPurch.reduce((s,p) => s+(p.total||0), 0),
-    filteredPurch.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0),
-    filteredPurch.reduce((s,p) => s+((p.total||0)-(p.net!=null?p.net:(p.total||0))), 0),
+    filteredPurch.reduce((s,p) => s+(p.total||0), 0),                                          // G: إجمالي العقود
+    filteredPurch.reduce((s,p) => { const d=p.net!=null?p.net:(p.total||0); return s+((p.total||0)-d); }, 0), // H: المدفوع
+    filteredPurch.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0),                      // I: المديونية
   ];
   totVals.forEach((val, idx) => {
     const cell     = totRow.getCell(idx + 1);
@@ -2591,34 +2616,36 @@ async function exportContractsExcel() {
   wb.creator = 'Eng. Kareem Ali Mousa';
   const ws = wb.addWorksheet('العقود', { views:[{ rightToLeft:true }] });
 
-  // عرض الأعمدة بالظبط زي الشيت المرجعي
   ws.columns = [
     { width: 5 },      // A  #
     { width: 18.5 },   // B  التاريخ
     { width: 22 },     // C  المقاول
     { width: 18 },     // D  الغرض
     { width: 14 },     // E  نوع العمل
-    { width: 52 },     // F  البيان — واسع عشان النص يظهر كامل
+    { width: 52 },     // F  البيان
     { width: 14 },     // G  الإجمالي
     { width: 12 },     // H  تخصيم
     { width: 14 },     // I  دفعة 1
     { width: 14 },     // J  دفعة 2
     { width: 14 },     // K  دفعة 3
-    { width: 14 },     // L  المدفوع
-    { width: 14 },     // M  المتبقي
+    { width: 14 },     // L  دفعة 4
+    { width: 14 },     // M  المدفوع
+    { width: 14 },     // N  المتبقي
   ];
 
-  const LAST = 'M';
-  // الأرقام بفاصلة الآلاف، الصفر يظهر كـ — بدل 0
+  const LAST = 'N';
   const numFmt    = '#,##0;-#,##0;"-"';
   const thin = { style:'thin' };
   const border = { top:thin, bottom:thin, left:thin, right:thin };
-
   const centerWrap = { horizontal:'center', vertical:'middle', wrapText:true, readingOrder:2 };
   const centerNoWrap = { horizontal:'center', vertical:'middle', readingOrder:2 };
 
-  // ── صف 1: العنوان ─────────────────────────────────────────────
-  ws.mergeCells('A1:M1');
+  const gTotal     = filteredContr.reduce((s,c)=>s+(c.total||0),0);
+  const gPaid      = filteredContr.reduce((s,c)=>s+(c.paid||0),0);
+  const gRemaining = filteredContr.reduce((s,c)=>s+(c.remaining||0),0);
+
+  // صف 1: العنوان
+  ws.mergeCells('A1:N1');
   const r1 = ws.getRow(1); r1.height = 34;
   const t1 = r1.getCell(1);
   t1.value = `سجل العقود والأعمال — ${school?.name||''} — 2026/2027`;
@@ -2627,18 +2654,18 @@ async function exportContractsExcel() {
   t1.alignment = centerWrap;
   t1.border    = border;
 
-  // ── صف 2: الترويسة ────────────────────────────────────────────
-  ws.mergeCells('A2:M2');
+  // صف 2: الترويسة
+  ws.mergeCells('A2:N2');
   const r2 = ws.getRow(2); r2.height = 20;
   const t2 = r2.getCell(1);
-  t2.value = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}  |  عدد العقود: ${filteredContr.length}  |  الإجمالي: ${formatCurrency(filteredContr.reduce((s,c)=>s+(c.total||0),0))}  |  المتبقي: ${formatCurrency(filteredContr.reduce((s,c)=>s+(c.remaining||0),0))}`;
+  t2.value = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}  |  عدد العقود: ${filteredContr.length}  |  الإجمالي: ${formatCurrency(gTotal)}  |  المدفوع: ${formatCurrency(gPaid)}  |  المتبقي: ${formatCurrency(gRemaining)}`;
   t2.font      = { name:'Arial', bold:true, size:11, color:{ argb:'FF000000' } };
   t2.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFD8E4BC' } };
   t2.alignment = centerWrap;
   t2.border    = border;
 
-  // ── صف 3: الهيدر ──────────────────────────────────────────────
-  const headers = ['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','الإجمالي','تخصيم','دفعة 1','دفعة 2','دفعة 3','المدفوع','المتبقي'];
+  // صف 3: الهيدر
+  const headers = ['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','الإجمالي','تخصيم','دفعة 1','دفعة 2','دفعة 3','دفعة 4','المدفوع','المتبقي'];
   const r3 = ws.getRow(3); r3.height = 24;
   headers.forEach((h, idx) => {
     const cell = r3.getCell(idx + 1);
@@ -2649,8 +2676,8 @@ async function exportContractsExcel() {
     cell.border    = border;
   });
 
-  // ── صفوف البيانات ─────────────────────────────────────────────
-  const numCols = [7, 8, 9, 10, 11, 12, 13]; // G→M
+  // صفوف البيانات
+  const numCols = [7, 8, 9, 10, 11, 12, 13, 14]; // G→N
   filteredContr.forEach((c, i) => {
     const even   = i % 2 === 1;
     const bgArgb = even ? 'FFF5F0F0' : null;
@@ -2666,6 +2693,7 @@ async function exportContractsExcel() {
       c.pay1       || 0,
       c.pay2       || 0,
       c.pay3       || 0,
+      c.pay4       || 0,
       c.paid       || 0,
       c.remaining  || 0,
     ];
@@ -2678,21 +2706,14 @@ async function exportContractsExcel() {
       cell.font      = { name:'Arial', bold:true, size:11, color:{ argb:'FF000000' } };
       cell.alignment = centerWrap;
       cell.border    = border;
-      if (bgArgb) {
-        cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb: bgArgb } };
-      }
-      if (numCols.includes(idx + 1)) {
-        cell.numFmt = numFmt;
-      }
+      if (bgArgb) cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb: bgArgb } };
+      if (numCols.includes(idx + 1)) cell.numFmt = numFmt;
     });
   });
 
-  // ── صف الإجمالي ───────────────────────────────────────────────
+  // صف الإجمالي
   const dataCount = filteredContr.length;
-  const totRowNum = 4 + dataCount;
-  const dataStart = 4;
-  const dataEnd   = 3 + dataCount;
-  const totRow    = ws.getRow(totRowNum);
+  const totRow    = ws.getRow(4 + dataCount);
   totRow.height   = 24;
 
   const totVals = [
@@ -2702,6 +2723,7 @@ async function exportContractsExcel() {
     filteredContr.reduce((s,c)=>s+(c.pay1||0),0),
     filteredContr.reduce((s,c)=>s+(c.pay2||0),0),
     filteredContr.reduce((s,c)=>s+(c.pay3||0),0),
+    filteredContr.reduce((s,c)=>s+(c.pay4||0),0),
     filteredContr.reduce((s,c)=>s+(c.paid||0),0),
     filteredContr.reduce((s,c)=>s+(c.remaining||0),0),
   ];
@@ -2715,9 +2737,7 @@ async function exportContractsExcel() {
     if (numCols.includes(idx + 1)) cell.numFmt = numFmt;
   });
 
-  // تجميد الصفوف الأولى
   ws.views = [{ state:'frozen', ySplit:3, rightToLeft:true }];
-
   await EX.download(wb, `أعمال_المقاولين_${school?.name||''}`);
 }
 
@@ -2771,14 +2791,13 @@ async function exportFullExcel() {
   // Sheet 3: عقود
   if (cList.length > 0) {
     const ws2 = wb.addWorksheet('العقود والأعمال',{views:[{rightToLeft:true}]});
-    ws2.columns = [{width:5},{width:12},{width:22},{width:18},{width:14},{width:26},{width:14},{width:12},{width:14},{width:14},{width:14}];
-    EX.title(ws2,'العقود والأعمال','K');
-    EX.hdr(ws2,['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','المساحة/الوحدة','سعر المتر','الإجمالي','المدفوع','المتبقي']);
+    ws2.columns = [{width:5},{width:12},{width:22},{width:18},{width:14},{width:26},{width:14},{width:12},{width:14},{width:14},{width:14},{width:14},{width:14}];
+    EX.title(ws2,'العقود والأعمال','M');
+    EX.hdr(ws2,['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','الإجمالي','تخصيم','دفعة 1','دفعة 2','دفعة 3','دفعة 4','المدفوع','المتبقي']);
     cList.forEach((c,i)=>{
-      const qCell = AREA_BASED.includes(c.workType)?`${c.area||0} م²`:(c.fixedUnit||'—');
-      EX.dataRow(ws2,[i+1,c.date,c.contractorName,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,qCell,AREA_BASED.includes(c.workType)?(c.pricePerM||0):'—',c.total,c.paid,c.remaining],i%2===1);
+      EX.dataRow(ws2,[i+1,c.date,c.contractorName,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,c.total,c.deduction||0,c.pay1||0,c.pay2||0,c.pay3||0,c.pay4||0,c.paid,c.remaining],i%2===1);
     });
-    EX.totRow(ws2,['','','','','','','','الإجمالي',cList.reduce((s,c)=>s+(c.total||0),0),cList.reduce((s,c)=>s+(c.paid||0),0),cList.reduce((s,c)=>s+(c.remaining||0),0)],'K');
+    EX.totRow(ws2,['','','','','','الإجمالي',cList.reduce((s,c)=>s+(c.total||0),0),cList.reduce((s,c)=>s+(c.deduction||0),0),cList.reduce((s,c)=>s+(c.pay1||0),0),cList.reduce((s,c)=>s+(c.pay2||0),0),cList.reduce((s,c)=>s+(c.pay3||0),0),cList.reduce((s,c)=>s+(c.pay4||0),0),cList.reduce((s,c)=>s+(c.paid||0),0),cList.reduce((s,c)=>s+(c.remaining||0),0)],'M');
   }
 
   // Sheet 4: موردين وأرصدتهم
