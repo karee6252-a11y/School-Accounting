@@ -802,12 +802,22 @@
         .where('name', '==', name)
         .limit(1)
         .get();
+
       if (!dupSnap.empty) {
-        const dupData = dupSnap.docs[0].data();
-        showAlert('regAlert', `هذا الشخص مسجّل بالفعل — رقم التذكرة: ${dupData.ticketId}`, 'error');
-        btn.disabled = false;
-        btn.textContent = 'حفظ وإنشاء QR';
-        return;
+        const dupDoc  = dupSnap.docs[0];
+        const dupData = dupDoc.data();
+
+        // لو اللي لقاه direct booking (باكدج تصوير مباشر) — مش تكرار حقيقي
+        // نكمل التسجيل وننقل بيانات الباكدج تلقائياً
+        if (dupData.source === 'direct') {
+          // سنحذفه بعد ما نحفظ الـ document الجديد (أسفل)
+        } else {
+          // تكرار حقيقي في الحفلة
+          showAlert('regAlert', `هذا الشخص مسجّل بالفعل — رقم التذكرة: ${dupData.ticketId}`, 'error');
+          btn.disabled = false;
+          btn.textContent = 'حفظ وإنشاء QR';
+          return;
+        }
       }
 
       const now = new Date();
@@ -817,6 +827,10 @@
 
       const ticketId = generateTicketId('student');
       const totalAmount = (totalStudents * PRICES.student) + (companionCount * PRICES.companion);
+
+      // لو كان عنده direct booking — انقل بيانات الباكدج للـ document الجديد
+      const directDoc  = (!dupSnap.empty && dupSnap.docs[0].data().source === 'direct') ? dupSnap.docs[0] : null;
+      const directData = directDoc ? directDoc.data() : null;
 
       const doc = {
         ticketId,
@@ -837,9 +851,22 @@
         registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
         registeredBy: session.email,
         date: dateStr,
+        // نقل بيانات الباكدج لو موجودة
+        ...(directData?.photoPackage ? {
+          photoPackage:  true,
+          photoPrice:    directData.photoPrice  || directData.price || 0,
+          photoPayType:  directData.photoPayType || directData.payType || '',
+          photoBookedAt: directData.createdAt   || firebase.firestore.FieldValue.serverTimestamp(),
+          photoBookedBy: directData.createdBy   || session.email,
+        } : {}),
       };
 
       await db.collection('partyAttendees').doc(ticketId).set(doc);
+
+      // احذف الـ direct booking القديم بعد ما حفظنا الجديد
+      if (directDoc) {
+        try { await db.collection('partyAttendees').doc(directDoc.id).delete(); } catch(e2) {}
+      }
 
       currentQRData = { ...doc, registeredAt: now };
       openQRModal(currentQRData);
