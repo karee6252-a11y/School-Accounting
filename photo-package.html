@@ -338,6 +338,15 @@
               <button class="btn btn-sm btn-secondary" onclick="exportPDF()">PDF</button>
             </div>
           </div>
+          <div class="card-body" style="padding-bottom:0">
+            <div class="filter-row" style="margin-bottom:0.75rem">
+              <div class="form-group" style="margin-bottom:0;max-width:320px">
+                <label class="form-label">بحث بالاسم</label>
+                <input type="text" class="form-input" id="listSearchInput"
+                  placeholder="اكتب الاسم..." oninput="renderListTable()" />
+              </div>
+            </div>
+          </div>
           <div class="table-wrapper">
             <table class="data-table">
               <thead>
@@ -434,32 +443,30 @@
   const schoolId = session.schoolId;
   const school   = SESSION.getSchool();
 
-  // Grade 6 و Prep 3 بسعر 500 — لبريستول فقط
+  // Grade 6 و Prep 3 بسعر 500
   const PHOTO_PRICES = schoolId === 'bristol'
     ? { 'KG1': 300, 'KG2': 400, 'Grade 6': 500, 'Prep 3': 500 }
-    : { 'KG1': 300, 'KG2': 400 };
+    : { 'KG1': 300, 'KG2': 400, 'Grade 6': 500, 'Prep 3': 500 };
 
-  // الصفوف المسموح بها حسب المدرسة
-  const ALLOWED_GRADES = schoolId === 'bristol'
-    ? ['KG1', 'KG2', 'Grade 6', 'Prep 3']
-    : ['KG1', 'KG2'];
+  // الصفوف المسموح بها
+  const ALLOWED_GRADES = ['KG1', 'KG2', 'Grade 6', 'Prep 3'];
 
-  // تحديث الـ UI حسب المدرسة
+  // تحديث الـ UI — Grade 6 و Prep 3 متاحة لكل المدارس
+  const pills = document.getElementById('pricePills');
+  pills.innerHTML += `
+    <div class="price-pill"> Grade 6 <span class="pill-price">500 ج.م</span></div>
+    <div class="price-pill"> Prep 3 <span class="pill-price">500 ج.م</span></div>
+    <span style="font-size:0.78rem;color:var(--text-light)">الحجز اختياري — يظهر تلقائياً على تذكرة الحفلة</span>`;
+  const gradeFilter = document.getElementById('gradeFilter');
+  gradeFilter.innerHTML += `
+    <option value="Grade 6">Grade 6 فقط</option>
+    <option value="Prep 3">Prep 3 فقط</option>`;
   if (schoolId === 'bristol') {
-    const pills = document.getElementById('pricePills');
-    pills.innerHTML += `
-      <div class="price-pill"> Grade 6 <span class="pill-price">500 ج.م</span></div>
-      <div class="price-pill"> Prep 3 <span class="pill-price">500 ج.م</span></div>
-      <span style="font-size:0.78rem;color:var(--text-light)">الحجز اختياري — يظهر تلقائياً على تذكرة الحفلة</span>`;
-    const gradeFilter = document.getElementById('gradeFilter');
-    gradeFilter.innerHTML += `
-      <option value="Grade 6">Grade 6 فقط</option>
-      <option value="Prep 3">Prep 3 فقط</option>`;
     document.querySelector('.photo-header-banner p').textContent =
       'حجز اختياري لطلاب الحفلة من KG1 و KG2 و Grade 6 و Prep 3 — سيظهر الحجز تلقائياً على تذكرة الحفلة';
   } else {
-    document.getElementById('pricePills').innerHTML +=
-      `<span style="font-size:0.78rem;color:var(--text-light)">الحجز اختياري — يظهر تلقائياً على تذكرة الحفلة</span>`;
+    document.querySelector('.photo-header-banner p').textContent =
+      'حجز اختياري لطلاب الحفلة من KG1 و KG2 و Grade 6 و Prep 3 — سيظهر الحجز تلقائياً على تذكرة الحفلة';
   }
 
   let allPartyStudents = [];
@@ -478,7 +485,7 @@
 
   // ==================== DIRECT STUDENT GRADES ====================
   (function populateDirectGrades() {
-    const allGrades = ['KG1','KG2'];
+    const allGrades = ['KG1','KG2','Grade 6','Prep 3'];
     const sel = document.getElementById('directGrade');
     allGrades.forEach(g => {
       const opt = document.createElement('option');
@@ -687,11 +694,12 @@
       return sum + price;
     }, 0);
     document.getElementById('statRevenue').textContent = revenue.toLocaleString('ar-EG');
+    document.getElementById('statGrade6').textContent = grade6;
+    document.getElementById('statPrep3').textContent  = prep3;
+    document.getElementById('statGrade6Box').style.display = '';
+    document.getElementById('statPrep3Box').style.display  = '';
     if (schoolId === 'bristol') {
-      document.getElementById('statGrade6').textContent = grade6;
-      document.getElementById('statPrep3').textContent  = prep3;
-      document.getElementById('statGrade6Box').style.display = '';
-      document.getElementById('statPrep3Box').style.display  = '';
+      // bristol already handled above
     }
   }
 
@@ -878,12 +886,14 @@
   // ==================== LIST TABLE ====================
   function renderListTable() {
     const tbody      = document.getElementById('listTableBody');
+    const q          = (document.getElementById('listSearchInput')?.value || '').trim().toLowerCase();
     const partyPhoto = allPartyStudents.filter(s => s.photoPackage);
     // دمج طلاب الحفلة + الطلاب المباشرين
-    const withPhoto  = [
+    let withPhoto  = [
       ...partyPhoto.map(s => ({ ...s, _src: 'حفلة' })),
       ...allDirectStudents.map(s => ({ ...s, photoPayType: s.payType, photoPrice: s.price, _src: 'مباشر' }))
     ];
+    if (q) withPhoto = withPhoto.filter(s => (s.name || '').toLowerCase().includes(q));
 
     if (!withPhoto.length) {
       tbody.innerHTML = `<tr><td colspan="8">
