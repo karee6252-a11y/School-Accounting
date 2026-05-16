@@ -315,9 +315,9 @@
         </div>
         <div class="sum-card purple">
           <div class="icon">🏗️</div>
-          <div class="lbl">صافي المقاولات المستحق</div>
+          <div class="lbl">إجمالي المقاولات</div>
           <div class="val" id="sumContractsNet">—</div>
-          <div class="sub">إجمالي − التخصيم − المديونية</div>
+          <div class="sub">إجمالي عقود المقاولات</div>
         </div>
         <div class="sum-card green">
           <div class="icon">💸</div>
@@ -330,6 +330,12 @@
           <div class="lbl">مديونية المقاولين</div>
           <div class="val" id="sumContractsDebt">—</div>
           <div class="sub" id="sumContractsDebtCount">0 مقاول</div>
+        </div>
+        <div class="sum-card green" style="background:linear-gradient(135deg,#00695c,#004d40)">
+          <div class="icon">💰</div>
+          <div class="lbl">إجمالي المدفوعات</div>
+          <div class="val" id="sumTotalPayments">—</div>
+          <div class="sub">مدفوعات المشتريات + المقاولين</div>
         </div>
       </div>
 
@@ -1632,8 +1638,8 @@ function updateSummaryCards() {
   document.getElementById('sumPurchasesDebt').textContent      = formatCurrency(pDebt);
   document.getElementById('sumPurchasesDebtCount').textContent = `${allPurchases.filter(p=>(p.net||0)>0).length} فاتورة لم تُسدَّد`;
 
-  // كارت 3: صافي المقاولات المستحق
-  document.getElementById('sumContractsNet').textContent = formatCurrency(cNet);
+  // كارت 3: إجمالي المقاولات (إجمالي العقد)
+  document.getElementById('sumContractsNet').textContent = formatCurrency(cTotal);
 
   // كارت 4: المدفوع للمقاولين الفعلي
   document.getElementById('sumContractsPaid').textContent      = formatCurrency(cPaid);
@@ -1642,6 +1648,10 @@ function updateSummaryCards() {
   // كارت 5: مديونية المقاولين
   document.getElementById('sumContractsDebt').textContent      = formatCurrency(cDebt);
   document.getElementById('sumContractsDebtCount').textContent = `${allContracts.filter(c=>(c.remaining||0)>0).length} مقاول`;
+
+  // كارت 6: إجمالي المدفوعات (مشتريات + مقاولين)
+  const totalPayments = pPaid + cPaid;
+  document.getElementById('sumTotalPayments').textContent = formatCurrency(totalPayments);
 }
 
 // ─── POPULATE SELECTS ─────────────────────────────────────────────
