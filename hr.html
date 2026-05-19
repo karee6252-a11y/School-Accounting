@@ -393,20 +393,55 @@
 // 
 const JOB_TITLES = {
   administrative: [
-    "مدير مدرسة","وكيل مدرسة","مدير أكاديمي","مدير رياض أطفال",
-    "شؤون طلاب","شؤون عاملين","محاسبين","سكرتارية",
-    "علاقات عامة","أمن وخدمات","IT",
-    "مشرفين أدوار","أخصائي نفسي"
+    "مديرة المدرسة","وكيل المدرسة","مديرة رياض اطفال","مساعد مدير رياض أطفال",
+    "ش.عاملين","ش. طلاب","محاسب","سكرتارية مدير ة المدرسة",
+    "علاقات عامة","أمن","IT","مشرفة دور","أخصائي نفسي","أخصائي اجتماعي",
+    "اخصائي مكتبات","مشرفة باص","زائره صحية","مسؤول تشغيل","مسؤوول ميديا",
+    "عاملة","0.05"
   ],
   academic: [
-    "مشرف مواد - عربي","مشرف مواد - إنجليزي","مشرف مواد - ماث",
-    "مشرف مواد - علوم","مشرف مواد - دراسات اجتماعية",
-    "مشرف مواد - ألماني","مشرف مواد - فرنش","مشرف مواد - PE","مشرف مواد - ART",
-    "مدرس عربي","مدرس إنجليزي","مدرس ماث","مدرس علوم",
-    "مدرس دراسات اجتماعية","مدرس ألماني","مدرس فرنش","مدرس PE","مدرس ART",
-    "أخصائي مكتبات"
+    "مشرف اللغة الانجليزية","مشرفة اللغة العربية",
+    "معلم لغة عربية","معلمة لغة عربية",
+    "معلم لغة انجليزية","معلمة لغة انجليزية",
+    "معلم لغة فرنسية","معلمة لغة فرنسية",
+    "معلمة لغة ألمانية",
+    "معلم دراسات اجتماعية","معلمة دراسات اجتماعية",
+    "معلم علوم","معلمة علوم",
+    "معلمة رياضيات",
+    "معلم تربية رياضية","معلمة تربية رياضية",
+    "معلم تربية فنية","معلمة تربية فنية",
+    "معلمة تربية إسلامية","محفظ قرآن كريم",
+    "معلمة Discover","معلمة ICT",
+    "لغة عربية رياض أطفال","لغة انجليزية رياض أطفال","رياضيات رياض أطفال"
   ]
 };
+
+// 
+// DEPT RESOLVER
+// 
+const ACADEMIC_JOBS = [
+  'معلم','معلمة','مشرف اللغة','مشرفة اللغة','محفظ قرآن',
+  'مدرس','مدرسة','لغة عربية رياض','لغة انجليزية رياض',
+  'رياضيات رياض','معلمة Discover','معلمة ICT'
+];
+const ADMIN_JOBS = [
+  'مدير','مديرة','وكيل','ش.عاملين','ش. طلاب','محاسب',
+  'سكرتارية','علاقات عامة','أمن','IT','مشرفة دور','مشرف دور',
+  'أخصائي نفسي','أخصائي اجتماعي','اخصائي مكتبات','مشرفة باص',
+  'زائره صحية','مسؤول','ميديا','عاملة','مساعد مدير','0.05'
+];
+
+function resolveDept(emp) {
+  if (emp.dept === 'administrative' || emp.dept === 'academic') return emp.dept;
+  const title = emp.jobTitle || '';
+  if (ACADEMIC_JOBS.some(k => title.includes(k))) return 'academic';
+  if (ADMIN_JOBS.some(k => title.includes(k))) return 'administrative';
+  return 'administrative'; // default
+}
+
+function resolveJobLabel(emp) {
+  return emp.jobTitle || '-';
+}
 
 // 
 // AUTH & LAYOUT
@@ -679,8 +714,8 @@ function updateStats() {
   const today = localDateStr();
   document.getElementById('statTotal').textContent   = allEmployees.length;
   document.getElementById('statActive').textContent  = active.filter(e => !e.endDate || e.endDate >= today).length;
-  document.getElementById('statAdmin').textContent   = active.filter(e => e.dept === 'administrative').length;
-  document.getElementById('statAcademic').textContent= active.filter(e => e.dept === 'academic').length;
+  document.getElementById('statAdmin').textContent   = active.filter(e => resolveDept(e) === 'administrative').length;
+  document.getElementById('statAcademic').textContent= active.filter(e => resolveDept(e) === 'academic').length;
 }
 
 function getEmployeeStatus(emp) {
@@ -702,7 +737,7 @@ function renderEmployeeLists() {
   // Active list
   const activeEmps = allEmployees.filter(e => {
     if (e.status === 'resigned') return false;
-    if (deptF   && e.dept     !== deptF)   return false;
+    if (deptF   && resolveDept(e) !== deptF)   return false;
     if (jobF    && e.jobTitle !== jobF)    return false;
     if (statusF === 'active'  && e.endDate && e.endDate < today) return false;
     if (statusF === 'expired' && (!e.endDate || e.endDate >= today)) return false;
@@ -752,7 +787,7 @@ function empCardHTML(emp) {
   const photoHTML = emp.photo
     ? `<img src="${emp.photo}" alt="${emp.nameAr}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`
     : initial;
-  const deptLabel = emp.dept === 'administrative' ? 'إداري' : 'أكاديمي';
+  const deptLabel = resolveDept(emp) === 'administrative' ? 'إداري' : 'أكاديمي';
   return `
     <div class="emp-card" onclick="openDetail('${emp.id}')">
       <div class="emp-avatar">${photoHTML}</div>
@@ -814,7 +849,7 @@ function openDetail(empId) {
     </div>
     <div class="form-section-title">بيانات الوظيفة</div>
     <div class="emp-detail-section">
-      <div class="emp-detail-item"><div class="lbl">القسم</div><div class="val">${emp.dept==='administrative'?'إداري':'أكاديمي'}</div></div>
+      <div class="emp-detail-item"><div class="lbl">القسم</div><div class="val">${resolveDept(emp)==='administrative'?'إداري':'أكاديمي'}</div></div>
       <div class="emp-detail-item"><div class="lbl">الوظيفة</div><div class="val">${emp.jobTitle||'-'}</div></div>
       <div class="emp-detail-item"><div class="lbl">تاريخ التعيين</div><div class="val">${emp.startDate||'-'}</div></div>
       <div class="emp-detail-item"><div class="lbl">تاريخ انتهاء التعيين</div><div class="val">${emp.endDate||'غير محدد'}</div></div>
