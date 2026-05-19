@@ -598,8 +598,8 @@ async function saveEmployee() {
 
   try {
     // Check duplicate national ID
-    const existing = await db.collection('schools').doc(currentSchoolId)
-      .collection('employees').where('nationalId','==',nationalId).get();
+    const existing = await db.collection('employees')
+      .where('schoolId','==',currentSchoolId).where('nationalId','==',nationalId).get();
     if (!existing.empty) {
       showRegAlert('هذا الرقم القومي مسجل بالفعل');
       return;
@@ -618,8 +618,7 @@ async function saveEmployee() {
       resignedNote: null
     };
 
-    await db.collection('schools').doc(currentSchoolId)
-      .collection('employees').add(employeeData);
+    await db.collection('employees').add(employeeData);
 
     showRegSuccess(` تم حفظ بيانات "${nameAr}" بنجاح`);
     resetForm();
@@ -665,8 +664,8 @@ function resetForm() {
 // 
 async function loadEmployees() {
   try {
-    const snap = await db.collection('schools').doc(currentSchoolId)
-      .collection('employees').get();
+    const snap = await db.collection('employees')
+      .where('schoolId', '==', currentSchoolId).get();
     allEmployees = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderEmployeeLists();
     updateStats();
@@ -844,8 +843,7 @@ async function resignEmployee() {
   if (!confirm(`هل تأكد تسجيل ترك عمل "${selectedEmployee.nameAr}"؟`)) return;
 
   try {
-    await db.collection('schools').doc(currentSchoolId)
-      .collection('employees').doc(selectedEmployee.id)
+    await db.collection('employees').doc(selectedEmployee.id)
       .update({ status: 'resigned', resignedAt: localDateStr(), resignedNote: note });
     closeDetailModal();
     await loadEmployees();
@@ -940,8 +938,7 @@ async function saveEdit() {
   };
 
   try {
-    await db.collection('schools').doc(currentSchoolId)
-      .collection('employees').doc(selectedEmployee.id).update(updated);
+    await db.collection('employees').doc(selectedEmployee.id).update(updated);
     closeEditModal();
     await loadEmployees();
     alert(' تم حفظ التعديلات بنجاح');
