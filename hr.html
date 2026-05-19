@@ -666,7 +666,7 @@ function resetForm() {
 async function loadEmployees() {
   try {
     const snap = await db.collection('schools').doc(currentSchoolId)
-      .collection('employees').orderBy('createdAt','desc').get();
+      .collection('employees').get();
     allEmployees = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderEmployeeLists();
     updateStats();
