@@ -72,7 +72,6 @@
       font-weight: 700;
     }
     .admin-link a:hover { text-decoration: underline; }
-
     .selected-school-preview {
       display: flex;
       align-items: center;
@@ -89,7 +88,6 @@
     .selected-school-preview.show { opacity: 1; }
     .selected-school-preview img { width: 36px; height: 36px; object-fit: contain; border-radius: 6px; }
     .selected-school-preview-name { font-size: 0.875rem; font-weight: 700; color: var(--primary); }
-
     .admin-toggle-area {
       display: flex;
       align-items: center;
@@ -206,7 +204,6 @@
   let selectedSchool = null;
   let isAdminMode = false;
 
-  // ---- Render schools ----
   function renderSchools() {
     const selector = document.getElementById('schoolSelector');
     selector.innerHTML = '';
@@ -228,11 +225,9 @@
     selectedSchool = school;
     document.querySelectorAll('.school-option').forEach(el => el.classList.remove('active'));
     document.querySelector(`[data-id="${school.id}"]`).classList.add('active');
-
     document.getElementById('previewLogo').src = school.logo;
     document.getElementById('previewName').textContent = school.name;
     document.getElementById('selectedPreview').classList.add('show');
-
     document.documentElement.style.setProperty('--primary', school.primaryColor);
     document.documentElement.style.setProperty('--secondary', school.secondaryColor);
     document.documentElement.style.setProperty('--accent', school.accentColor);
@@ -241,8 +236,8 @@
   function toggleAdminMode(e) {
     e.preventDefault();
     isAdminMode = !isAdminMode;
-    const schoolSection = document.getElementById('schoolSelectorSection');
-    const adminArea = document.getElementById('adminModeArea');
+    const schoolSection   = document.getElementById('schoolSelectorSection');
+    const adminArea       = document.getElementById('adminModeArea');
     const selectedPreview = document.getElementById('selectedPreview');
 
     if (isAdminMode) {
@@ -263,11 +258,9 @@
     const icon  = document.getElementById('eyeIcon');
     if (input.type === 'password') {
       input.type = 'text';
-      // eye-off icon
       icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
     } else {
       input.type = 'password';
-      // eye icon
       icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
     }
   }
@@ -282,11 +275,11 @@
   }
 
   async function handleLogin() {
-    const email = document.getElementById('emailInput').value.trim();
+    const email    = document.getElementById('emailInput').value.trim();
     const password = document.getElementById('passwordInput').value;
-    const btn = document.getElementById('loginBtn');
-    const btnText = document.getElementById('loginBtnText');
-    const btnLoader = document.getElementById('loginBtnLoader');
+    const btn      = document.getElementById('loginBtn');
+    const btnText  = document.getElementById('loginBtnText');
+    const btnLoader= document.getElementById('loginBtnLoader');
 
     if (!email || !password) {
       showAlert('من فضلك ادخل البريد الإلكتروني وكلمة المرور');
@@ -305,17 +298,12 @@
       const result = await auth.signInWithEmailAndPassword(email, password);
       const user = result.user;
 
+      // ── ADMIN ──
       if (ADMINS.includes(email)) {
         const schoolId = isAdminMode
           ? Object.keys(SCHOOLS)[0]
           : (selectedSchool?.id || Object.keys(SCHOOLS)[0]);
-        SESSION.set({
-          uid: user.uid,
-          email: email,
-          role: 'admin',
-          schoolId: schoolId,
-          name: 'مدير النظام'
-        });
+        SESSION.set({ uid: user.uid, email, role: 'admin', schoolId, name: 'مدير النظام' });
         window.location.href = 'admin.html';
         return;
       }
@@ -325,6 +313,19 @@
         return;
       }
 
+      // ── HR — بيتعرف تلقائياً بدون اختيار منفصل ──
+      if (selectedSchool.hrUsers?.includes(email)) {
+        SESSION.set({
+          uid: user.uid, email, role: 'hr',
+          schoolId: selectedSchool.id,
+          schoolName: selectedSchool.name,
+          name: email.split('@')[0]
+        });
+        window.location.href = 'hr.html';
+        return;
+      }
+
+      // ── ACCOUNTANT ──
       if (!selectedSchool.users.includes(email)) {
         showAlert('هذا الحساب غير مصرح له بالدخول على هذه المدرسة');
         auth.signOut();
@@ -332,9 +333,7 @@
       }
 
       SESSION.set({
-        uid: user.uid,
-        email: email,
-        role: 'accountant',
+        uid: user.uid, email, role: 'accountant',
         schoolId: selectedSchool.id,
         schoolName: selectedSchool.name,
         name: email.split('@')[0]
@@ -349,9 +348,9 @@
 
     } catch (error) {
       let msg = 'حدث خطأ في تسجيل الدخول';
-      if (error.code === 'auth/user-not-found')         msg = 'البريد الإلكتروني غير مسجل';
-      else if (error.code === 'auth/wrong-password')    msg = 'كلمة المرور غير صحيحة';
-      else if (error.code === 'auth/too-many-requests') msg = 'تم تجاوز عدد المحاولات، حاول لاحقاً';
+      if (error.code === 'auth/user-not-found')              msg = 'البريد الإلكتروني غير مسجل';
+      else if (error.code === 'auth/wrong-password')         msg = 'كلمة المرور غير صحيحة';
+      else if (error.code === 'auth/too-many-requests')      msg = 'تم تجاوز عدد المحاولات، حاول لاحقاً';
       else if (error.code === 'auth/network-request-failed') msg = 'تحقق من الاتصال بالإنترنت';
       showAlert(msg);
     } finally {
@@ -361,16 +360,11 @@
     }
   }
 
-  // Enter key support
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') handleLogin();
-  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
 
-  // Initialize
   renderSchools();
 
-  // Remember me
-  const rememberedEmail = localStorage.getItem('remembered_email');
+  const rememberedEmail  = localStorage.getItem('remembered_email');
   const rememberedSchool = localStorage.getItem('remembered_school');
   if (rememberedEmail) {
     document.getElementById('emailInput').value = rememberedEmail;
@@ -380,10 +374,12 @@
     selectSchool(SCHOOLS[rememberedSchool]);
   }
 
-  // If already logged in
+  // If already logged in → redirect to correct page
   const session = SESSION.get();
   if (session) {
-    window.location.href = session.role === 'admin' ? 'admin.html' : 'dashboard.html';
+    if (session.role === 'admin')   window.location.href = 'admin.html';
+    else if (session.role === 'hr') window.location.href = 'hr.html';
+    else                            window.location.href = 'dashboard.html';
   }
 </script>
 </body>

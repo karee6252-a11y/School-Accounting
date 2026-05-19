@@ -1,6 +1,5 @@
 // ========================================
 // FIREBASE CONFIGURATION
-//  الخطوة الوحيدة: استبدل القيم دي ببيانات مشروعك على Firebase
 // ========================================
 
 const firebaseConfig = {
@@ -18,9 +17,8 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 
 // ========================================
-// SCHOOLS — 4 مدارس جاهزة
+// SCHOOLS — 4 مدارس
 // ========================================
-
 const SCHOOLS = {
   bristol: {
     id: "bristol",
@@ -33,6 +31,10 @@ const SCHOOLS = {
     users: [
       "acc1.bristol@bristol-school.com",
       "acc2.bristol@bristol-school.com"
+    ],
+    hrUsers: [
+      "hr@bristol-school.com",
+      "hr2@bristol-school.com"
     ]
   },
   cardiff: {
@@ -46,6 +48,10 @@ const SCHOOLS = {
     users: [
       "acc1.cardiff@cardiff-school.com",
       "acc2.cardiff@cardiff-school.com"
+    ],
+    hrUsers: [
+      "hr@cardiff-school.com",
+      "hr2@cardiff-school.com"
     ]
   },
   stanford1: {
@@ -59,6 +65,10 @@ const SCHOOLS = {
     users: [
       "acc1.stanford1@stanford-school.com",
       "acc2.stanford1@stanford-school.com"
+    ],
+    hrUsers: [
+      "hr@stanford1-school.com",
+      "hr2@stanford1-school.com"
     ]
   },
   stanford2: {
@@ -72,6 +82,10 @@ const SCHOOLS = {
     users: [
       "acc1.stanford2@stanford-school.com",
       "acc2.stanford2@stanford-school.com"
+    ],
+    hrUsers: [
+      "hr@stanford2-school.com",
+      "hr2@stanford2-school.com"
     ]
   }
 };
@@ -83,6 +97,57 @@ const ADMINS = [
   "admin@schools-system.com",
   "admin2@schools-system.com"
 ];
+
+// ========================================
+// ROUTE PROTECTION
+// ─────────────────────────────────────────
+// صفحات المحاسبة — HR ممنوع يدخل عليها
+// ========================================
+const ACCOUNTING_PAGES = [
+  'dashboard.html','collection.html','student-search.html','debts.html',
+  'expenses.html','buses.html','contractors.html','reports.html',
+  'party.html','photo-package.html','admin.html','ACCOUNTS.html'
+];
+
+// صفحات الـ HR — المحاسب ممنوع يدخل عليها
+const HR_PAGES = ['hr.html'];
+
+/**
+ * استدعِ الدالة دي في أول كل صفحة محاسبة
+ * لو الـ session بتاعها HR → يتحول لصفحة الـ HR
+ */
+function guardAccountingPage() {
+  const session = SESSION.get();
+  if (!session) { window.location.href = 'index.html'; return null; }
+  if (session.role === 'hr') {
+    // HR ممنوع من أي صفحة محاسبة — بغض النظر عن أي حاجة تانية
+    window.location.href = 'hr.html';
+    return null;
+  }
+  // تأكيد إضافي: مشترك onAuthStateChanged يعيد الـ check
+  auth.onAuthStateChanged(user => {
+    if (!user) { SESSION.clear(); window.location.href = 'index.html'; }
+    else {
+      const s = SESSION.get();
+      if (!s || s.role === 'hr') window.location.href = 'hr.html';
+    }
+  });
+  return session;
+}
+
+/**
+ * استدعِ الدالة دي في صفحة hr.html
+ * لو الـ session مش HR أو Admin → يتحول لـ index
+ */
+function guardHRPage() {
+  const session = SESSION.get();
+  if (!session) { window.location.href = 'index.html'; return null; }
+  if (session.role !== 'hr' && session.role !== 'admin') {
+    window.location.href = 'index.html';
+    return null;
+  }
+  return session;
+}
 
 // ========================================
 // STAGES & PRICING
@@ -225,18 +290,15 @@ const PAYMENT_ITEMS = [
 
 // ========================================
 // ACADEMIC YEAR
-//  بيتحسب تلقائياً من التاريخ الحالي — مش محتاج تعدّله كل سنة
-// السنة الدراسية بتبدأ 1 يوليو كل سنة
 // ========================================
 function getAcademicYear(dateStr) {
   const d = new Date(dateStr);
   const year = d.getFullYear();
-  const month = d.getMonth() + 1; // 1-12
+  const month = d.getMonth() + 1;
   if (month >= 7) return `${year}/${year + 1}`;
   return `${year - 1}/${year}`;
 }
 
-//  السنة الدراسية الحالية وتاريخ بدايتها — محسوبين تلقائياً
 const _currentAcademicYearData = (() => {
   const now = new Date();
   const year = now.getFullYear();
@@ -247,8 +309,8 @@ const _currentAcademicYearData = (() => {
   return { label: `${year - 1}/${year}`, start: `${year - 1}-07-01` };
 })();
 
-const ACADEMIC_YEAR       = _currentAcademicYearData.label;   // e.g. "2025/2026"
-const ACADEMIC_YEAR_START = _currentAcademicYearData.start;   // e.g. "2025-07-01"
+const ACADEMIC_YEAR       = _currentAcademicYearData.label;
+const ACADEMIC_YEAR_START = _currentAcademicYearData.start;
 
 // ========================================
 // SESSION MANAGEMENT
@@ -259,33 +321,28 @@ const SESSION = {
       const raw = sessionStorage.getItem('school_session');
       if (!raw) return null;
       const s = JSON.parse(raw);
-
-      // ── تحقق من صحة البيانات المخزنة ──
       if (!s || !s.uid || !s.email || !s.role) return null;
 
-      // تحقق: الإيميل لازم يكون من ضمن القوائم المسموح بيها
-      const isKnownAdmin = ADMINS.includes(s.email);
-      const isKnownAccountant = Object.values(SCHOOLS).some(sc =>
-        sc.users.includes(s.email)
-      );
-      if (!isKnownAdmin && !isKnownAccountant) {
+      const isKnownAdmin      = ADMINS.includes(s.email);
+      const isKnownAccountant = Object.values(SCHOOLS).some(sc => sc.users.includes(s.email));
+      const isKnownHR         = Object.values(SCHOOLS).some(sc => sc.hrUsers?.includes(s.email));
+
+      if (!isKnownAdmin && !isKnownAccountant && !isKnownHR) {
         sessionStorage.removeItem('school_session');
         return null;
       }
 
-      // تحقق: schoolId لازم يكون مدرسة موجودة
       if (!SCHOOLS[s.schoolId]) {
         sessionStorage.removeItem('school_session');
         return null;
       }
 
-      // تحقق: لو مش أدمن، الإيميل لازم يكون مصرح له بالمدرسة دي بالتحديد
+      // تحقق: المحاسب أو HR لازم يكون مصرح له بمدرسته فقط
       if (!isKnownAdmin) {
         const allowedSchool = Object.values(SCHOOLS).find(sc =>
-          sc.users.includes(s.email)
+          sc.users.includes(s.email) || sc.hrUsers?.includes(s.email)
         );
         if (!allowedSchool || allowedSchool.id !== s.schoolId) {
-          // محاولة تلاعب بالـ schoolId — امسح الـ session فوراً
           sessionStorage.removeItem('school_session');
           return null;
         }
@@ -298,7 +355,6 @@ const SESSION = {
     }
   },
   set: (data) => {
-    // تحقق أساسي قبل الحفظ
     if (!data || !data.uid || !data.email || !data.role || !data.schoolId) {
       console.error('SESSION.set: بيانات ناقصة', data);
       return;
@@ -309,6 +365,10 @@ const SESSION = {
   isAdmin: () => {
     const s = SESSION.get();
     return s && ADMINS.includes(s.email);
+  },
+  isHR: () => {
+    const s = SESSION.get();
+    return s && s.role === 'hr';
   },
   getSchool: () => {
     const s = SESSION.get();
@@ -336,7 +396,6 @@ function formatDate(date) {
   }).format(new Date(date));
 }
 
-//  LOCAL DATE HELPER
 function localDateStr(d) {
   const date = d || new Date();
   return date.getFullYear() + '-' +
