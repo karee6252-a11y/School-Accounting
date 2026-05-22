@@ -767,7 +767,7 @@
             </label>
             <label id="pPaySourceAccountsLabel" style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 0.75rem;border-radius:var(--radius-sm);border:2px solid var(--border);cursor:pointer;transition:all 0.18s;background:var(--bg)" onclick="selectPPaySource('accounts')">
               <input type="radio" name="pPaySource" id="pPaySourceAccounts" value="accounts" style="accent-color:var(--primary);width:15px;height:15px" />
-              <span style="font-size:0.8rem;font-weight:700"> إدارة الحسابات</span>
+              <span style="font-size:0.8rem;font-weight:700"> عهدة الحاج علي</span>
             </label>
           </div>
           <div id="pChairmanNote" style="display:none;margin-top:0.5rem;background:#fff8e1;border:1px solid #ffe082;border-radius:var(--radius-sm);padding:0.5rem 0.85rem;font-size:0.8rem;font-weight:700;color:#e65100;display:none;align-items:center;gap:0.4rem">
@@ -954,7 +954,7 @@
             </label>
             <label id="cPaySourceAccountsLabel" style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 0.75rem;border-radius:var(--radius-sm);border:2px solid var(--border);cursor:pointer;transition:all 0.18s;background:var(--bg)" onclick="selectCPaySource('accounts')">
               <input type="radio" name="cPaySource" id="cPaySourceAccounts" value="accounts" style="accent-color:var(--primary);width:15px;height:15px" />
-              <span style="font-size:0.8rem;font-weight:700"> إدارة الحسابات</span>
+              <span style="font-size:0.8rem;font-weight:700"> عهدة الحاج علي</span>
             </label>
           </div>
           <div id="cChairmanNote" style="display:none;margin-top:0.5rem;background:#fff8e1;border:1px solid #ffe082;border-radius:var(--radius-sm);padding:0.5rem 0.85rem;font-size:0.8rem;font-weight:700;color:#e65100;align-items:center;gap:0.4rem">
@@ -1021,7 +1021,7 @@
           </label>
           <label id="paySourceAccountsLabel" style="display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.85rem;border-radius:var(--radius-sm);border:2px solid var(--border);cursor:pointer;transition:all 0.18s;background:var(--bg)" onclick="selectPaySource('accounts')">
             <input type="radio" name="paySource" id="paySourceAccounts" value="accounts" style="accent-color:var(--primary);width:16px;height:16px" />
-            <span style="font-size:0.83rem;font-weight:700"> مكتب الحسابات</span>
+            <span style="font-size:0.83rem;font-weight:700"> عهدة الحاج علي</span>
           </label>
         </div>
         <!-- ملاحظة رئيس مجلس الإدارة -->
@@ -1239,7 +1239,7 @@ function renderCustodyWidget() {
     return;
   }
 
-  // المصروف = فقط اللي اتصرف من إدارة الحسابات (رئيس مجلس الإدارة لا يخصم من العهدة)
+  // المصروف = فقط اللي اتصرف من عهدة الحاج علي (رئيس مجلس الإدارة لا يخصم من العهدة)
   // الفواتير القديمة اللي مفيش فيها paySource لا تُحسب على العهدة
   const cwSpent  = allPurchases.reduce((s,p) => {
     if (!p.paySource) return s; // قديم بدون مصدر = لا يُخصم
@@ -1507,7 +1507,7 @@ function renderPurchases() {
     const srcBadge = p.paySource === 'chairman'
       ? `<span style="background:#fff8e1;color:#e65100;border:1px solid #ffe082;border-radius:12px;padding:2px 7px;font-size:0.68rem;font-weight:700;white-space:nowrap">رئيس م.إ.</span>`
       : p.paySource === 'accounts'
-      ? `<span style="background:var(--accent);color:var(--primary);border:1px solid var(--primary-light,#c5d8f5);border-radius:12px;padding:2px 7px;font-size:0.68rem;font-weight:700;white-space:nowrap">إدارة الحسابات</span>`
+      ? `<span style="background:var(--accent);color:var(--primary);border:1px solid var(--primary-light,#c5d8f5);border-radius:12px;padding:2px 7px;font-size:0.68rem;font-weight:700;white-space:nowrap">عهدة الحاج علي</span>`
       : '—';
     const methodBadge = p.payMethod === 'bank_transfer'
       ? `<span style="background:#e3f2fd;color:#0277bd;border-radius:10px;padding:1px 6px;font-size:0.67rem;font-weight:700">تحويل بنكي</span>`
@@ -1575,7 +1575,7 @@ function renderContracts() {
     const srcBadge = c.paySource === 'chairman'
       ? `<span style="background:#fff8e1;color:#e65100;border:1px solid #ffe082;border-radius:12px;padding:2px 7px;font-size:0.67rem;font-weight:700;white-space:nowrap">رئيس م.إ.</span>`
       : c.paySource === 'accounts'
-      ? `<span style="background:var(--accent);color:var(--primary);border:1px solid var(--primary-light,#c5d8f5);border-radius:12px;padding:2px 7px;font-size:0.67rem;font-weight:700;white-space:nowrap">إدارة الحسابات</span>`
+      ? `<span style="background:var(--accent);color:var(--primary);border:1px solid var(--primary-light,#c5d8f5);border-radius:12px;padding:2px 7px;font-size:0.67rem;font-weight:700;white-space:nowrap">عهدة الحاج علي</span>`
       : '—';
     const methodBadge = c.payMethod === 'bank_transfer'
       ? `<span style="background:#e3f2fd;color:#0277bd;border-radius:10px;padding:1px 6px;font-size:0.67rem;font-weight:700">تحويل بنكي</span>`
@@ -1853,9 +1853,9 @@ async function savePurchase() {
   const payMethod = document.getElementById('pPayMethod').value;
   const pSrcEl    = document.querySelector('input[name="pPaySource"]:checked');
   const paySource = pSrcEl ? pSrcEl.value : '';
-  const PAY_SOURCE_LABELS = { chairman:'رئيس مجلس الإدارة', accounts:'إدارة الحسابات' };
+  const PAY_SOURCE_LABELS = { chairman:'رئيس مجلس الإدارة', accounts:'عهدة الحاج علي' };
 
-  if (!paySource) return showAlert('purchaseAlert','اختر جهة الصرف (رئيس مجلس الإدارة / إدارة الحسابات)');
+  if (!paySource) return showAlert('purchaseAlert','اختر جهة الصرف (رئيس مجلس الإدارة / عهدة الحاج علي)');
 
   // منطق العهدة: رئيس مجلس الإدارة = لا يخصم من العهدة
   const deductsFromCustody = (paySource === 'accounts');
@@ -1922,7 +1922,8 @@ function openContractModal() {
   ['cContractor','cPurpose','cWorkType'].forEach(id => document.getElementById(id).value = '');
   ['cDesc','cNotes'].forEach(id => document.getElementById(id).value = '');
   ['cArea','cPricePerM','cTotal','cFixedTotal','cPay1','cPay1Date','cPay2','cPay2Date','cPay3','cPay3Date','cPay4','cPay4Date','cDeduction','cDebt'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
-  document.getElementById('cFixedUnit').value = '';
+  const fixedUnitEl1 = document.getElementById('cFixedUnit');
+  if (fixedUnitEl1) fixedUnitEl1.value = '';
   document.getElementById('cPayMethod').value = 'cash';
   document.getElementById('cPaySourceChairman').checked = false;
   document.getElementById('cPaySourceAccounts').checked  = false;
@@ -1940,54 +1941,65 @@ function openContractModal() {
 function openEditContract(id) {
   const c = allContracts.find(x => x.id === id);
   if (!c) return;
-  document.getElementById('contractEditId').value  = id;
-  document.getElementById('cContractor').value     = c.contractorId||'';
-  document.getElementById('cDate').value           = c.date||'';
-  document.getElementById('cPurpose').value        = c.purpose||'';
-  document.getElementById('cWorkType').value       = c.workType||'';
-  document.getElementById('cDesc').value           = c.desc||'';
-  document.getElementById('cNotes').value          = c.notes||'';
-  document.getElementById('cPay1').value           = c.pay1||'';
-  document.getElementById('cPay1Date').value       = c.pay1Date||'';
-  document.getElementById('cPay2').value           = c.pay2||'';
-  document.getElementById('cPay2Date').value       = c.pay2Date||'';
-  document.getElementById('cPay3').value           = c.pay3||'';
-  document.getElementById('cPay3Date').value       = c.pay3Date||'';
-  document.getElementById('cPay4').value           = c.pay4||'';
-  document.getElementById('cPay4Date').value       = c.pay4Date||'';
-  document.getElementById('cDeduction').value      = c.deduction||'';
-  document.getElementById('cDebt').value           = c.remaining||'';
+
+  // helper آمن يتجنب null errors
+  const setVal = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val; };
+  const setChk = (elId, val) => { const el = document.getElementById(elId); if (el) el.checked = val; };
+  const setDisp = (elId, val) => { const el = document.getElementById(elId); if (el) el.style.display = val; };
+
+  setVal('contractEditId', id);
+  setVal('cContractor',    c.contractorId||'');
+  setVal('cDate',          c.date||'');
+  setVal('cPurpose',       c.purpose||'');
+  setVal('cWorkType',      c.workType||'');
+  setVal('cDesc',          c.desc||'');
+  setVal('cNotes',         c.notes||'');
+  setVal('cPay1',          c.pay1||'');
+  setVal('cPay1Date',      c.pay1Date||'');
+  setVal('cPay2',          c.pay2||'');
+  setVal('cPay2Date',      c.pay2Date||'');
+  setVal('cPay3',          c.pay3||'');
+  setVal('cPay3Date',      c.pay3Date||'');
+  setVal('cPay4',          c.pay4||'');
+  setVal('cPay4Date',      c.pay4Date||'');
+  setVal('cDeduction',     c.deduction||'');
+  setVal('cDebt',          c.remaining||'');
 
   const isArea = AREA_BASED.includes(c.workType);
-  document.getElementById('cAreaGroup').style.display  = isArea ? 'block' : 'none';
-  document.getElementById('cFixedGroup').style.display = isArea ? 'none'  : 'grid';
+  setDisp('cAreaGroup',  isArea ? 'block' : 'none');
+  setDisp('cFixedGroup', isArea ? 'none'  : 'grid');
 
   if (isArea) {
-    document.getElementById('cArea').value     = c.area||'';
-    document.getElementById('cPricePerM').value= c.pricePerM||'';
-    document.getElementById('cTotal').value    = c.total||'';
+    setVal('cArea',      c.area||'');
+    setVal('cPricePerM', c.pricePerM||'');
+    setVal('cTotal',     c.total||'');
   } else {
-    document.getElementById('cFixedTotal').value= c.total||'';
-    document.getElementById('cFixedUnit').value = c.fixedUnit||'';
+    setVal('cFixedTotal', c.total||'');
+    setVal('cFixedUnit',  c.fixedUnit||'');
   }
-  document.getElementById('contractAlert').classList.add('hidden');
+
+  const alertEl = document.getElementById('contractAlert');
+  if (alertEl) alertEl.classList.add('hidden');
+
   // حقول الدفع
-  document.getElementById('cPayMethod').value = c.payMethod || 'cash';
+  setVal('cPayMethod', c.payMethod || 'cash');
   const cSrc = c.paySource || '';
-  document.getElementById('cPaySourceChairman').checked = (cSrc === 'chairman');
-  document.getElementById('cPaySourceAccounts').checked  = (cSrc === 'accounts');
-  document.getElementById('cChairmanNote').style.display = (cSrc === 'chairman') ? 'flex' : 'none';
-  ['cPaySourceChairmanLabel','cPaySourceAccountsLabel'].forEach(id => {
-    document.getElementById(id).style.borderColor = 'var(--border)';
-    document.getElementById(id).style.background  = 'var(--bg)';
+  setChk('cPaySourceChairman', cSrc === 'chairman');
+  setChk('cPaySourceAccounts',  cSrc === 'accounts');
+  setDisp('cChairmanNote', (cSrc === 'chairman') ? 'flex' : 'none');
+
+  ['cPaySourceChairmanLabel','cPaySourceAccountsLabel'].forEach(lid => {
+    const el = document.getElementById(lid);
+    if (el) { el.style.borderColor = 'var(--border)'; el.style.background = 'var(--bg)'; }
   });
   if (cSrc === 'chairman') {
-    document.getElementById('cPaySourceChairmanLabel').style.borderColor = '#e65100';
-    document.getElementById('cPaySourceChairmanLabel').style.background  = '#fff8e1';
+    const el = document.getElementById('cPaySourceChairmanLabel');
+    if (el) { el.style.borderColor = '#e65100'; el.style.background = '#fff8e1'; }
   } else if (cSrc === 'accounts') {
-    document.getElementById('cPaySourceAccountsLabel').style.borderColor = 'var(--primary)';
-    document.getElementById('cPaySourceAccountsLabel').style.background  = 'var(--accent)';
+    const el = document.getElementById('cPaySourceAccountsLabel');
+    if (el) { el.style.borderColor = 'var(--primary)'; el.style.background = 'var(--accent)'; }
   }
+
   openModal('contractModal');
 }
 
@@ -2083,9 +2095,9 @@ async function saveContract() {
   const cPayMethod = document.getElementById('cPayMethod').value;
   const cSrcEl     = document.querySelector('input[name="cPaySource"]:checked');
   const cPaySource = cSrcEl ? cSrcEl.value : '';
-  const PAY_SOURCE_LABELS = { chairman:'رئيس مجلس الإدارة', accounts:'إدارة الحسابات' };
+  const PAY_SOURCE_LABELS = { chairman:'رئيس مجلس الإدارة', accounts:'عهدة الحاج علي' };
 
-  if (!cPaySource) return showAlert('contractAlert','اختر جهة الصرف (رئيس مجلس الإدارة / إدارة الحسابات)');
+  if (!cPaySource) return showAlert('contractAlert','اختر جهة الصرف (رئيس مجلس الإدارة / عهدة الحاج علي)');
 
   // رئيس مجلس الإدارة = لا يخصم من العهدة
   const deductsFromCustody = (cPaySource === 'accounts');
@@ -2229,10 +2241,10 @@ async function confirmPay() {
   const notes      = document.getElementById('payNotes').value.trim();
   const srcEl      = document.querySelector('input[name="paySource"]:checked');
   const paySource  = srcEl ? srcEl.value : '';
-  const PAY_SOURCE_LABELS = { chairman:'رئيس مجلس الإدارة', accounts:'مكتب الحسابات' };
+  const PAY_SOURCE_LABELS = { chairman:'رئيس مجلس الإدارة', accounts:'عهدة الحاج علي' };
 
   if (amount <= 0) return showAlert('payAlert','ادخل مبلغاً صحيحاً');
-  if (!paySource)  return showAlert('payAlert','اختر جهة الصرف (رئيس مجلس الإدارة / مكتب الحسابات)');
+  if (!paySource)  return showAlert('payAlert','اختر جهة الصرف (رئيس مجلس الإدارة / عهدة الحاج علي)');
 
   const c = allContracts.find(x => x.id === contractId);
   if (!c) return;
