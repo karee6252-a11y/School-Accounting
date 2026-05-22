@@ -1239,16 +1239,12 @@ function renderCustodyWidget() {
     return;
   }
 
-  // المصروف = فقط اللي اتصرف من عهدة الحاج علي (رئيس مجلس الإدارة لا يخصم من العهدة)
-  // الفواتير القديمة اللي مفيش فيها paySource لا تُحسب على العهدة
-  const cwSpent  = allPurchases.reduce((s,p) => {
-    if (!p.paySource) return s; // قديم بدون مصدر = لا يُخصم
-    return p.deductsFromCustody ? s+(p.net!=null?p.net:(p.total||0)) : s;
-  }, 0)
-  + allContracts.reduce((s,c) => {
-    if (!c.paySource) return s; // قديم بدون مصدر = لا يُخصم
-    return c.deductsFromCustody ? s+(c.paid||0) : s;
-  }, 0);
+  // المصروف = إجمالي المدفوعات (مشتريات مدفوعة + مدفوع للمقاولين)
+  const _pTotal  = allPurchases.reduce((s,p) => s+(p.total||0), 0);
+  const _pDebt   = allPurchases.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0);
+  const _pPaid   = _pTotal - _pDebt;
+  const _cPaid   = allContracts.reduce((s,c) => s+(c.paid||0), 0);
+  const cwSpent  = _pPaid + _cPaid;
 
   const cwBalance = cwTotal - cwSpent;
   const pct = Math.max(0, Math.min(100, Math.round(cwBalance/cwTotal*100)));
@@ -1315,14 +1311,9 @@ function openCustodyLog() {
 
 function renderCustodyLog() {
   const cwTotal   = custodyEntries.reduce((s,e) => s+(e.amount||0), 0);
-  const cwSpent   = allPurchases.reduce((s,p) => {
-    if (!p.paySource) return s;
-    return p.deductsFromCustody ? s+(p.net!=null?p.net:(p.total||0)) : s;
-  }, 0)
-  + allContracts.reduce((s,c) => {
-    if (!c.paySource) return s;
-    return c.deductsFromCustody ? s+(c.paid||0) : s;
-  }, 0);
+  const _pTotal2 = allPurchases.reduce((s,p) => s+(p.total||0), 0);
+  const _pDebt2  = allPurchases.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0);
+  const cwSpent  = (_pTotal2 - _pDebt2) + allContracts.reduce((s,c) => s+(c.paid||0), 0);
   const cwBalance = cwTotal - cwSpent;
 
   document.getElementById('clogTotal').textContent   = formatCurrency(cwTotal);
