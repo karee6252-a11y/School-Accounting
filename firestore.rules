@@ -122,6 +122,15 @@ service cloud.firestore {
     }
 
     // ==============================
+    // custody_entries — دفعات العهدة
+    // ==============================
+    match /custody_entries/{docId} {
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
+    }
+
+    // ==============================
     // partyAttendees — تسجيل الحفلة
     // ==============================
     match /partyAttendees/{docId} {
