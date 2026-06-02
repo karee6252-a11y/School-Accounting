@@ -1266,14 +1266,17 @@
         }
       });
 
-      const feePayments = s.payments.filter(tx =>
-        (tx.paymentItem || '').includes('مصروفات دراسية')
-      );
-      const installSource = feePayments.length > 0 ? feePayments : s.payments;
-      s.installments = installSource.slice(0, 3).map(tx => {
-        if (Array.isArray(tx.paymentItems)) {
+      // الأقساط بتتحسب من معاملات المصروفات الدراسية فقط
+      const feePayments = s.payments.filter(tx => {
+        if (Array.isArray(tx.paymentItems) && tx.paymentItems.length > 0) {
+          return tx.paymentItems.some(pi => (pi.item || '').includes('مصروفات'));
+        }
+        return (tx.paymentItem || '').includes('مصروفات دراسية');
+      });
+      s.installments = feePayments.slice(0, 3).map(tx => {
+        if (Array.isArray(tx.paymentItems) && tx.paymentItems.length > 0) {
           const feeItem = tx.paymentItems.find(pi => (pi.item||'').includes('مصروفات'));
-          return feeItem ? Number(feeItem.netPrice || feeItem.price || 0) : (tx.amount || 0);
+          return feeItem ? Number(feeItem.netPrice || feeItem.price || 0) : 0;
         }
         return tx.amount || 0;
       });
@@ -1461,7 +1464,9 @@
         const inst1Amt = stu.installments[0] || 0;
         const inst2Amt = stu.installments[1] || 0;
         const discAmt  = Math.round(stu.totalDiscount) || 0;
-        const remainingAmt = Math.max(0, feesAmt - inst1Amt - inst2Amt - discAmt);
+        // المبلغ المتبقي = إجمالي ما دفعه في المصروفات الدراسية - القسط الأول - القسط الثاني - الخصم
+        const totalFeeInstallments = Math.round(stu.items['مصروفات دراسية'] || 0);
+        const remainingAmt = Math.max(0, totalFeeInstallments - inst1Amt - inst2Amt - discAmt);
         const totalPaidAmt = Math.round(stu.totalPaid) || 0;
 
         const rowVals = [
