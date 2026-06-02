@@ -1374,6 +1374,8 @@
     ];
     const COL_DEFS = [...FIXED_COLS, ...ITEM_COLS, ...TOTAL_COLS];
     const NUM_COLS = COL_DEFS.length;
+    const totalPaidColIdx = COL_DEFS.findIndex(c => c.key === 'totalPaid') + 1;
+    const remainingColIdx = COL_DEFS.findIndex(c => c.key === 'remaining') + 1;
 
     // دالة مساعدة: تحويل رقم عمود (1-based) لحرف Excel
     function colLetter(n) {
@@ -1537,8 +1539,6 @@
       tr.height = 26;
       ws.mergeCells(`A${tr.number}:C${tr.number}`);
 
-      const totalPaidColIdx = COL_DEFS.findIndex(c => c.key === 'totalPaid') + 1;
-      const remainingColIdx = COL_DEFS.findIndex(c => c.key === 'remaining') + 1;
       tr.eachCell((cell, ci) => {
         const isRed = ci === remainingColIdx && (cell.value || 0) > 0;
         const isGrn = ci === totalPaidColIdx;
