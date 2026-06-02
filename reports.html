@@ -141,8 +141,9 @@
         const d = { id: doc.id, ...doc.data() };
         if (filterStage && d.stage !== filterStage) return;
         if (filterItem) {
-          const parts = (d.paymentItem || '').split('+').map(s => s.trim());
-          if (!parts.includes(filterItem)) return;
+          const inString = (d.paymentItem || '').split('+').map(s => s.trim()).includes(filterItem);
+          const inArray  = Array.isArray(d.paymentItems) && d.paymentItems.some(pi => (pi.item || '').trim() === filterItem);
+          if (!inString && !inArray) return;
         }
         if (filterPaymentType && d.paymentType !== filterPaymentType) return;
         currentData.push(d);
@@ -1140,6 +1141,16 @@
 
 
   async function exportRevenueReview() {
+    // تحميل ExcelJS أولاً لو مش موجود
+    if (typeof ExcelJS === 'undefined') {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+
     const school  = SESSION.getSchool();
     const schoolName = school?.name || 'المدرسة';
 
@@ -1158,15 +1169,11 @@
     let allTx = [];
     let allDebts = [];
     try {
-      const snap = await db.collection('transactions')
-        .where('schoolId', '==', schoolId)
-        .where('date', '>=', ACADEMIC_YEAR_START)
-        .get();
-      snap.forEach(doc => allTx.push({ id: doc.id, ...doc.data() }));
-
-      const debtSnap = await db.collection('debts')
-        .where('schoolId', '==', schoolId)
-        .get();
+      const [txSnap, debtSnap] = await Promise.all([
+        db.collection('transactions').where('schoolId','==',schoolId).where('date','>=',ACADEMIC_YEAR_START).get(),
+        db.collection('debts').where('schoolId','==',schoolId).get()
+      ]);
+      txSnap.forEach(doc => allTx.push({ id: doc.id, ...doc.data() }));
       debtSnap.forEach(doc => allDebts.push({ id: doc.id, ...doc.data() }));
     } catch(e) {
       alert('خطأ في تحميل البيانات: ' + e.message);
@@ -1175,14 +1182,6 @@
 
     if (allTx.length === 0) {
       alert('لا توجد بيانات في هذا العام الدراسي');
-      return;
-    }
-
-    if (typeof ExcelJS === 'undefined') {
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
-      document.head.appendChild(s);
-      s.onload = () => exportRevenueReview();
       return;
     }
 
