@@ -135,14 +135,15 @@
     const tbody = document.getElementById('reportTableBody');
     tbody.innerHTML = `<tr><td colspan="10"><div class="loading-spinner"></div></td></tr>`;
     try {
-      let query = db.collection('transactions').where('schoolId', '==', schoolId).where('date', '>=', from).where('date', '<=', to);
-      const snap = await query.get();
+      const snap = await db.collection('transactions').where('schoolId','==',schoolId).where('date','>=',from).where('date','<=',to).get();
       currentData = [];
       snap.forEach(doc => {
         const d = { id: doc.id, ...doc.data() };
         if (filterStage && d.stage !== filterStage) return;
-        // paymentItem can be "بند1 + بند2" for multi-select — check with includes
-        if (filterItem && !(d.paymentItem || '').includes(filterItem)) return;
+        if (filterItem) {
+          const parts = (d.paymentItem || '').split('+').map(s => s.trim());
+          if (!parts.includes(filterItem)) return;
+        }
         if (filterPaymentType && d.paymentType !== filterPaymentType) return;
         currentData.push(d);
       });
@@ -155,7 +156,6 @@
     const tbody = document.getElementById('reportTableBody');
     const tfoot = document.getElementById('reportTableFoot');
     const isDaily = currentPeriod === 'daily';
-    // إخفاء/إظهار أعمدة الطالب والمديونية حسب نوع التقرير
     document.querySelectorAll('.col-daily').forEach(el => {
       el.style.display = isDaily ? '' : 'none';
     });
@@ -189,16 +189,13 @@
         `;
         tbody.appendChild(tr);
       });
-      // الأعمدة الظاهرة:
-      // يومي (12): م، تاريخ، طالب، مرحلة، صف، بند، مبلغ، مديونية، دفع، إيصال، ملاحظات، إجراء
-      // غير يومي (10): م، تاريخ، مرحلة، صف، بند، مبلغ، دفع، إيصال، ملاحظات، إجراء
-      const labelColspan = isDaily ? 6 : 5;   // حتى عمود "بند الدفع"
-      const trailColspan = isDaily ? 4 : 4;   // دفع + إيصال + ملاحظات + إجراء
+      const labelColspan = isDaily ? 6 : 5;
+      const trailColspan = 4;
       tfoot.innerHTML = `<tr class="table-footer-total">
-        <td colspan="${labelColspan}" style="padding:0.75rem 1rem;font-weight:800">الإجمالي (${currentData.length} عملية)</td>
-        <td style="padding:0.75rem 1rem;font-weight:900;font-size:1.05rem">${formatCurrency(total)}</td>
-        ${isDaily ? `<td style="padding:0.75rem 1rem;font-weight:900;color:#c0392b">${totalDebt>0?formatCurrency(totalDebt):'-'}</td>` : ''}
-        <td colspan="${trailColspan}"></td>
+        <td colspan="${labelColspan}" style="padding:0.75rem 1rem;font-weight:800;text-align:right">الإجمالي (${currentData.length} عملية)</td>
+        <td style="padding:0.75rem 1rem;font-weight:900;font-size:1.05rem;text-align:center">${formatCurrency(total)}</td>
+        ${isDaily ? `<td style="padding:0.75rem 1rem;font-weight:900;color:#c0392b;text-align:center">${totalDebt>0?formatCurrency(totalDebt):'-'}</td>` : ''}
+        <td colspan="${trailColspan}" style="padding:0.75rem 1rem"></td>
       </tr>`;
     }
     document.getElementById('summaryTotal').textContent = formatCurrency(total);
@@ -211,20 +208,13 @@
   }
 
 
-  // ============================================================
-  // MAP AMOUNTS — دالة مشتركة بين Excel وRevenueReview (global scope)
-  // ============================================================
   function mapAmounts(d) {
     const paidAmount = d.amount || 0;
-
-    // حساب إجمالي الخصومات من paymentItems
     let totalDiscount = 0;
     if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
       d.paymentItems.forEach(pi => {
         if (typeof pi === 'object' && pi.item) {
-          const price = Number(pi.price) || 0;
-          const disc  = Number(pi.discount) || 0;
-          totalDiscount += price * disc / 100;
+          totalDiscount += (Number(pi.price) || 0) * (Number(pi.discount) || 0) / 100;
         }
       });
     }
@@ -251,35 +241,27 @@
         if (typeof pi === 'object' && pi.item) {
           const price = Number(pi.price) || 0;
           const disc  = Number(pi.discount) || 0;
-          const net = Number(pi.netPrice) || (price * (1 - disc / 100));
-          return { item: pi.item, net };
+          return { item: pi.item, net: Number(pi.netPrice) || (price * (1 - disc / 100)) };
         }
         return { item: String(pi), net: 0 };
       });
-
       const totalNet = itemNetPrices.reduce((s, x) => s + x.net, 0);
-
       if (totalNet > 0) {
         let assignedTotal = 0;
         itemNetPrices.forEach((x, idx) => {
-          let amt;
-          if (idx === itemNetPrices.length - 1) {
-            amt = paidAmount - assignedTotal;
-          } else {
-            amt = Math.round(paidAmount * (x.net / totalNet));
-            assignedTotal += amt;
-          }
+          const amt = idx === itemNetPrices.length - 1
+            ? paidAmount - assignedTotal
+            : Math.round(paidAmount * (x.net / totalNet));
+          if (idx < itemNetPrices.length - 1) assignedTotal += amt;
           assignItem(x.item, amt);
         });
       } else {
-        const share = paidAmount / Math.max(itemNetPrices.length, 1);
-        itemNetPrices.forEach(x => assignItem(x.item, share));
+        itemNetPrices.forEach(x => assignItem(x.item, paidAmount / Math.max(itemNetPrices.length, 1)));
       }
     } else {
       const itemStr = d.paymentItem || '';
       if (itemStr.includes('+')) {
-        const parts = itemStr.split('+').map(s => s.trim()).filter(Boolean);
-        parts.forEach(part => assignItem(part, paidAmount / parts.length));
+        itemStr.split('+').map(s => s.trim()).filter(Boolean).forEach(p => assignItem(p, paidAmount / itemStr.split('+').length));
       } else {
         assignItem(itemStr, paidAmount);
       }
@@ -288,16 +270,12 @@
     return out;
   }
 
-  // ============================================================
-  // EXPORT EXCEL — نفس هيكل الأصلي بتنسيق أجمل وبيانات Firebase
-  // ============================================================
   async function exportExcel() {
     if (currentData.length === 0) { alert('لا توجد بيانات للتصدير'); return; }
 
     const school = SESSION.getSchool();
     const { from, to } = getDateRange();   // ← مرة واحدة بس
 
-    // جلب المصروفات من Firebase
     let expensesData = [];
     try {
       const expSnap = await db.collection('expenses')
@@ -322,7 +300,6 @@
     const YEAR = ACADEMIC_YEAR;
     const GRADES_LIST = ['Pre-KG','KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
 
-    // ── ألوان المدرسة ──
     const rawPrimary = (school?.primaryColor || '#1E2D5A').replace('#','');
     const rawSecond  = (school?.secondaryColor|| '#4A6FA5').replace('#','');
     const rawAccent  = (school?.accentColor   || '#D6E4F0').replace('#','');
@@ -339,7 +316,6 @@
     wb.creator = 'School Accounting System — ' + schoolName;
     wb.views = [{ x:0, y:0, width:10000, height:20000, firstSheet:0, activeTab:0, visibility:'visible', rightToLeft:true }];
 
-    // ── دوال مساعدة ──
     function hFill(argb) { return { type:'pattern', pattern:'solid', fgColor:{ argb } }; }
     function hBorder(style='medium', c='FF888888') {
       const s = { style, color:{ argb: c } };
@@ -414,9 +390,6 @@
 
     function numFmt(cell) { cell.numFmt = '#,##0;(#,##0);"-"'; }
 
-    // =================================================================
-    // ① التقرير اليومي — شيت واحد مفصّل
-    // =================================================================
     if (currentPeriod === 'daily') {
       const ws = wb.addWorksheet('يومي');
       ws.views = [{ state:'normal', rightToLeft:true }];
@@ -427,7 +400,6 @@
       ];
       const MCOL = 'L'; // آخر عمود
 
-      // ── بانر المدرسة ──
       const b1 = titleRow(ws, `إيراد ${schoolName} — العام الدراسي ${YEAR}`, PRI, WHT, 14, MCOL);
       ws.getCell(`A${b1.number}`).alignment = cAlign(true);
 
@@ -437,12 +409,10 @@
       ws.mergeCells(`A${b2.number}:${MCOL}${b2.number}`);
       styleRow(b2, SEC, WHT, true, 11); b2.height = 22;
 
-      // ── هيدر الأعمدة ──
       hdrRow(ws,
         ['م','الاسم','الصف','مصروفات دراسية','خصم','فايل','يونيفورم','أبليكيشن','إيرادات أخرى','باص','الإيصال','ملاحظات'],
         SEC, []);
 
-      // ── بيانات الطلاب ──
       const totals = {fees:0, disc:0, file:0, uni:0, app:0, other:0, bus:0};
       currentData.forEach((d,i) => {
         const m = mapAmounts(d);
@@ -455,7 +425,6 @@
         [4,5,6,7,8,9,10].forEach(ci => { if(r.getCell(ci).value) numFmt(r.getCell(ci)); });
       });
 
-      // ── صف الإجماليات ──
       const tr = totalRow(ws,
         ['الإجمالي','','',
          totals.fees, totals.disc, totals.file,
@@ -463,8 +432,7 @@
         TOTBG, [['A','C']]);
       [4,5,6,7,8,9,10].forEach(ci => numFmt(tr.getCell(ci)));
 
-      // ── بوكس إجمالي الإيرادات ──
-      const revTotal = totals.fees + totals.file + totals.uni + totals.app + totals.other + totals.bus;
+      const revTotal = totals.fees + totals.file + totals.uni + totals.app + totals.other + totals.bus - totals.disc;
       const rr = ws.addRow(['إجمالي إيرادات اليوم', '', '', '', '', '', '', '', '', revTotal, '', '']);
       ws.mergeCells(`A${rr.number}:I${rr.number}`);
       ws.mergeCells(`J${rr.number}:${MCOL}${rr.number}`);
@@ -475,7 +443,6 @@
       numFmt(rr.getCell(10));
       rr.height = 28;
 
-      // ── قسم المصروفات ──
       ws.addRow([]);
       sectionRow(ws, '②', 'المصروفات اليومية', SEC, MCOL);
       hdrRow(ws, ['م','التاريخ','اسم المستلم','','المقابل / البيان','','المبلغ','','','','',''], SEC,
@@ -500,24 +467,20 @@
       const et = totalRow(ws, ['إجمالي المصروفات','','','','','',expTotal,'','','','',''], TOTBG, [['A','F'],['H',MCOL]]);
       numFmt(et.getCell(7)); et.height = 22;
 
-      // ── الموقف المالي ──
       ws.addRow([]);
       sectionRow(ws, '③', 'الموقف المالي اليومي', SEC, MCOL);
-      // Layout: A:B=إجمالي الإيرادات | C=قيمة | D:E=إجمالي المصروفات | F=قيمة | G:I=صافي اليوم | J:L=قيمة
       const mf = ws.addRow(['إجمالي الإيرادات', '', revTotal, 'إجمالي المصروفات', '', expTotal, 'صافي اليوم', '', '', revTotal - expTotal, '', '']);
       mf.height = 30;
       ws.mergeCells(`A${mf.number}:B${mf.number}`);
       ws.mergeCells(`D${mf.number}:E${mf.number}`);
       ws.mergeCells(`G${mf.number}:I${mf.number}`);
       ws.mergeCells(`J${mf.number}:${MCOL}${mf.number}`);
-      // تنسيق خلايا التسمية
       [[1,ACC,BLK],[4,ACC,BLK],[7,ACC,BLK]].forEach(([ci,bg,fc]) => {
         mf.getCell(ci).fill = hFill(bg);
         mf.getCell(ci).font = {name:'Arial',bold:true,size:11,color:{argb:fc}};
         mf.getCell(ci).alignment = cAlign();
         mf.getCell(ci).border = medBorder();
       });
-      // تنسيق خلايا القيمة
       [[3,SEC,WHT],[6,SEC,WHT]].forEach(([ci,bg,fc]) => {
         mf.getCell(ci).fill = hFill(bg);
         mf.getCell(ci).font = {name:'Arial',bold:true,size:12,color:{argb:fc}};
@@ -534,9 +497,6 @@
 
       ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:3, activeCell:'A4' }];
 
-    // =================================================================
-    // ② التقرير الأسبوعي — 4 أقسام كاملة كالأصل
-    // =================================================================
     } else if (currentPeriod === 'weekly') {
       const ws = wb.addWorksheet('أسبوعي');
       ws.views = [{ state:'normal', rightToLeft:true }];
@@ -547,7 +507,6 @@
       ];
       const MCOL = 'O';
 
-      // ── بانر ──
       const _wkStart = new Date(from + 'T00:00:00');
       const _wkNum = Math.ceil(_wkStart.getDate() / 7);
       titleRow(ws, `التقرير المالي الأسبوعي  •  ${schoolName}`, PRI, WHT, 14, MCOL);
@@ -556,17 +515,13 @@
       styleRow(infoR, SEC, WHT, true, 11); infoR.height = 22;
       ws.addRow([]);
 
-      // ── قسم أولاً: الإيراد الأسبوعي ──
       sectionRow(ws, '①', 'أولاً : الإيراد الأسبوعي', SEC, MCOL);
       hdrRow(ws,
         ['م','اليوم','','','التاريخ','مصروفات دراسية','خصم','فايل','يونيفورم','باص','أبليكيشن','إيرادات أخرى','إجمالي الإيرادات','تراكمي',''],
         SEC, [['B','D'],['N','O']]);
 
-      // توزيع البيانات على الأيام
       const dayMap = {};
       DAYS_AR_W.forEach(d => dayMap[d] = { fees:0,disc:0,file:0,uni:0,bus:0,app:0,other:0, date:'' });
-      // getDay(): 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
-      // DAYS_AR_W:  [السبت, الأحد, الاثنين, الثلاثاء, الأربعاء, الخميس]
       const DAY_MAP_IDX = {6:0, 0:1, 1:2, 2:3, 3:4, 4:5}; // Sat→0,Sun→1,...,Thu→5
       currentData.forEach(d => {
         const dDate = new Date(d.date + 'T00:00:00');
@@ -585,7 +540,7 @@
       let cumulative = 0;
       DAYS_AR_W.forEach((day, i) => {
         const dm = dayMap[day];
-        const dayTotal = dm.fees + dm.file + dm.uni + dm.bus + dm.app + dm.other;
+        const dayTotal = dm.fees + dm.file + dm.uni + dm.bus + dm.app + dm.other - dm.disc;
         cumulative += dayTotal;
         Object.keys(wkTotals).forEach(k => wkTotals[k] += dm[k]);
         const r = dataRow(ws,
@@ -599,7 +554,7 @@
         [6,7,8,9,10,11,12,13,14].forEach(ci => { if(r.getCell(ci).value) numFmt(r.getCell(ci)); });
       });
 
-      const wkTotal = wkTotals.fees+wkTotals.file+wkTotals.uni+wkTotals.bus+wkTotals.app+wkTotals.other;
+      const wkTotal = wkTotals.fees+wkTotals.file+wkTotals.uni+wkTotals.bus+wkTotals.app+wkTotals.other - wkTotals.disc;
       const tr = totalRow(ws,
         ['الإجمالي','','','','',
          wkTotals.fees, wkTotals.disc, wkTotals.file,
@@ -610,7 +565,6 @@
 
       ws.addRow([]);
 
-      // ── قسم ثانياً: المصروفات ──
       sectionRow(ws, '②', 'ثانياً : المصروفات الأسبوعية', SEC, MCOL);
       hdrRow(ws, ['م','اليوم','','','التاريخ','إجمالي المصروفات','','','','','','','','',''], SEC, [['B','D'],['F','O']]);
 
@@ -639,19 +593,15 @@
 
       ws.addRow([]);
 
-      // ── قسم ثالثاً: تحصيل المراحل ──
       sectionRow(ws, '③', 'ثالثاً : الموقف المالي — تحصيل المراحل', SEC, MCOL);
       hdrRow(ws,
         ['م','المرحلة','','','المديونية السابقة','','المحصل (مصروفات دراسية)','','خصومات أخوة/خاص','','المديونية الحالية','','ملاحظات','',''],
         SEC, [['B','D'],['E','F'],['G','H'],['I','J'],['K','L'],['M','O']]);
 
-      // تجميع المصروفات الدراسية فقط لكل صف
       const gradeFeesByGrade = {};
       currentData.forEach(d => {
-        const g = d.grade;
-        if (!gradeFeesByGrade[g]) gradeFeesByGrade[g] = 0;
-        const m = mapAmounts(d);
-        gradeFeesByGrade[g] += m.fees || 0;
+        if (!gradeFeesByGrade[d.grade]) gradeFeesByGrade[d.grade] = 0;
+        gradeFeesByGrade[d.grade] += mapAmounts(d).fees || 0;
       });
 
       let stageCollected = 0;
@@ -676,7 +626,6 @@
 
       ws.addRow([]);
 
-      // ── قسم رابعاً: الموقف المالي الإجمالي ──
       sectionRow(ws, '④', 'رابعاً : الموقف المالي الإجمالي للأسبوع', SEC, MCOL);
       hdrRow(ws,
         ['المديونية السابقة','','','الإيراد الأسبوعي','','','المصروفات','','خصومات','','صافي الأسبوع','','المديونية الفعلية','',''],
@@ -698,7 +647,6 @@
         mfRow.getCell(ci).border = medBorder();
         numFmt(mfRow.getCell(ci));
       });
-      // خلية صافي الأسبوع — لون حسب الإشارة
       mfRow.getCell(11).fill = hFill(wkNetRevenue >= 0 ? 'FF1B5E20' : 'FFC00000');
       mfRow.getCell(11).font = {name:'Arial',bold:true,size:14,color:{argb:WHT}};
       mfRow.getCell(11).alignment = cAlign();
@@ -707,9 +655,6 @@
 
       ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:4, activeCell:'A5' }];
 
-    // =================================================================
-    // ③ التقرير الشهري
-    // =================================================================
     } else if (currentPeriod === 'monthly' || currentPeriod === 'custom') {
       const ws = wb.addWorksheet('شهري');
       ws.views = [{ state:'normal', rightToLeft:true }];
@@ -728,13 +673,11 @@
       styleRow(infoR, SEC, WHT, true, 11); infoR.height = 22;
       ws.addRow([]);
 
-      // ── قسم أولاً: ملخص الإيرادات ──
       sectionRow(ws, '①', 'أولاً : ملخص الإيرادات', SEC, MCOL);
       hdrRow(ws,
         ['م','الأسبوع','مصروفات دراسية','خصم','فايل','يونيفورم','باص','أبليكيشن','إيرادات أخرى','إجمالي الإيرادات','المصروفات'],
         SEC, []);
 
-      // توزيع على 4 أسابيع ثابتة: 1-7 / 8-14 / 15-21 / 22-نهاية الشهر
       const WEEK_RANGES = [
         { key:'الأسبوع الأول  (1-7)',    from:1,  to:7  },
         { key:'الأسبوع الثاني (8-14)',   from:8,  to:14 },
@@ -767,7 +710,7 @@
       weeks.forEach((wk,i) => {
         const wkData = weekBuckets[wk] || {};
         const wkExp = expWeekBuckets[wk] || 0;
-        const wkRev = (wkData.fees||0)+(wkData.file||0)+(wkData.uni||0)+(wkData.bus||0)+(wkData.app||0)+(wkData.other||0);
+        const wkRev = (wkData.fees||0)+(wkData.file||0)+(wkData.uni||0)+(wkData.bus||0)+(wkData.app||0)+(wkData.other||0)-(wkData.disc||0);
         Object.keys(monthTotals).forEach(k => monthTotals[k] += wkData[k]||0);
         monthExpTotal += wkExp;
         const r = dataRow(ws,
@@ -777,7 +720,7 @@
         [3,4,5,6,7,8,9,10,11].forEach(ci => { if(r.getCell(ci).value) numFmt(r.getCell(ci)); });
       });
 
-      const monthRevTotal = monthTotals.fees+monthTotals.file+monthTotals.uni+monthTotals.bus+monthTotals.app+monthTotals.other;
+      const monthRevTotal = monthTotals.fees+monthTotals.file+monthTotals.uni+monthTotals.bus+monthTotals.app+monthTotals.other - monthTotals.disc;
       const mtr = totalRow(ws,
         ['إجمالي الشهر','',
          monthTotals.fees, monthTotals.disc, monthTotals.file,
@@ -788,18 +731,15 @@
 
       ws.addRow([]);
 
-      // ── قسم ثانياً: تحصيل المراحل ──
       sectionRow(ws, '②', 'ثانياً : تحصيل المراحل الشهري', SEC, MCOL);
       hdrRow(ws,
         ['م','المرحلة','المديونية السابقة','المحصل (مصروفات دراسية)','خصومات','المديونية الحالية','ملاحظات','','','',''],
         SEC, [['G','K']]);
 
-      // تجميع المصروفات الدراسية فقط لكل صف
       const gradeTotalsM = {};
       currentData.forEach(d => {
         if (!gradeTotalsM[d.grade]) gradeTotalsM[d.grade] = 0;
-        const m = mapAmounts(d);
-        gradeTotalsM[d.grade] += m.fees || 0;
+        gradeTotalsM[d.grade] += mapAmounts(d).fees || 0;
       });
       let totalCollected = 0;
       GRADES_LIST.forEach((grade,i) => {
@@ -818,7 +758,6 @@
 
       ws.addRow([]);
 
-      // ── قسم ثالثاً: الملخص المالي الشهري ──
       sectionRow(ws, '③', 'ثالثاً : الملخص المالي الشهري الإجمالي', SEC, MCOL);
 
       const summaryItems = [
@@ -847,7 +786,6 @@
       ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:4, activeCell:'A5' }];
     }
 
-    // ── اسم الملف ──
     const periodName = periodLabels[currentPeriod];
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -859,9 +797,6 @@
     URL.revokeObjectURL(url);
   }
 
-  // ============================================================
-  // EXPORT PDF — نفس هيكل الإكسيل بتنسيق PDF احترافي
-  // ============================================================
   async function exportPDF() {
     if (currentData.length === 0) { alert('لا توجد بيانات للتصدير'); return; }
 
@@ -1204,14 +1139,10 @@
   }
 
 
-  // ============================================================
-  // EXPORT REVENUE REVIEW — مراجعة الإيرادات الكاملة بالمراحل
-  // ============================================================
   async function exportRevenueReview() {
     const school  = SESSION.getSchool();
     const schoolName = school?.name || 'المدرسة';
 
-    // ── ألوان المدرسة ──
     const rawPrimary = ((school?.primaryColor  || '#1E2D5A').replace('#','')).toUpperCase();
     const rawSecond  = ((school?.secondaryColor || '#4A6FA5').replace('#','')).toUpperCase();
     const rawAccent  = ((school?.accentColor    || '#D6E4F0').replace('#','')).toUpperCase();
@@ -1224,7 +1155,6 @@
     const GRN  = 'FF1B5E20';
     const GOLD = 'FFB8860B';
 
-    // ── جلب كل transactions الأكاديمي الحالي ──
     let allTx = [];
     let allDebts = [];
     try {
@@ -1256,10 +1186,8 @@
       return;
     }
 
-    // ── بنود الحساب ──
     const ALL_ITEMS = ['مصروفات دراسية','باص','يونيفورم','فايل','أبليكيشن','رحلات','امتحانات'];
 
-    // ── ترتيب المراحل والصفوف ──
     const STAGE_ORDER = [
       { stageId: 'pre_kg',        stageName: 'Pre-KG',       grades: ['Pre-KG'] },
       { stageId: 'kg',            stageName: 'KG',           grades: ['KG1','KG2'] },
@@ -1269,8 +1197,7 @@
       { stageId: 'semi_international', stageName: 'Semi-International', grades: ['KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5'] },
     ];
 
-    // تجميع الطلاب: لكل طالب نجمع كل دفعاته
-    const studentMap = {}; // key: studentName|stage|grade
+    const studentMap = {};
     allTx.forEach(tx => {
       const key = `${tx.studentName}|||${tx.stage}|||${tx.grade}`;
       if (!studentMap[key]) {
@@ -1288,12 +1215,9 @@
       studentMap[key].payments.push(tx);
     });
 
-    // حساب البيانات لكل طالب
     Object.values(studentMap).forEach(s => {
-      // ترتيب الدفعات بالتاريخ
       s.payments.sort((a,b) => a.date.localeCompare(b.date));
 
-      // تجميع حسب البنود
       s.payments.forEach(tx => {
         const items = tx.paymentItems;
         if (Array.isArray(items) && items.length > 0) {
@@ -1313,7 +1237,6 @@
         }
       });
 
-      // استخراج الأقساط (أكبر 3 دفعات من مصروفات دراسية أو أكبر 3 transactions)
       const feePayments = s.payments.filter(tx =>
         (tx.paymentItem || '').includes('مصروفات دراسية')
       );
@@ -1326,9 +1249,7 @@
         return tx.amount || 0;
       });
 
-      // المستحقات الإجمالية
       s.totalDue = s.payments.reduce((sum, tx) => sum + (tx.totalDue || 0), 0);
-      // لو totalDue مش موجود نحسبه
       if (s.totalDue === 0) {
         s.totalDue = s.payments.reduce((sum, tx) => {
           const d = tx.debt || 0;
@@ -1337,17 +1258,14 @@
       }
       s.totalPaid = s.payments.reduce((sum, tx) => sum + (tx.amount || 0), 0);
 
-      // المتبقي من الـ debts collection
       const studentDebts = allDebts.filter(d =>
         d.studentName === s.studentName && d.grade === s.grade
       );
       s.totalRemaining = studentDebts.reduce((sum, d) => sum + (d.remaining || 0), 0);
       if (s.totalRemaining === 0) {
-        // fallback من الـ transactions
         s.totalRemaining = s.payments.reduce((sum, tx) => sum + (tx.debt || 0), 0);
       }
 
-      // الخصم: الفرق بين المستحق النظري والفعلي
       s.totalDiscount = s.payments.reduce((sum, tx) => {
         if (Array.isArray(tx.paymentItems)) {
           return sum + tx.paymentItems.reduce((ds, pi) => {
@@ -1360,21 +1278,16 @@
       }, 0);
     });
 
-    // ── تنظيم الطلاب في groups حسب المرحلة ──
-    // نكتشف المراحل الموجودة فعلاً في البيانات
     const existingStages = new Set(Object.values(studentMap).map(s => s.stage));
     const stagesToShow = STAGE_ORDER.filter(st => existingStages.has(st.stageId));
-    // لو مفيش مراحل معروفة، اعمل group "أخرى"
     const unknownStudents = Object.values(studentMap).filter(s =>
       !STAGE_ORDER.find(st => st.stageId === s.stage)
     );
 
-    // ── إنشاء الـ Workbook ──
     const wb = new ExcelJS.Workbook();
     wb.creator = 'School Accounting System';
     wb.views = [{ rightToLeft: true }];
 
-    // ── دوال تنسيق ──
     const hFill = (argb) => ({ type:'pattern', pattern:'solid', fgColor:{ argb } });
     const hBord = (style='medium', c='FF888888') => {
       const s = { style, color:{ argb: c } };
@@ -1413,20 +1326,24 @@
       { header: 'م',               key: 'idx',        width: 5  },
       { header: 'اسم الطالب',      key: 'name',       width: 28 },
       { header: 'الصف',            key: 'grade',      width: 12 },
-      { header: 'المستحقات',       key: 'totalDue',   width: 14 },
+      { header: 'مصروفات دراسية', key: 'fees',       width: 16 },
       { header: 'القسط الأول',     key: 'inst1',      width: 13 },
       { header: 'القسط الثاني',    key: 'inst2',      width: 13 },
-      { header: 'القسط الثالث',    key: 'inst3',      width: 13 },
       { header: 'خصم',             key: 'disc',       width: 10 },
-      { header: 'إجمالي المدفوع', key: 'totalPaid',  width: 15 },
-      { header: 'إجمالي المتبقي', key: 'remaining',  width: 15 },
     ];
-    const ITEM_COLS = DYNAMIC_ITEMS.map((it, i) => ({
+    // استبعاد مصروفات دراسية من البنود لأنه عمود ثابت
+    const OTHER_ITEMS = DYNAMIC_ITEMS.filter(it => it !== 'مصروفات دراسية');
+    const ITEM_COLS = OTHER_ITEMS.map((it, i) => ({
       header: it,
       key: `item${i}`,
       width: Math.max(10, Math.min(it.length * 1.8, 18))
     }));
-    const COL_DEFS = [...FIXED_COLS, ...ITEM_COLS];
+    // إضافة عمودي الإجمالي في النهاية
+    const TOTAL_COLS = [
+      { header: 'إجمالي المدفوع', key: 'totalPaid',  width: 15 },
+      { header: 'إجمالي المتبقي', key: 'remaining',  width: 15 },
+    ];
+    const COL_DEFS = [...FIXED_COLS, ...ITEM_COLS, ...TOTAL_COLS];
     const NUM_COLS = COL_DEFS.length;
 
     // دالة مساعدة: تحويل رقم عمود (1-based) لحرف Excel
@@ -1442,7 +1359,6 @@
     ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:4, activeCell:'A5' }];
     ws.columns = COL_DEFS.map(c => ({ width: c.width }));
 
-    // عنوان رئيسي للشيت الكامل
     const mainTitle = ws.addRow([`مراجعة إيرادات ${schoolName}  —  العام الدراسي ${ACADEMIC_YEAR}`]);
     ws.mergeCells(`A1:${LAST_COL_LETTER}1`);
     applyCell(mainTitle.getCell(1), {
@@ -1475,10 +1391,11 @@
     const mainHeader = ws.addRow(COL_DEFS.map(c => c.header));
     mainHeader.eachCell((cell, ci) => {
       const colKey = COL_DEFS[ci-1]?.key || '';
-      const isFin = ['inst1','inst2','inst3','totalPaid','remaining','totalDue'].includes(colKey);
+      const isFin = ['inst1','inst2','totalPaid','remaining'].includes(colKey);
       const isItem = colKey.startsWith('item') || colKey === 'disc';
+      const isFees = colKey === 'fees';
       applyCell(cell, {
-        fill: hFill(isFin ? SEC : isItem ? 'FF2C3E50' : PRI),
+        fill: hFill(isFees ? 'FF2C3E50' : isFin ? SEC : isItem ? 'FF2C3E50' : PRI),
         font: { name:'Arial', bold:true, size:10, color:{ argb: WHT } },
         alignment: cAlign(true),
         border: medBord(),
@@ -1486,11 +1403,10 @@
     });
     mainHeader.height = 30;
 
-    let globalRowCounter = 0; // counter عالمي للترقيم
+    let globalRowCounter = 0;
 
     function buildSheet(stageName, stageStudents) {
 
-      // ── عنوان المرحلة ──
       const stageHeader = ws.addRow([`📚  ${stageName}  —  ${stageStudents.length} طالب`]);
       ws.mergeCells(`A${stageHeader.number}:${LAST_COL_LETTER}${stageHeader.number}`);
       applyCell(stageHeader.getCell(1), {
@@ -1501,39 +1417,43 @@
       });
       stageHeader.height = 28;
 
-      // ── بيانات الطلاب ──
       const stageTotals = {
-        totalDue: 0, inst1: 0, inst2: 0, inst3: 0,
+        fees: 0, inst1: 0, inst2: 0,
         disc: 0, totalPaid: 0, remaining: 0,
-        items: Object.fromEntries(DYNAMIC_ITEMS.map(it => [it, 0]))
+        items: Object.fromEntries(OTHER_ITEMS.map(it => [it, 0]))
       };
 
       stageStudents.forEach((stu, i) => {
         const isAlt = i % 2 === 1;
         globalRowCounter++;
+        const feesAmt = stu.grade === 'Pre-KG' ? 26000 : Math.round(stu.items['مصروفات دراسية'] || 0);
+        const inst1Amt = stu.installments[0] || 0;
+        const inst2Amt = stu.installments[1] || 0;
+        const discAmt  = Math.round(stu.totalDiscount) || 0;
+        const remainingAmt = Math.max(0, feesAmt - inst1Amt - inst2Amt - discAmt);
+        const totalPaidAmt = Math.round(stu.totalPaid) || 0;
+
         const rowVals = [
           globalRowCounter,
           stu.studentName,
           stu.grade,
-          stu.totalDue    || 0,
-          stu.installments[0] || 0,
-          stu.installments[1] || 0,
-          stu.installments[2] || 0,
-          Math.round(stu.totalDiscount) || 0,
-          Math.round(stu.totalPaid)     || 0,
-          Math.round(stu.totalRemaining)|| 0,
-          ...DYNAMIC_ITEMS.map(it => Math.round(stu.items[it] || 0)),
+          feesAmt,
+          inst1Amt,
+          inst2Amt,
+          discAmt,
+          ...OTHER_ITEMS.map(it => Math.round(stu.items[it] || 0)),
+          totalPaidAmt,
+          remainingAmt,
         ];
 
-        // تراكم الإجماليات
-        stageTotals.totalDue   += rowVals[3];
-        stageTotals.inst1      += rowVals[4];
-        stageTotals.inst2      += rowVals[5];
-        stageTotals.inst3      += rowVals[6];
-        stageTotals.disc       += rowVals[7];
-        stageTotals.totalPaid  += rowVals[8];
-        stageTotals.remaining  += rowVals[9];
-        DYNAMIC_ITEMS.forEach((it, ii) => { stageTotals.items[it] += rowVals[10+ii]; });
+        const otherItemsStartIdx = 7;
+        stageTotals.fees      += feesAmt;
+        stageTotals.inst1     += inst1Amt;
+        stageTotals.inst2     += inst2Amt;
+        stageTotals.disc      += discAmt;
+        stageTotals.totalPaid += totalPaidAmt;
+        stageTotals.remaining += remainingAmt;
+        OTHER_ITEMS.forEach((it, ii) => { stageTotals.items[it] += rowVals[otherItemsStartIdx + ii]; });
 
         const dr = ws.addRow(rowVals);
         dr.height = 20;
@@ -1544,6 +1464,7 @@
           const isRemaining = colKey === 'remaining';
           const isTotalPaid = colKey === 'totalPaid';
           const isName = colKey === 'name';
+          const isFees2 = colKey === 'fees';
 
           // لون خلفية
           let bgArgb = isAlt ? ACC : WHT;
@@ -1571,27 +1492,27 @@
         });
       });
 
-      // ── صف الإجماليات ──
       const totVals = [
         `الإجمالي (${stageStudents.length} طالب)`,
         '',
         '',
-        stageTotals.totalDue,
+        stageTotals.fees,
         stageTotals.inst1,
         stageTotals.inst2,
-        stageTotals.inst3,
         stageTotals.disc,
+        ...OTHER_ITEMS.map(it => stageTotals.items[it]),
         stageTotals.totalPaid,
         stageTotals.remaining,
-        ...DYNAMIC_ITEMS.map(it => stageTotals.items[it]),
       ];
       const tr = ws.addRow(totVals);
       tr.height = 26;
       ws.mergeCells(`A${tr.number}:C${tr.number}`);
 
+      const totalPaidColIdx = COL_DEFS.findIndex(c => c.key === 'totalPaid') + 1;
+      const remainingColIdx = COL_DEFS.findIndex(c => c.key === 'remaining') + 1;
       tr.eachCell((cell, ci) => {
-        const isRed = ci === 10 && (cell.value || 0) > 0; // عمود المتبقي
-        const isGrn = ci === 9; // عمود المدفوع
+        const isRed = ci === remainingColIdx && (cell.value || 0) > 0;
+        const isGrn = ci === totalPaidColIdx;
         applyCell(cell, {
           fill: hFill(isRed ? RED : isGrn ? GRN : PRI),
           font: { name:'Arial', bold:true, size:11, color:{ argb: WHT } },
@@ -1601,7 +1522,6 @@
         });
       });
 
-      // ── صف ملخص مالي للمرحلة ──
       ws.addRow([]);
       const summaryPct = stageTotals.totalDue > 0 ? Math.round(stageTotals.totalPaid / stageTotals.totalDue * 100) : 0;
       const summaryVals = Array(NUM_COLS).fill('');
@@ -1631,7 +1551,6 @@
       sepRow.height = 10;
     }
 
-    // ── بناء المراحل كلها في شيت واحد ──
     stagesToShow.forEach(stageInfo => {
       const stageStudents = Object.values(studentMap)
         .filter(s => s.stage === stageInfo.stageId)
@@ -1645,12 +1564,10 @@
       buildSheet(stageInfo.stageName, stageStudents);
     });
 
-    // لو فيه طلاب بمراحل غير معروفة
     if (unknownStudents.length > 0) {
       buildSheet('أخرى', unknownStudents.sort((a,b) => a.studentName.localeCompare(b.studentName,'ar')));
     }
 
-    // إجمالي ختامي كلي في نهاية الشيت
     const allStudents = Object.values(studentMap);
     const grandTotalDue  = allStudents.reduce((s,st)=>s+st.totalDue,0);
     const grandTotalPaid = allStudents.reduce((s,st)=>s+st.totalPaid,0);
@@ -1662,17 +1579,22 @@
     applyCell(grandSepRow.getCell(1), { fill: hFill('FF333333'), border: thickBord() });
     grandSepRow.height = 4;
 
+    const grandTotalFees = allStudents.reduce((s,st)=>s+(st.grade==='Pre-KG'?26000:Math.round(st.items['مصروفات دراسية']||0)),0);
+    const grandInst1 = allStudents.reduce((s,st)=>s+(st.installments[0]||0),0);
+    const grandInst2 = allStudents.reduce((s,st)=>s+(st.installments[1]||0),0);
+    const grandDisc  = allStudents.reduce((s,st)=>s+Math.round(st.totalDiscount||0),0);
+    const grandOtherItems = OTHER_ITEMS.map(it => allStudents.reduce((s,st)=>s+Math.round(st.items[it]||0),0));
     const grandRow = ws.addRow([
       `الإجمالي الكلي (${allStudents.length} طالب)`, '', '',
-      grandTotalDue, 0, 0, 0, 0,
+      grandTotalFees, grandInst1, grandInst2, grandDisc,
+      ...grandOtherItems,
       grandTotalPaid, grandTotalRem,
-      ...allItemTotals
     ]);
     ws.mergeCells(`A${grandRow.number}:C${grandRow.number}`);
     grandRow.height = 30;
     grandRow.eachCell((cell, ci) => {
-      const isRed = ci === 10 && grandTotalRem > 0;
-      const isGrn = ci === 9;
+      const isRed = ci === remainingColIdx && grandTotalRem > 0;
+      const isGrn = ci === totalPaidColIdx;
       applyCell(cell, {
         fill: hFill(isRed ? RED : isGrn ? GRN : GOLD),
         font: { name:'Arial', bold:true, size:12, color:{ argb: WHT } },
@@ -1682,7 +1604,6 @@
       });
     });
 
-    // ── تحميل الملف ──
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url  = URL.createObjectURL(blob);
@@ -1695,9 +1616,6 @@
 
   init();
 
-  // ============================================================
-  // EDIT TRANSACTION MODAL — من صفحة التقارير
-  // ============================================================
   let editingTxId = null;
 
   async function openEditTxModal(id) {
@@ -1707,7 +1625,6 @@
       const d = docSnap.data();
       editingTxId = id;
 
-      // بيانات الطالب
       document.getElementById('etStudentName').value    = d.studentName   || '';
       document.getElementById('etGrade').value          = d.grade         || '';
       document.getElementById('etDate').value           = d.date          || '';
@@ -1717,7 +1634,6 @@
       document.getElementById('etReceiptNumber').value  = d.receiptNumber || '';
       document.getElementById('etNotes').value          = d.notes         || '';
 
-      // عنوان المودال يبيّن اسم الطالب والتاريخ
       document.getElementById('etModalTitle').textContent = `✏ تعديل: ${d.studentName} — ${d.date}`;
 
       document.getElementById('editTxModal').style.display = 'flex';
@@ -1753,51 +1669,35 @@
     btn.disabled = true; btn.textContent = 'جاري الحفظ...';
 
     try {
-      // جيب بيانات الـ transaction الأصلية عشان نعرف totalDue
       const origSnap = await db.collection('transactions').doc(editingTxId).get();
       const orig = origSnap.data();
-      // ── إصلاح مشكلة حساب الدين ──
-      // totalDue: المبلغ الأصلي المطلوب — مش بيتغيّر بالتعديل
-      // الخطأ القديم: كان بيحسب hadDebt من (totalDue - orig.amount) وده غلط لو الـ tx اتعدّلت قبل كده
-      // الإصلاح: hadDebt = orig.debt (الدين المسجل على الـ transaction دي فعلاً قبل التعديل الحالي)
+
       let totalDue;
       if (orig.totalDue && orig.totalDue > 0) {
-        // موجود صراحةً من أول ما تم تسجيل الـ transaction
         totalDue = orig.totalDue;
       } else if ((orig.debt || 0) > 0) {
-        // استنتاجه: ما دُفع + ما تبقى
         totalDue = (orig.amount || 0) + (orig.debt || 0);
       } else {
-        // لم يكن عليه دين — المستحق = المبلغ الجديد
         totalDue = amount;
       }
       const newDebt = Math.max(0, totalDue - amount);
-      // hadDebt: الدين الفعلي المسجل على الـ tx قبل التعديل الحالي (مش محسوب من totalDue)
       const hadDebt = orig.debt || 0;
 
-      // ✅ إعادة بناء paymentItems array من paymentItem string عشان mapAmounts تشتغل صح
-      // لو التعديل غيّر الـ paymentItem، نبني array جديد بنسب متساوية
       let updatedPaymentItems = orig.paymentItems || null;
       if (paymentItem !== orig.paymentItem) {
-        // البند اتغيّر — ابن array جديد بناءً على الـ string الجديد
         const parts = paymentItem.split('+').map(s => s.trim()).filter(Boolean);
         const share = amount / Math.max(parts.length, 1);
-        updatedPaymentItems = parts.map(item => ({
-          item, price: share, discount: 0, netPrice: share
-        }));
+        updatedPaymentItems = parts.map(item => ({ item, price: share, discount: 0, netPrice: share }));
       } else if (Array.isArray(orig.paymentItems) && orig.paymentItems.length > 0 && amount !== orig.amount) {
-        // المبلغ اتغيّر بس البند نفسه — اضبط netPrice نسبياً
         const totalOrigNet = orig.paymentItems.reduce((s, pi) => s + (Number(pi.netPrice) || Number(pi.price) || 0), 0);
         if (totalOrigNet > 0) {
           updatedPaymentItems = orig.paymentItems.map(pi => {
             const origNet = Number(pi.netPrice) || Number(pi.price) || 0;
-            const newNet = amount * (origNet / totalOrigNet);
-            return { ...pi, netPrice: Math.round(newNet) };
+            return { ...pi, netPrice: Math.round(amount * (origNet / totalOrigNet)) };
           });
         }
       }
 
-      // حفظ التعديل على الـ transaction
       const updateData = {
         studentName, grade, date, amount, paymentType,
         paymentTypeName: PAYMENT_TYPES.find(p => p.value === paymentType)?.label || paymentType,
@@ -1810,9 +1710,8 @@
       if (updatedPaymentItems) updateData.paymentItems = updatedPaymentItems;
       await db.collection('transactions').doc(editingTxId).update(updateData);
 
-      // ===== مزامنة مع debts collection =====
+      // مزامنة debts
       if (newDebt > 0) {
-        // ابحث عن debt مفتوح لنفس الطالب ونفس البند
         const existingDebtSnap = await db.collection('debts')
           .where('schoolId',    '==', schoolId)
           .where('studentName', '==', studentName)
@@ -1822,19 +1721,15 @@
         const openDebts = existingDebtSnap.docs.filter(d => (d.data().remaining || 0) > 0);
 
         if (openDebts.length > 0) {
-          // حدّث الـ debt الموجود — فقط غيّر الـ remaining بالفرق
           const existingDebt = openDebts[0];
           const prevData = existingDebt.data();
-          // الفرق بين الـ debt القديم (من التعديل السابق) والجديد
-          const oldDebtFromThisTx = hadDebt; // الدين القديم من نفس الـ tx
-          const diff = newDebt - oldDebtFromThisTx;
+          const diff = newDebt - hadDebt;
           await db.collection('debts').doc(existingDebt.id).update({
             paid:      Math.max(0, (prevData.paid      || 0) - diff),
             remaining: Math.max(0, (prevData.remaining || 0) + diff),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         } else {
-          // أنشئ debt جديد
           await db.collection('debts').add({
             schoolId,
             studentName,
@@ -1853,7 +1748,6 @@
           });
         }
       } else if (hadDebt > 0 && newDebt === 0) {
-        // كان عنده debt وبقى مسدد — صفّر الـ remaining
         const existingDebtSnap = await db.collection('debts')
           .where('schoolId',    '==', schoolId)
           .where('studentName', '==', studentName)
@@ -1868,7 +1762,6 @@
           });
         }
       }
-      // ===== نهاية مزامنة debts =====
 
       // تحديث currentData في الذاكرة
       const idx = currentData.findIndex(d => d.id === editingTxId);
