@@ -48,7 +48,7 @@
         <div><div class="sub">إجمالي التحصيل</div><div class="big-num" id="summaryTotal">ج.م 0</div><div class="sub" id="summaryPeriod">التقرير اليومي</div></div>
         <div><div style="font-size:2rem;font-weight:900" id="summaryCount">0</div><div class="sub">عملية</div></div>
         <div><div style="font-size:2rem;font-weight:900" id="summaryStudents">0</div><div class="sub">طالب</div></div>
-        <div class="export-btn-group no-print"><button class="btn btn-secondary btn-sm" id="exportExcelBtn" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> Excel</button><button class="btn btn-secondary btn-sm" onclick="exportPDF()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> PDF</button><button class="btn btn-secondary btn-sm" onclick="window.print()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> طباعة</button><button class="btn btn-secondary btn-sm" id="revenueReviewBtn" onclick="exportRevenueReview()" style="background:rgba(255,215,0,0.25);color:#FFD700;border:1px solid rgba(255,215,0,0.6);font-weight:800" title="مراجعة الإيرادات الكاملة بالمراحل">📊 مراجعة الإيرادات</button></div>
+        <div class="export-btn-group no-print"><button class="btn btn-secondary btn-sm" id="exportExcelBtn" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> Excel</button><button class="btn btn-secondary btn-sm" onclick="exportPDF()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> PDF</button><button class="btn btn-secondary btn-sm" onclick="window.print()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> طباعة</button><button class="btn btn-secondary btn-sm" id="revenueReviewBtn" onclick="handleRevenueReview()" style="background:rgba(255,215,0,0.25);color:#FFD700;border:1px solid rgba(255,215,0,0.6);font-weight:800" title="مراجعة الإيرادات الكاملة بالمراحل">📊 مراجعة الإيرادات</button></div>
       </div>
 
       <!-- Results Table -->
@@ -157,6 +157,7 @@
     const tbody = document.getElementById('reportTableBody');
     const tfoot = document.getElementById('reportTableFoot');
     const isDaily = currentPeriod === 'daily';
+    const filterItem = document.getElementById('filterItem').value;
     document.querySelectorAll('.col-daily').forEach(el => {
       el.style.display = isDaily ? '' : 'none';
     });
@@ -168,9 +169,22 @@
     } else {
       tbody.innerHTML = '';
       currentData.forEach((d,i) => {
-        total += d.amount || 0;
+        // لو فيه فلتر بند، احسب مبلغ البند ده بس
+        let displayAmount = d.amount || 0;
+        if (filterItem) {
+          const m = mapAmounts(d);
+          const key = filterItem === 'مصروفات دراسية' || filterItem === 'مصروفات' ? 'fees'
+                    : filterItem === 'فايل'      ? 'file'
+                    : filterItem === 'يونيفورم'  ? 'uni'
+                    : filterItem === 'باص'        ? 'bus'
+                    : filterItem === 'أبليكيشن'  ? 'app'
+                    : 'other';
+          displayAmount = m[key] || 0;
+        }
+        total += displayAmount;
         totalDebt += d.debt || 0;
         students.add(d.studentName);
+        const displayItem = filterItem || d.paymentItem;
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="text-muted text-sm">${i+1}</td>
@@ -178,8 +192,8 @@
           <td class="col-daily"><strong>${d.studentName}</strong></td>
           <td><span class="badge badge-primary">${d.stageName || d.stage}</span></td>
           <td>${d.grade}</td>
-          <td>${d.paymentItem}</td>
-          <td class="text-bold text-primary">${formatCurrency(d.amount)}</td>
+          <td>${displayItem}</td>
+          <td class="text-bold text-primary">${formatCurrency(displayAmount)}</td>
           <td class="col-daily" style="color:#c0392b;font-weight:700">${d.debt>0?formatCurrency(d.debt):'-'}</td>
           <td>${d.paymentTypeName || d.paymentType}</td>
           <td class="text-sm text-muted">${d.receiptNumber}</td>
@@ -1139,6 +1153,22 @@
     doc.save(fname);
   }
 
+
+  async function handleRevenueReview() {
+    const btn = document.getElementById('revenueReviewBtn');
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ جاري التحميل...';
+    try {
+      await exportRevenueReview();
+    } catch(e) {
+      alert('خطأ في مراجعة الإيرادات: ' + e.message);
+      console.error(e);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  }
 
   async function exportRevenueReview() {
     // تحميل ExcelJS أولاً لو مش موجود
