@@ -332,6 +332,17 @@
 
       <div id="resultArea" style="display:none">
 
+        <!-- Duplicate Name Warning -->
+        <div id="duplicateWarning" style="display:none; background:#fff3cd; border:1.5px solid #ffc107; border-radius:10px; padding:1rem 1.25rem; margin-bottom:1rem; direction:rtl">
+          <div style="font-weight:800; font-size:0.95rem; color:#856404; margin-bottom:0.5rem">⚠️ تحذير: الاسم مكرر بأشكال مختلفة في الداتابيز!</div>
+          <div style="font-size:0.82rem; color:#856404; margin-bottom:0.75rem">الأسماء التالية موجودة في السجلات — ممكن بعض المعاملات تكون متسجلة تحت اسم مختلف شوية:</div>
+          <div id="duplicateNamesList" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem"></div>
+          <div style="font-size:0.78rem; color:#856404">اضغط على أي اسم لعرض معاملاته، أو استخدم زر "دمج الكل" لرؤية كل المعاملات معاً</div>
+          <div style="margin-top:0.75rem; display:flex; gap:0.5rem; flex-wrap:wrap">
+            <button id="mergeAllBtn" onclick="mergeAllDuplicates()" style="background:#856404; color:white; border:none; border-radius:7px; padding:0.4rem 1rem; font-family:inherit; font-size:0.82rem; font-weight:700; cursor:pointer">🔗 دمج الكل وعرض كل المعاملات</button>
+          </div>
+        </div>
+
         <!-- Profile Card -->
         <div class="profile-card animate-in">
           <div class="profile-header">
@@ -626,35 +637,117 @@
     loadStudentData(name);
   }
 
+  // ── Duplicate detection helpers ──────────────────
+  let currentDuplicateNames = [];
+
+  function normalize(name) {
+    return (name || '')
+      .trim()
+      .replace(/\s+/g, ' ')           // مسافات متعددة → مسافة واحدة
+      .replace(/أ|إ|آ/g, 'ا')         // توحيد الألف
+      .replace(/ة/g, 'ه')             // تاء مربوطة → هاء
+      .replace(/ى/g, 'ي')             // ألف مقصورة → ياء
+      .toLowerCase();
+  }
+
+  function findSimilarNames(targetName) {
+    const normTarget = normalize(targetName);
+    return allStudentNames.filter(n => {
+      if (n === targetName) return false;
+      const normN = normalize(n);
+      // نفس الاسم بعد التوحيد
+      if (normN === normTarget) return true;
+      // فرق مسافة فقط
+      if (normN.replace(/\s/g,'') === normTarget.replace(/\s/g,'')) return true;
+      return false;
+    });
+  }
+
   // ── Load Student Data ──────────────────────────
-  async function loadStudentData(name) {
+  async function loadStudentData(name, extraNames = []) {
     document.getElementById('initialState').style.display = 'none';
     document.getElementById('resultArea').style.display = 'none';
     document.getElementById('loadingState').style.display = 'block';
+    document.getElementById('duplicateWarning').style.display = 'none';
 
     try {
-      // Transactions
-      const txSnap = await db.collection('transactions')
-        .where('schoolId', '==', schoolId)
-        .where('studentName', '==', name)
-        .get();
+      // كل الأسماء اللي هنجيب بياناتها (الاسم الأصلي + أي duplicates محددة)
+      const allNames = [name, ...extraNames.filter(n => n !== name)];
+
+      // جيب transactions لكل الأسماء
+      const txPromises = allNames.map(n =>
+        db.collection('transactions')
+          .where('schoolId', '==', schoolId)
+          .where('studentName', '==', n)
+          .get()
+      );
+      const debtPromises = allNames.map(n =>
+        db.collection('debts')
+          .where('schoolId', '==', schoolId)
+          .where('studentName', '==', n)
+          .get()
+          .catch(() => null)
+      );
+
+      const [txSnaps, debtSnaps] = await Promise.all([
+        Promise.all(txPromises),
+        Promise.all(debtPromises)
+      ]);
 
       const transactions = [];
-      txSnap.forEach(doc => transactions.push({ id: doc.id, ...doc.data() }));
+      const seenTxIds = new Set();
+      txSnaps.forEach(snap => {
+        snap.forEach(doc => {
+          if (!seenTxIds.has(doc.id)) {
+            seenTxIds.add(doc.id);
+            transactions.push({ id: doc.id, ...doc.data() });
+          }
+        });
+      });
       transactions.sort((a, b) => {
         const ta = a.createdAt?.seconds || 0;
         const tb = b.createdAt?.seconds || 0;
         return tb - ta;
       });
 
-      // Debts
-      const debtSnap = await db.collection('debts')
-        .where('schoolId', '==', schoolId)
-        .where('studentName', '==', name)
-        .get();
-
       const debts = [];
-      debtSnap.forEach(doc => debts.push({ id: doc.id, ...doc.data() }));
+      const seenDebtIds = new Set();
+      debtSnaps.forEach(snap => {
+        if (!snap) return;
+        snap.forEach(doc => {
+          if (!seenDebtIds.has(doc.id)) {
+            seenDebtIds.add(doc.id);
+            debts.push({ id: doc.id, ...doc.data() });
+          }
+        });
+      });
+
+      // كشف الأسماء المتشابهة (بس لو مش بندمج بالفعل)
+      if (extraNames.length === 0) {
+        const similarNames = findSimilarNames(name);
+        currentDuplicateNames = [name, ...similarNames];
+        if (similarNames.length > 0) {
+          const warningEl = document.getElementById('duplicateWarning');
+          const listEl = document.getElementById('duplicateNamesList');
+          listEl.innerHTML = currentDuplicateNames.map(n => `
+            <span onclick="loadStudentData('${n.replace(/'/g,"\\'")}'')"
+              style="background:white; border:1.5px solid #ffc107; border-radius:20px;
+                     padding:0.3rem 0.85rem; font-size:0.82rem; font-weight:700;
+                     color:#856404; cursor:pointer; white-space:nowrap"
+              title="اضغط لعرض معاملات هذا الاسم بس">
+              ${n === name ? '✓ ' : ''}${n}
+            </span>
+          `).join('');
+          warningEl.style.display = 'block';
+        }
+      } else {
+        // وضع الدمج — وضح إن الداتا مدموجة
+        const warningEl = document.getElementById('duplicateWarning');
+        const listEl = document.getElementById('duplicateNamesList');
+        listEl.innerHTML = `<span style="background:#d4edda; border:1.5px solid #4caf50; border-radius:20px; padding:0.3rem 0.85rem; font-size:0.82rem; font-weight:700; color:#2e7d32">✅ يتم عرض كل المعاملات من ${allNames.length} أسماء مدموجة</span>`;
+        document.getElementById('mergeAllBtn').style.display = 'none';
+        warningEl.style.display = 'block';
+      }
 
       renderStudentProfile(name, transactions, debts);
 
@@ -668,6 +761,14 @@
         <div class="initial-sub">${err.message}</div>
       `;
     }
+  }
+
+  function mergeAllDuplicates() {
+    if (currentDuplicateNames.length < 2) return;
+    const primary = currentDuplicateNames[0];
+    const extras  = currentDuplicateNames.slice(1);
+    document.getElementById('mergeAllBtn').style.display = 'none';
+    loadStudentData(primary, extras);
   }
 
   function renderStudentProfile(name, transactions, debts) {

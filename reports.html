@@ -1226,22 +1226,33 @@
       { stageId: 'semi_international', stageName: 'Semi-International', grades: ['KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5'] },
     ];
 
+    // توحيد الاسم لتجنب تكرار الطالب بأشكال كتابة مختلفة
+    function normalizeName(name) {
+      return (name || '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replace(/أ|إ|آ/g, 'ا')
+        .replace(/ة/g, 'ه')
+        .replace(/ى/g, 'ي')
+        .toLowerCase();
+    }
+
     const studentMap = {};
     allTx.forEach(tx => {
-      const key = `${tx.studentName}|||${tx.stage}|||${tx.grade}`;
-      if (!studentMap[key]) {
-        studentMap[key] = {
-          studentName: tx.studentName,
+      const normKey = `${normalizeName(tx.studentName)}|||${tx.stage}|||${tx.grade}`;
+      if (!studentMap[normKey]) {
+        studentMap[normKey] = {
+          studentName: tx.studentName,  // نحتفظ بأول شكل للاسم للعرض
           stage: tx.stage || '',
           stageName: tx.stageName || tx.stage || '',
           grade: tx.grade || '',
-          payments: [],   // كل الـ transactions
-          items: {},      // مجموع لكل بند
-          installments: [],  // أقساط مرتبة بالتاريخ
+          payments: [],
+          items: {},
+          installments: [],
         };
-        ALL_ITEMS.forEach(it => studentMap[key].items[it] = 0);
+        ALL_ITEMS.forEach(it => studentMap[normKey].items[it] = 0);
       }
-      studentMap[key].payments.push(tx);
+      studentMap[normKey].payments.push(tx);
     });
 
     Object.values(studentMap).forEach(s => {
