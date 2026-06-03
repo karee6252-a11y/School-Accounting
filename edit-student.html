@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تعديل بيانات الطلاب</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── حالات الصفحة ── */
+    #searchSection   { }
+    #studentProfile  { display:none; }
+    #loadingOverlay  { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999; align-items:center; justify-content:center; }
+
+    /* ── بطاقة البحث ── */
+    .search-hero {
+      background: linear-gradient(135deg, var(--primary), var(--secondary, #4a6fa5));
+      border-radius: var(--radius);
+      padding: 2rem 2rem 1.5rem;
+      color: #fff;
+      margin-bottom: 1.25rem;
+    }
+    .search-hero h2 { font-size:1.3rem; font-weight:800; margin:0 0 .25rem; }
+    .search-hero p  { font-size:.85rem; opacity:.8; margin:0 0 1.2rem; }
+    .search-input-wrap { display:flex; gap:.6rem; }
+    .search-input-wrap input {
+      flex:1; padding:.65rem 1rem; border:none; border-radius:8px;
+      font-size:1rem; font-family:inherit; outline:none; background:#fff;
+      color:#1a1a1a;
+    }
+    .search-input-wrap button {
+      padding:.65rem 1.4rem; border:none; border-radius:8px;
+      background:#fff; color:var(--primary); font-weight:800;
+      font-size:.95rem; cursor:pointer; font-family:inherit;
+      transition:opacity .2s;
+    }
+    .search-input-wrap button:hover { opacity:.85; }
+
+    /* ── نتائج البحث ── */
+    .results-grid {
+      display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:.85rem;
+    }
+    .result-card {
+      background:var(--card-bg,#fff); border:2px solid var(--border,#e5e7eb);
+      border-radius:10px; padding:1rem 1.2rem; cursor:pointer;
+      transition:border-color .2s, box-shadow .2s; display:flex; align-items:center; gap:.9rem;
+    }
+    .result-card:hover { border-color:var(--primary); box-shadow:0 4px 16px rgba(0,0,0,.1); }
+    .result-avatar {
+      width:44px; height:44px; border-radius:50%; background:var(--accent,#e8ecf5);
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+      font-weight:800; font-size:1.1rem; color:var(--primary);
+    }
+    .result-info { flex:1; min-width:0; }
+    .result-name  { font-weight:800; font-size:.95rem; color:var(--text-main,#1a1a1a); }
+    .result-meta  { font-size:.78rem; color:var(--text-light,#888); margin-top:2px; }
+    .result-badge {
+      font-size:.7rem; font-weight:700; padding:2px 8px; border-radius:20px;
+      background:var(--accent,#e8ecf5); color:var(--primary);
+    }
+
+    /* ── بروفايل الطالب ── */
+    .profile-header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary, #4a6fa5));
+      border-radius: var(--radius); padding:1.5rem 1.75rem;
+      display:flex; align-items:center; gap:1.2rem; margin-bottom:1.1rem; color:#fff;
+    }
+    .profile-avatar-lg {
+      width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,.2);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.8rem; font-weight:900; flex-shrink:0;
+    }
+    .profile-info h2   { font-size:1.3rem; font-weight:900; margin:0 0 .2rem; }
+    .profile-info span { font-size:.83rem; opacity:.8; }
+    .profile-actions   { margin-right:auto; display:flex; gap:.6rem; flex-wrap:wrap; }
+    .btn-back {
+      background:rgba(255,255,255,.2); color:#fff; border:1px solid rgba(255,255,255,.35);
+      padding:.5rem 1.1rem; border-radius:8px; font-size:.85rem; font-weight:700;
+      cursor:pointer; font-family:inherit; transition:background .2s;
+    }
+    .btn-back:hover { background:rgba(255,255,255,.35); }
+
+    /* ── تابز التعديل ── */
+    .edit-tabs { display:flex; gap:.4rem; margin-bottom:1rem; flex-wrap:wrap; }
+    .edit-tab  {
+      padding:.5rem 1.1rem; border-radius:8px; font-size:.85rem; font-weight:700;
+      cursor:pointer; font-family:inherit; border:2px solid var(--border,#e5e7eb);
+      background:var(--card-bg,#fff); color:var(--text-light,#888);
+      transition:all .2s;
+    }
+    .edit-tab.active {
+      border-color:var(--primary); background:var(--primary); color:#fff;
+    }
+
+    /* ── بانل التعديل ── */
+    .edit-panel { display:none; }
+    .edit-panel.active { display:block; }
+
+    /* ── شبكة الحقول ── */
+    .fields-grid {
+      display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr));
+      gap:1rem;
+    }
+    .field-group { display:flex; flex-direction:column; gap:5px; }
+    .field-label { font-size:.82rem; font-weight:700; color:#333; }
+    .field-label span { color:#e74c3c; }
+
+    /* ── جدول المعاملات ── */
+    .tx-row {
+      background:var(--card-bg,#fff); border:1px solid var(--border,#e5e7eb);
+      border-radius:10px; padding:1rem; margin-bottom:.75rem;
+      transition:border-color .2s;
+    }
+    .tx-row:hover { border-color:var(--primary); }
+    .tx-row-header {
+      display:flex; align-items:center; gap:.7rem; margin-bottom:.75rem; flex-wrap:wrap;
+    }
+    .tx-row-num {
+      width:26px; height:26px; border-radius:50%; background:var(--primary);
+      color:#fff; display:flex; align-items:center; justify-content:center;
+      font-size:.75rem; font-weight:800; flex-shrink:0;
+    }
+    .tx-row-title { font-weight:700; font-size:.9rem; flex:1; }
+    .tx-row-amount { font-weight:900; color:var(--primary); font-size:1rem; }
+    .tx-row-date   { font-size:.78rem; color:var(--text-light,#888); }
+    .tx-fields     { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:.75rem; }
+
+    /* ── إشعارات ── */
+    .toast {
+      position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%) translateY(80px);
+      background:#1a1a1a; color:#fff; padding:.75rem 1.5rem; border-radius:10px;
+      font-size:.88rem; font-weight:700; z-index:9998; transition:transform .3s;
+      white-space:nowrap; max-width:90vw;
+    }
+    .toast.show { transform:translateX(-50%) translateY(0); }
+    .toast.success { background:#1b5e20; }
+    .toast.error   { background:#c0392b; }
+
+    /* ── خط فاصل للأقساط ── */
+    .installment-item {
+      background:var(--accent,#e8ecf5); border-radius:8px; padding:.9rem 1rem;
+      margin-bottom:.6rem;
+    }
+    .installment-item .inst-header {
+      display:flex; align-items:center; gap:.6rem; margin-bottom:.6rem;
+    }
+    .inst-badge {
+      background:var(--primary); color:#fff; font-size:.72rem; font-weight:800;
+      padding:2px 9px; border-radius:20px;
+    }
+
+    /* ── empty state ── */
+    .no-tx {
+      text-align:center; padding:2.5rem 1rem; color:var(--text-light,#aaa);
+    }
+    .no-tx svg { opacity:.3; margin-bottom:.5rem; }
+
+    /* ── تأكيد الحذف ── */
+    #confirmModal {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.55);
+      z-index:10000; align-items:center; justify-content:center; padding:1rem;
+    }
+    #confirmModal .modal-box {
+      background:#fff; border-radius:14px; width:100%; max-width:420px;
+      padding:1.75rem; direction:rtl; font-family:inherit;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;padding:1.5rem 2rem;text-align:center">
+    <div class="loading-spinner" style="margin:0 auto .75rem;"></div>
+    <div id="loadingMsg" style="font-weight:700;color:var(--primary)">جاري التحميل...</div>
+  </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div id="confirmModal">
+  <div class="modal-box">
+    <h3 style="margin:0 0 .75rem;color:#c0392b;font-size:1.05rem">⚠️ تأكيد الحذف</h3>
+    <p id="confirmMsg" style="margin:0 0 1.25rem;font-size:.9rem;color:#444;line-height:1.6"></p>
+    <div style="display:flex;gap:.6rem">
+      <button id="confirmYesBtn" class="btn btn-primary" style="flex:1;background:#c0392b;border-color:#c0392b">نعم، احذف</button>
+      <button onclick="closeConfirm()" class="btn btn-secondary" style="flex:1">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div id="topbarContainer"></div>
+    <div class="page-content">
+
+      <!-- ══════════════════════════════════════
+           قسم البحث
+      ══════════════════════════════════════ -->
+      <div id="searchSection">
+
+        <div class="search-hero animate-in">
+          <h2>✏️ تعديل بيانات الطلاب</h2>
+          <p>ابحث عن أي طالب وعدّل اسمه أو صفه أو أي معاملة مالية خاصة به</p>
+          <div class="search-input-wrap">
+            <input type="text" id="searchInput" placeholder="اكتب اسم الطالب أو جزء منه..."
+              onkeydown="if(event.key==='Enter') searchStudents()" />
+            <button onclick="searchStudents()">🔍 بحث</button>
+          </div>
+        </div>
+
+        <div id="searchAlert" style="display:none" class="alert alert-error animate-in"></div>
+
+        <div id="resultsArea"></div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           بروفايل الطالب + التعديل
+      ══════════════════════════════════════ -->
+      <div id="studentProfile">
+
+        <!-- هيدر الطالب -->
+        <div class="profile-header animate-in">
+          <div class="profile-avatar-lg" id="profileAvatar">؟</div>
+          <div class="profile-info">
+            <h2 id="profileName">—</h2>
+            <span id="profileMeta">—</span>
+          </div>
+          <div class="profile-actions">
+            <button class="btn-back" onclick="backToSearch()">← رجوع للبحث</button>
+          </div>
+        </div>
+
+        <!-- تابز -->
+        <div class="edit-tabs animate-in">
+          <button class="edit-tab active" onclick="switchTab('info', this)">📋 البيانات الأساسية</button>
+          <button class="edit-tab" onclick="switchTab('transactions', this)">💰 المعاملات المالية</button>
+          <button class="edit-tab" onclick="switchTab('debts', this)">📌 المديونيات</button>
+        </div>
+
+        <!-- ────── بانل 1: البيانات الأساسية ────── -->
+        <div id="panelInfo" class="edit-panel active">
+          <div class="card animate-in">
+            <div class="card-header">
+              <span class="card-title">البيانات الأساسية</span>
+              <span class="badge badge-primary" id="infoStudentCount"></span>
+            </div>
+            <div style="padding:1.25rem">
+              <div id="infoAlert" style="display:none;background:#fdecea;color:#c0392b;border:1px solid #f5c6cb;border-radius:6px;padding:.6rem .9rem;font-size:.85rem;margin-bottom:1rem"></div>
+
+              <!-- بيانات اول معاملة كمرجع للاسم / المرحلة / الصف -->
+              <div class="fields-grid" id="infoFields">
+                <!-- يتبنى بالجافاسكريبت -->
+              </div>
+
+              <div style="margin-top:1.25rem;display:flex;gap:.6rem;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="saveBasicInfo()">💾 حفظ التعديلات</button>
+                <div style="font-size:.78rem;color:var(--text-light,#888);align-self:center">
+                  التعديل سيُحدَّث على كل معاملات الطالب
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────── بانل 2: المعاملات المالية ────── -->
+        <div id="panelTransactions" class="edit-panel">
+          <div class="card animate-in">
+            <div class="card-header">
+              <span class="card-title">المعاملات المالية</span>
+              <span class="badge badge-primary" id="txCount">0</span>
+            </div>
+            <div style="padding:1.25rem" id="txListWrap">
+              <!-- يتبنى بالجافاسكريبت -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ────── بانل 3: المديونيات ────── -->
+        <div id="panelDebts" class="edit-panel">
+          <div class="card animate-in">
+            <div class="card-header">
+              <span class="card-title">المديونيات</span>
+              <span class="badge badge-primary" id="debtCount">0</span>
+            </div>
+            <div style="padding:1.25rem" id="debtListWrap">
+              <!-- يتبنى بالجافاسكريبت -->
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /studentProfile -->
+    </div><!-- /page-content -->
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="layout.js"></script>
+<script>
+  renderLayout('edit-student', 'تعديل بيانات الطلاب');
+  const session  = guardAccountingPage();
+  const schoolId = session?.schoolId;
+
+  /* ════════════════════════════════════════
+     الحالة العامة
+  ════════════════════════════════════════ */
+  let currentStudentTx    = [];   // كل معاملات الطالب المختار
+  let currentStudentDebts = [];   // كل مديونياته
+  let currentStudentName  = '';   // الاسم الكنوني (قبل تعديل)
+  let currentStudentGrade = '';
+
+  /* ════════════════════════════════════════
+     Helpers
+  ════════════════════════════════════════ */
+  function showLoading(msg = 'جاري التحميل...') {
+    document.getElementById('loadingMsg').textContent = msg;
+    document.getElementById('loadingOverlay').style.display = 'flex';
+  }
+  function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+  }
+
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type} show`;
+    setTimeout(() => { t.classList.remove('show'); }, 3000);
+  }
+
+  function avatarLetter(name) {
+    const parts = (name || '?').trim().split(' ');
+    return parts[0]?.[0] || '؟';
+  }
+
+  function getStageName(stageId) {
+    const map = {
+      pre_kg:'Pre-KG', kg:'KG', grade:'Grade', prep:'Prep',
+      international:'American Section', semi_international:'Semi-International'
+    };
+    return map[stageId] || stageId || '—';
+  }
+
+  function getAllGrades() {
+    const grades = [];
+    Object.values(STAGES).forEach(st => grades.push(...st.grades));
+    Object.values(CARDIFF_STAGES).forEach(st => { if (st.grades) grades.push(...st.grades); });
+    return [...new Set(grades)];
+  }
+
+  function stageForGrade(grade) {
+    for (const [id, st] of Object.entries(STAGES)) {
+      if (st.grades.includes(grade)) return id;
+    }
+    for (const [id, st] of Object.entries(CARDIFF_STAGES)) {
+      if (st.grades && st.grades.includes(grade)) return id;
+    }
+    return '';
+  }
+
+  /* ════════════════════════════════════════
+     البحث
+  ════════════════════════════════════════ */
+  async function searchStudents() {
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q || q.length < 2) {
+      showAlert('searchAlert', 'اكتب على الأقل حرفين للبحث');
+      return;
+    }
+    hideAlert('searchAlert');
+    showLoading('جاري البحث...');
+
+    try {
+      const snap = await db.collection('transactions')
+        .where('schoolId', '==', schoolId)
+        .get();
+
+      // فلترة على جانب العميل (Firestore ملوش full-text search)
+      const norm = q.trim().replace(/\s+/g,' ').toLowerCase()
+        .replace(/أ|إ|آ/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي');
+
+      const studentMap = {};
+      snap.forEach(doc => {
+        const d = doc.data();
+        const nameNorm = (d.studentName||'').toLowerCase()
+          .replace(/أ|إ|آ/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي');
+        if (!nameNorm.includes(norm)) return;
+        const key = nameNorm;
+        if (!studentMap[key]) {
+          studentMap[key] = {
+            name: d.studentName,
+            grade: d.grade || '—',
+            stage: d.stage || '',
+            stageName: d.stageName || getStageName(d.stage),
+            count: 0,
+            total: 0,
+          };
+        }
+        studentMap[key].count++;
+        studentMap[key].total += (d.amount || 0);
+        // نأخذ أحدث بيانات
+        studentMap[key].grade     = d.grade || studentMap[key].grade;
+        studentMap[key].stage     = d.stage || studentMap[key].stage;
+        studentMap[key].stageName = d.stageName || studentMap[key].stageName;
+      });
+
+      renderSearchResults(Object.values(studentMap));
+    } catch(e) {
+      showAlert('searchAlert', 'خطأ في البحث: ' + e.message);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  function renderSearchResults(students) {
+    const area = document.getElementById('resultsArea');
+    if (students.length === 0) {
+      area.innerHTML = `<div class="card animate-in" style="padding:2rem;text-align:center;color:var(--text-light)">
+        <div style="font-size:2rem;margin-bottom:.5rem">🔍</div>
+        <div style="font-weight:700">لم يُعثر على طالب بهذا الاسم</div>
+        <div style="font-size:.83rem;margin-top:.3rem">تأكد من الهجاء أو جرب جزءاً من الاسم</div>
+      </div>`;
+      return;
+    }
+
+    const grid = students.map((s, i) => `
+      <div class="result-card" onclick="loadStudent('${encodeURIComponent(s.name)}')">
+        <div class="result-avatar">${avatarLetter(s.name)}</div>
+        <div class="result-info">
+          <div class="result-name">${s.name}</div>
+          <div class="result-meta">${s.stageName || s.stage || '—'}  •  ${s.grade}</div>
+          <div class="result-meta" style="margin-top:3px">
+            ${s.count} معاملة  •  ${formatCurrency(s.total)}
+          </div>
+        </div>
+        <div class="result-badge">${s.stageName || s.grade}</div>
+      </div>
+    `).join('');
+
+    area.innerHTML = `
+      <div style="font-size:.83rem;font-weight:700;color:var(--text-light);margin-bottom:.6rem">
+        تم العثور على ${students.length} طالب
+      </div>
+      <div class="results-grid animate-in">${grid}</div>`;
+  }
+
+  /* ════════════════════════════════════════
+     تحميل بيانات طالب
+  ════════════════════════════════════════ */
+  async function loadStudent(encodedName) {
+    const name = decodeURIComponent(encodedName);
+    showLoading('جاري تحميل بيانات الطالب...');
+    try {
+      const [txSnap, debtSnap] = await Promise.all([
+        db.collection('transactions')
+          .where('schoolId','==', schoolId)
+          .where('studentName','==', name)
+          .orderBy('date','asc')
+          .get(),
+        db.collection('debts')
+          .where('schoolId','==', schoolId)
+          .where('studentName','==', name)
+          .get()
+      ]);
+
+      currentStudentTx    = txSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      currentStudentDebts = debtSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      currentStudentName  = name;
+      currentStudentGrade = currentStudentTx[0]?.grade || '';
+
+      showProfile();
+    } catch(e) {
+      showToast('خطأ في التحميل: ' + e.message, 'error');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  /* ════════════════════════════════════════
+     عرض البروفايل
+  ════════════════════════════════════════ */
+  function showProfile() {
+    document.getElementById('searchSection').style.display   = 'none';
+    document.getElementById('studentProfile').style.display = 'block';
+
+    const s = currentStudentTx[0] || {};
+    document.getElementById('profileAvatar').textContent = avatarLetter(currentStudentName);
+    document.getElementById('profileName').textContent   = currentStudentName;
+    document.getElementById('profileMeta').textContent   =
+      `${s.stageName || getStageName(s.stage) || '—'}  •  ${s.grade || '—'}  •  ${currentStudentTx.length} معاملة`;
+
+    buildInfoPanel();
+    buildTxPanel();
+    buildDebtPanel();
+
+    // افتح أول تاب
+    switchTab('info', document.querySelector('.edit-tab'));
+  }
+
+  function backToSearch() {
+    document.getElementById('studentProfile').style.display = 'none';
+    document.getElementById('searchSection').style.display  = 'block';
+  }
+
+  /* ════════════════════════════════════════
+     تاب switch
+  ════════════════════════════════════════ */
+  function switchTab(tabId, btn) {
+    document.querySelectorAll('.edit-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.edit-panel').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    document.getElementById('panel' + tabId.charAt(0).toUpperCase() + tabId.slice(1))
+            .classList.add('active');
+  }
+
+  /* ════════════════════════════════════════
+     بانل 1: البيانات الأساسية
+  ════════════════════════════════════════ */
+  function buildInfoPanel() {
+    const s = currentStudentTx[0] || {};
+    const allGrades = getAllGrades();
+
+    const gradeOptions = allGrades.map(g =>
+      `<option value="${g}" ${g === (s.grade||'') ? 'selected' : ''}>${g}</option>`
+    ).join('');
+
+    const stageOptions = [
+      {id:'pre_kg', name:'Pre-KG'},
+      {id:'kg', name:'KG'},
+      {id:'grade', name:'Grade'},
+      {id:'prep', name:'Prep'},
+      {id:'international', name:'American Section'},
+      {id:'semi_international', name:'Semi-International'},
+    ].map(st =>
+      `<option value="${st.id}" ${st.id === (s.stage||'') ? 'selected' : ''}>${st.name}</option>`
+    ).join('');
+
+    document.getElementById('infoFields').innerHTML = `
+      <div class="field-group" style="grid-column:1/-1">
+        <label class="field-label">اسم الطالب <span>*</span></label>
+        <input id="infoName" type="text" class="form-input form-input-ar"
+          value="${s.studentName || currentStudentName}" placeholder="الاسم كاملاً" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">الصف</label>
+        <select id="infoGrade" class="form-select" onchange="autoFillStage()">
+          <option value="">اختر الصف</option>
+          ${gradeOptions}
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">المرحلة</label>
+        <select id="infoStage" class="form-select">
+          <option value="">اختر المرحلة</option>
+          ${stageOptions}
+        </select>
+      </div>
+    `;
+    document.getElementById('infoStudentCount').textContent = currentStudentTx.length + ' معاملة';
+  }
+
+  function autoFillStage() {
+    const grade = document.getElementById('infoGrade').value;
+    const stage = stageForGrade(grade);
+    if (stage) document.getElementById('infoStage').value = stage;
+  }
+
+  async function saveBasicInfo() {
+    const newName  = document.getElementById('infoName').value.trim();
+    const newGrade = document.getElementById('infoGrade').value;
+    const newStage = document.getElementById('infoStage').value;
+
+    if (!newName) {
+      showInfoAlert('الاسم مطلوب');
+      return;
+    }
+
+    const stageName = getStageName(newStage);
+    showLoading('جاري حفظ التعديلات...');
+
+    try {
+      const batch = db.batch();
+
+      // تحديث كل المعاملات
+      currentStudentTx.forEach(tx => {
+        const ref = db.collection('transactions').doc(tx.id);
+        const upd = {};
+        if (newName  !== tx.studentName)  upd.studentName = newName;
+        if (newGrade !== tx.grade)         upd.grade       = newGrade;
+        if (newStage !== tx.stage)         upd.stage       = newStage;
+        if (newStage !== tx.stage)         upd.stageName   = stageName;
+        if (Object.keys(upd).length > 0) {
+          upd.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+          batch.update(ref, upd);
+        }
+      });
+
+      // تحديث المديونيات أيضاً
+      currentStudentDebts.forEach(d => {
+        const ref = db.collection('debts').doc(d.id);
+        const upd = {};
+        if (newName  !== d.studentName) upd.studentName = newName;
+        if (newGrade !== d.grade)        upd.grade       = newGrade;
+        if (Object.keys(upd).length > 0) {
+          upd.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+          batch.update(ref, upd);
+        }
+      });
+
+      await batch.commit();
+
+      // تحديث الذاكرة
+      currentStudentTx    = currentStudentTx.map(tx => ({
+        ...tx, studentName: newName, grade: newGrade, stage: newStage, stageName
+      }));
+      currentStudentDebts = currentStudentDebts.map(d => ({
+        ...d, studentName: newName, grade: newGrade
+      }));
+      currentStudentName  = newName;
+      currentStudentGrade = newGrade;
+
+      // تحديث الهيدر
+      document.getElementById('profileAvatar').textContent = avatarLetter(newName);
+      document.getElementById('profileName').textContent   = newName;
+      document.getElementById('profileMeta').textContent   =
+        `${stageName}  •  ${newGrade}  •  ${currentStudentTx.length} معاملة`;
+
+      showToast('✅ تم حفظ البيانات الأساسية بنجاح');
+      hideInfoAlert();
+    } catch(e) {
+      showInfoAlert('خطأ في الحفظ: ' + e.message);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  function showInfoAlert(msg) {
+    const el = document.getElementById('infoAlert');
+    el.textContent = msg; el.style.display = 'block';
+  }
+  function hideInfoAlert() {
+    document.getElementById('infoAlert').style.display = 'none';
+  }
+
+  /* ════════════════════════════════════════
+     بانل 2: المعاملات المالية
+  ════════════════════════════════════════ */
+  function buildTxPanel() {
+    document.getElementById('txCount').textContent = currentStudentTx.length;
+    const wrap = document.getElementById('txListWrap');
+
+    if (currentStudentTx.length === 0) {
+      wrap.innerHTML = `<div class="no-tx"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg><div>لا توجد معاملات</div></div>`;
+      return;
+    }
+
+    wrap.innerHTML = currentStudentTx.map((tx, i) => buildTxCard(tx, i)).join('');
+  }
+
+  function buildTxCard(tx, i) {
+    const paymentTypeOptions = PAYMENT_TYPES.map(p =>
+      `<option value="${p.value}" ${p.value === tx.paymentType ? 'selected' : ''}>${p.label}</option>`
+    ).join('');
+
+    const paymentItemOptions = PAYMENT_ITEMS.map(pi =>
+      `<option value="${pi}" ${pi === tx.paymentItem ? 'selected' : ''}>${pi}</option>`
+    ).join('');
+
+    // حساب الأقساط لو paymentItems array
+    let installmentsHTML = '';
+    if (Array.isArray(tx.paymentItems) && tx.paymentItems.length > 0) {
+      installmentsHTML = `
+        <div style="grid-column:1/-1;margin-top:.5rem">
+          <div class="field-label" style="margin-bottom:.5rem">بنود الدفع التفصيلية</div>
+          ${tx.paymentItems.map((pi, piIdx) => `
+            <div class="installment-item">
+              <div class="inst-header">
+                <span class="inst-badge">بند ${piIdx+1}</span>
+                <span style="font-weight:700;font-size:.87rem">${pi.item || '—'}</span>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.5rem">
+                <div class="field-group">
+                  <label class="field-label">البند</label>
+                  <select class="form-select" id="pi_item_${tx.id}_${piIdx}"
+                    onchange="updateTxMemory('${tx.id}')">
+                    ${PAYMENT_ITEMS.map(p => `<option value="${p}" ${p===pi.item?'selected':''}>${p}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label class="field-label">السعر الأصلي</label>
+                  <input type="number" class="form-input" id="pi_price_${tx.id}_${piIdx}"
+                    value="${pi.price||0}" min="0" onchange="updateTxMemory('${tx.id}')" />
+                </div>
+                <div class="field-group">
+                  <label class="field-label">الخصم %</label>
+                  <input type="number" class="form-input" id="pi_disc_${tx.id}_${piIdx}"
+                    value="${pi.discount||0}" min="0" max="100" onchange="updateTxMemory('${tx.id}')" />
+                </div>
+                <div class="field-group">
+                  <label class="field-label">الصافي</label>
+                  <input type="number" class="form-input" id="pi_net_${tx.id}_${piIdx}"
+                    value="${pi.netPrice||pi.price||0}" min="0" onchange="updateTxMemory('${tx.id}')" />
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    return `
+      <div class="tx-row" id="txrow_${tx.id}">
+        <div class="tx-row-header">
+          <div class="tx-row-num">${i+1}</div>
+          <div class="tx-row-title">${tx.paymentItem || '—'}</div>
+          <div class="tx-row-amount">${formatCurrency(tx.amount||0)}</div>
+          <div class="tx-row-date">${tx.date}</div>
+          <button onclick="deleteTx('${tx.id}')"
+            style="margin-right:auto;background:none;border:1.5px solid #e74c3c;color:#e74c3c;
+                   padding:3px 10px;border-radius:6px;cursor:pointer;font-size:.75rem;
+                   font-weight:700;font-family:inherit">🗑 حذف</button>
+        </div>
+        <div class="tx-fields">
+          <div class="field-group">
+            <label class="field-label">التاريخ <span>*</span></label>
+            <input type="date" class="form-input" id="tx_date_${tx.id}" value="${tx.date}"
+              onchange="updateTxMemory('${tx.id}')" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">المبلغ المدفوع <span>*</span></label>
+            <input type="number" class="form-input" id="tx_amount_${tx.id}"
+              value="${tx.amount||0}" min="0" onchange="updateTxMemory('${tx.id}')" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">المبلغ الإجمالي (totalDue)</label>
+            <input type="number" class="form-input" id="tx_totalDue_${tx.id}"
+              value="${tx.totalDue||0}" min="0" onchange="updateTxMemory('${tx.id}')" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">المديونية</label>
+            <input type="number" class="form-input" id="tx_debt_${tx.id}"
+              value="${tx.debt||0}" min="0" onchange="updateTxMemory('${tx.id}')" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">بند الدفع</label>
+            <select class="form-select" id="tx_paymentItem_${tx.id}"
+              onchange="updateTxMemory('${tx.id}')">
+              <option value="${tx.paymentItem||''}">${tx.paymentItem||'اختر'}</option>
+              ${PAYMENT_ITEMS.map(p => `<option value="${p}" ${p===tx.paymentItem?'selected':''}>${p}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">طريقة الدفع</label>
+            <select class="form-select" id="tx_paymentType_${tx.id}"
+              onchange="updateTxMemory('${tx.id}')">
+              ${paymentTypeOptions}
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">رقم الإيصال</label>
+            <input type="text" class="form-input" id="tx_receipt_${tx.id}"
+              value="${tx.receiptNumber||''}" onchange="updateTxMemory('${tx.id}')" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">ملاحظات</label>
+            <input type="text" class="form-input form-input-ar" id="tx_notes_${tx.id}"
+              value="${tx.notes||''}" onchange="updateTxMemory('${tx.id}')" />
+          </div>
+          ${installmentsHTML}
+        </div>
+        <div style="margin-top:.85rem;display:flex;gap:.6rem;align-items:center">
+          <button onclick="saveSingleTx('${tx.id}')"
+            class="btn btn-primary" style="font-size:.85rem;padding:.45rem 1.1rem">
+            💾 حفظ هذه المعاملة
+          </button>
+          <span id="tx_savedMsg_${tx.id}" style="display:none;font-size:.8rem;color:#1b5e20;font-weight:700">✅ تم الحفظ</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // تحديث الذاكرة فور تغيير أي حقل (اختياري، للـ UX)
+  function updateTxMemory(txId) {
+    // مجرد فيدباك بصري - الحفظ الحقيقي في saveSingleTx
+  }
+
+  async function saveSingleTx(txId) {
+    const tx = currentStudentTx.find(t => t.id === txId);
+    if (!tx) return;
+
+    const newDate        = document.getElementById(`tx_date_${txId}`)?.value || tx.date;
+    const newAmount      = Number(document.getElementById(`tx_amount_${txId}`)?.value) || 0;
+    const newTotalDue    = Number(document.getElementById(`tx_totalDue_${txId}`)?.value) || 0;
+    const newDebt        = Number(document.getElementById(`tx_debt_${txId}`)?.value) || 0;
+    const newPaymentItem = document.getElementById(`tx_paymentItem_${txId}`)?.value || tx.paymentItem;
+    const newPaymentType = document.getElementById(`tx_paymentType_${txId}`)?.value || tx.paymentType;
+    const newReceipt     = document.getElementById(`tx_receipt_${txId}`)?.value || tx.receiptNumber;
+    const newNotes       = document.getElementById(`tx_notes_${txId}`)?.value || '';
+    const paymentTypeName = PAYMENT_TYPES.find(p => p.value === newPaymentType)?.label || newPaymentType;
+
+    // تحديث paymentItems لو موجودة
+    let newPaymentItems = tx.paymentItems;
+    if (Array.isArray(tx.paymentItems) && tx.paymentItems.length > 0) {
+      newPaymentItems = tx.paymentItems.map((pi, piIdx) => {
+        const item     = document.getElementById(`pi_item_${txId}_${piIdx}`)?.value    || pi.item;
+        const price    = Number(document.getElementById(`pi_price_${txId}_${piIdx}`)?.value)  || pi.price;
+        const discount = Number(document.getElementById(`pi_disc_${txId}_${piIdx}`)?.value)   || pi.discount;
+        const netPrice = Number(document.getElementById(`pi_net_${txId}_${piIdx}`)?.value)    || pi.netPrice;
+        return { ...pi, item, price, discount, netPrice };
+      });
+    }
+
+    showLoading('جاري حفظ المعاملة...');
+    try {
+      const upd = {
+        date: newDate, amount: newAmount, totalDue: newTotalDue,
+        debt: newDebt, hasDebt: newDebt > 0,
+        paymentItem: newPaymentItem, paymentType: newPaymentType,
+        paymentTypeName, receiptNumber: newReceipt,
+        notes: newNotes,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      if (newPaymentItems) upd.paymentItems = newPaymentItems;
+
+      await db.collection('transactions').doc(txId).update(upd);
+
+      // تحديث الذاكرة
+      const idx = currentStudentTx.findIndex(t => t.id === txId);
+      if (idx !== -1) currentStudentTx[idx] = { ...currentStudentTx[idx], ...upd };
+
+      // فيدباك
+      const msg = document.getElementById(`tx_savedMsg_${txId}`);
+      if (msg) { msg.style.display = 'inline'; setTimeout(() => msg.style.display = 'none', 2500); }
+      showToast('✅ تم حفظ المعاملة بنجاح');
+    } catch(e) {
+      showToast('خطأ: ' + e.message, 'error');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  /* حذف معاملة */
+  let _pendingDeleteTxId = null;
+  function deleteTx(txId) {
+    _pendingDeleteTxId = txId;
+    const tx = currentStudentTx.find(t => t.id === txId);
+    document.getElementById('confirmMsg').textContent =
+      `هل أنت متأكد من حذف معاملة "${tx?.paymentItem||'—'}" بمبلغ ${formatCurrency(tx?.amount||0)} بتاريخ ${tx?.date||'—'}؟\nلا يمكن التراجع عن هذا الإجراء.`;
+    document.getElementById('confirmYesBtn').onclick = confirmDeleteTx;
+    document.getElementById('confirmModal').style.display = 'flex';
+  }
+
+  async function confirmDeleteTx() {
+    closeConfirm();
+    if (!_pendingDeleteTxId) return;
+    showLoading('جاري الحذف...');
+    try {
+      await db.collection('transactions').doc(_pendingDeleteTxId).delete();
+      currentStudentTx = currentStudentTx.filter(t => t.id !== _pendingDeleteTxId);
+      buildTxPanel();
+      showToast('🗑 تم حذف المعاملة');
+    } catch(e) {
+      showToast('خطأ في الحذف: ' + e.message, 'error');
+    } finally {
+      hideLoading();
+      _pendingDeleteTxId = null;
+    }
+  }
+
+  /* ════════════════════════════════════════
+     بانل 3: المديونيات
+  ════════════════════════════════════════ */
+  function buildDebtPanel() {
+    document.getElementById('debtCount').textContent = currentStudentDebts.length;
+    const wrap = document.getElementById('debtListWrap');
+
+    if (currentStudentDebts.length === 0) {
+      wrap.innerHTML = `<div class="no-tx" style="color:#1b5e20"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 6L9 17l-5-5"/></svg><div style="font-weight:700">لا توجد مديونيات مسجلة</div></div>`;
+      return;
+    }
+
+    wrap.innerHTML = currentStudentDebts.map((d, i) => `
+      <div class="tx-row" id="debtrow_${d.id}">
+        <div class="tx-row-header">
+          <div class="tx-row-num">${i+1}</div>
+          <div class="tx-row-title">${d.paymentItem || '—'}</div>
+          <div class="tx-row-amount" style="color:#c0392b">${formatCurrency(d.remaining||0)} متبقي</div>
+          <div class="tx-row-date">${d.date||'—'}</div>
+          <button onclick="deleteDebt('${d.id}')"
+            style="margin-right:auto;background:none;border:1.5px solid #e74c3c;color:#e74c3c;
+                   padding:3px 10px;border-radius:6px;cursor:pointer;font-size:.75rem;
+                   font-weight:700;font-family:inherit">🗑 حذف</button>
+        </div>
+        <div class="tx-fields">
+          <div class="field-group">
+            <label class="field-label">بند الدفع</label>
+            <select class="form-select" id="debt_item_${d.id}">
+              ${PAYMENT_ITEMS.map(p => `<option value="${p}" ${p===d.paymentItem?'selected':''}>${p}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">الإجمالي المستحق</label>
+            <input type="number" class="form-input" id="debt_due_${d.id}" value="${d.totalDue||0}" min="0" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">المدفوع</label>
+            <input type="number" class="form-input" id="debt_paid_${d.id}" value="${d.paid||0}" min="0" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">المتبقي</label>
+            <input type="number" class="form-input" id="debt_rem_${d.id}" value="${d.remaining||0}" min="0" />
+          </div>
+        </div>
+        <div style="margin-top:.85rem;display:flex;gap:.6rem;align-items:center">
+          <button onclick="saveDebt('${d.id}')"
+            class="btn btn-primary" style="font-size:.85rem;padding:.45rem 1.1rem">
+            💾 حفظ هذه المديونية
+          </button>
+          <span id="debt_savedMsg_${d.id}" style="display:none;font-size:.8rem;color:#1b5e20;font-weight:700">✅ تم الحفظ</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function saveDebt(debtId) {
+    const debt = currentStudentDebts.find(d => d.id === debtId);
+    if (!debt) return;
+    const newItem      = document.getElementById(`debt_item_${debtId}`)?.value || debt.paymentItem;
+    const newTotalDue  = Number(document.getElementById(`debt_due_${debtId}`)?.value) || 0;
+    const newPaid      = Number(document.getElementById(`debt_paid_${debtId}`)?.value) || 0;
+    const newRemaining = Number(document.getElementById(`debt_rem_${debtId}`)?.value) || 0;
+
+    showLoading('جاري حفظ المديونية...');
+    try {
+      await db.collection('debts').doc(debtId).update({
+        paymentItem: newItem,
+        totalDue: newTotalDue,
+        paid: newPaid,
+        remaining: newRemaining,
+        hasDebt: newRemaining > 0,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      const idx = currentStudentDebts.findIndex(d => d.id === debtId);
+      if (idx !== -1) currentStudentDebts[idx] = { ...currentStudentDebts[idx], paymentItem:newItem, totalDue:newTotalDue, paid:newPaid, remaining:newRemaining };
+      const msg = document.getElementById(`debt_savedMsg_${debtId}`);
+      if (msg) { msg.style.display = 'inline'; setTimeout(() => msg.style.display = 'none', 2500); }
+      showToast('✅ تم حفظ المديونية');
+    } catch(e) {
+      showToast('خطأ: ' + e.message, 'error');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  /* حذف مديونية */
+  let _pendingDeleteDebtId = null;
+  function deleteDebt(debtId) {
+    _pendingDeleteDebtId = debtId;
+    const d = currentStudentDebts.find(x => x.id === debtId);
+    document.getElementById('confirmMsg').textContent =
+      `هل أنت متأكد من حذف مديونية "${d?.paymentItem||'—'}" بمتبقي ${formatCurrency(d?.remaining||0)}؟`;
+    document.getElementById('confirmYesBtn').onclick = confirmDeleteDebt;
+    document.getElementById('confirmModal').style.display = 'flex';
+  }
+
+  async function confirmDeleteDebt() {
+    closeConfirm();
+    if (!_pendingDeleteDebtId) return;
+    showLoading('جاري الحذف...');
+    try {
+      await db.collection('debts').doc(_pendingDeleteDebtId).delete();
+      currentStudentDebts = currentStudentDebts.filter(d => d.id !== _pendingDeleteDebtId);
+      buildDebtPanel();
+      showToast('🗑 تم حذف المديونية');
+    } catch(e) {
+      showToast('خطأ: ' + e.message, 'error');
+    } finally {
+      hideLoading();
+      _pendingDeleteDebtId = null;
+    }
+  }
+
+  /* ════════════════════════════════════════
+     Confirm Modal
+  ════════════════════════════════════════ */
+  function closeConfirm() {
+    document.getElementById('confirmModal').style.display = 'none';
+  }
+  document.getElementById('confirmModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('confirmModal')) closeConfirm();
+  });
+
+  /* ════════════════════════════════════════
+     Alert helpers
+  ════════════════════════════════════════ */
+  function showAlert(id, msg) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg; el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 4000);
+  }
+  function hideAlert(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  }
+
+  // ضغطة Enter في البحث
+  document.getElementById('searchInput').focus();
+</script>
+</body>
+</html>
