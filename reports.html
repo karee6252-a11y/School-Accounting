@@ -1120,7 +1120,7 @@
       return;
     }
 
-    const ALL_ITEMS = ['مصروفات دراسية','باص','يونيفورم','أبليكيشن','رحلات','امتحانات'];
+    const ALL_ITEMS = ['مصروفات دراسية','باص','يونيفورم','أبليكيشن','فايل','رحلات','امتحانات','إيرادات أخرى'];
 
     const STAGE_ORDER = [
       { stageId: 'pre_kg',        stageName: 'Pre-KG',       grades: ['Pre-KG'] },
@@ -1168,6 +1168,21 @@
       studentMap[canonKey].payments.push(tx);
     });
 
+    const KNOWN_ITEMS_SET = new Set(ALL_ITEMS);
+    const MAIN_ITEMS_SET  = new Set(['مصروفات دراسية','باص','يونيفورم','أبليكيشن','رحلات','امتحانات']);
+
+    // دالة تحدد الـ bucket الصحيح لأي بند
+    function resolveItemBucket(name) {
+      if (!name) return 'إيرادات أخرى';
+      if (MAIN_ITEMS_SET.has(name))        return name;        // بند معروف
+      if (name === 'فايل' || name.includes('فايل')) return 'فايل'; // فايل
+      if (name.includes('مصروفات'))        return 'مصروفات دراسية';
+      if (name.includes('يونيفورم'))        return 'يونيفورم';
+      if (name.includes('باص'))             return 'باص';
+      if (name.includes('أبليكيشن'))        return 'أبليكيشن';
+      return 'إيرادات أخرى'; // أي حاجة تانية
+    }
+
     Object.values(studentMap).forEach(s => {
       s.payments.sort((a,b) => a.date.localeCompare(b.date));
 
@@ -1175,17 +1190,17 @@
         const items = tx.paymentItems;
         if (Array.isArray(items) && items.length > 0) {
           items.forEach(pi => {
-            const name = (pi.item || '').trim();
-            if (s.items[name] !== undefined) {
-              s.items[name] += Number(pi.netPrice || pi.price || 0);
-            }
+            const rawName = (pi.item || '').trim();
+            const bucket  = resolveItemBucket(rawName);
+            s.items[bucket] = (s.items[bucket] || 0) + Number(pi.netPrice || pi.price || 0);
           });
         } else {
           const itemStr = tx.paymentItem || '';
           const parts = itemStr.split('+').map(x => x.trim()).filter(Boolean);
           const share = (tx.amount || 0) / Math.max(parts.length, 1);
           parts.forEach(p => {
-            if (s.items[p] !== undefined) s.items[p] += share;
+            const bucket = resolveItemBucket(p);
+            s.items[bucket] = (s.items[bucket] || 0) + share;
           });
         }
       });
@@ -1271,10 +1286,10 @@
 
     const NUM_FMT = '#,##0;[Red](#,##0);"-"';
 
-    // ── اكتشاف البنود الفعلية من الداتا ديناميكياً ──
+    // ── اكتشاف البنود الفعلية من الداتا ديناميكياً (بس اللي فيها قيم فعلية) ──
     const dynamicItemsSet = new Set();
     Object.values(studentMap).forEach(s => {
-      Object.keys(s.items).forEach(k => { if (k) dynamicItemsSet.add(k); });
+      Object.keys(s.items).forEach(k => { if (k && (s.items[k] || 0) > 0) dynamicItemsSet.add(k); });
     });
     // ترتيب البنود: الموجودة في ALL_ITEMS أولاً بنفس ترتيبها، ثم أي بنود إضافية
     const DYNAMIC_ITEMS = [
