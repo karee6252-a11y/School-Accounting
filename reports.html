@@ -37,7 +37,7 @@
           <div id="monthlyFilter" style="display:none"><label class="form-label">الشهر</label><input type="month" class="form-input" id="filterMonth" onchange="loadReport()" /></div>
           <div id="customFilter" style="display:none;grid-template-columns:1fr 1fr;gap:0.5rem;grid-column:span 2"><div><label class="form-label">من</label><input type="date" class="form-input" id="filterFrom" onchange="loadReport()" /></div><div><label class="form-label">إلى</label><input type="date" class="form-input" id="filterTo" onchange="loadReport()" /></div></div>
           <div><label class="form-label">المرحلة</label><select class="form-select" id="filterStage" onchange="loadReport()"><option value="">كل المراحل</option><option value="pre_kg">Pre-KG</option><option value="kg">KG</option><option value="grade">Grade</option><option value="prep">Prep</option></select></div>
-          <div><label class="form-label">بند الدفع</label><select class="form-select" id="filterItem" onchange="loadReport()"><option value="">كل البنود</option><option value="مصروفات دراسية">مصروفات دراسية</option><option value="مصروفات - قسط 1">مصروفات - قسط 1</option><option value="مصروفات - قسط 2">مصروفات - قسط 2</option><option value="باص">باص</option><option value="يونيفورم">يونيفورم</option><option value="أبليكيشن">أبليكيشن</option><option value="رحلات">رحلات</option><option value="امتحانات">امتحانات</option></select></div>
+          <div><label class="form-label">بند الدفع</label><select class="form-select" id="filterItem" onchange="loadReport()"><option value="">كل البنود</option><option value="مصروفات دراسية">مصروفات دراسية</option><option value="باص">باص</option><option value="يونيفورم">يونيفورم</option><option value="أبليكيشن">أبليكيشن</option><option value="رحلات">رحلات</option><option value="امتحانات">امتحانات</option></select></div>
           <div><label class="form-label">طريقة الدفع</label><select class="form-select" id="filterPaymentType" onchange="loadReport()"><option value="">كل الطرق</option><option value="cash">نقدي</option><option value="bank_transfer">تحويل بنكي</option><option value="check">شيك</option><option value="instapay">إنستاباي</option></select></div>
           <div><button class="btn btn-primary w-full" onclick="loadReport()"> بحث</button></div>
         </div>
@@ -78,12 +78,15 @@
   const schoolId = session.schoolId;
   let currentPeriod = 'daily';
   let currentData = [];
+  let currentDateRange = { from: '', to: '' };
 
   function init() {
     const today = localDateStr(new Date());
     document.getElementById('filterDate').value = today;
     const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    const day = weekStart.getDay(); // 0=Sun..6=Sat
+    const diffToSun = day === 0 ? 0 : day; // days since last Sunday (Sun=0, so no shift needed)
+    weekStart.setDate(weekStart.getDate() - diffToSun);
     document.getElementById('filterWeekStart').value = localDateStr(weekStart);
     document.getElementById('filterMonth').value = today.substring(0,7);
     document.getElementById('filterFrom').value = today;
@@ -129,6 +132,7 @@
 
   async function loadReport() {
     const { from, to } = getDateRange();
+    currentDateRange = { from, to };
     const filterStage = document.getElementById('filterStage').value;
     const filterItem = document.getElementById('filterItem').value;
     const filterPaymentType = document.getElementById('filterPaymentType').value;
@@ -177,7 +181,7 @@
                     : filterItem === 'يونيفورم'  ? 'uni'
                     : filterItem === 'باص'        ? 'bus'
                     : filterItem === 'أبليكيشن'  ? 'app'
-                    : 'other';
+                    : 'file';
           displayAmount = m[key] || 0;
         }
         total += displayAmount;
@@ -218,7 +222,7 @@
     document.getElementById('summaryCount').textContent = currentData.length;
     document.getElementById('summaryStudents').textContent = students.size;
     document.getElementById('resultsCount').textContent = currentData.length + ' سجل';
-    const { from, to } = getDateRange();
+    const { from, to } = currentDateRange;
     const periodLabels = { daily:'يومي', weekly:'اسبوعي', monthly:'شهري', custom:'مخصص' };
     document.getElementById('summaryPeriod').textContent = `${periodLabels[currentPeriod]} - من ${from} الى ${to}`;
   }
@@ -235,7 +239,7 @@
       });
     }
 
-    const out = { fees:0, disc: Math.round(totalDiscount), uni:0, bus:0, app:0, other:0 };
+    const out = { fees:0, disc: Math.round(totalDiscount), uni:0, bus:0, app:0, file:0 };
 
     function assignItem(itemName, itemAmt) {
       const name = (itemName || '').trim();
@@ -247,7 +251,7 @@
       else if (name.includes('يونيفورم')) { out.uni   += itemAmt; }
       else if (name.includes('باص'))      { out.bus   += itemAmt; }
       else if (name.includes('أبليكيشن')) { out.app   += itemAmt; }
-      else { out.other += itemAmt; } // فايل / فايل / رحلات / امتحانات / غيره → أخرى
+      else { out.file += itemAmt; } // فايل / رحلات / امتحانات / غيره → فايل
     }
 
     if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
@@ -424,29 +428,29 @@
       styleRow(b2, SEC, WHT, true, 11); b2.height = 22;
 
       hdrRow(ws,
-        ['م','الاسم','الصف','مصروفات دراسية','خصم','فايل','يونيفورم','أبليكيشن','إيرادات أخرى','باص','الإيصال','ملاحظات'],
+        ['م','الاسم','الصف','مصروفات دراسية','خصم','فايل','يونيفورم','أبليكيشن','باص','الإيصال','ملاحظات',''],
         SEC, []);
 
-      const totals = {fees:0, disc:0, file:0, uni:0, app:0, other:0, bus:0};
+      const totals = {fees:0, disc:0, file:0, uni:0, app:0, bus:0};
       currentData.forEach((d,i) => {
         const m = mapAmounts(d);
         Object.keys(totals).forEach(k => totals[k] += m[k]);
         const r = dataRow(ws,
           [i+1, d.studentName, d.grade, m.fees||'', m.disc||'', m.file||'',
-           m.uni||'', m.app||'', m.other||'', m.bus||'',
-           d.receiptNumber||'', d.notes||''],
+           m.uni||'', m.app||'', m.bus||'',
+           d.receiptNumber||'', d.notes||'', ''],
           i%2===1);
-        [4,5,6,7,8,9,10].forEach(ci => { if(r.getCell(ci).value) numFmt(r.getCell(ci)); });
+        [4,5,6,7,8,9].forEach(ci => { if(r.getCell(ci).value) numFmt(r.getCell(ci)); });
       });
 
       const tr = totalRow(ws,
         ['الإجمالي','','',
          totals.fees, totals.disc, totals.file,
-         totals.uni, totals.app, totals.other, totals.bus, '', ''],
+         totals.uni, totals.app, totals.bus, '', '', ''],
         TOTBG, [['A','C']]);
-      [4,5,6,7,8,9,10].forEach(ci => numFmt(tr.getCell(ci)));
+      [4,5,6,7,8,9].forEach(ci => numFmt(tr.getCell(ci)));
 
-      const revTotal = totals.fees + totals.file + totals.uni + totals.app + totals.other + totals.bus - totals.disc;
+      const revTotal = totals.fees + totals.file + totals.uni + totals.app + totals.bus - totals.disc;
       const rr = ws.addRow(['إجمالي إيرادات اليوم', '', '', '', '', '', '', '', '', revTotal, '', '']);
       ws.mergeCells(`A${rr.number}:I${rr.number}`);
       ws.mergeCells(`J${rr.number}:${MCOL}${rr.number}`);
@@ -517,9 +521,9 @@
       ws.columns = [
         {width:5},{width:13},{width:5},{width:5},{width:14},
         {width:16},{width:10},{width:9},{width:11},{width:10},
-        {width:12},{width:14},{width:18},{width:18},{width:5}
+        {width:12},{width:18},{width:18},{width:5}
       ];
-      const MCOL = 'O';
+      const MCOL = 'N';
 
       const _wkStart = new Date(from + 'T00:00:00');
       const _wkNum = Math.ceil(_wkStart.getDate() / 7);
@@ -531,17 +535,17 @@
 
       sectionRow(ws, '①', 'أولاً : الإيراد الأسبوعي', SEC, MCOL);
       hdrRow(ws,
-        ['م','اليوم','','','التاريخ','مصروفات دراسية','خصم','فايل','يونيفورم','باص','أبليكيشن','إيرادات أخرى','إجمالي الإيرادات','تراكمي',''],
-        SEC, [['B','D'],['N','O']]);
+        ['م','اليوم','','','التاريخ','مصروفات دراسية','خصم','فايل','يونيفورم','باص','أبليكيشن','إجمالي الإيرادات','تراكمي',''],
+        SEC, [['B','D'],['M','N']]);
 
       const dayMap = {};
-      DAYS_AR_W.forEach(d => dayMap[d] = { fees:0,disc:0,file:0,uni:0,bus:0,app:0,other:0, date:'' });
-      const DAY_MAP_IDX = {6:0, 0:1, 1:2, 2:3, 3:4, 4:5}; // Sat→0,Sun→1,...,Thu→5
+      DAYS_AR_W.forEach(d => dayMap[d] = { fees:0,disc:0,file:0,uni:0,bus:0,app:0, date:'' });
+      const DAY_MAP_IDX = SCHOOL_DAY_IDX;
       currentData.forEach(d => {
         const dDate = new Date(d.date + 'T00:00:00');
         const jsDay = dDate.getDay();
         const idx = DAY_MAP_IDX[jsDay];
-        if (idx === undefined) return; // الجمعة مش في الأسبوع
+        if (idx === undefined) return; // الجمعة والسبت إجازة
         const dayAr = DAYS_AR_W[idx];
         if (dayMap[dayAr] !== undefined) {
           const m = mapAmounts(d);
@@ -550,32 +554,32 @@
         }
       });
 
-      const wkTotals = {fees:0,disc:0,file:0,uni:0,bus:0,app:0,other:0};
+      const wkTotals = {fees:0,disc:0,file:0,uni:0,bus:0,app:0};
       let cumulative = 0;
       DAYS_AR_W.forEach((day, i) => {
         const dm = dayMap[day];
-        const dayTotal = dm.fees + dm.file + dm.uni + dm.bus + dm.app + dm.other - dm.disc;
+        const dayTotal = dm.fees + dm.file + dm.uni + dm.bus + dm.app - dm.disc;
         cumulative += dayTotal;
         Object.keys(wkTotals).forEach(k => wkTotals[k] += dm[k]);
         const r = dataRow(ws,
           [i+1, day, '', '', dm.date||'',
            dm.fees||'', dm.disc||'', dm.file||'',
-           dm.uni||'', dm.bus||'', dm.app||'', dm.other||'',
+           dm.uni||'', dm.bus||'', dm.app||'',
            dayTotal||'', cumulative||'', ''],
           i%2===1);
         ws.mergeCells(`B${r.number}:D${r.number}`);
-        ws.mergeCells(`N${r.number}:O${r.number}`);
-        [6,7,8,9,10,11,12,13,14].forEach(ci => { if(r.getCell(ci).value) numFmt(r.getCell(ci)); });
+        ws.mergeCells(`M${r.number}:N${r.number}`);
+        [6,7,8,9,10,11,12,13].forEach(ci => { if(r.getCell(ci).value) numFmt(r.getCell(ci)); });
       });
 
-      const wkTotal = wkTotals.fees+wkTotals.file+wkTotals.uni+wkTotals.bus+wkTotals.app+wkTotals.other - wkTotals.disc;
+      const wkTotal = wkTotals.fees+wkTotals.file+wkTotals.uni+wkTotals.bus+wkTotals.app - wkTotals.disc;
       const tr = totalRow(ws,
         ['الإجمالي','','','','',
          wkTotals.fees, wkTotals.disc, wkTotals.file,
-         wkTotals.uni, wkTotals.bus, wkTotals.app, wkTotals.other,
+         wkTotals.uni, wkTotals.bus, wkTotals.app,
          wkTotal, '', ''],
-        TOTBG, [['A','E'],['N','O']]);
-      [6,7,8,9,10,11,12,13].forEach(ci => numFmt(tr.getCell(ci)));
+        TOTBG, [['A','E'],['M','N']]);
+      [6,7,8,9,10,11,12].forEach(ci => numFmt(tr.getCell(ci)));
 
       ws.addRow([]);
 
@@ -673,8 +677,8 @@
       const ws = wb.addWorksheet('شهري');
       ws.views = [{ state:'normal', rightToLeft:true }];
       ws.columns = [
-        {width:5},{width:15},{width:13},{width:13},{width:13},
-        {width:13},{width:10},{width:13},{width:14},{width:18},{width:12}
+        {width:5},{width:25},{width:16},{width:10},{width:13},
+        {width:13},{width:10},{width:13},{width:18},{width:12},{width:5}
       ];
       const MCOL = 'K';
       const monthLabel = currentPeriod === 'monthly'
@@ -689,7 +693,7 @@
 
       sectionRow(ws, '①', 'أولاً : ملخص الإيرادات', SEC, MCOL);
       hdrRow(ws,
-        ['م','الأسبوع','مصروفات دراسية','خصم','فايل','يونيفورم','باص','أبليكيشن','إيرادات أخرى','إجمالي الإيرادات','المصروفات'],
+        ['م','الأسبوع','مصروفات دراسية','خصم','فايل','يونيفورم','باص','أبليكيشن','إجمالي الإيرادات','المصروفات',''],
         SEC, []);
 
       const WEEK_RANGES = [
@@ -699,14 +703,16 @@
         { key:'الأسبوع الرابع (22-نهاية)', from:22, to:31 },
       ];
       const weekBuckets = {};
-      WEEK_RANGES.forEach(w => { weekBuckets[w.key] = {fees:0,disc:0,file:0,uni:0,bus:0,app:0,other:0}; });
+      WEEK_RANGES.forEach(w => { weekBuckets[w.key] = {fees:0,disc:0,file:0,uni:0,bus:0,app:0}; });
 
       currentData.forEach(d => {
         const day = new Date(d.date+'T00:00:00').getDate();
         const wr = WEEK_RANGES.find(w => day >= w.from && day <= w.to);
         if (!wr) return;
         const m = mapAmounts(d);
-        Object.keys(m).forEach(k => weekBuckets[wr.key][k] += m[k]);
+        Object.keys(m).forEach(k => {
+          if (weekBuckets[wr.key][k] !== undefined) weekBuckets[wr.key][k] += m[k];
+        });
       });
 
       const expWeekBuckets = {};
@@ -718,30 +724,30 @@
         expWeekBuckets[wr.key] += e.amount || 0;
       });
 
-      const monthTotals = {fees:0,disc:0,file:0,uni:0,bus:0,app:0,other:0};
+      const monthTotals = {fees:0,disc:0,file:0,uni:0,bus:0,app:0};
       let monthExpTotal = 0;
       const weeks = WEEK_RANGES.map(w => w.key);
       weeks.forEach((wk,i) => {
         const wkData = weekBuckets[wk] || {};
         const wkExp = expWeekBuckets[wk] || 0;
-        const wkRev = (wkData.fees||0)+(wkData.file||0)+(wkData.uni||0)+(wkData.bus||0)+(wkData.app||0)+(wkData.other||0)-(wkData.disc||0);
+        const wkRev = (wkData.fees||0)+(wkData.file||0)+(wkData.uni||0)+(wkData.bus||0)+(wkData.app||0)-(wkData.disc||0);
         Object.keys(monthTotals).forEach(k => monthTotals[k] += wkData[k]||0);
         monthExpTotal += wkExp;
         const r = dataRow(ws,
           [i+1, wk, wkData.fees||'', wkData.disc||'', wkData.file||'',
-           wkData.uni||'', wkData.bus||'', wkData.app||'', wkData.other||'', wkRev||'', wkExp||''],
+           wkData.uni||'', wkData.bus||'', wkData.app||'', wkRev||'', wkExp||'', ''],
           i%2===1);
-        [3,4,5,6,7,8,9,10,11].forEach(ci => { if(r.getCell(ci).value) numFmt(r.getCell(ci)); });
+        [3,4,5,6,7,8,9,10].forEach(ci => { if(r.getCell(ci).value) numFmt(r.getCell(ci)); });
       });
 
-      const monthRevTotal = monthTotals.fees+monthTotals.file+monthTotals.uni+monthTotals.bus+monthTotals.app+monthTotals.other - monthTotals.disc;
+      const monthRevTotal = monthTotals.fees+monthTotals.file+monthTotals.uni+monthTotals.bus+monthTotals.app - monthTotals.disc;
       const mtr = totalRow(ws,
         ['إجمالي الشهر','',
          monthTotals.fees, monthTotals.disc, monthTotals.file,
-         monthTotals.uni, monthTotals.bus, monthTotals.app, monthTotals.other,
-         monthRevTotal, monthExpTotal],
+         monthTotals.uni, monthTotals.bus, monthTotals.app,
+         monthRevTotal, monthExpTotal, ''],
         TOTBG, [['A','B']]);
-      [3,4,5,6,7,8,9,10,11].forEach(ci => numFmt(mtr.getCell(ci)));
+      [3,4,5,6,7,8,9,10].forEach(ci => numFmt(mtr.getCell(ci)));
 
       ws.addRow([]);
 
@@ -814,7 +820,6 @@
   async function exportPDF() {
     if (currentData.length === 0) { alert('لا توجد بيانات للتصدير'); return; }
 
-    // تحميل مكتبات jsPDF + autoTable
     async function loadScript(src) {
       return new Promise((res, rej) => {
         if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
@@ -825,331 +830,218 @@
     }
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
 
     const { jsPDF } = window.jspdf;
-    const school  = SESSION.getSchool();
+    const school      = SESSION.getSchool();
     const { from, to } = getDateRange();
     const periodLabels = { daily:'يومي', weekly:'أسبوعي', monthly:'شهري', custom:'مخصص' };
     const schoolName   = school?.name || 'المدرسة';
     const YEAR         = ACADEMIC_YEAR;
 
-    // ألوان المدرسة
     function hexToRgb(hex) {
       hex = (hex || '#1E2D5A').replace('#','');
-      const r = parseInt(hex.substring(0,2),16);
-      const g = parseInt(hex.substring(2,4),16);
-      const b = parseInt(hex.substring(4,6),16);
-      return [r,g,b];
+      return [parseInt(hex.substring(0,2),16), parseInt(hex.substring(2,4),16), parseInt(hex.substring(4,6),16)];
     }
     const PRI = hexToRgb(school?.primaryColor);
     const SEC = hexToRgb(school?.secondaryColor || '#4A6FA5');
     const ACC = hexToRgb(school?.accentColor    || '#D6E4F0');
+    const priCss = `rgb(${PRI.join(',')})`;
+    const secCss = `rgb(${SEC.join(',')})`;
+    const accCss = `rgb(${ACC.join(',')})`;
 
     const total     = currentData.reduce((s,d) => s+(d.amount||0), 0);
     const totalDebt = currentData.reduce((s,d) => s+(d.debt  ||0), 0);
 
-    const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
-    const PW = doc.internal.pageSize.getWidth();   // 297
-    const PH = doc.internal.pageSize.getHeight();  // 210
-
-    // ── دالة رسم header لكل صفحة ──
-    function drawPageHeader(pageNum) {
-      // شريط العنوان الرئيسي
-      doc.setFillColor(...PRI);
-      doc.rect(10, 8, PW-20, 12, 'F');
-      doc.setTextColor(255,255,255);
-      doc.setFontSize(13); doc.setFont('helvetica','bold');
-      const title = `${schoolName}  -  ${YEAR}  |  كشف تحصيل ${periodLabels[currentPeriod]}`;
-      doc.text(title, PW-14, 16, { align:'right' });
-      doc.setFontSize(8);
-      doc.text(`صفحة ${pageNum}`, 14, 16, { align:'left' });
-
-      // شريط المعلومات
-      doc.setFillColor(...SEC);
-      doc.rect(10, 20, PW-20, 7, 'F');
-      doc.setFontSize(8.5); doc.setFont('helvetica','normal');
-      const info = `الفترة: ${from}  →  ${to}   |   بواسطة: ${session.email}   |   ${new Date().toLocaleDateString('ar-EG')}`;
-      doc.text(info, PW-14, 25, { align:'right' });
+    // ── بناء HTML مؤقت ونرسمه بـ html2canvas ──
+    function buildTable(headers, rows, foot) {
+      const headHtml = `<tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr>`;
+      const bodyHtml = rows.map((r,i)=>`<tr class="${i%2===1?'alt':''}">${r.map(c=>`<td>${c??'-'}</td>`).join('')}</tr>`).join('');
+      const footHtml = foot ? `<tfoot><tr>${foot.map(c=>`<td>${c??''}</td>`).join('')}</tr></tfoot>` : '';
+      return `<table>${headHtml}<tbody>${bodyHtml}</tbody>${footHtml}</table>`;
     }
 
-    // ── دالة بوكس الملخص ──
-    function drawSummaryBox(yStart) {
-      const items = [
-        { label:'إجمالي التحصيل', value: formatCurrency(total) },
-        { label:'عدد العمليات',   value: String(currentData.length) },
-        { label:'عدد الطلاب',     value: String(new Set(currentData.map(d=>d.studentName)).size) },
-      ];
-      if (totalDebt > 0) items.push({ label:'إجمالي المديونيات', value: formatCurrency(totalDebt) });
-      const boxW = (PW-20) / items.length;
-      items.forEach((item, i) => {
-        const x = 10 + i * boxW;
-        doc.setFillColor(i===0 ? PRI[0]:SEC[0], i===0 ? PRI[1]:SEC[1], i===0 ? PRI[2]:SEC[2]);
-        doc.roundedRect(x+1, yStart, boxW-2, 14, 2, 2, 'F');
-        doc.setTextColor(255,255,255);
-        doc.setFontSize(7); doc.setFont('helvetica','normal');
-        doc.text(item.label, x + boxW - 4, yStart + 5, { align:'right' });
-        doc.setFontSize(11); doc.setFont('helvetica','bold');
-        doc.text(item.value, x + boxW - 4, yStart + 12, { align:'right' });
-      });
+    function buildSection(title, tableHtml) {
+      return `<div class="section-title">${title}</div>${tableHtml}`;
     }
 
-    // ── دالة رسم عنوان قسم ──
-    function sectionTitle(doc, text, y) {
-      doc.setFillColor(...SEC);
-      doc.rect(10, y, PW-20, 7, 'F');
-      doc.setTextColor(255,255,255);
-      doc.setFontSize(9); doc.setFont('helvetica','bold');
-      doc.text(text, PW-14, y+5, { align:'right' });
-      return y + 9;
-    }
+    // ── جمع البيانات حسب الفترة ──
+    let sectionsHtml = '';
 
-    // ── الجداول المشتركة ──
-    const autoTableDefaults = {
-      styles:       { font:'helvetica', fontSize:8, halign:'right', cellPadding:2.5, textColor:[30,30,30] },
-      headStyles:   { fillColor:PRI, textColor:[255,255,255], fontStyle:'bold', fontSize:8.5, halign:'right' },
-      alternateRowStyles: { fillColor:[...ACC] },
-      footStyles:   { fillColor:PRI, textColor:[255,255,255], fontStyle:'bold', fontSize:9, halign:'right' },
-      tableLineColor: [180,180,180], tableLineWidth: 0.2,
-      margin: { left:10, right:10 },
-    };
-
-    // ==============================================================
-    // ① يومي
-    // ==============================================================
     if (currentPeriod === 'daily') {
-      let pageNum = 1;
-      drawPageHeader(pageNum);
-      drawSummaryBox(29);
-
-      // ── جدول الإيرادات ──
-      let y = sectionTitle(doc, '① الإيرادات اليومية', 46);
-
-      const totC = {fees:0,file:0,uni:0,bus:0,app:0,other:0};
-      const bodyRows = currentData.map((d,i) => {
+      const totC = {fees:0,file:0,uni:0,bus:0,app:0};
+      const rows = currentData.map((d,i) => {
         const m = mapAmounts(d);
-        totC.fees +=m.fees; totC.file+=m.file; totC.uni+=m.uni;
-        totC.bus  +=m.bus;  totC.app+=m.app;   totC.other+=m.other;
+        totC.fees+=m.fees; totC.file+=m.file; totC.uni+=m.uni; totC.bus+=m.bus; totC.app+=m.app;
         return [i+1, d.date, d.studentName, d.grade,
-                m.fees||'-', m.file||'-', m.uni||'-', m.bus||'-', m.app||'-', m.other||'-',
+                m.fees||'-', m.file||'-', m.uni||'-', m.bus||'-', m.app||'-',
                 formatCurrency(d.amount), d.debt>0?formatCurrency(d.debt):'-',
-                d.paymentTypeName||d.paymentType, d.receiptNumber||'-'];
+                d.paymentTypeName||d.paymentType, d.receiptNumber||'-', d.notes||'-'];
       });
-      const revTotal = totC.fees+totC.file+totC.uni+totC.bus+totC.app+totC.other;
+      const revTotal = totC.fees+totC.file+totC.uni+totC.bus+totC.app;
+      const foot = ['الإجمالي','','','',
+        totC.fees||'-', totC.file||'-', totC.uni||'-', totC.bus||'-', totC.app||'-',
+        formatCurrency(revTotal), formatCurrency(totalDebt),'','',''];
+      sectionsHtml += buildSection('① الإيرادات اليومية',
+        buildTable(['#','التاريخ','الطالب','الصف','مصروفات','فايل','يونيفورم','باص','أبليكيشن','الإجمالي','المديونية','الدفع','الإيصال','ملاحظات'], rows, foot));
 
-      doc.autoTable({
-        ...autoTableDefaults,
-        startY: y,
-        head: [['#','التاريخ','الطالب','الصف','مصروفات','فايل','يونيفورم','باص','أبليكيشن','أخرى','الإجمالي','المديونية','الدفع','الإيصال']],
-        body: bodyRows,
-        foot: [['الإجمالي','','','',
-          totC.fees||'-', totC.file||'-', totC.uni||'-', totC.bus||'-', totC.app||'-', totC.other||'-',
-          formatCurrency(revTotal), formatCurrency(totalDebt),'','']],
-        columnStyles: {
-          0:{cellWidth:8}, 1:{cellWidth:20}, 2:{cellWidth:32},
-          3:{cellWidth:18}, 4:{cellWidth:18}, 5:{cellWidth:12},
-          6:{cellWidth:16}, 7:{cellWidth:12}, 8:{cellWidth:16}, 9:{cellWidth:12},
-          10:{cellWidth:22,fontStyle:'bold'}, 11:{cellWidth:18,textColor:[192,0,0]},
-          12:{cellWidth:18}, 13:{cellWidth:20},
-        },
-        didDrawPage: (data) => {
-          pageNum = data.pageNumber;
-          drawPageHeader(pageNum);
-        }
-      });
-
-      // ── الموقف المالي اليومي ──
-      let yF = doc.lastAutoTable.finalY + 6;
-      if (yF > PH - 30) { doc.addPage(); pageNum++; drawPageHeader(pageNum); yF = 34; }
-      yF = sectionTitle(doc, '② الموقف المالي اليومي', yF);
-
-      const expensesSnap2 = await db.collection('expenses')
-        .where('schoolId','==',schoolId).where('date','==',from).get();
       let expTotal = 0;
-      expensesSnap2.forEach(d => expTotal += d.data().amount||0);
-
-      const finItems = [
-        ['إجمالي الإيرادات', formatCurrency(revTotal)],
-        ['إجمالي المصروفات', formatCurrency(expTotal)],
-        ['صافي اليوم', formatCurrency(revTotal - expTotal)],
-      ];
-      doc.autoTable({
-        ...autoTableDefaults,
-        startY: yF,
-        head: [['البيان','القيمة']],
-        body: finItems,
-        columnStyles: { 0:{cellWidth:80}, 1:{cellWidth:60,fontStyle:'bold'} },
-        bodyStyles: { fillColor:[245,245,245] },
-        didDrawPage: (data) => {
-          pageNum = data.pageNumber; drawPageHeader(pageNum);
-        }
-      });
-
-    // ==============================================================
-    // ② أسبوعي
-    // ==============================================================
-    } else if (currentPeriod === 'weekly') {
-      const DAYS_AR = ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
-      let pageNum = 1;
-      drawPageHeader(pageNum);
-      drawSummaryBox(29);
-
-      const dayMap = {};
-      DAYS_AR.forEach(d => dayMap[d] = {fees:0,file:0,uni:0,bus:0,app:0,other:0,date:''});
-      // getDay(): 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
-      // DAYS_AR:  [السبت=6, الأحد=0, الاثنين=1, الثلاثاء=2, الأربعاء=3, الخميس=4]
-      const DAY_MAP_PDF = {6:0, 0:1, 1:2, 2:3, 3:4, 4:5};
-      currentData.forEach(d => {
-        const di = new Date(d.date+'T00:00:00').getDay();
-        const idx = DAY_MAP_PDF[di];
-        if (idx === undefined) return; // الجمعة مش في الأسبوع
-        const dayAr = DAYS_AR[idx];
-        if (dayMap[dayAr]) {
-          const m = mapAmounts(d);
-          Object.keys(m).forEach(k => { if(dayMap[dayAr][k] !== undefined) dayMap[dayAr][k] += m[k]; });
-          if (!dayMap[dayAr].date) dayMap[dayAr].date = d.date;
-        }
-      });
-
-      const wkT = {fees:0,file:0,uni:0,bus:0,app:0,other:0};
-      let cumulative = 0;
-      const wkRows = DAYS_AR.map((day,i) => {
-        const dm = dayMap[day];
-        const dt = dm.fees+dm.file+dm.uni+dm.bus+dm.app+dm.other;
-        cumulative += dt;
-        Object.keys(wkT).forEach(k => wkT[k]+=dm[k]);
-        return [i+1, day, dm.date||'-', dm.fees||'-', dm.file||'-', dm.uni||'-',
-                dm.bus||'-', dm.app||'-', dm.other||'-',
-                dt ? formatCurrency(dt):'-', formatCurrency(cumulative)];
-      });
-      const wkTotal = wkT.fees+wkT.file+wkT.uni+wkT.bus+wkT.app+wkT.other;
-
-      let y = sectionTitle(doc, '① الإيراد الأسبوعي', 46);
-      doc.autoTable({
-        ...autoTableDefaults, startY: y,
-        head: [['#','اليوم','التاريخ','مصروفات','فايل','يونيفورم','باص','أبليكيشن','أخرى','إجمالي اليوم','تراكمي']],
-        body: wkRows,
-        foot: [['الإجمالي','','', wkT.fees||'-', wkT.file||'-', wkT.uni||'-', wkT.bus||'-', wkT.app||'-', wkT.other||'-', formatCurrency(wkTotal),'']],
-        didDrawPage: d => { pageNum = d.pageNumber; drawPageHeader(pageNum); }
-      });
-
-      // تحصيل المراحل
-      let y2 = doc.lastAutoTable.finalY + 6;
-      if (y2 > PH-40) { doc.addPage(); pageNum++; drawPageHeader(pageNum); y2=34; }
-      y2 = sectionTitle(doc, '② تحصيل المراحل الأسبوعي', y2);
-      const GRADES_LIST2 = ['Pre-KG','KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
-      const gradeFees2 = {};
-      currentData.forEach(d => {
-        const m = mapAmounts(d);
-        gradeFees2[d.grade] = (gradeFees2[d.grade]||0) + (m.fees||0);
-      });
-      let stageTotal2 = 0;
-      const gradeRows2 = GRADES_LIST2.map((g,i) => {
-        const c = gradeFees2[g]||0; stageTotal2+=c;
-        return [i+1, g, '-', c?formatCurrency(c):'-', '-', '-'];
-      });
-      doc.autoTable({
-        ...autoTableDefaults, startY: y2,
-        head: [['#','المرحلة','المديونية السابقة','المحصل (مصروفات دراسية)','خصومات','ملاحظات']],
-        body: gradeRows2,
-        foot: [['الإجمالي','','-',formatCurrency(stageTotal2),'-','']],
-        didDrawPage: d => { pageNum = d.pageNumber; drawPageHeader(pageNum); }
-      });
-
-    // ==============================================================
-    // ③ شهري / مخصص
-    // ==============================================================
-    } else {
-      const GRADES_LIST3 = ['Pre-KG','KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
-      let pageNum = 1;
-      drawPageHeader(pageNum);
-      drawSummaryBox(29);
-
-      // توزيع أسابيع
-      const weekBuckets = {};
-      currentData.forEach(d => {
-        const wk = `الأسبوع ${Math.ceil(new Date(d.date+'T00:00:00').getDate()/7)}`;
-        if (!weekBuckets[wk]) weekBuckets[wk] = {fees:0,disc:0,file:0,uni:0,bus:0,app:0,other:0};
-        // استخدم mapAmounts للتوزيع الصحيح
-        const m = mapAmounts(d);
-        Object.keys(m).forEach(k => { if(weekBuckets[wk][k] !== undefined) weekBuckets[wk][k] += m[k]; });
-      });
-
-      const monthTotals = {fees:0,file:0,uni:0,bus:0,app:0,other:0};
-      const wkRows3 = Object.entries(weekBuckets).map(([wk,wb2],i) => {
-        const rev = wb2.fees+wb2.file+wb2.uni+wb2.bus+wb2.app+wb2.other;
-        Object.keys(monthTotals).forEach(k => monthTotals[k]+=wb2[k]||0);
-        return [i+1, wk, wb2.fees||'-', wb2.file||'-', wb2.uni||'-',
-                wb2.bus||'-', wb2.app||'-', wb2.other||'-',
-                rev ? formatCurrency(rev):'-'];
-      });
-      const mRev = monthTotals.fees+monthTotals.file+monthTotals.uni+monthTotals.bus+monthTotals.app+monthTotals.other;
-
-      let y3 = sectionTitle(doc, '① ملخص الإيرادات الشهرية بالأسابيع', 46);
-      doc.autoTable({
-        ...autoTableDefaults, startY: y3,
-        head: [['#','الأسبوع','مصروفات','فايل','يونيفورم','باص','أبليكيشن','أخرى','إجمالي الأسبوع']],
-        body: wkRows3,
-        foot: [['الإجمالي','',
-          monthTotals.fees||'-', monthTotals.file||'-', monthTotals.uni||'-',
-          monthTotals.bus||'-',  monthTotals.app||'-',  monthTotals.other||'-',
-          formatCurrency(mRev)]],
-        didDrawPage: d => { pageNum = d.pageNumber; drawPageHeader(pageNum); }
-      });
-
-      // تحصيل المراحل
-      let y4 = doc.lastAutoTable.finalY + 6;
-      if (y4 > PH-50) { doc.addPage(); pageNum++; drawPageHeader(pageNum); y4=34; }
-      y4 = sectionTitle(doc, '② تحصيل المراحل الشهري', y4);
-      const gradeFees3 = {};
-      currentData.forEach(d => {
-        const m = mapAmounts(d);
-        gradeFees3[d.grade] = (gradeFees3[d.grade]||0) + (m.fees||0);
-      });
-      let totalCollected3 = 0;
-      const gradeRows3 = GRADES_LIST3.map((g,i) => {
-        const c = gradeFees3[g]||0; totalCollected3+=c;
-        return [i+1, g, '-', c?formatCurrency(c):'-', '-', ''];
-      });
-      doc.autoTable({
-        ...autoTableDefaults, startY: y4,
-        head: [['#','المرحلة','المديونية السابقة','المحصل (مصروفات دراسية)','خصومات','ملاحظات']],
-        body: gradeRows3,
-        foot: [['الإجمالي','','-',formatCurrency(totalCollected3),'-','']],
-        didDrawPage: d => { pageNum = d.pageNumber; drawPageHeader(pageNum); }
-      });
-
-      // ملخص مالي
-      let y5 = doc.lastAutoTable.finalY + 6;
-      if (y5 > PH-50) { doc.addPage(); pageNum++; drawPageHeader(pageNum); y5=34; }
-      y5 = sectionTitle(doc, '③ الملخص المالي الشهري', y5);
-
-      // جلب إجمالي المصروفات
-      let mExpTotal = 0;
       try {
-        const eSnap = await db.collection('expenses')
-          .where('schoolId','==',schoolId).where('date','>=',from).where('date','<=',to).get();
-        eSnap.forEach(d => mExpTotal+=d.data().amount||0);
+        const snap = await db.collection('expenses').where('schoolId','==',schoolId).where('date','==',from).get();
+        snap.forEach(d => expTotal+=d.data().amount||0);
       } catch(e) {}
+      sectionsHtml += buildSection('② الموقف المالي اليومي',
+        buildTable(['البيان','القيمة'],[
+          ['إجمالي الإيرادات', formatCurrency(revTotal)],
+          ['إجمالي المصروفات', formatCurrency(expTotal)],
+          ['صافي اليوم', formatCurrency(revTotal - expTotal)],
+        ], null));
 
-      doc.autoTable({
-        ...autoTableDefaults, startY: y5,
-        head: [['البيان','القيمة']],
-        body: [
-          ['إجمالي الإيرادات الشهرية', formatCurrency(mRev)],
-          ['إجمالي المصروفات الشهرية', formatCurrency(mExpTotal)],
-          ['صافي الإيراد الشهري',       formatCurrency(mRev - mExpTotal)],
-          ['عدد العمليات',              String(currentData.length)],
-          ['عدد الطلاب',                String(new Set(currentData.map(d=>d.studentName)).size)],
-        ],
-        columnStyles: { 0:{cellWidth:100}, 1:{cellWidth:80,fontStyle:'bold'} },
-        bodyStyles: { fillColor:[245,245,245] },
-        didDrawPage: d => { pageNum = d.pageNumber; drawPageHeader(pageNum); }
+    } else if (currentPeriod === 'weekly') {
+      const DAYS_AR = DAYS_AR_W;
+      const DAY_MAP = SCHOOL_DAY_IDX;
+      const dayMap = {};
+      DAYS_AR.forEach(d => dayMap[d]={fees:0,file:0,uni:0,bus:0,app:0,date:''});
+      currentData.forEach(d => {
+        const idx = DAY_MAP[new Date(d.date+'T00:00:00').getDay()];
+        if (idx===undefined) return;
+        const day = DAYS_AR[idx];
+        const m = mapAmounts(d);
+        Object.keys(m).forEach(k => { if(dayMap[day][k]!==undefined) dayMap[day][k]+=m[k]; });
+        if (!dayMap[day].date) dayMap[day].date = d.date;
       });
+      const wkT={fees:0,file:0,uni:0,bus:0,app:0}; let cum=0;
+      const wkRows = DAYS_AR.map((day,i)=>{
+        const dm=dayMap[day]; const dt=dm.fees+dm.file+dm.uni+dm.bus+dm.app;
+        cum+=dt; Object.keys(wkT).forEach(k=>wkT[k]+=dm[k]);
+        return [i+1,day,dm.date||'-',dm.fees||'-',dm.file||'-',dm.uni||'-',dm.bus||'-',dm.app||'-',dt?formatCurrency(dt):'-',formatCurrency(cum)];
+      });
+      const wkTotal=wkT.fees+wkT.file+wkT.uni+wkT.bus+wkT.app;
+      sectionsHtml += buildSection('① الإيراد الأسبوعي',
+        buildTable(['#','اليوم','التاريخ','مصروفات','فايل','يونيفورم','باص','أبليكيشن','إجمالي اليوم','تراكمي'],
+          wkRows, ['الإجمالي','','',wkT.fees||'-',wkT.file||'-',wkT.uni||'-',wkT.bus||'-',wkT.app||'-',formatCurrency(wkTotal),'']));
+
+      const gradeFees={};
+      currentData.forEach(d=>{ const m=mapAmounts(d); gradeFees[d.grade]=(gradeFees[d.grade]||0)+(m.fees||0); });
+      let st2=0;
+      const GRADES=['Pre-KG','KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
+      const gradeRows=GRADES.map((g,i)=>{ const c=gradeFees[g]||0; st2+=c; return [i+1,g,'-',c?formatCurrency(c):'-','-','-']; });
+      sectionsHtml += buildSection('② تحصيل المراحل الأسبوعي',
+        buildTable(['#','المرحلة','المديونية السابقة','المحصل (مصروفات)','خصومات','ملاحظات'],
+          gradeRows, ['الإجمالي','','-',formatCurrency(st2),'-','']));
+
+    } else {
+      const weekBuckets={};
+      currentData.forEach(d=>{
+        const wk=`الأسبوع ${Math.ceil(new Date(d.date+'T00:00:00').getDate()/7)}`;
+        if(!weekBuckets[wk]) weekBuckets[wk]={fees:0,disc:0,file:0,uni:0,bus:0,app:0};
+        const m=mapAmounts(d);
+        Object.keys(m).forEach(k=>{ if(weekBuckets[wk][k]!==undefined) weekBuckets[wk][k]+=m[k]; });
+      });
+      const mT={fees:0,file:0,uni:0,bus:0,app:0};
+      const wkRows3=Object.entries(weekBuckets).map(([wk,wb],i)=>{
+        const rev=wb.fees+wb.file+wb.uni+wb.bus+wb.app;
+        Object.keys(mT).forEach(k=>mT[k]+=wb[k]||0);
+        return [i+1,wk,wb.fees||'-',wb.file||'-',wb.uni||'-',wb.bus||'-',wb.app||'-',rev?formatCurrency(rev):'-'];
+      });
+      const mRev=mT.fees+mT.file+mT.uni+mT.bus+mT.app;
+      sectionsHtml += buildSection('① ملخص الإيرادات الشهرية بالأسابيع',
+        buildTable(['#','الأسبوع','مصروفات','فايل','يونيفورم','باص','أبليكيشن','إجمالي الأسبوع'],
+          wkRows3, ['الإجمالي','',mT.fees||'-',mT.file||'-',mT.uni||'-',mT.bus||'-',mT.app||'-',formatCurrency(mRev)]));
+
+      const GRADES3=['Pre-KG','KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
+      const gF3={}; currentData.forEach(d=>{ const m=mapAmounts(d); gF3[d.grade]=(gF3[d.grade]||0)+(m.fees||0); });
+      let tc3=0;
+      const gRows3=GRADES3.map((g,i)=>{ const c=gF3[g]||0; tc3+=c; return [i+1,g,'-',c?formatCurrency(c):'-','-','']; });
+      sectionsHtml += buildSection('② تحصيل المراحل الشهري',
+        buildTable(['#','المرحلة','المديونية السابقة','المحصل (مصروفات)','خصومات','ملاحظات'],
+          gRows3, ['الإجمالي','','-',formatCurrency(tc3),'-','']));
+
+      let mExpTotal=0;
+      try { const eSnap=await db.collection('expenses').where('schoolId','==',schoolId).where('date','>=',from).where('date','<=',to).get(); eSnap.forEach(d=>mExpTotal+=d.data().amount||0); } catch(e){}
+      sectionsHtml += buildSection('③ الملخص المالي الشهري',
+        buildTable(['البيان','القيمة'],[
+          ['إجمالي الإيرادات الشهرية',formatCurrency(mRev)],
+          ['إجمالي المصروفات الشهرية',formatCurrency(mExpTotal)],
+          ['صافي الإيراد الشهري',formatCurrency(mRev-mExpTotal)],
+          ['عدد العمليات',String(currentData.length)],
+          ['عدد الطلاب',String(new Set(currentData.map(d=>d.studentName)).size)],
+        ], null));
     }
 
-    // ── حفظ الملف ──
-    const fname = `${periodLabels[currentPeriod]}_تقرير_${schoolName}_${from}.pdf`;
-    doc.save(fname);
+    // ── بناء الصفحة المؤقتة ──
+    const summaryHtml = `
+      <div class="summary-row">
+        <div class="sum-box" style="background:${priCss}"><div class="sum-label">إجمالي التحصيل</div><div class="sum-val">${formatCurrency(total)}</div></div>
+        <div class="sum-box" style="background:${secCss}"><div class="sum-label">عدد العمليات</div><div class="sum-val">${currentData.length}</div></div>
+        <div class="sum-box" style="background:${secCss}"><div class="sum-label">عدد الطلاب</div><div class="sum-val">${new Set(currentData.map(d=>d.studentName)).size}</div></div>
+        ${totalDebt>0?`<div class="sum-box" style="background:#c0392b"><div class="sum-label">إجمالي المديونيات</div><div class="sum-val">${formatCurrency(totalDebt)}</div></div>`:''}
+      </div>`;
+
+    const printDiv = document.createElement('div');
+    printDiv.style.cssText = 'position:fixed;left:-9999px;top:0;width:1122px;background:#fff;font-family:Cairo,Arial,sans-serif;direction:rtl;';
+    printDiv.innerHTML = `
+      <style>
+        * { font-family: Cairo, Arial, sans-serif !important; direction: rtl; }
+        .pdf-header { background:${priCss}; color:#fff; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; }
+        .pdf-header h1 { margin:0; font-size:16px; }
+        .pdf-header .sub { font-size:11px; opacity:.8; }
+        .pdf-info { background:${secCss}; color:#fff; padding:5px 16px; font-size:11px; text-align:right; }
+        .summary-row { display:flex; gap:8px; padding:10px 16px; }
+        .sum-box { flex:1; color:#fff; border-radius:6px; padding:8px 12px; text-align:center; }
+        .sum-label { font-size:11px; opacity:.8; }
+        .sum-val { font-size:18px; font-weight:900; }
+        .section-title { background:${secCss}; color:#fff; padding:5px 16px; font-size:12px; font-weight:700; margin-top:10px; }
+        table { width:100%; border-collapse:collapse; font-size:10px; }
+        th { background:${priCss}; color:#fff; padding:5px 8px; text-align:center; border:1px solid #ccc; }
+        td { padding:4px 8px; text-align:center; border:1px solid #ddd; }
+        tr.alt td { background:${accCss}; }
+        tfoot td { background:${priCss}; color:#fff; font-weight:700; padding:5px 8px; border:1px solid #ccc; }
+      </style>
+      <div class="pdf-header">
+        <div class="sub">الفترة: ${from} → ${to} | ${session.email} | ${new Date().toLocaleDateString('ar-EG')}</div>
+        <h1>${schoolName}  |  كشف تحصيل ${periodLabels[currentPeriod]}  |  ${YEAR}</h1>
+      </div>
+      <div class="pdf-info">تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}</div>
+      ${summaryHtml}
+      <div style="padding:0 16px 16px">
+        ${sectionsHtml}
+      </div>
+    `;
+    document.body.appendChild(printDiv);
+
+    try {
+      const canvas = await html2canvas(printDiv, { scale:2, useCORS:true, logging:false });
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const doc2 = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+      const PW = doc2.internal.pageSize.getWidth();
+      const PH = doc2.internal.pageSize.getHeight();
+      const imgW = PW - 10;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      let posY = 5;
+      let remainH = imgH;
+      let srcY = 0;
+      const pageH = PH - 10;
+
+      while (remainH > 0) {
+        const sliceH = Math.min(remainH, pageH);
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = (sliceH * canvas.width) / imgW;
+        const ctx = sliceCanvas.getContext('2d');
+        ctx.drawImage(canvas, 0, srcY * canvas.width / imgW, canvas.width, sliceCanvas.height, 0, 0, canvas.width, sliceCanvas.height);
+        const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.95);
+        if (srcY > 0) doc2.addPage();
+        doc2.addImage(sliceData, 'JPEG', 5, posY, imgW, sliceH);
+        srcY += sliceH;
+        remainH -= sliceH;
+      }
+
+      const fname = `${periodLabels[currentPeriod]}_تقرير_${schoolName}_${from}.pdf`;
+      doc2.save(fname);
+    } finally {
+      document.body.removeChild(printDiv);
+    }
   }
 
 
@@ -1214,7 +1106,7 @@
       return;
     }
 
-    const ALL_ITEMS = ['مصروفات دراسية','مصروفات - قسط 1','مصروفات - قسط 2','باص','يونيفورم','أبليكيشن','رحلات','امتحانات'];
+    const ALL_ITEMS = ['مصروفات دراسية','باص','يونيفورم','أبليكيشن','رحلات','امتحانات'];
 
     const STAGE_ORDER = [
       { stageId: 'pre_kg',        stageName: 'Pre-KG',       grades: ['Pre-KG'] },
@@ -1236,42 +1128,15 @@
         .toLowerCase();
     }
 
-    // دمج أسامي متشابهة: لو أول اسمين متطابقين يتدمجوا
-    function getFuzzyKey(name) {
-      const norm = normalizeName(name);
-      const parts = norm.split(' ');
-      // لو الاسم أكتر من كلمتين: استخدم أول كلمتين بس كـ key للمطابقة الجزئية
-      // (الكلمتين الأوليين بتمثلوا الاسم الأول والأب في أغلب الأسماء العربية)
-      if (parts.length >= 3) return parts.slice(0, 2).join(' ');
-      return norm;
-    }
 
     const studentMap = {};
-    // أول مرور: نبني map بـ key = الاسم الكامل المعياري
-    const fullKeyMap = {};
+    // بناء map بـ key = الاسم الكامل المعياري بدون دمج أسامي مختلفة
     allTx.forEach(tx => {
-      const fullNorm = normalizeName(tx.studentName);
-      if (!fullKeyMap[fullNorm]) fullKeyMap[fullNorm] = tx.studentName;
-    });
-
-    // ثاني مرور: نحدد الـ fuzzy groups — أسامي بأول كلمتين متشابهتين تتدمج
-    const fuzzyGroups = {}; // fuzzyKey -> fullNorm أول واحد شفناه
-    const normToFuzzy = {}; // fullNorm -> canonicalFullNorm
-    Object.keys(fullKeyMap).forEach(fullNorm => {
-      const fk = getFuzzyKey(fullNorm);
-      if (!fuzzyGroups[fk]) {
-        fuzzyGroups[fk] = fullNorm; // أول اسم في المجموعة هو الـ canonical
-      }
-      normToFuzzy[fullNorm] = fuzzyGroups[fk];
-    });
-
-    allTx.forEach(tx => {
-      const fullNorm = normalizeName(tx.studentName);
-      const canonKey = normToFuzzy[fullNorm] || fullNorm;
+      const canonKey = normalizeName(tx.studentName);
 
       if (!studentMap[canonKey]) {
         studentMap[canonKey] = {
-          studentName: fullKeyMap[canonKey] || tx.studentName,
+          studentName: tx.studentName,
           stage: tx.stage || '',
           stageName: tx.stageName || tx.stage || '',
           grade: tx.grade || '',
@@ -1282,8 +1147,7 @@
         ALL_ITEMS.forEach(it => studentMap[canonKey].items[it] = 0);
       }
 
-      // لو نفس الطالب بيظهر بمرحلة/صف مختلف، ناخد الأكتر تكرارا أو الآخر
-      // هنا بناخد البيانات من آخر معاملة كحل بسيط
+      // لو نفس الطالب بيظهر بمرحلة/صف مختلف، ناخد البيانات من آخر معاملة كحل بسيط
       studentMap[canonKey].stage     = tx.stage     || studentMap[canonKey].stage;
       studentMap[canonKey].stageName = tx.stageName || studentMap[canonKey].stageName;
       studentMap[canonKey].grade     = tx.grade     || studentMap[canonKey].grade;
@@ -1357,10 +1221,15 @@
     });
 
     const existingStages = new Set(Object.values(studentMap).map(s => s.stage));
-    const stagesToShow = STAGE_ORDER.filter(st => existingStages.has(st.stageId));
-    const unknownStudents = Object.values(studentMap).filter(s =>
-      !STAGE_ORDER.find(st => st.stageId === s.stage)
+    // لو في فلتر مرحلة محدد، خليه يفلتر بيه
+    const selectedStage = document.getElementById('filterStage').value;
+    const stagesToShow = STAGE_ORDER.filter(st =>
+      existingStages.has(st.stageId) &&
+      (selectedStage === '' || st.stageId === selectedStage)
     );
+    const unknownStudents = selectedStage === '' ? Object.values(studentMap).filter(s =>
+      !STAGE_ORDER.find(st => st.stageId === s.stage)
+    ) : [];
 
     const wb = new ExcelJS.Workbook();
     wb.creator = 'School Accounting System';
@@ -1525,14 +1394,13 @@
       stageStudents.forEach((stu, i) => {
         const isAlt = i % 2 === 1;
         globalRowCounter++;
-        // المصروفات الدراسية = السعر الثابت للمرحلة/الصف من جدول الأسعار
-        const feesAmt = getFixedTuitionFee(stu.stage, stu.grade);
+        const feesAmt  = getFixedTuitionFee(stu.stage, stu.grade);
         const inst1Amt = stu.installments[0] || 0;
         const inst2Amt = stu.installments[1] || 0;
         const discAmt  = Math.round(stu.totalDiscount) || 0;
-        // المتبقي = المصروفات الثابتة - (القسط1 + القسط2 + الخصم)
-        const remainingAmt = Math.max(0, feesAmt - inst1Amt - inst2Amt - discAmt);
         const totalPaidAmt = Math.round(stu.totalPaid) || 0;
+        const feesPaid = Math.round(stu.items['مصروفات دراسية'] || 0);
+        const remainingAmt = Math.max(0, feesAmt - feesPaid - discAmt);
 
         const rowVals = [
           globalRowCounter,
@@ -1622,19 +1490,20 @@
       });
 
       ws.addRow([]);
-      const summaryPct = stageTotals.totalDue > 0 ? Math.round(stageTotals.totalPaid / stageTotals.totalDue * 100) : 0;
+      const summaryPct = stageTotals.fees > 0 ? Math.round(stageTotals.totalPaid / stageTotals.fees * 100) : 0;
       const summaryVals = Array(NUM_COLS).fill('');
       summaryVals[0] = 'ملخص المرحلة:';
       summaryVals[1] = `إجمالي التحصيل: ${formatCurrency(stageTotals.totalPaid)}`;
-      summaryVals[4] = `إجمالي المتبقي: ${formatCurrency(stageTotals.remaining)}`;
-      summaryVals[8] = `نسبة التحصيل: ${summaryPct}%`;
+      summaryVals[2] = `إجمالي المتبقي: ${formatCurrency(stageTotals.remaining)}`;
+      summaryVals[Math.min(4, NUM_COLS - 1)] = `نسبة التحصيل: ${summaryPct}%`;
       const summaryR = ws.addRow(summaryVals);
       ws.mergeCells(`A${summaryR.number}:A${summaryR.number}`);
-      ws.mergeCells(`B${summaryR.number}:D${summaryR.number}`);
-      ws.mergeCells(`E${summaryR.number}:H${summaryR.number}`);
-      ws.mergeCells(`I${summaryR.number}:${LAST_COL_LETTER}${summaryR.number}`);
+      ws.mergeCells(`B${summaryR.number}:C${summaryR.number}`);
+      ws.mergeCells(`D${summaryR.number}:${colLetter(Math.min(6, NUM_COLS))}${summaryR.number}`);
+      ws.mergeCells(`${colLetter(Math.min(5, NUM_COLS))}${summaryR.number}:${LAST_COL_LETTER}${summaryR.number}`);
       summaryR.height = 24;
-      [1,2,5,9].forEach(ci => {
+      [1,2,3,5].forEach(ci => {
+        if (ci > NUM_COLS) return;
         applyCell(summaryR.getCell(ci), {
           fill: hFill(ci === 1 ? PRI : ACC),
           font: { name:'Arial', bold:true, size:11, color:{ argb: ci === 1 ? WHT : BLK } },
@@ -1664,14 +1533,12 @@
     });
 
     if (unknownStudents.length > 0) {
-      buildSheet('أخرى', unknownStudents.sort((a,b) => a.studentName.localeCompare(b.studentName,'ar')));
+      buildSheet('فايل', unknownStudents.sort((a,b) => a.studentName.localeCompare(b.studentName,'ar')));
     }
 
     const allStudents = Object.values(studentMap);
-    const grandTotalDue  = allStudents.reduce((s,st)=>s+st.totalDue,0);
     const grandTotalPaid = allStudents.reduce((s,st)=>s+st.totalPaid,0);
     const grandTotalRem  = allStudents.reduce((s,st)=>s+st.totalRemaining,0);
-    const allItemTotals  = DYNAMIC_ITEMS.map(it => allStudents.reduce((s,st)=>s+(st.items[it]||0),0));
 
     const grandSepRow = ws.addRow(['']);
     ws.mergeCells(`A${grandSepRow.number}:${LAST_COL_LETTER}${grandSepRow.number}`);
