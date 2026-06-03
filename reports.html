@@ -1485,6 +1485,25 @@
 
     let globalRowCounter = 0;
 
+    // دالة مساعدة: السعر الثابت للمصروفات الدراسية حسب المرحلة والصف
+    function getFixedTuitionFee(stageId, grade) {
+      // Cardiff: American Section
+      if (stageId === 'international') {
+        const gf = CARDIFF_STAGES.international?.gradeFees?.[grade];
+        return gf ? gf.total : 0;
+      }
+      // Cardiff: Semi-International
+      if (stageId === 'semi_international') {
+        const grp = CARDIFF_STAGES.semi_international?.getGradeGroup?.(grade) || 'Grade';
+        const gf = CARDIFF_STAGES.semi_international?.gradeFees?.normal?.[grp];
+        return gf ? gf.total : 0;
+      }
+      // Bristol / Stanford: STAGES
+      const stage = STAGES[stageId];
+      if (stage) return stage.prices['مصروفات دراسية'] || 0;
+      return 0;
+    }
+
     function buildSheet(stageName, stageStudents) {
 
       const stageHeader = ws.addRow([`📚  ${stageName}  —  ${stageStudents.length} طالب`]);
@@ -1506,13 +1525,13 @@
       stageStudents.forEach((stu, i) => {
         const isAlt = i % 2 === 1;
         globalRowCounter++;
-        const feesAmt = stu.grade === 'Pre-KG' ? 26000 : Math.round(stu.items['مصروفات دراسية'] || 0);
+        // المصروفات الدراسية = السعر الثابت للمرحلة/الصف من جدول الأسعار
+        const feesAmt = getFixedTuitionFee(stu.stage, stu.grade);
         const inst1Amt = stu.installments[0] || 0;
         const inst2Amt = stu.installments[1] || 0;
         const discAmt  = Math.round(stu.totalDiscount) || 0;
-        // المبلغ المتبقي = إجمالي ما دفعه في المصروفات الدراسية - القسط الأول - القسط الثاني - الخصم
-        const totalFeeInstallments = Math.round(stu.items['مصروفات دراسية'] || 0);
-        const remainingAmt = Math.max(0, totalFeeInstallments - inst1Amt - inst2Amt - discAmt);
+        // المتبقي = المصروفات الثابتة - (القسط1 + القسط2 + الخصم)
+        const remainingAmt = Math.max(0, feesAmt - inst1Amt - inst2Amt - discAmt);
         const totalPaidAmt = Math.round(stu.totalPaid) || 0;
 
         const rowVals = [
@@ -1659,7 +1678,7 @@
     applyCell(grandSepRow.getCell(1), { fill: hFill('FF333333'), border: thickBord() });
     grandSepRow.height = 4;
 
-    const grandTotalFees = allStudents.reduce((s,st)=>s+(st.grade==='Pre-KG'?26000:Math.round(st.items['مصروفات دراسية']||0)),0);
+    const grandTotalFees = allStudents.reduce((s,st)=>s+getFixedTuitionFee(st.stage, st.grade),0);
     const grandInst1 = allStudents.reduce((s,st)=>s+(st.installments[0]||0),0);
     const grandInst2 = allStudents.reduce((s,st)=>s+(st.installments[1]||0),0);
     const grandDisc  = allStudents.reduce((s,st)=>s+Math.round(st.totalDiscount||0),0);
