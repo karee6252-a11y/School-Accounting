@@ -37,7 +37,7 @@
           <div id="monthlyFilter" style="display:none"><label class="form-label">الشهر</label><input type="month" class="form-input" id="filterMonth" onchange="loadReport()" /></div>
           <div id="customFilter" style="display:none;grid-template-columns:1fr 1fr;gap:0.5rem;grid-column:span 2"><div><label class="form-label">من</label><input type="date" class="form-input" id="filterFrom" onchange="loadReport()" /></div><div><label class="form-label">إلى</label><input type="date" class="form-input" id="filterTo" onchange="loadReport()" /></div></div>
           <div><label class="form-label">المرحلة</label><select class="form-select" id="filterStage" onchange="loadReport()"><option value="">كل المراحل</option><option value="pre_kg">Pre-KG</option><option value="kg">KG</option><option value="grade">Grade</option><option value="prep">Prep</option></select></div>
-          <div><label class="form-label">بند الدفع</label><select class="form-select" id="filterItem" onchange="loadReport()"><option value="">كل البنود</option><option value="مصروفات دراسية">مصروفات دراسية</option><option value="باص">باص</option><option value="يونيفورم">يونيفورم</option><option value="فايل">فايل</option><option value="أبليكيشن">أبليكيشن</option><option value="رحلات">رحلات</option><option value="امتحانات">امتحانات</option></select></div>
+          <div><label class="form-label">بند الدفع</label><select class="form-select" id="filterItem" onchange="loadReport()"><option value="">كل البنود</option><option value="مصروفات دراسية">مصروفات دراسية</option><option value="مصروفات - قسط 1">مصروفات - قسط 1</option><option value="مصروفات - قسط 2">مصروفات - قسط 2</option><option value="باص">باص</option><option value="يونيفورم">يونيفورم</option><option value="أبليكيشن">أبليكيشن</option><option value="رحلات">رحلات</option><option value="امتحانات">امتحانات</option></select></div>
           <div><label class="form-label">طريقة الدفع</label><select class="form-select" id="filterPaymentType" onchange="loadReport()"><option value="">كل الطرق</option><option value="cash">نقدي</option><option value="bank_transfer">تحويل بنكي</option><option value="check">شيك</option><option value="instapay">إنستاباي</option></select></div>
           <div><button class="btn btn-primary w-full" onclick="loadReport()"> بحث</button></div>
         </div>
@@ -174,7 +174,6 @@
         if (filterItem) {
           const m = mapAmounts(d);
           const key = filterItem === 'مصروفات دراسية' || filterItem === 'مصروفات' ? 'fees'
-                    : filterItem === 'فايل'      ? 'file'
                     : filterItem === 'يونيفورم'  ? 'uni'
                     : filterItem === 'باص'        ? 'bus'
                     : filterItem === 'أبليكيشن'  ? 'app'
@@ -204,13 +203,15 @@
         `;
         tbody.appendChild(tr);
       });
+      // daily   (12 عمود): # تاريخ اسم مرحلة صف بند | مبلغ | مديونية | دفع إيصال ملاحظات إجراء
+      //  → قبل المبلغ: 6 | المبلغ: 1 | المديونية: 1 | بعده: 4 = 12
+      // non-daily (10 عمود): # تاريخ مرحلة صف بند | مبلغ | دفع إيصال ملاحظات إجراء
+      //  → قبل المبلغ: 5 | المبلغ: 1 | بعده: 4 = 10
       const labelColspan = isDaily ? 6 : 5;
-      const trailColspan = 4;
       tfoot.innerHTML = `<tr class="table-footer-total">
         <td colspan="${labelColspan}" style="padding:0.75rem 1rem;font-weight:800;text-align:right">الإجمالي (${currentData.length} عملية)</td>
         <td style="padding:0.75rem 1rem;font-weight:900;font-size:1.05rem;text-align:center">${formatCurrency(total)}</td>
-        ${isDaily ? `<td style="padding:0.75rem 1rem;font-weight:900;color:#c0392b;text-align:center">${totalDebt>0?formatCurrency(totalDebt):'-'}</td>` : ''}
-        <td colspan="${trailColspan}" style="padding:0.75rem 1rem"></td>
+        ${isDaily ? `<td style="padding:0.75rem 1rem;font-weight:900;color:#c0392b;text-align:center">${totalDebt>0?formatCurrency(totalDebt):'-'}</td><td colspan="4" style="padding:0.75rem 1rem"></td>` : `<td colspan="4" style="padding:0.75rem 1rem"></td>`}
       </tr>`;
     }
     document.getElementById('summaryTotal').textContent = formatCurrency(total);
@@ -234,21 +235,19 @@
       });
     }
 
-    const out = { fees:0, disc: Math.round(totalDiscount), file:0, uni:0, bus:0, app:0, other:0 };
+    const out = { fees:0, disc: Math.round(totalDiscount), uni:0, bus:0, app:0, other:0 };
 
     function assignItem(itemName, itemAmt) {
       const name = (itemName || '').trim();
       if      (name === 'مصروفات دراسية' || name === 'مصروفات') { out.fees += itemAmt; }
-      else if (name === 'فايل')                                   { out.file += itemAmt; }
       else if (name === 'يونيفورم')                              { out.uni  += itemAmt; }
       else if (name === 'باص')                                    { out.bus  += itemAmt; }
       else if (name === 'أبليكيشن')                              { out.app  += itemAmt; }
-      else if (name.includes('مصروفات'))  { out.fees += itemAmt; }
-      else if (name.includes('فايل'))     { out.file += itemAmt; }
-      else if (name.includes('يونيفورم')) { out.uni  += itemAmt; }
-      else if (name.includes('باص'))      { out.bus  += itemAmt; }
-      else if (name.includes('أبليكيشن')) { out.app  += itemAmt; }
-      else { out.other += itemAmt; }
+      else if (name.includes('مصروفات'))  { out.fees  += itemAmt; }
+      else if (name.includes('يونيفورم')) { out.uni   += itemAmt; }
+      else if (name.includes('باص'))      { out.bus   += itemAmt; }
+      else if (name.includes('أبليكيشن')) { out.app   += itemAmt; }
+      else { out.other += itemAmt; } // فايل / فايل / رحلات / امتحانات / غيره → أخرى
     }
 
     if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
@@ -1215,7 +1214,7 @@
       return;
     }
 
-    const ALL_ITEMS = ['مصروفات دراسية','باص','يونيفورم','فايل','أبليكيشن','رحلات','امتحانات'];
+    const ALL_ITEMS = ['مصروفات دراسية','مصروفات - قسط 1','مصروفات - قسط 2','باص','يونيفورم','أبليكيشن','رحلات','امتحانات'];
 
     const STAGE_ORDER = [
       { stageId: 'pre_kg',        stageName: 'Pre-KG',       grades: ['Pre-KG'] },
@@ -1237,12 +1236,42 @@
         .toLowerCase();
     }
 
+    // دمج أسامي متشابهة: لو أول اسمين متطابقين يتدمجوا
+    function getFuzzyKey(name) {
+      const norm = normalizeName(name);
+      const parts = norm.split(' ');
+      // لو الاسم أكتر من كلمتين: استخدم أول كلمتين بس كـ key للمطابقة الجزئية
+      // (الكلمتين الأوليين بتمثلوا الاسم الأول والأب في أغلب الأسماء العربية)
+      if (parts.length >= 3) return parts.slice(0, 2).join(' ');
+      return norm;
+    }
+
     const studentMap = {};
+    // أول مرور: نبني map بـ key = الاسم الكامل المعياري
+    const fullKeyMap = {};
     allTx.forEach(tx => {
-      const normKey = `${normalizeName(tx.studentName)}|||${tx.stage}|||${tx.grade}`;
-      if (!studentMap[normKey]) {
-        studentMap[normKey] = {
-          studentName: tx.studentName,  // نحتفظ بأول شكل للاسم للعرض
+      const fullNorm = normalizeName(tx.studentName);
+      if (!fullKeyMap[fullNorm]) fullKeyMap[fullNorm] = tx.studentName;
+    });
+
+    // ثاني مرور: نحدد الـ fuzzy groups — أسامي بأول كلمتين متشابهتين تتدمج
+    const fuzzyGroups = {}; // fuzzyKey -> fullNorm أول واحد شفناه
+    const normToFuzzy = {}; // fullNorm -> canonicalFullNorm
+    Object.keys(fullKeyMap).forEach(fullNorm => {
+      const fk = getFuzzyKey(fullNorm);
+      if (!fuzzyGroups[fk]) {
+        fuzzyGroups[fk] = fullNorm; // أول اسم في المجموعة هو الـ canonical
+      }
+      normToFuzzy[fullNorm] = fuzzyGroups[fk];
+    });
+
+    allTx.forEach(tx => {
+      const fullNorm = normalizeName(tx.studentName);
+      const canonKey = normToFuzzy[fullNorm] || fullNorm;
+
+      if (!studentMap[canonKey]) {
+        studentMap[canonKey] = {
+          studentName: fullKeyMap[canonKey] || tx.studentName,
           stage: tx.stage || '',
           stageName: tx.stageName || tx.stage || '',
           grade: tx.grade || '',
@@ -1250,9 +1279,15 @@
           items: {},
           installments: [],
         };
-        ALL_ITEMS.forEach(it => studentMap[normKey].items[it] = 0);
+        ALL_ITEMS.forEach(it => studentMap[canonKey].items[it] = 0);
       }
-      studentMap[normKey].payments.push(tx);
+
+      // لو نفس الطالب بيظهر بمرحلة/صف مختلف، ناخد الأكتر تكرارا أو الآخر
+      // هنا بناخد البيانات من آخر معاملة كحل بسيط
+      studentMap[canonKey].stage     = tx.stage     || studentMap[canonKey].stage;
+      studentMap[canonKey].stageName = tx.stageName || studentMap[canonKey].stageName;
+      studentMap[canonKey].grade     = tx.grade     || studentMap[canonKey].grade;
+      studentMap[canonKey].payments.push(tx);
     });
 
     Object.values(studentMap).forEach(s => {
