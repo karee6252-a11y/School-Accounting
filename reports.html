@@ -1494,19 +1494,25 @@
       const summaryVals = Array(NUM_COLS).fill('');
       summaryVals[0] = 'ملخص المرحلة:';
       summaryVals[1] = `إجمالي التحصيل: ${formatCurrency(stageTotals.totalPaid)}`;
-      summaryVals[2] = `إجمالي المتبقي: ${formatCurrency(stageTotals.remaining)}`;
-      summaryVals[Math.min(4, NUM_COLS - 1)] = `نسبة التحصيل: ${summaryPct}%`;
+      summaryVals[3] = `إجمالي المتبقي: ${formatCurrency(stageTotals.remaining)}`;
+      summaryVals[5] = `نسبة التحصيل: ${summaryPct}%`;
       const summaryR = ws.addRow(summaryVals);
-      ws.mergeCells(`A${summaryR.number}:A${summaryR.number}`);
-      ws.mergeCells(`B${summaryR.number}:C${summaryR.number}`);
-      ws.mergeCells(`D${summaryR.number}:${colLetter(Math.min(6, NUM_COLS))}${summaryR.number}`);
-      ws.mergeCells(`${colLetter(Math.min(5, NUM_COLS))}${summaryR.number}:${LAST_COL_LETTER}${summaryR.number}`);
+      // تقسيم صف الملخص لـ 3 أجزاء متساوية غير متداخلة
+      const third1End = colLetter(Math.max(2, Math.floor(NUM_COLS / 3)));
+      const third2Start = colLetter(Math.floor(NUM_COLS / 3) + 1);
+      const third2End = colLetter(Math.max(Math.floor(NUM_COLS / 3) + 1, Math.floor(NUM_COLS * 2 / 3)));
+      const third3Start = colLetter(Math.floor(NUM_COLS * 2 / 3) + 1);
+      ws.mergeCells(`A${summaryR.number}:${third1End}${summaryR.number}`);
+      if (third2Start !== third2End)
+        ws.mergeCells(`${third2Start}${summaryR.number}:${third2End}${summaryR.number}`);
+      if (third3Start !== LAST_COL_LETTER)
+        ws.mergeCells(`${third3Start}${summaryR.number}:${LAST_COL_LETTER}${summaryR.number}`);
       summaryR.height = 24;
-      [1,2,3,5].forEach(ci => {
+      [[1, PRI, WHT], [Math.floor(NUM_COLS/3)+1, ACC, BLK], [Math.floor(NUM_COLS*2/3)+1, ACC, BLK]].forEach(([ci, bg, fc]) => {
         if (ci > NUM_COLS) return;
         applyCell(summaryR.getCell(ci), {
-          fill: hFill(ci === 1 ? PRI : ACC),
-          font: { name:'Arial', bold:true, size:11, color:{ argb: ci === 1 ? WHT : BLK } },
+          fill: hFill(bg),
+          font: { name:'Arial', bold:true, size:11, color:{ argb: fc } },
           alignment: ci === 1 ? cAlign() : rAlign(),
           border: medBord(),
         });
