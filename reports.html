@@ -147,11 +147,11 @@
         if (filterItem) {
           if (filterItem === '__other__') {
             // إيرادات أخرى = أي بند مش من البنود الأساسية وليس فايل
-            const mainItems = ['مصروفات دراسية','مصروفات','باص','يونيفورم','أبليكيشن','فايل'];
-            const hasOther = (d.paymentItem || '').split('+').map(s => s.trim()).some(p => !mainItems.includes(p) && !p.includes('فايل'))
+            const mainItems = ['مصروفات دراسية','مصروفات','باص','يونيفورم','أبليكيشن','فايل','رحلات','امتحانات'];
+            const hasOther = (d.paymentItem || '').split('+').map(s => s.trim()).some(p => !mainItems.includes(p) && !p.includes('فايل') && !p.includes('رحلات') && !p.includes('امتحانات'))
               || (Array.isArray(d.paymentItems) && d.paymentItems.some(pi => {
                 const n = (pi.item || '').trim();
-                return !mainItems.includes(n) && !n.includes('فايل');
+                return !mainItems.includes(n) && !n.includes('فايل') && !n.includes('رحلات') && !n.includes('امتحانات');
               }));
             if (!hasOther) return;
           } else {
