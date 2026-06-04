@@ -146,18 +146,19 @@
         if (filterStage && d.stage !== filterStage) return;
         if (filterItem) {
           if (filterItem === '__other__') {
-            // إيرادات أخرى = السجل فيه على الأقل بند مش من البنود المعروفة
+            // إيرادات أخرى = السجل فيه بند "إيرادات أخرى" أو أي بند غير معروف
             const knownItems = ['مصروفات دراسية','مصروفات','باص','يونيفورم','أبليكيشن','فايل','رحلات','امتحانات'];
-            function isUnknown(name) {
+            function isOther(name) {
               const n = (name || '').trim();
               if (!n) return false;
+              if (n === 'إيرادات أخرى') return true;
               return !knownItems.some(k => n === k || n.includes(k));
             }
             let hasOther = false;
             if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
-              hasOther = d.paymentItems.some(pi => isUnknown(pi.item || String(pi)));
+              hasOther = d.paymentItems.some(pi => isOther(pi.item || String(pi)));
             } else {
-              hasOther = (d.paymentItem || '').split('+').map(s => s.trim()).filter(Boolean).some(p => isUnknown(p));
+              hasOther = (d.paymentItem || '').split('+').map(s => s.trim()).filter(Boolean).some(p => isOther(p));
             }
             if (!hasOther) return;
           } else {
@@ -195,11 +196,11 @@
         if (filterItem) {
           const m = mapAmounts(d);
           const key = filterItem === 'مصروفات دراسية' || filterItem === 'مصروفات' ? 'fees'
-                    : filterItem === 'يونيفورم'  ? 'uni'
-                    : filterItem === 'باص'        ? 'bus'
-                    : filterItem === 'أبليكيشن'  ? 'app'
-                    : filterItem === 'فايل'       ? 'file'
-                    : filterItem === '__other__'  ? 'other'
+                    : filterItem === 'يونيفورم'       ? 'uni'
+                    : filterItem === 'باص'             ? 'bus'
+                    : filterItem === 'أبليكيشن'       ? 'app'
+                    : filterItem === 'فايل'            ? 'file'
+                    : filterItem === '__other__'        ? 'other'
                     : 'other';
           displayAmount = m[key] || 0;
         }
@@ -270,8 +271,8 @@
       else if (name.includes('يونيفورم')) { out.uni   += itemAmt; }
       else if (name.includes('باص'))      { out.bus   += itemAmt; }
       else if (name.includes('أبليكيشن')) { out.app   += itemAmt; }
-      else if (name === 'فايل' || name.includes('فايل')) { out.file  += itemAmt; } // فايل
-      else { out.other += itemAmt; } // رحلات / امتحانات / إيرادات أخرى
+      else if (name === 'فايل' || name.includes('فايل')) { out.file += itemAmt; }
+      else { out.other += itemAmt; } // إيرادات أخرى / رحلات / امتحانات / بنود غير معروفة
     }
 
     if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {

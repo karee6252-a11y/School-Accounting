@@ -396,7 +396,7 @@
       const isSelected = !!selectedItems[item];
       const isVariable = selectedItems[item]?.variable || false;
       const customPrice = selectedItems[item]?.customPrice || "";
-      const forceVariable = (item === "رحلات");
+      const forceVariable = (item === "رحلات" || item === "إيرادات أخرى");
       const cardEl = document.createElement("div");
       cardEl.className = "payment-item-card " + (isSelected ? "selected" : "");
       cardEl.onclick = () => togglePaymentItem(item, price || 0);
