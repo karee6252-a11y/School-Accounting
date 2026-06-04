@@ -541,6 +541,7 @@
           </select>
           <button class="btn btn-primary" onclick="generateReport()"> عرض التقرير</button>
           <button class="btn btn-outline" onclick="exportFullExcel()"> Excel شامل</button>
+          <button class="btn btn-outline" onclick="exportDebtsExcel()" style="background:linear-gradient(135deg,#c62828,#b71c1c);color:white;border-color:#c62828;font-weight:800;"> 📊 تصدير مديونيات</button>
         </div>
 
         <div id="reportArea">
@@ -2989,6 +2990,322 @@ function toast(msg) {
   div.textContent = msg;
   document.body.appendChild(div);
   setTimeout(() => div.remove(), 3000);
+}
+
+// ─── EXPORT DEBTS EXCEL ───────────────────────────────────────────
+async function exportDebtsExcel() {
+  // ── جمع مديونيات المشتريات: فواتير المديونية > 0 ──
+  const purchDebts = allPurchases.filter(p => {
+    const net = p.net != null ? p.net : (p.total || 0);
+    const paid = p.qty || 0; // الدفعة الأولى تُعتبر المدفوع
+    return (net - paid) > 0;
+  }).map(p => {
+    const net  = p.net != null ? p.net : (p.total || 0);
+    const paid = p.qty || 0;
+    return {
+      supplierName : p.supplierName || '',
+      date         : p.date || '',
+      purpose      : getPurposeLabel(p.purpose) || '',
+      workType     : WORK_TYPES[p.workType] || p.workType || '',
+      desc         : p.desc || '',
+      total        : p.total || 0,
+      deduction    : p.deduction || 0,
+      net          : net,
+      paid         : paid,
+      debt         : net - paid,
+    };
+  });
+
+  // ── جمع مديونيات المقاولين: عقود remaining > 0 ──
+  const contrDebts = allContracts.filter(c => (c.remaining || 0) > 0).map(c => ({
+    contractorName : c.contractorName || '',
+    date           : c.date || '',
+    purpose        : getPurposeLabel(c.purpose) || '',
+    workType       : WORK_TYPES[c.workType] || c.workType || '',
+    desc           : c.desc || '',
+    total          : c.total || 0,
+    deduction      : c.deduction || 0,
+    pay1           : c.pay1 || 0,
+    pay2           : c.pay2 || 0,
+    pay3           : c.pay3 || 0,
+    pay4           : c.pay4 || 0,
+    paid           : c.paid || 0,
+    remaining      : c.remaining || 0,
+  }));
+
+  if (!purchDebts.length && !contrDebts.length) {
+    alert('🎉 لا توجد مديونيات مستحقة حالياً!');
+    return;
+  }
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Eng. Kareem Ali Mousa';
+
+  const ws = wb.addWorksheet('كشف المديونيات', { views: [{ rightToLeft: true }] });
+
+  // ── ستايلات مشتركة ──
+  const border = {
+    top:    { style:'thin', color:{ argb:'FF1A3A6B' } },
+    left:   { style:'thin', color:{ argb:'FF1A3A6B' } },
+    bottom: { style:'thin', color:{ argb:'FF1A3A6B' } },
+    right:  { style:'thin', color:{ argb:'FF1A3A6B' } },
+  };
+  const thickBorder = {
+    top:    { style:'medium', color:{ argb:'FF1A3A6B' } },
+    left:   { style:'medium', color:{ argb:'FF1A3A6B' } },
+    bottom: { style:'medium', color:{ argb:'FF1A3A6B' } },
+    right:  { style:'medium', color:{ argb:'FF1A3A6B' } },
+  };
+  const numFmt = '#,##0.00';
+  const centerWrap = { horizontal:'center', vertical:'middle', wrapText:true, readingOrder:2 };
+  const centerNoWrap = { horizontal:'center', vertical:'middle', readingOrder:2 };
+
+  // ── عرض الأعمدة ──
+  ws.columns = [
+    { width: 5  }, // #
+    { width: 13 }, // التاريخ
+    { width: 24 }, // الاسم
+    { width: 20 }, // الغرض
+    { width: 16 }, // نوع العمل
+    { width: 30 }, // البيان
+    { width: 14 }, // الإجمالي
+    { width: 12 }, // التخصيم
+    { width: 14 }, // المدفوع
+    { width: 14 }, // المديونية
+  ];
+
+  let currentRow = 1;
+
+  // ── دالة مساعدة: عنوان قسم ──
+  function sectionTitle(label, bgArgb, fgArgb) {
+    ws.mergeCells(currentRow, 1, currentRow, 10);
+    const cell = ws.getCell(currentRow, 1);
+    cell.value = label;
+    cell.font  = { name:'Arial', bold:true, size:14, color:{ argb: fgArgb } };
+    cell.fill  = { type:'pattern', pattern:'solid', fgColor:{ argb: bgArgb } };
+    cell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+    cell.border = thickBorder;
+    ws.getRow(currentRow).height = 34;
+    currentRow++;
+  }
+
+  // ── دالة مساعدة: صف رأس ──
+  function headerRow(cols, bgArgb) {
+    const row = ws.getRow(currentRow);
+    row.height = 28;
+    cols.forEach((col, idx) => {
+      const cell = row.getCell(idx + 1);
+      cell.value = col;
+      cell.font  = { name:'Arial', bold:true, size:11, color:{ argb:'FFFFFFFF' } };
+      cell.fill  = { type:'pattern', pattern:'solid', fgColor:{ argb: bgArgb } };
+      cell.alignment = centerNoWrap;
+      cell.border = thickBorder;
+    });
+    currentRow++;
+  }
+
+  // ── دالة مساعدة: صف بيانات ──
+  function dataRow(vals, even, numCols, debtCol) {
+    const row = ws.getRow(currentRow);
+    row.height = 26;
+    vals.forEach((val, idx) => {
+      const cell = row.getCell(idx + 1);
+      cell.value = val;
+      const colNum = idx + 1;
+      const isDebtCol = colNum === debtCol;
+      cell.font = {
+        name  : 'Arial',
+        bold  : isDebtCol,
+        size  : isDebtCol ? 12 : 11,
+        color : { argb: isDebtCol ? 'FFC62828' : 'FF000000' },
+      };
+      if (even) cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFF5F5' } };
+      cell.alignment = colNum <= 2 ? centerNoWrap : centerWrap;
+      cell.border = border;
+      if (numCols.includes(colNum)) cell.numFmt = numFmt;
+    });
+    currentRow++;
+  }
+
+  // ── دالة مساعدة: صف إجمالي ──
+  function totalRow(vals, numCols, bgArgb) {
+    const row = ws.getRow(currentRow);
+    row.height = 30;
+    vals.forEach((val, idx) => {
+      const cell = row.getCell(idx + 1);
+      cell.value = val;
+      cell.font  = { name:'Arial', bold:true, size:12, color:{ argb:'FFFFFFFF' } };
+      cell.fill  = { type:'pattern', pattern:'solid', fgColor:{ argb: bgArgb } };
+      cell.alignment = centerNoWrap;
+      cell.border = thickBorder;
+      if (numCols.includes(idx + 1)) cell.numFmt = numFmt;
+    });
+    currentRow++;
+  }
+
+  // ── صف فراغ بين الأقسام ──
+  function gapRow() {
+    ws.getRow(currentRow).height = 10;
+    currentRow++;
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  القسم الأول: مديونية المشتريات
+  // ═══════════════════════════════════════════════════
+  sectionTitle(
+    `📋  مديونية المشتريات  —  ${purchDebts.length} فاتورة`,
+    'FFC62828', 'FFFFFFFF'
+  );
+
+  headerRow(
+    ['#','التاريخ','المورد','الغرض','نوع العمل','البيان','الإجمالي','التخصيم','المدفوع','المديونية'],
+    'FF8B0000'
+  );
+
+  const PURCH_NUM_COLS = [7, 8, 9, 10];
+  purchDebts.forEach((p, i) => {
+    dataRow(
+      [i+1, p.date, p.supplierName, p.purpose, p.workType, p.desc,
+       p.total, p.deduction, p.paid, p.debt],
+      i % 2 === 1, PURCH_NUM_COLS, 10
+    );
+  });
+
+  if (purchDebts.length > 0) {
+    totalRow(
+      ['','','','','','الإجمالي',
+       purchDebts.reduce((s,p)=>s+p.total, 0),
+       purchDebts.reduce((s,p)=>s+p.deduction, 0),
+       purchDebts.reduce((s,p)=>s+p.paid, 0),
+       purchDebts.reduce((s,p)=>s+p.debt, 0)],
+      PURCH_NUM_COLS, 'FFC62828'
+    );
+  } else {
+    ws.mergeCells(currentRow, 1, currentRow, 10);
+    const cell = ws.getCell(currentRow, 1);
+    cell.value = '✅ لا توجد مديونيات مشتريات';
+    cell.font  = { name:'Arial', bold:true, size:12, color:{ argb:'FF2E7D32' } };
+    cell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+    cell.fill  = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFE8F5E9' } };
+    cell.border = border;
+    ws.getRow(currentRow).height = 26;
+    currentRow++;
+  }
+
+  gapRow();
+  gapRow();
+  gapRow();
+
+  // ═══════════════════════════════════════════════════
+  //  القسم الثاني: مديونية المقاولين
+  // ═══════════════════════════════════════════════════
+  sectionTitle(
+    `🏗️  مديونية المقاولين  —  ${contrDebts.length} عقد`,
+    'FFE65100', 'FFFFFFFF'
+  );
+
+  headerRow(
+    ['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','الإجمالي','التخصيم','المدفوع','المديونية'],
+    'FFB34700'
+  );
+
+  const CONTR_NUM_COLS = [7, 8, 9, 10];
+  contrDebts.forEach((c, i) => {
+    dataRow(
+      [i+1, c.date, c.contractorName, c.purpose, c.workType, c.desc,
+       c.total, c.deduction, c.paid, c.remaining],
+      i % 2 === 1, CONTR_NUM_COLS, 10
+    );
+  });
+
+  if (contrDebts.length > 0) {
+    totalRow(
+      ['','','','','','الإجمالي',
+       contrDebts.reduce((s,c)=>s+c.total, 0),
+       contrDebts.reduce((s,c)=>s+c.deduction, 0),
+       contrDebts.reduce((s,c)=>s+c.paid, 0),
+       contrDebts.reduce((s,c)=>s+c.remaining, 0)],
+      CONTR_NUM_COLS, 'FFE65100'
+    );
+  } else {
+    ws.mergeCells(currentRow, 1, currentRow, 10);
+    const cell = ws.getCell(currentRow, 1);
+    cell.value = '✅ لا توجد مديونيات مقاولين';
+    cell.font  = { name:'Arial', bold:true, size:12, color:{ argb:'FF2E7D32' } };
+    cell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+    cell.fill  = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFE8F5E9' } };
+    cell.border = border;
+    ws.getRow(currentRow).height = 26;
+    currentRow++;
+  }
+
+  gapRow();
+  gapRow();
+
+  // ═══════════════════════════════════════════════════
+  //  ملخص إجمالي في الأسفل
+  // ═══════════════════════════════════════════════════
+  const totalPurchDebt = purchDebts.reduce((s,p)=>s+p.debt, 0);
+  const totalContrDebt = contrDebts.reduce((s,c)=>s+c.remaining, 0);
+  const grandTotal     = totalPurchDebt + totalContrDebt;
+
+  ws.mergeCells(currentRow, 1, currentRow, 7);
+  const summaryLabelCell = ws.getCell(currentRow, 1);
+  summaryLabelCell.value     = '💰  إجمالي مديونية المشتريات';
+  summaryLabelCell.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FFFFFFFF' } };
+  summaryLabelCell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF8B0000' } };
+  summaryLabelCell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+  summaryLabelCell.border    = thickBorder;
+  ws.mergeCells(currentRow, 8, currentRow, 10);
+  const summaryValCell = ws.getCell(currentRow, 8);
+  summaryValCell.value     = totalPurchDebt;
+  summaryValCell.numFmt    = numFmt;
+  summaryValCell.font      = { name:'Arial', bold:true, size:13, color:{ argb:'FFC62828' } };
+  summaryValCell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFF0F0' } };
+  summaryValCell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+  summaryValCell.border    = thickBorder;
+  ws.getRow(currentRow).height = 30;
+  currentRow++;
+
+  ws.mergeCells(currentRow, 1, currentRow, 7);
+  const summaryLabelCell2 = ws.getCell(currentRow, 1);
+  summaryLabelCell2.value     = '🏗️  إجمالي مديونية المقاولين';
+  summaryLabelCell2.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FFFFFFFF' } };
+  summaryLabelCell2.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFB34700' } };
+  summaryLabelCell2.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+  summaryLabelCell2.border    = thickBorder;
+  ws.mergeCells(currentRow, 8, currentRow, 10);
+  const summaryValCell2 = ws.getCell(currentRow, 8);
+  summaryValCell2.value     = totalContrDebt;
+  summaryValCell2.numFmt    = numFmt;
+  summaryValCell2.font      = { name:'Arial', bold:true, size:13, color:{ argb:'FFE65100' } };
+  summaryValCell2.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFF8F0' } };
+  summaryValCell2.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+  summaryValCell2.border    = thickBorder;
+  ws.getRow(currentRow).height = 30;
+  currentRow++;
+
+  ws.mergeCells(currentRow, 1, currentRow, 7);
+  const grandLabelCell = ws.getCell(currentRow, 1);
+  grandLabelCell.value     = '💸  إجمالي المديونيات الكلي';
+  grandLabelCell.font      = { name:'Arial', bold:true, size:14, color:{ argb:'FFFFFFFF' } };
+  grandLabelCell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF1A3A6B' } };
+  grandLabelCell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+  grandLabelCell.border    = thickBorder;
+  ws.mergeCells(currentRow, 8, currentRow, 10);
+  const grandValCell = ws.getCell(currentRow, 8);
+  grandValCell.value     = grandTotal;
+  grandValCell.numFmt    = numFmt;
+  grandValCell.font      = { name:'Arial', bold:true, size:14, color:{ argb:'FF1A3A6B' } };
+  grandValCell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFE8F0FE' } };
+  grandValCell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+  grandValCell.border    = thickBorder;
+  ws.getRow(currentRow).height = 36;
+
+  ws.views = [{ state:'frozen', ySplit:0, rightToLeft:true }];
+
+  const dateStr = new Date().toLocaleDateString('ar-EG').replace(/\//g,'-');
+  await EX.download(wb, `كشف_المديونيات_${school?.name||''}_${dateStr}`);
 }
 
 // ─── START ────────────────────────────────────────────────────────
