@@ -592,7 +592,8 @@
     if (isCardiff && stage === 'semi_international' && !document.getElementById('paymentTierSelect').value) return showAlert('من فضلك اختر نوع الدفعة');
     if (!grade) return showAlert('من فضلك اختر الصف');
     if (Object.keys(selectedItems).length===0) return showAlert('من فضلك اختر بند الدفع');
-    if (!amount||amount<=0) return showAlert('من فضلك ادخل مبلغ صحيح');
+    const allFree = Object.values(selectedItems).every(v => (v.price || 0) === 0);
+    if (!allFree && (!amount||amount<=0)) return showAlert('من فضلك ادخل مبلغ صحيح');
     if (!paymentType) return showAlert('من فضلك اختر طريقة الدفع');
     if (!receiptNumber) return showAlert('من فضلك ادخل رقم الايصال');
     if (!date) return showAlert('من فضلك اختر التاريخ');
