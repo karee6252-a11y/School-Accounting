@@ -146,13 +146,19 @@
         if (filterStage && d.stage !== filterStage) return;
         if (filterItem) {
           if (filterItem === '__other__') {
-            // إيرادات أخرى = أي بند مش من البنود الأساسية وليس فايل
-            const mainItems = ['مصروفات دراسية','مصروفات','باص','يونيفورم','أبليكيشن','فايل','رحلات','امتحانات'];
-            const hasOther = (d.paymentItem || '').split('+').map(s => s.trim()).some(p => !mainItems.includes(p) && !p.includes('فايل') && !p.includes('رحلات') && !p.includes('امتحانات'))
-              || (Array.isArray(d.paymentItems) && d.paymentItems.some(pi => {
-                const n = (pi.item || '').trim();
-                return !mainItems.includes(n) && !n.includes('فايل') && !n.includes('رحلات') && !n.includes('امتحانات');
-              }));
+            // إيرادات أخرى = السجل فيه على الأقل بند مش من البنود المعروفة
+            const knownItems = ['مصروفات دراسية','مصروفات','باص','يونيفورم','أبليكيشن','فايل','رحلات','امتحانات'];
+            function isUnknown(name) {
+              const n = (name || '').trim();
+              if (!n) return false;
+              return !knownItems.some(k => n === k || n.includes(k));
+            }
+            let hasOther = false;
+            if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
+              hasOther = d.paymentItems.some(pi => isUnknown(pi.item || String(pi)));
+            } else {
+              hasOther = (d.paymentItem || '').split('+').map(s => s.trim()).filter(Boolean).some(p => isUnknown(p));
+            }
             if (!hasOther) return;
           } else {
             const inString = (d.paymentItem || '').split('+').map(s => s.trim()).includes(filterItem);
