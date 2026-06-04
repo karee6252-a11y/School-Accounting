@@ -251,7 +251,7 @@ const CARDIFF_STAGES = {
   "semi_international": {
     label: "Semi-International",
     labelAr: "سيمي إنترناشونال",
-    grades: ["KG1", "KG2", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5"],
+    grades: ["KG1", "KG2", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Prep 1"],
     installments: 2,
     paymentTypes: [
       { value: "normal", label: "دفعة عادية" },
