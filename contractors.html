@@ -2994,14 +2994,13 @@ function toast(msg) {
 
 // ─── EXPORT DEBTS EXCEL ───────────────────────────────────────────
 async function exportDebtsExcel() {
-  // ── جمع مديونيات المشتريات: فواتير المديونية > 0 ──
+  // ── جمع مديونيات المشتريات: p.net هو المديونية مباشرة (total - deduction - pay1) ──
   const purchDebts = allPurchases.filter(p => {
-    const net = p.net != null ? p.net : (p.total || 0);
-    const paid = p.qty || 0; // الدفعة الأولى تُعتبر المدفوع
-    return (net - paid) > 0;
+    const debt = p.net != null ? p.net : (p.total || 0);
+    return debt > 0;
   }).map(p => {
-    const net  = p.net != null ? p.net : (p.total || 0);
-    const paid = p.qty || 0;
+    const pay1 = p.pay1 ?? p.qty ?? 0;
+    const debt = p.net != null ? p.net : (p.total || 0);
     return {
       supplierName : p.supplierName || '',
       date         : p.date || '',
@@ -3010,9 +3009,8 @@ async function exportDebtsExcel() {
       desc         : p.desc || '',
       total        : p.total || 0,
       deduction    : p.deduction || 0,
-      net          : net,
-      paid         : paid,
-      debt         : net - paid,
+      paid         : pay1,
+      debt         : debt,
     };
   });
 
