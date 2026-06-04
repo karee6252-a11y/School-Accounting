@@ -1342,7 +1342,7 @@
     ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:4, activeCell:'A5' }];
     ws.columns = COL_DEFS.map(c => ({ width: c.width }));
 
-    const mainTitle = ws.addRow([`مراجعة إيرادات ${schoolName}  —  العام الدراسي ${ACADEMIC_YEAR}`]);
+    const mainTitle = ws.addRow([`مراجعة إيرادات ${schoolName}  —  العام الدراسي 2026/2027`]);
     ws.mergeCells(`A1:${LAST_COL_LETTER}1`);
     applyCell(mainTitle.getCell(1), {
       fill: hFill(PRI),
