@@ -328,8 +328,9 @@ const _currentAcademicYearData = (() => {
   return { label: `${year - 1}/${year}`, start: `${year - 1}-07-01` };
 })();
 
-const ACADEMIC_YEAR       = _currentAcademicYearData.label;
-const ACADEMIC_YEAR_START = _currentAcademicYearData.start;
+// السنة الدراسية مثبّتة يدوياً — تُحدَّث كل عام في يوليو
+const ACADEMIC_YEAR       = '2026/2027';
+const ACADEMIC_YEAR_START = '2026-07-01';
 
 // ========================================
 // SESSION MANAGEMENT
