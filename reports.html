@@ -146,20 +146,13 @@
         if (filterStage && d.stage !== filterStage) return;
         if (filterItem) {
           if (filterItem === '__other__') {
-            // إيرادات أخرى = السجل فيه بند "إيرادات أخرى" أو أي بند غير معروف
-            const knownItems = ['مصروفات دراسية','مصروفات','باص','يونيفورم','أبليكيشن','فايل','رحلات','امتحانات'];
-            function isOther(name) {
-              const n = (name || '').trim();
-              if (!n) return false;
-              if (n === 'إيرادات أخرى') return true;
-              return !knownItems.some(k => n === k || n.includes(k));
-            }
-            let hasOther = false;
-            if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
-              hasOther = d.paymentItems.some(pi => isOther(pi.item || String(pi)));
-            } else {
-              hasOther = (d.paymentItem || '').split('+').map(s => s.trim()).filter(Boolean).some(p => isOther(p));
-            }
+            // إيرادات أخرى = أي بند مش من البنود الأساسية وليس فايل
+            const mainItems = ['مصروفات دراسية','مصروفات','باص','يونيفورم','أبليكيشن','فايل'];
+            const hasOther = (d.paymentItem || '').split('+').map(s => s.trim()).some(p => !mainItems.includes(p) && !p.includes('فايل'))
+              || (Array.isArray(d.paymentItems) && d.paymentItems.some(pi => {
+                const n = (pi.item || '').trim();
+                return !mainItems.includes(n) && !n.includes('فايل');
+              }));
             if (!hasOther) return;
           } else {
             const inString = (d.paymentItem || '').split('+').map(s => s.trim()).includes(filterItem);
@@ -196,11 +189,11 @@
         if (filterItem) {
           const m = mapAmounts(d);
           const key = filterItem === 'مصروفات دراسية' || filterItem === 'مصروفات' ? 'fees'
-                    : filterItem === 'يونيفورم'       ? 'uni'
-                    : filterItem === 'باص'             ? 'bus'
-                    : filterItem === 'أبليكيشن'       ? 'app'
-                    : filterItem === 'فايل'            ? 'file'
-                    : filterItem === '__other__'        ? 'other'
+                    : filterItem === 'يونيفورم'  ? 'uni'
+                    : filterItem === 'باص'        ? 'bus'
+                    : filterItem === 'أبليكيشن'  ? 'app'
+                    : filterItem === 'فايل'       ? 'file'
+                    : filterItem === '__other__'  ? 'other'
                     : 'other';
           displayAmount = m[key] || 0;
         }
@@ -271,8 +264,8 @@
       else if (name.includes('يونيفورم')) { out.uni   += itemAmt; }
       else if (name.includes('باص'))      { out.bus   += itemAmt; }
       else if (name.includes('أبليكيشن')) { out.app   += itemAmt; }
-      else if (name === 'فايل' || name.includes('فايل')) { out.file += itemAmt; }
-      else { out.other += itemAmt; } // إيرادات أخرى / رحلات / امتحانات / بنود غير معروفة
+      else if (name === 'فايل' || name.includes('فايل')) { out.file  += itemAmt; } // فايل
+      else { out.other += itemAmt; } // رحلات / امتحانات / إيرادات أخرى
     }
 
     if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
@@ -890,21 +883,21 @@
     let sectionsHtml = '';
 
     if (currentPeriod === 'daily') {
-      const totC = {fees:0,file:0,uni:0,bus:0,app:0};
+      const totC = {fees:0,file:0,uni:0,bus:0,app:0,other:0};
       const rows = currentData.map((d,i) => {
         const m = mapAmounts(d);
-        totC.fees+=m.fees; totC.file+=m.file; totC.uni+=m.uni; totC.bus+=m.bus; totC.app+=m.app;
+        totC.fees+=m.fees; totC.file+=m.file; totC.uni+=m.uni; totC.bus+=m.bus; totC.app+=m.app; totC.other+=m.other;
         return [i+1, d.date, d.studentName, d.grade,
-                m.fees||'-', m.file||'-', m.uni||'-', m.bus||'-', m.app||'-',
+                m.fees||'-', m.file||'-', m.uni||'-', m.bus||'-', m.app||'-', m.other||'-',
                 formatCurrency(d.amount), d.debt>0?formatCurrency(d.debt):'-',
                 d.paymentTypeName||d.paymentType, d.receiptNumber||'-', d.notes||'-'];
       });
-      const revTotal = totC.fees+totC.file+totC.uni+totC.bus+totC.app;
+      const revTotal = totC.fees+totC.file+totC.uni+totC.bus+totC.app+totC.other;
       const foot = ['الإجمالي','','','',
-        totC.fees||'-', totC.file||'-', totC.uni||'-', totC.bus||'-', totC.app||'-',
+        totC.fees||'-', totC.file||'-', totC.uni||'-', totC.bus||'-', totC.app||'-', totC.other||'-',
         formatCurrency(revTotal), formatCurrency(totalDebt),'','',''];
       sectionsHtml += buildSection('① الإيرادات اليومية',
-        buildTable(['#','التاريخ','الطالب','الصف','مصروفات','فايل','يونيفورم','باص','أبليكيشن','الإجمالي','المديونية','الدفع','الإيصال','ملاحظات'], rows, foot));
+        buildTable(['#','التاريخ','الطالب','الصف','مصروفات','فايل','يونيفورم','باص','أبليكيشن','إيرادات أخرى','الإجمالي','المديونية','الدفع','الإيصال','ملاحظات'], rows, foot));
 
       let expTotal = 0;
       try {
@@ -922,7 +915,7 @@
       const DAYS_AR = DAYS_AR_W;
       const DAY_MAP = SCHOOL_DAY_IDX;
       const dayMap = {};
-      DAYS_AR.forEach(d => dayMap[d]={fees:0,file:0,uni:0,bus:0,app:0,date:''});
+      DAYS_AR.forEach(d => dayMap[d]={fees:0,file:0,uni:0,bus:0,app:0,other:0,date:''});
       currentData.forEach(d => {
         const idx = DAY_MAP[new Date(d.date+'T00:00:00').getDay()];
         if (idx===undefined) return;
@@ -931,16 +924,16 @@
         Object.keys(m).forEach(k => { if(dayMap[day][k]!==undefined) dayMap[day][k]+=m[k]; });
         if (!dayMap[day].date) dayMap[day].date = d.date;
       });
-      const wkT={fees:0,file:0,uni:0,bus:0,app:0}; let cum=0;
+      const wkT={fees:0,file:0,uni:0,bus:0,app:0,other:0}; let cum=0;
       const wkRows = DAYS_AR.map((day,i)=>{
-        const dm=dayMap[day]; const dt=dm.fees+dm.file+dm.uni+dm.bus+dm.app;
-        cum+=dt; Object.keys(wkT).forEach(k=>wkT[k]+=dm[k]);
-        return [i+1,day,dm.date||'-',dm.fees||'-',dm.file||'-',dm.uni||'-',dm.bus||'-',dm.app||'-',dt?formatCurrency(dt):'-',formatCurrency(cum)];
+        const dm=dayMap[day]; const dt=dm.fees+dm.file+dm.uni+dm.bus+dm.app+(dm.other||0);
+        cum+=dt; Object.keys(wkT).forEach(k=>wkT[k]+=dm[k]||0);
+        return [i+1,day,dm.date||'-',dm.fees||'-',dm.file||'-',dm.uni||'-',dm.bus||'-',dm.app||'-',dm.other||'-',dt?formatCurrency(dt):'-',formatCurrency(cum)];
       });
-      const wkTotal=wkT.fees+wkT.file+wkT.uni+wkT.bus+wkT.app;
+      const wkTotal=wkT.fees+wkT.file+wkT.uni+wkT.bus+wkT.app+wkT.other;
       sectionsHtml += buildSection('① الإيراد الأسبوعي',
-        buildTable(['#','اليوم','التاريخ','مصروفات','فايل','يونيفورم','باص','أبليكيشن','إجمالي اليوم','تراكمي'],
-          wkRows, ['الإجمالي','','',wkT.fees||'-',wkT.file||'-',wkT.uni||'-',wkT.bus||'-',wkT.app||'-',formatCurrency(wkTotal),'']));
+        buildTable(['#','اليوم','التاريخ','مصروفات','فايل','يونيفورم','باص','أبليكيشن','إيرادات أخرى','إجمالي اليوم','تراكمي'],
+          wkRows, ['الإجمالي','','',wkT.fees||'-',wkT.file||'-',wkT.uni||'-',wkT.bus||'-',wkT.app||'-',wkT.other||'-',formatCurrency(wkTotal),'']));
 
       const gradeFees={};
       currentData.forEach(d=>{ const m=mapAmounts(d); gradeFees[d.grade]=(gradeFees[d.grade]||0)+(m.fees||0); });
@@ -955,20 +948,20 @@
       const weekBuckets={};
       currentData.forEach(d=>{
         const wk=`الأسبوع ${Math.ceil(new Date(d.date+'T00:00:00').getDate()/7)}`;
-        if(!weekBuckets[wk]) weekBuckets[wk]={fees:0,disc:0,file:0,uni:0,bus:0,app:0};
+        if(!weekBuckets[wk]) weekBuckets[wk]={fees:0,disc:0,file:0,uni:0,bus:0,app:0,other:0};
         const m=mapAmounts(d);
         Object.keys(m).forEach(k=>{ if(weekBuckets[wk][k]!==undefined) weekBuckets[wk][k]+=m[k]; });
       });
-      const mT={fees:0,file:0,uni:0,bus:0,app:0};
+      const mT={fees:0,file:0,uni:0,bus:0,app:0,other:0};
       const wkRows3=Object.entries(weekBuckets).map(([wk,wb],i)=>{
-        const rev=wb.fees+wb.file+wb.uni+wb.bus+wb.app;
+        const rev=wb.fees+wb.file+wb.uni+wb.bus+wb.app+(wb.other||0);
         Object.keys(mT).forEach(k=>mT[k]+=wb[k]||0);
-        return [i+1,wk,wb.fees||'-',wb.file||'-',wb.uni||'-',wb.bus||'-',wb.app||'-',rev?formatCurrency(rev):'-'];
+        return [i+1,wk,wb.fees||'-',wb.file||'-',wb.uni||'-',wb.bus||'-',wb.app||'-',wb.other||'-',rev?formatCurrency(rev):'-'];
       });
-      const mRev=mT.fees+mT.file+mT.uni+mT.bus+mT.app;
+      const mRev=mT.fees+mT.file+mT.uni+mT.bus+mT.app+mT.other;
       sectionsHtml += buildSection('① ملخص الإيرادات الشهرية بالأسابيع',
-        buildTable(['#','الأسبوع','مصروفات','فايل','يونيفورم','باص','أبليكيشن','إجمالي الأسبوع'],
-          wkRows3, ['الإجمالي','',mT.fees||'-',mT.file||'-',mT.uni||'-',mT.bus||'-',mT.app||'-',formatCurrency(mRev)]));
+        buildTable(['#','الأسبوع','مصروفات','فايل','يونيفورم','باص','أبليكيشن','إيرادات أخرى','إجمالي الأسبوع'],
+          wkRows3, ['الإجمالي','',mT.fees||'-',mT.file||'-',mT.uni||'-',mT.bus||'-',mT.app||'-',mT.other||'-',formatCurrency(mRev)]));
 
       const GRADES3=['Pre-KG','KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
       const gF3={}; currentData.forEach(d=>{ const m=mapAmounts(d); gF3[d.grade]=(gF3[d.grade]||0)+(m.fees||0); });
