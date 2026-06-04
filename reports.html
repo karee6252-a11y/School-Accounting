@@ -126,6 +126,11 @@
     } else {
       from = document.getElementById('filterFrom').value;
       to = document.getElementById('filterTo').value;
+      if (!from || !to) {
+        const today = localDateStr(new Date());
+        from = from || today;
+        to = to || today;
+      }
     }
     return { from, to };
   }
