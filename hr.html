@@ -225,18 +225,39 @@
  .payroll-table {
    width: 100%;
    border-collapse: collapse;
-   font-size: 0.78rem;
-   min-width: 1350px;
+   font-size: 0.74rem;
+   min-width: 1100px;
  }
  .payroll-table th {
-   padding: 0.55rem 0.6rem; text-align: center; white-space: nowrap;
+   padding: 0.45rem 0.4rem; text-align: center; white-space: nowrap;
    background: var(--primary); color: #fff; font-weight: 700;
    border-left: 1px solid rgba(255,255,255,0.15);
    position: sticky; top: 0; z-index: 2;
+   font-size: 0.72rem; line-height: 1.25;
  }
- .payroll-table th:nth-child(2) { text-align: right; min-width: 160px; }
+ /* عمود الاسم أعرض، باقي الأعمدة ضيقة */
+ .payroll-table th:nth-child(1) { min-width: 28px; }
+ .payroll-table th:nth-child(2) { text-align: right; min-width: 130px; }
+ .payroll-table th:nth-child(3) { min-width: 90px; }
+ .payroll-table th:nth-child(4) { min-width: 80px; }
+ .payroll-table th:nth-child(5),
+ .payroll-table th:nth-child(6),
+ .payroll-table th:nth-child(17),
+ .payroll-table th:nth-child(18),
+ .payroll-table th:nth-child(19),
+ .payroll-table th:nth-child(20) { min-width: 72px; }
+ .payroll-table th:nth-child(7),
+ .payroll-table th:nth-child(8),
+ .payroll-table th:nth-child(9),
+ .payroll-table th:nth-child(10),
+ .payroll-table th:nth-child(11),
+ .payroll-table th:nth-child(12),
+ .payroll-table th:nth-child(13),
+ .payroll-table th:nth-child(14),
+ .payroll-table th:nth-child(15),
+ .payroll-table th:nth-child(16) { min-width: 52px; }
  .payroll-table td {
-   padding: 0.45rem 0.6rem; text-align: center;
+   padding: 0.38rem 0.4rem; text-align: center;
    border-bottom: 1px solid var(--border);
    border-left: 1px solid var(--border);
    white-space: nowrap;
@@ -1908,9 +1929,10 @@ async function loadPayroll() {
       const lateDays       = pen.lateCount;
       const penaltyDeduct  = (penaltyDays + pen.deductionDays + lateDays) * dayRate;
       const netPresent     = adjustedPresent - pen.deductionDays - penaltyDays - lateDays;
-      const netAbsent30    = 30 - adjustedPresent;
-      const totalDeduct    = (absent * dayRate) + penaltyDeduct + advance + insurance;
-      const netSalary      = salary + reward - totalDeduct;
+      const netAbsent30    = Math.max(0, 30 - adjustedPresent);
+      const absentDeduct   = Math.min(absent * dayRate, salary);
+      const totalDeduct    = absentDeduct + penaltyDeduct + advance + insurance;
+      const netSalary      = Math.max(0, salary + reward - totalDeduct);
       const netRounded     = Math.ceil(netSalary / 5) * 5;
 
       return {
@@ -1951,14 +1973,26 @@ function renderPayrollTable() {
   const S = (s,r) => s + (r||0);
 
   const thead = `<thead><tr>
-    <th>#</th><th>الاسم</th><th>الوظيفة</th><th>حالة التأمين</th>
-    <th>الراتب</th><th>المبلغ التأميني</th><th>حضور فعلي</th><th>حضور فعلي معدل</th>
-    <th>غياب</th><th>جزاءات</th><th>تأخير</th><th>صافي الحضور</th><th>صافي الغياب/30</th>
-    <th>سلف</th><th>تأمينات</th><th>اليوم</th>
-    <th class="col-deduct">إجمالي الخصم</th>
-    <th class="col-reward">مكافأة</th>
-    <th class="col-net">صافي الراتب</th>
-    <th class="col-net5">صافي لأقرب 5</th>
+    <th title="الرقم">#</th>
+    <th title="الاسم">الاسم</th>
+    <th title="الوظيفة">الوظيفة</th>
+    <th title="حالة التأمين">التأمين</th>
+    <th title="الراتب الأساسي">الراتب</th>
+    <th title="المبلغ التأميني">م.تأميني</th>
+    <th title="حضور فعلي">حضور</th>
+    <th title="حضور فعلي معدل (شامل الإجازات)">ح.معدل</th>
+    <th title="أيام الغياب">غياب</th>
+    <th title="أيام الجزاء">جزاء</th>
+    <th title="أيام التأخير">تأخير</th>
+    <th title="صافي الحضور">ص.حضور</th>
+    <th title="صافي الغياب من 30">غ./30</th>
+    <th title="السلفة">سلفة</th>
+    <th title="قيمة التأمينات المخصومة">تأمين</th>
+    <th title="قيمة اليوم = الراتب ÷ 30">اليوم</th>
+    <th class="col-deduct" title="إجمالي الخصومات">الخصم</th>
+    <th class="col-reward" title="المكافأة">مكافأة</th>
+    <th class="col-net" title="صافي الراتب">الصافي</th>
+    <th class="col-net5" title="صافي الراتب لأقرب 5 جنيهات">لأقرب 5</th>
   </tr></thead>`;
 
   const tbody = '<tbody>' + rows.map((r,i) => `<tr>
