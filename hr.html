@@ -233,21 +233,29 @@
  .payroll-table {
    width: 100%;
    border-collapse: collapse;
-   font-size: 0.78rem;
-   min-width: 1350px;
+   font-size: 0.75rem;
+   min-width: 900px;
  }
  .payroll-table th {
-   padding: 0.55rem 0.6rem; text-align: center; white-space: nowrap;
+   padding: 0.4rem 0.4rem; text-align: center; white-space: normal;
+   word-break: keep-all; line-height: 1.25;
    background: var(--primary); color: #fff; font-weight: 700;
    border-left: 1px solid rgba(255,255,255,0.15);
    position: sticky; top: 0; z-index: 2;
+   max-width: 90px;
  }
- .payroll-table th:nth-child(2) { text-align: right; min-width: 160px; }
+ .payroll-table th:nth-child(1) { max-width: 32px; min-width: 28px; }
+ .payroll-table th:nth-child(2) { text-align: right; min-width: 130px; max-width: 150px; white-space: nowrap; }
+ .payroll-table th:nth-child(3) { min-width: 90px; max-width: 110px; }
+ .payroll-table th:nth-child(4) { min-width: 70px; max-width: 80px; }
  .payroll-table td {
-   padding: 0.45rem 0.6rem; text-align: center;
+   padding: 0.35rem 0.4rem; text-align: center;
    border-bottom: 1px solid var(--border);
    border-left: 1px solid var(--border);
    white-space: nowrap;
+   max-width: 90px;
+   overflow: hidden;
+   text-overflow: ellipsis;
  }
  .payroll-table td:nth-child(2) { text-align: right; font-weight: 800; color: var(--text-dark); }
  .payroll-table tbody tr:nth-child(even) { background: var(--bg); }
@@ -1958,14 +1966,14 @@ function renderPayrollTable() {
   const S = (s,r) => s + (r||0);
 
   const thead = `<thead><tr>
-    <th>#</th><th>الاسم</th><th>الوظيفة</th><th>حالة التأمين</th>
-    <th>الراتب</th><th>المبلغ التأميني</th><th>حضور فعلي</th><th>حضور فعلي معدل</th>
-    <th>غياب</th><th>جزاءات</th><th>تأخير</th><th>صافي الحضور</th><th>صافي الغياب/30</th>
+    <th>#</th><th>الاسم</th><th>الوظيفة</th><th>التأمين</th>
+    <th>الراتب</th><th>مبلغ التأمين</th><th>حضور</th><th>حضور معدل</th>
+    <th>غياب</th><th>جزاءات</th><th>تأخير</th><th>صافي الحضور</th><th>غياب/30</th>
     <th>سلف</th><th>تأمينات</th><th>اليوم</th>
     <th class="col-deduct">إجمالي الخصم</th>
     <th class="col-reward">مكافأة</th>
     <th class="col-net">صافي الراتب</th>
-    <th class="col-net5">صافي لأقرب 5</th>
+    <th class="col-net5">لأقرب 5</th>
   </tr></thead>`;
 
   const tbody = '<tbody>' + rows.map((r,i) => `<tr>
