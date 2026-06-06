@@ -200,6 +200,7 @@
  }
  .profile-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 /* PAYROLL TABLE */
+ .tab-pane#tab-payroll { overflow: hidden; min-width: 0; }
  .payroll-table { width:100%; border-collapse:collapse; font-size:0.78rem; min-width:1200px; }
  .payroll-table th {
    padding:0.6rem 0.7rem; text-align:center; white-space:nowrap;
@@ -224,7 +225,7 @@
  .payroll-table .col-reward { background:#e3f2fd !important; color:#1565c0; font-weight:700; }
  .payroll-table .col-net { background:#e8f5e9 !important; color:#2e7d32; font-weight:700; }
  .payroll-table .col-net5 { background:#2e7d32 !important; color:#fff; font-weight:900; }
- .payroll-scroll { overflow-x:auto; border-radius:var(--radius); border:1px solid var(--border); max-height:65vh; overflow-y:auto; }
+ .payroll-scroll { overflow-x:auto; overflow-y:auto; max-height:65vh; border-radius:var(--radius); border:1px solid var(--border); width:100%; box-sizing:border-box; }
 
  @media (max-width: 768px) {
  .hr-stats { grid-template-columns: repeat(2, 1fr); }
