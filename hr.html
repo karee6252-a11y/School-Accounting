@@ -200,7 +200,7 @@
  }
  .profile-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 /* PAYROLL TABLE */
- .tab-pane#tab-payroll { overflow: hidden; min-width: 0; }
+ .tab-pane#tab-payroll { overflow: visible; min-width: 0; width: 100%; box-sizing: border-box; }
  .payroll-table { width:100%; border-collapse:collapse; font-size:0.78rem; min-width:1200px; }
  .payroll-table th {
    padding:0.6rem 0.7rem; text-align:center; white-space:nowrap;
@@ -225,7 +225,8 @@
  .payroll-table .col-reward { background:#e3f2fd !important; color:#1565c0; font-weight:700; }
  .payroll-table .col-net { background:#e8f5e9 !important; color:#2e7d32; font-weight:700; }
  .payroll-table .col-net5 { background:#2e7d32 !important; color:#fff; font-weight:900; }
- .payroll-scroll { overflow-x:auto; overflow-y:auto; max-height:65vh; border-radius:var(--radius); border:1px solid var(--border); width:100%; box-sizing:border-box; }
+ .payroll-scroll { overflow-x:auto; overflow-y:auto; max-height:65vh; border-radius:var(--radius); border:1px solid var(--border); width:100%; box-sizing:border-box; display:block; }
+ #payrollContent { width:100%; box-sizing:border-box; }
 
  @media (max-width: 768px) {
  .hr-stats { grid-template-columns: repeat(2, 1fr); }
@@ -246,7 +247,7 @@
  placeholder="اكتب اسم الموظف أو الرقم القومي..."
  oninput="searchForProfile()" style="max-width:100%"/> <div id="profileSearchResults" style="margin-top:0.5rem"></div></div></div> <div id="employeeProfileSection" style="display:none"> <div class="profile-header" id="profileHeader"></div> <div class="profile-tabs"> <button class="profile-tab active" onclick="switchProfileTab('overview')">نظرة عامة</button> <button class="profile-tab" onclick="switchProfileTab('attendance')">الحضور</button> <button class="profile-tab" onclick="switchProfileTab('permissions')">الإذونات</button> <button class="profile-tab" onclick="switchProfileTab('leaves')">الإجازات</button> <button class="profile-tab" onclick="switchProfileTab('penalties')">الجزاءات</button> <button class="profile-tab" onclick="switchProfileTab('rewards')">المكافآت</button></div> <div class="profile-tab-pane active" id="ptab-overview"><div id="profileOverviewContent"></div></div> <div class="profile-tab-pane" id="ptab-attendance"> <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem"> <div style="font-size:0.85rem;font-weight:700">سجل الحضور والغياب</div> <button class="btn btn-outline btn-sm" onclick="exportProfileExcel()" style="width:auto;padding:0.4rem 0.9rem"> تصدير Excel كامل</button></div> <div id="profileAttendContent"></div></div> <div class="profile-tab-pane" id="ptab-permissions"><div id="profilePermContent"></div></div> <div class="profile-tab-pane" id="ptab-leaves"><div id="profileLeaveContent"></div></div> <div class="profile-tab-pane" id="ptab-penalties"><div id="profilePenaltyContent"></div></div> <div class="profile-tab-pane" id="ptab-rewards"><div id="profileRewardContent"></div></div></div></div>
 <!-- TAB 10: PAYROLL — داخل page-content -->
-<div class="tab-pane" id="tab-payroll">
+<div class="tab-pane" id="tab-payroll" style="width:100%;box-sizing:border-box;">
   <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;justify-content:space-between">
     <div style="font-size:1rem;font-weight:800;color:var(--text-dark)">كشف الرواتب الشهري</div>
     <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
