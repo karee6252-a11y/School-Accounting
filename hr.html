@@ -2121,7 +2121,11 @@ function exportPayrollExcel() {
     ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:headerRow.length-1} }];
 
     // RTL
-    ws['!sheetViews'] = [{ rightToLeft: true }];
+    ws['!sheetViews'] = [{
+      rightToLeft: true,
+      showGridLines: true,
+      tabSelected: true
+    }];
 
     // ارتفاع الصفوف
     ws['!rows'] = [
@@ -2193,6 +2197,10 @@ function exportPayrollExcel() {
     });
 
     XLSX.utils.book_append_sheet(wb, ws, 'كشف الرواتب');
+
+    // RTL — لازم تتضاف بعد الـ append
+    wb.Sheets['كشف الرواتب']['!sheetViews'] = [{ rightToLeft: true }];
+
     XLSX.writeFile(wb, `كشف_رواتب_${monthVal || 'export'}.xlsx`);
 
   } catch(err) {
