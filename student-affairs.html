@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شئون الطلاب</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── تابات ── */
+    .shu2on-tabs {
+      display: flex; gap: 0.4rem; margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--border); padding-bottom: 0;
+    }
+    .shu2on-tab {
+      padding: 0.55rem 1.25rem; font-family: 'Cairo', sans-serif;
+      font-size: 0.85rem; font-weight: 700; cursor: pointer;
+      border: none; background: none; color: var(--text-light);
+      border-bottom: 3px solid transparent; margin-bottom: -2px;
+      transition: var(--transition); border-radius: 8px 8px 0 0;
+    }
+    .shu2on-tab:hover { color: var(--primary); background: var(--accent); }
+    .shu2on-tab.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--accent); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; animation: fadeInUp 0.3s ease; }
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+    /* ── بطاقة الطالب ── */
+    .student-pending-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem 1.25rem;
+      display: flex; align-items: center; gap: 1rem;
+      transition: var(--transition); margin-bottom: 0.75rem;
+    }
+    .student-pending-card:hover { border-color: var(--primary); box-shadow: var(--shadow); }
+    .student-avatar {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: var(--accent); display: flex; align-items: center;
+      justify-content: center; font-size: 1.2rem; font-weight: 800;
+      color: var(--primary); flex-shrink: 0;
+    }
+    .student-info { flex: 1; min-width: 0; }
+    .student-name { font-size: 0.95rem; font-weight: 800; color: var(--text-dark); }
+    .student-meta { font-size: 0.78rem; color: var(--text-light); margin-top: 0.15rem; }
+    .student-badges { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.35rem; }
+
+    .grade-badge {
+      display: inline-flex; padding: 0.18rem 0.65rem; border-radius: 20px;
+      font-size: 0.72rem; font-weight: 700;
+      background: var(--accent); color: var(--primary);
+      border: 1px solid var(--primary-light);
+    }
+    .gender-badge-m { background: #e3f2fd; color: #1565c0; border-color: #90caf9 !important; }
+    .gender-badge-f { background: #fce4ec; color: #c62828; border-color: #f48fb1 !important; }
+
+    /* ── فورم ── */
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+    @media (max-width: 768px) { .form-grid-2 { grid-template-columns: 1fr; } }
+
+    /* ── إحصائيات ── */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+    @media (max-width: 768px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+    .stat-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem; text-align: center;
+    }
+    .stat-num { font-size: 1.8rem; font-weight: 900; color: var(--primary); }
+    .stat-label { font-size: 0.75rem; color: var(--text-light); font-weight: 600; margin-top: 0.2rem; }
+
+    /* ── فلتر ── */
+    .filter-row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+
+    /* ── زر التحويل ── */
+    .btn-transfer {
+      padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.78rem;
+      font-weight: 700; cursor: pointer; font-family: 'Cairo', sans-serif;
+      background: var(--primary); color: #fff; border: none;
+      transition: var(--transition); white-space: nowrap;
+    }
+    .btn-transfer:hover { opacity: 0.85; }
+
+    /* ── عمر ── */
+    .age-display { font-size: 0.78rem; color: var(--text-light); margin-top: 0.3rem; font-weight: 600; }
+
+    /* ── section title ── */
+    .section-title {
+      font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--primary);
+      border-bottom: 2px solid var(--primary-light);
+      padding-bottom: 0.4rem; margin-bottom: 0.85rem;
+    }
+
+    /* ── empty ── */
+    .empty-msg { text-align: center; padding: 3rem 1rem; color: var(--text-light); font-size: 0.9rem; }
+    .empty-msg .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div class="main-content" style="margin-right: 0 !important; width: 100%;">
+    <div id="topbarContainer"></div>
+    <div class="page-content">
+
+      <!-- التابات -->
+      <div class="shu2on-tabs">
+        <button class="shu2on-tab active" onclick="switchTab('register')">تسجيل طالب جديد</button>
+        <button class="shu2on-tab" onclick="switchTab('pending')">
+          الطلاب المنتظرون
+          <span id="pendingBadge" style="background:var(--primary);color:#fff;border-radius:20px;padding:1px 8px;font-size:0.7rem;margin-right:4px">0</span>
+        </button>
+      </div>
+
+      <!-- ══ TAB 1: تسجيل طالب جديد ══ -->
+      <div class="tab-pane active" id="tab-register">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">تسجيل طالب جديد</h2>
+            <span class="badge badge-primary">شئون الطلاب</span>
+          </div>
+          <div class="card-body">
+            <div class="alert hidden" id="regAlert"></div>
+            <div class="alert alert-success hidden" id="regSuccess"></div>
+
+            <!-- بيانات الطالب -->
+            <div class="section-title">بيانات الطالب</div>
+            <div class="form-grid-2" style="margin-bottom:0.85rem">
+              <div class="form-group">
+                <label class="form-label">اسم الطالب <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="studentName" placeholder="الاسم رباعياً" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">الصف <span class="required">*</span></label>
+                <select class="form-input" id="grade">
+                  <option value="">-- اختر الصف --</option>
+                  <optgroup label="ما قبل المدرسة">
+                    <option value="Pre-KG">Pre-KG</option>
+                    <option value="KG1">KG 1</option>
+                    <option value="KG2">KG 2</option>
+                  </optgroup>
+                  <optgroup label="الابتدائية">
+                    <option value="Grade 1">Grade 1</option>
+                    <option value="Grade 2">Grade 2</option>
+                    <option value="Grade 3">Grade 3</option>
+                    <option value="Grade 4">Grade 4</option>
+                    <option value="Grade 5">Grade 5</option>
+                    <option value="Grade 6">Grade 6</option>
+                  </optgroup>
+                  <optgroup label="الإعدادية">
+                    <option value="Prep 1">Prep 1</option>
+                    <option value="Prep 2">Prep 2</option>
+                    <option value="Prep 3">Prep 3</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">النوع <span class="required">*</span></label>
+                <select class="form-input" id="gender">
+                  <option value="">-- اختر --</option>
+                  <option value="ذكر">ذكر</option>
+                  <option value="أنثى">أنثى</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">الجنسية <span class="required">*</span></label>
+                <select class="form-input" id="nationality">
+                  <option value="">-- اختر --</option>
+                  <option value="مصرية">مصرية</option>
+                  <option value="سعودية">سعودية</option>
+                  <option value="إماراتية">إماراتية</option>
+                  <option value="كويتية">كويتية</option>
+                  <option value="أردنية">أردنية</option>
+                  <option value="سورية">سورية</option>
+                  <option value="لبنانية">لبنانية</option>
+                  <option value="فلسطينية">فلسطينية</option>
+                  <option value="يمنية">يمنية</option>
+                  <option value="سودانية">سودانية</option>
+                  <option value="ليبية">ليبية</option>
+                  <option value="تونسية">تونسية</option>
+                  <option value="جزائرية">جزائرية</option>
+                  <option value="مغربية">مغربية</option>
+                  <option value="عراقية">عراقية</option>
+                  <option value="أخرى">أخرى</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">تاريخ الميلاد <span class="required">*</span></label>
+                <input type="date" class="form-input" id="birthDate" onchange="calcAge()" />
+                <div class="age-display" id="ageDisplay"></div>
+              </div>
+            </div>
+
+            <!-- بيانات ولي الأمر -->
+            <div class="section-title" style="margin-top:1.25rem">بيانات ولي الأمر</div>
+            <div class="form-grid-2" style="margin-bottom:0.85rem">
+              <div class="form-group">
+                <label class="form-label">اسم الأب <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="fatherName" placeholder="الاسم كاملاً" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">رقم هاتف الأب <span class="required">*</span></label>
+                <input type="tel" class="form-input" id="fatherPhone" placeholder="01XXXXXXXXX"
+                  style="direction:ltr;text-align:left" maxlength="11" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">اسم الأم <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="motherName" placeholder="الاسم كاملاً" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">رقم هاتف الأم</label>
+                <input type="tel" class="form-input" id="motherPhone" placeholder="01XXXXXXXXX"
+                  style="direction:ltr;text-align:left" maxlength="11" />
+              </div>
+            </div>
+
+            <!-- أزرار -->
+            <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1rem">
+              <button class="btn btn-secondary" onclick="resetForm()">مسح</button>
+              <button class="btn btn-primary" onclick="saveStudent()" id="saveBtn" style="width:auto;padding:0.75rem 2rem">
+                <span id="saveBtnText">حفظ البيانات</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ TAB 2: الطلاب المنتظرون ══ -->
+      <div class="tab-pane" id="tab-pending">
+
+        <!-- إحصائيات -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-num" id="statTotal">0</div>
+            <div class="stat-label">إجمالي المنتظرين</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statMale" style="color:#1565c0">0</div>
+            <div class="stat-label">ذكور</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statFemale" style="color:#c62828">0</div>
+            <div class="stat-label">إناث</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statGrades" style="color:var(--success)">0</div>
+            <div class="stat-label">صفوف مختلفة</div>
+          </div>
+        </div>
+
+        <!-- فلتر -->
+        <div class="filter-row">
+          <input type="text" class="form-input" id="searchInput"
+            placeholder="ابحث بالاسم أو اسم الأب..."
+            oninput="filterStudents()" style="flex:1;max-width:300px" />
+          <select class="form-input" id="filterGrade" onchange="filterStudents()" style="max-width:160px">
+            <option value="">كل الصفوف</option>
+            <optgroup label="ما قبل المدرسة">
+              <option value="Pre-KG">Pre-KG</option>
+              <option value="KG1">KG 1</option>
+              <option value="KG2">KG 2</option>
+            </optgroup>
+            <optgroup label="الابتدائية">
+              <option value="Grade 1">Grade 1</option>
+              <option value="Grade 2">Grade 2</option>
+              <option value="Grade 3">Grade 3</option>
+              <option value="Grade 4">Grade 4</option>
+              <option value="Grade 5">Grade 5</option>
+              <option value="Grade 6">Grade 6</option>
+            </optgroup>
+            <optgroup label="الإعدادية">
+              <option value="Prep 1">Prep 1</option>
+              <option value="Prep 2">Prep 2</option>
+              <option value="Prep 3">Prep 3</option>
+            </optgroup>
+          </select>
+          <select class="form-input" id="filterGender" onchange="filterStudents()" style="max-width:130px">
+            <option value="">كل النوع</option>
+            <option value="ذكر">ذكور</option>
+            <option value="أنثى">إناث</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="loadPendingStudents()" style="width:auto;padding:0.45rem 1rem">
+            ↻ تحديث
+          </button>
+        </div>
+
+        <!-- قائمة الطلاب -->
+        <div id="pendingList">
+          <div class="empty-msg">
+            <div class="empty-icon">👨‍🎓</div>
+            جاري التحميل...
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="layout.js"></script>
+
+<script>
+  // ══════════════════════════════════════════════
+  // INIT — حماية الصفحة: شئون الطلاب والـ Admin بس
+  // ══════════════════════════════════════════════
+  (function () {
+    // guardShu2onPage تتحقق من الدور وتطبق الثيم
+    const session = guardShu2onPage();
+    if (!session) return;
+
+    const school = SESSION.getSchool();
+    const isAdmin = SESSION.isAdmin();
+
+    // Topbar بدون sidebar (صفحة مستقلة لشئون الطلاب)
+    const topbar = document.createElement('div');
+    topbar.className = 'topbar';
+    topbar.innerHTML = `
+      <div class="d-flex align-center gap-1">
+        <img src="${school?.logo || ''}" alt="${school?.name || ''}"
+          onerror="this.style.display='none'"
+          style="width:36px;height:36px;object-fit:contain;border-radius:8px;margin-left:8px" />
+        <h1 class="topbar-title">شئون الطلاب</h1>
+      </div>
+      <div class="topbar-actions">
+        <div class="badge badge-primary">${school?.name || ''}</div>
+        <div style="font-size:0.8rem;color:var(--text-light)">
+          ${new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
+        </div>
+        ${isAdmin ? `<a href="dashboard.html" class="btn btn-outline btn-sm" style="width:auto">← لوحة التحكم</a>` : ''}
+        <button class="btn btn-outline btn-sm" onclick="logout()" style="width:auto">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          خروج
+        </button>
+      </div>`;
+    document.getElementById('topbarContainer').appendChild(topbar);
+  })();
+
+  // ══════════════════════════════════════════════
+  // متغيرات عامة
+  // ══════════════════════════════════════════════
+  const session  = SESSION.get();
+  const schoolId = session?.schoolId;
+  let allStudents = [];
+
+  // ══════════════════════════════════════════════
+  // TABS
+  // ══════════════════════════════════════════════
+  function switchTab(name) {
+    document.querySelectorAll('.shu2on-tab').forEach((t, i) => {
+      t.classList.toggle('active', ['register','pending'][i] === name);
+    });
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    if (name === 'pending') loadPendingStudents();
+  }
+
+  // ══════════════════════════════════════════════
+  // حساب السن
+  // ══════════════════════════════════════════════
+  function calcAge() {
+    const val = document.getElementById('birthDate').value;
+    const disp = document.getElementById('ageDisplay');
+    if (!val) { disp.textContent = ''; return; }
+    const birth = new Date(val);
+    const today = new Date();
+    let years  = today.getFullYear() - birth.getFullYear();
+    let months = today.getMonth() - birth.getMonth();
+    if (months < 0) { years--; months += 12; }
+    disp.textContent = `العمر: ${years} سنة ${months > 0 ? 'و ' + months + ' شهر' : ''}`;
+  }
+
+  function calcAgeFromDate(dateStr) {
+    if (!dateStr) return '—';
+    const birth = new Date(dateStr);
+    const today = new Date();
+    let years  = today.getFullYear() - birth.getFullYear();
+    let months = today.getMonth() - birth.getMonth();
+    if (months < 0) { years--; months += 12; }
+    return `${years}س${months > 0 ? ' ' + months + 'ش' : ''}`;
+  }
+
+  // ══════════════════════════════════════════════
+  // validation رقم الهاتف
+  // ══════════════════════════════════════════════
+  function isValidPhone(phone) {
+    return /^01[0125]\d{8}$/.test(phone);
+  }
+
+  // ══════════════════════════════════════════════
+  // حفظ الطالب
+  // ══════════════════════════════════════════════
+  async function saveStudent() {
+    const studentName  = document.getElementById('studentName').value.trim();
+    const grade        = document.getElementById('grade').value;
+    const gender       = document.getElementById('gender').value;
+    const nationality  = document.getElementById('nationality').value;
+    const birthDate    = document.getElementById('birthDate').value;
+    const fatherName   = document.getElementById('fatherName').value.trim();
+    const fatherPhone  = document.getElementById('fatherPhone').value.trim();
+    const motherName   = document.getElementById('motherName').value.trim();
+    const motherPhone  = document.getElementById('motherPhone').value.trim();
+
+    const alertEl   = document.getElementById('regAlert');
+    const successEl = document.getElementById('regSuccess');
+
+    function showErr(msg) {
+      alertEl.textContent = msg;
+      alertEl.className = 'alert alert-error';
+      alertEl.classList.remove('hidden');
+      setTimeout(() => alertEl.classList.add('hidden'), 4000);
+    }
+
+    // ─── Validation ───
+    if (!studentName)  return showErr('من فضلك ادخل اسم الطالب');
+    if (!grade)        return showErr('من فضلك اختر الصف');
+    if (!gender)       return showErr('من فضلك اختر النوع');
+    if (!nationality)  return showErr('من فضلك اختر الجنسية');
+    if (!birthDate)    return showErr('من فضلك ادخل تاريخ الميلاد');
+    if (!fatherName)   return showErr('من فضلك ادخل اسم الأب');
+    if (!fatherPhone)  return showErr('من فضلك ادخل رقم هاتف الأب');
+    if (!isValidPhone(fatherPhone)) return showErr('رقم هاتف الأب غير صحيح — يجب أن يبدأ بـ 01 ويكون 11 رقم');
+    if (!motherName)   return showErr('من فضلك ادخل اسم الأم');
+    if (motherPhone && !isValidPhone(motherPhone)) return showErr('رقم هاتف الأم غير صحيح');
+
+    const btn = document.getElementById('saveBtn');
+    const txt = document.getElementById('saveBtnText');
+    btn.disabled = true; txt.textContent = 'جاري الحفظ...';
+
+    try {
+      const birth = new Date(birthDate);
+      const today = new Date();
+      let ageYears  = today.getFullYear() - birth.getFullYear();
+      let ageMonths = today.getMonth() - birth.getMonth();
+      if (ageMonths < 0) { ageYears--; ageMonths += 12; }
+
+      await db.collection('studentAffairs').add({
+        schoolId,
+        studentName,
+        grade,
+        gender,
+        nationality,
+        birthDate,
+        ageYears,
+        ageMonths,
+        fatherName,
+        fatherPhone,
+        motherName,
+        motherPhone: motherPhone || '',
+        status: 'pending',
+        registeredBy: session.email,
+        registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+      successEl.textContent = `✓ تم تسجيل الطالب "${studentName}" بنجاح`;
+      successEl.classList.remove('hidden');
+      setTimeout(() => successEl.classList.add('hidden'), 4000);
+
+      loadPendingCount();
+      resetForm();
+    } catch (err) {
+      showErr('خطأ في الحفظ: ' + err.message);
+      console.error(err);
+    } finally {
+      btn.disabled = false; txt.textContent = 'حفظ البيانات';
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  // مسح الفورم
+  // ══════════════════════════════════════════════
+  function resetForm() {
+    ['studentName','fatherName','motherName','fatherPhone','motherPhone'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    ['grade','gender','nationality'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('birthDate').value = '';
+    document.getElementById('ageDisplay').textContent = '';
+  }
+
+  // ══════════════════════════════════════════════
+  // badge عدد المنتظرين
+  // ══════════════════════════════════════════════
+  async function loadPendingCount() {
+    try {
+      const snap = await db.collection('studentAffairs')
+        .where('schoolId', '==', schoolId)
+        .where('status', '==', 'pending')
+        .get();
+      document.getElementById('pendingBadge').textContent = snap.size;
+    } catch(e) { console.warn(e); }
+  }
+
+  // ══════════════════════════════════════════════
+  // تحميل الطلاب المنتظرين
+  // ══════════════════════════════════════════════
+  async function loadPendingStudents() {
+    const container = document.getElementById('pendingList');
+    container.innerHTML = '<div class="empty-msg"><div class="empty-icon">⏳</div>جاري التحميل...</div>';
+
+    try {
+      // ملاحظة: لو Firestore طلب Composite Index على schoolId+status+createdAt
+      // ابعت الـ link اللي بيظهر في الـ console لـ Firebase وهيعمله تلقائي
+      const snap = await db.collection('studentAffairs')
+        .where('schoolId', '==', schoolId)
+        .where('status', '==', 'pending')
+        .orderBy('createdAt', 'desc')
+        .get();
+
+      allStudents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      updateStats();
+      renderStudents(allStudents);
+    } catch(err) {
+      console.error(err);
+      // لو الخطأ بسبب missing index — وضّح للمستخدم
+      if (err.code === 'failed-precondition' || err.message.includes('index')) {
+        container.innerHTML = `
+          <div class="alert alert-error" style="margin:1rem">
+            ⚠️ يحتاج Firestore إنشاء index مركّب.<br>
+            افتح الـ Console (F12) وهتلاقي رابط — اضغطه وسيُنشأ تلقائياً.
+          </div>`;
+      } else {
+        container.innerHTML = `<div class="alert alert-error" style="margin:1rem">خطأ في التحميل: ${err.message}</div>`;
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  // تحديث الإحصائيات
+  // ══════════════════════════════════════════════
+  function updateStats() {
+    document.getElementById('statTotal').textContent  = allStudents.length;
+    document.getElementById('statMale').textContent   = allStudents.filter(s => s.gender === 'ذكر').length;
+    document.getElementById('statFemale').textContent = allStudents.filter(s => s.gender === 'أنثى').length;
+    document.getElementById('statGrades').textContent = new Set(allStudents.map(s => s.grade)).size;
+    document.getElementById('pendingBadge').textContent = allStudents.length;
+  }
+
+  // ══════════════════════════════════════════════
+  // رسم البطاقات
+  // ══════════════════════════════════════════════
+  function renderStudents(list) {
+    const container = document.getElementById('pendingList');
+    if (!list.length) {
+      container.innerHTML = '<div class="empty-msg"><div class="empty-icon">✅</div>لا يوجد طلاب منتظرون</div>';
+      return;
+    }
+    container.innerHTML = list.map(s => `
+      <div class="student-pending-card">
+        <div class="student-avatar">${s.studentName?.charAt(0) || '؟'}</div>
+        <div class="student-info">
+          <div class="student-name">${escHtml(s.studentName)}</div>
+          <div class="student-meta">
+            ${escHtml(s.fatherName)} · ${escHtml(s.fatherPhone)}
+            ${s.motherPhone ? ' · ' + escHtml(s.motherPhone) : ''}
+          </div>
+          <div class="student-badges">
+            <span class="grade-badge">${escHtml(s.grade)}</span>
+            <span class="grade-badge ${s.gender === 'ذكر' ? 'gender-badge-m' : 'gender-badge-f'}">${escHtml(s.gender)}</span>
+            <span class="grade-badge" style="background:#f3e5f5;color:#6a1b9a;border-color:#ce93d8">${escHtml(s.nationality)}</span>
+            <span class="grade-badge" style="background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7">
+              ${calcAgeFromDate(s.birthDate)}
+            </span>
+          </div>
+          <div style="font-size:0.72rem;color:var(--text-light);margin-top:0.25rem">
+            سجّله: ${escHtml(s.registeredBy || '—')} ·
+            ${s.createdAt?.toDate ? s.createdAt.toDate().toLocaleDateString('ar-EG') : ''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end">
+          <button class="btn-transfer" onclick="goToCollection('${s.id}')">
+            📋 تسجيل المصروفات
+          </button>
+          <button onclick="deleteStudent('${s.id}','${escHtml(s.studentName).replace(/'/g,"\\'")}'"
+            style="font-size:0.72rem;color:var(--danger);background:none;border:none;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700">
+            🗑 حذف
+          </button>
+        </div>
+      </div>`).join('');
+  }
+
+  // ── XSS protection ──
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // ══════════════════════════════════════════════
+  // فلترة
+  // ══════════════════════════════════════════════
+  function filterStudents() {
+    const search = document.getElementById('searchInput').value.trim().toLowerCase();
+    const grade  = document.getElementById('filterGrade').value;
+    const gender = document.getElementById('filterGender').value;
+
+    let filtered = allStudents;
+    if (search) filtered = filtered.filter(s =>
+      (s.studentName || '').toLowerCase().includes(search) ||
+      (s.fatherName  || '').toLowerCase().includes(search) ||
+      (s.fatherPhone || '').includes(search)
+    );
+    if (grade)  filtered = filtered.filter(s => s.grade  === grade);
+    if (gender) filtered = filtered.filter(s => s.gender === gender);
+
+    renderStudents(filtered);
+  }
+
+  // ══════════════════════════════════════════════
+  // التحويل لصفحة التحصيل
+  // ══════════════════════════════════════════════
+  function goToCollection(studentId) {
+    const student = allStudents.find(s => s.id === studentId);
+    if (!student) return;
+
+    // حفظ بيانات الطالب في sessionStorage — collection.html هيقراها
+    sessionStorage.setItem('shu2on_prefill', JSON.stringify({
+      studentName:  student.studentName,
+      grade:        student.grade,
+      fatherName:   student.fatherName,
+      fatherPhone:  student.fatherPhone,
+      studentDocId: student.id,   // محتاجينه نحدّث status بعد الدفع
+    }));
+
+    // لو Admin — روّح لـ collection مباشرة
+    // لو shu2on — مفيش صلاحية لـ collection، بس بيروّح عشان المحاسب يكمّل
+    window.location.href = 'collection.html';
+  }
+
+  // ══════════════════════════════════════════════
+  // حذف (soft delete → status='deleted')
+  // ══════════════════════════════════════════════
+  async function deleteStudent(id, name) {
+    if (!confirm(`هل تريد حذف بيانات "${name}"؟\n(سيتم الحذف نهائياً)`)) return;
+    try {
+      // soft delete: نغيّر status بدل الحذف الفعلي
+      await db.collection('studentAffairs').doc(id).update({
+        status: 'deleted',
+        deletedBy: session.email,
+        deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      allStudents = allStudents.filter(s => s.id !== id);
+      updateStats();
+      renderStudents(allStudents);
+    } catch(err) {
+      alert('خطأ في الحذف: ' + err.message);
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  // تحميل أولي
+  // ══════════════════════════════════════════════
+  loadPendingCount();
+</script>
+</body>
+</html>

@@ -35,6 +35,10 @@ const SCHOOLS = {
     hrUsers: [
       "hr@bristol-school.com",
       "hr2@bristol-school.com"
+    ],
+    shu2onUsers: [
+      "shu2on@bristol-school.com",
+      "shu2on2@bristol-school.com"
     ]
   },
   cardiff: {
@@ -52,6 +56,10 @@ const SCHOOLS = {
     hrUsers: [
       "hr@cardiff-school.com",
       "hr2@cardiff-school.com"
+    ],
+    shu2onUsers: [
+      "shu2on@cardiff-school.com",
+      "shu2on2@cardiff-school.com"
     ]
   },
   stanford1: {
@@ -69,6 +77,10 @@ const SCHOOLS = {
     hrUsers: [
       "hr@stanford1-school.com",
       "hr2@stanford1-school.com"
+    ],
+    shu2onUsers: [
+      "shu2on@stanford1-school.com",
+      "shu2on2@stanford1-school.com"
     ]
   },
   stanford2: {
@@ -86,6 +98,10 @@ const SCHOOLS = {
     hrUsers: [
       "hr@stanford2-school.com",
       "hr2@stanford2-school.com"
+    ],
+    shu2onUsers: [
+      "shu2on@stanford2-school.com",
+      "shu2on2@stanford2-school.com"
     ]
   }
 };
@@ -101,7 +117,7 @@ const ADMINS = [
 // ========================================
 // ROUTE PROTECTION
 // ─────────────────────────────────────────
-// صفحات المحاسبة — HR ممنوع يدخل عليها
+// صفحات المحاسبة — HR و shu2on ممنوع يدخلوا عليها
 // ========================================
 const ACCOUNTING_PAGES = [
   'dashboard.html','collection.html','student-search.html','debts.html',
@@ -112,24 +128,32 @@ const ACCOUNTING_PAGES = [
 // صفحات الـ HR — المحاسب ممنوع يدخل عليها
 const HR_PAGES = ['hr.html'];
 
+// صفحات شئون الطلاب — المحاسب والـ HR ممنوع يدخلوا عليها مباشرة
+const SHU2ON_PAGES = ['student-affairs.html'];
+
 /**
  * استدعِ الدالة دي في أول كل صفحة محاسبة
  * لو الـ session بتاعها HR → يتحول لصفحة الـ HR
+ * لو الـ session بتاعها shu2on → يتحول لصفحة شئون الطلاب
  */
 function guardAccountingPage() {
   const session = SESSION.get();
   if (!session) { window.location.href = 'index.html'; return null; }
   if (session.role === 'hr') {
-    // HR ممنوع من أي صفحة محاسبة — بغض النظر عن أي حاجة تانية
     window.location.href = 'hr.html';
     return null;
   }
-  // تأكيد إضافي: مشترك onAuthStateChanged يعيد الـ check
+  if (session.role === 'shu2on') {
+    window.location.href = 'student-affairs.html';
+    return null;
+  }
   auth.onAuthStateChanged(user => {
     if (!user) { SESSION.clear(); window.location.href = 'index.html'; }
     else {
       const s = SESSION.get();
-      if (!s || s.role === 'hr') window.location.href = 'hr.html';
+      if (!s) { window.location.href = 'index.html'; return; }
+      if (s.role === 'hr') window.location.href = 'hr.html';
+      if (s.role === 'shu2on') window.location.href = 'student-affairs.html';
     }
   });
   return session;
@@ -146,6 +170,25 @@ function guardHRPage() {
     window.location.href = 'index.html';
     return null;
   }
+  return session;
+}
+
+/**
+ * استدعِ الدالة دي في صفحة student-affairs.html
+ * بس شئون الطلاب والـ Admin يدخلوا — أي حد تاني يتحول لـ index
+ */
+function guardShu2onPage() {
+  const session = SESSION.get();
+  if (!session) { window.location.href = 'index.html'; return null; }
+  if (session.role !== 'shu2on' && session.role !== 'admin') {
+    window.location.href = 'index.html';
+    return null;
+  }
+  const school = SESSION.getSchool();
+  if (school) applySchoolTheme(school);
+  auth.onAuthStateChanged(user => {
+    if (!user) { SESSION.clear(); window.location.href = 'index.html'; }
+  });
   return session;
 }
 
@@ -346,8 +389,9 @@ const SESSION = {
       const isKnownAdmin      = ADMINS.includes(s.email);
       const isKnownAccountant = Object.values(SCHOOLS).some(sc => sc.users.includes(s.email));
       const isKnownHR         = Object.values(SCHOOLS).some(sc => sc.hrUsers?.includes(s.email));
+      const isKnownShu2on     = Object.values(SCHOOLS).some(sc => sc.shu2onUsers?.includes(s.email));
 
-      if (!isKnownAdmin && !isKnownAccountant && !isKnownHR) {
+      if (!isKnownAdmin && !isKnownAccountant && !isKnownHR && !isKnownShu2on) {
         sessionStorage.removeItem('school_session');
         return null;
       }
@@ -357,10 +401,12 @@ const SESSION = {
         return null;
       }
 
-      // تحقق: المحاسب أو HR لازم يكون مصرح له بمدرسته فقط
+      // تحقق: المحاسب أو HR أو shu2on لازم يكون مصرح له بمدرسته فقط
       if (!isKnownAdmin) {
         const allowedSchool = Object.values(SCHOOLS).find(sc =>
-          sc.users.includes(s.email) || sc.hrUsers?.includes(s.email)
+          sc.users.includes(s.email) ||
+          sc.hrUsers?.includes(s.email) ||
+          sc.shu2onUsers?.includes(s.email)
         );
         if (!allowedSchool || allowedSchool.id !== s.schoolId) {
           sessionStorage.removeItem('school_session');
@@ -389,6 +435,10 @@ const SESSION = {
   isHR: () => {
     const s = SESSION.get();
     return s && s.role === 'hr';
+  },
+  isShu2on: () => {
+    const s = SESSION.get();
+    return s && s.role === 'shu2on';
   },
   getSchool: () => {
     const s = SESSION.get();
