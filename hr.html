@@ -243,8 +243,7 @@
  oninput="renderAbsentModeList()"
  style="flex:1;max-width:360px"/> <select class="form-input" id="attendFilterDept" onchange="renderAbsentModeList()"> <option value="">كل الأقسام</option> <option value="administrative">إداري</option> <option value="academic">أكاديمي</option></select> <select class="form-input" id="attendFilterStatus" onchange="renderAbsentModeList()"> <option value="">الكل</option> <option value="absent">غائبون فقط</option> <option value="excused">إجازة/إذن فقط</option> <option value="present">حاضرون فقط</option></select></div> <div id="attendanceList"> <div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">اختر تاريخ لبدء التسجيل</div></div></div> <div style="margin-top:1.5rem"> <div class="form-section-title"> آخر سجلات الحضور</div> <div id="recentAttendanceLogs"><div style="font-size:0.82rem;color:var(--text-light)">جاري التحميل...</div></div></div></div> <!-- TAB 5: PERMISSIONS --> <div class="tab-pane" id="tab-permissions"> <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;justify-content:space-between"> <div style="font-size:1rem;font-weight:800;color:var(--text-dark)">سجل الإذونات</div> <div style="display:flex;gap:0.5rem;flex-wrap:wrap"> <button class="btn btn-primary btn-sm" onclick="openPermModal()" style="width:auto;padding:0.5rem 1.1rem"> إذن جديد</button> <button class="btn btn-outline btn-sm" onclick="exportPermissionsExcel()" style="width:auto;padding:0.5rem 1rem"> تصدير Excel</button></div></div> <div class="search-filter-row"> <input type="text" class="form-input" id="permSearch" placeholder=" ابحث بالاسم..." oninput="renderPermissions()" style="flex:1;max-width:280px"/> <select class="form-input" id="permFilterType" onchange="renderPermissions()"> <option value="">كل الأنواع</option> <option value="route">خط سير</option> <option value="exit">إذن خروج</option></select> <input type="date" class="form-input" id="permFilterDate" onchange="renderPermissions()" style="max-width:160px"/></div> <div id="permissionsList"> <div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد إذونات مسجلة</div></div></div></div> <!-- TAB 6: LEAVES --> <div class="tab-pane" id="tab-leaves"> <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;justify-content:space-between"> <div style="font-size:1rem;font-weight:800;color:var(--text-dark)">سجل الإجازات</div> <div style="display:flex;gap:0.5rem;flex-wrap:wrap"> <button class="btn btn-primary btn-sm" onclick="openLeaveModal()" style="width:auto;padding:0.5rem 1.1rem"> إجازة جديدة</button> <button class="btn btn-outline btn-sm" onclick="exportLeavesExcel()" style="width:auto;padding:0.5rem 1rem"> تصدير Excel</button></div></div> <div class="search-filter-row"> <input type="text" class="form-input" id="leaveSearch" placeholder=" ابحث بالاسم..." oninput="renderLeaves()" style="flex:1;max-width:280px"/> <select class="form-input" id="leaveFilterType" onchange="renderLeaves()"> <option value="">كل الأنواع</option> <option value="emergency">عارضة (6 أيام)</option> <option value="annual">اعتيادية (15 يوم)</option> <option value="open">عرضة مفتوحة</option> <option value="private">خاصة مفتوحة</option></select></div> <div id="leavesList"> <div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد إجازات مسجلة</div></div></div></div> <!-- TAB 7: PENALTIES --> <div class="tab-pane" id="tab-penalties"> <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;justify-content:space-between"> <div style="font-size:1rem;font-weight:800;color:var(--text-dark)">سجل الجزاءات</div> <div style="display:flex;gap:0.5rem;flex-wrap:wrap"> <button class="btn btn-primary btn-sm" onclick="openPenaltyModal()" style="width:auto;padding:0.5rem 1.1rem"> جزاء جديد</button> <button class="btn btn-outline btn-sm" onclick="exportPenaltiesExcel()" style="width:auto;padding:0.5rem 1rem"> تصدير Excel</button></div></div> <div class="search-filter-row"> <input type="text" class="form-input" id="penaltySearch" placeholder=" ابحث بالاسم..." oninput="renderPenalties()" style="flex:1;max-width:280px"/> <select class="form-input" id="penaltyFilterType" onchange="renderPenalties()"> <option value="">كل الأنواع</option> <option value="penalty">جزاء</option> <option value="warning">إنذار</option> <option value="deduction">خصم</option></select></div> <div id="penaltiesList"> <div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد جزاءات مسجلة</div></div></div></div> <!-- TAB 8: REWARDS --> <div class="tab-pane" id="tab-rewards"> <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;justify-content:space-between"> <div style="font-size:1rem;font-weight:800;color:var(--text-dark)">سجل المكافآت</div> <div style="display:flex;gap:0.5rem;flex-wrap:wrap"> <button class="btn btn-primary btn-sm" onclick="openRewardModal()" style="width:auto;padding:0.5rem 1.1rem"> مكافأة جديدة</button> <button class="btn btn-outline btn-sm" onclick="exportRewardsExcel()" style="width:auto;padding:0.5rem 1rem"> تصدير Excel</button></div></div> <div class="search-filter-row"> <input type="text" class="form-input" id="rewardSearch" placeholder=" ابحث بالاسم..." oninput="renderRewards()" style="flex:1;max-width:280px"/></div> <div id="rewardsList"> <div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد مكافآت مسجلة</div></div></div></div> <!-- TAB 9: SEARCH/PROFILE --> <div class="tab-pane" id="tab-search"> <div class="card" style="margin-bottom:1rem"> <div class="card-body" style="padding:1rem 1.25rem"> <div style="font-size:0.9rem;font-weight:800;margin-bottom:0.75rem;color:var(--text-dark)"> بحث عن موظف</div> <input type="text" class="form-input" id="profileSearchInput"
  placeholder="اكتب اسم الموظف أو الرقم القومي..."
- oninput="searchForProfile()" style="max-width:100%"/> <div id="profileSearchResults" style="margin-top:0.5rem"></div></div></div> <div id="employeeProfileSection" style="display:none"> <div class="profile-header" id="profileHeader"></div> <div class="profile-tabs"> <button class="profile-tab active" onclick="switchProfileTab('overview')">نظرة عامة</button> <button class="profile-tab" onclick="switchProfileTab('attendance')">الحضور</button> <button class="profile-tab" onclick="switchProfileTab('permissions')">الإذونات</button> <button class="profile-tab" onclick="switchProfileTab('leaves')">الإجازات</button> <button class="profile-tab" onclick="switchProfileTab('penalties')">الجزاءات</button> <button class="profile-tab" onclick="switchProfileTab('rewards')">المكافآت</button></div> <div class="profile-tab-pane active" id="ptab-overview"><div id="profileOverviewContent"></div></div> <div class="profile-tab-pane" id="ptab-attendance"> <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem"> <div style="font-size:0.85rem;font-weight:700">سجل الحضور والغياب</div> <button class="btn btn-outline btn-sm" onclick="exportProfileExcel()" style="width:auto;padding:0.4rem 0.9rem"> تصدير Excel كامل</button></div> <div id="profileAttendContent"></div></div> <div class="profile-tab-pane" id="ptab-permissions"><div id="profilePermContent"></div></div> <div class="profile-tab-pane" id="ptab-leaves"><div id="profileLeaveContent"></div></div> <div class="profile-tab-pane" id="ptab-penalties"><div id="profilePenaltyContent"></div></div> <div class="profile-tab-pane" id="ptab-rewards"><div id="profileRewardContent"></div></div></div></div></div></div>
-</div> <!-- TAB 10: PAYROLL -->
+ oninput="searchForProfile()" style="max-width:100%"/> <div id="profileSearchResults" style="margin-top:0.5rem"></div></div></div> <div id="employeeProfileSection" style="display:none"> <div class="profile-header" id="profileHeader"></div> <div class="profile-tabs"> <button class="profile-tab active" onclick="switchProfileTab('overview')">نظرة عامة</button> <button class="profile-tab" onclick="switchProfileTab('attendance')">الحضور</button> <button class="profile-tab" onclick="switchProfileTab('permissions')">الإذونات</button> <button class="profile-tab" onclick="switchProfileTab('leaves')">الإجازات</button> <button class="profile-tab" onclick="switchProfileTab('penalties')">الجزاءات</button> <button class="profile-tab" onclick="switchProfileTab('rewards')">المكافآت</button></div> <div class="profile-tab-pane active" id="ptab-overview"><div id="profileOverviewContent"></div></div> <div class="profile-tab-pane" id="ptab-attendance"> <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem"> <div style="font-size:0.85rem;font-weight:700">سجل الحضور والغياب</div> <button class="btn btn-outline btn-sm" onclick="exportProfileExcel()" style="width:auto;padding:0.4rem 0.9rem"> تصدير Excel كامل</button></div> <div id="profileAttendContent"></div></div> <div class="profile-tab-pane" id="ptab-permissions"><div id="profilePermContent"></div></div> <div class="profile-tab-pane" id="ptab-leaves"><div id="profileLeaveContent"></div></div> <div class="profile-tab-pane" id="ptab-penalties"><div id="profilePenaltyContent"></div></div> <div class="profile-tab-pane" id="ptab-rewards"><div id="profileRewardContent"></div></div></div></div></div><!-- TAB 10: PAYROLL -->
 <div class="tab-pane" id="tab-payroll">
   <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;justify-content:space-between">
     <div style="font-size:1rem;font-weight:800;color:var(--text-dark)">كشف الرواتب الشهري</div>
@@ -262,7 +261,7 @@
   </div>
 
   <!-- إحصائيات سريعة -->
-  <div class="hr-stats" style="margin-bottom:1rem" id="payrollStats" style="display:none">
+  <div class="hr-stats" style="margin-bottom:1rem" id="payrollStats">
     <div class="hr-stat-card"><div class="hr-stat-num" id="prStatCount" style="font-size:1.3rem">0</div><div class="hr-stat-label">عدد الموظفين</div></div>
     <div class="hr-stat-card"><div class="hr-stat-num" id="prStatTotal" style="font-size:1.3rem;color:var(--primary)">0</div><div class="hr-stat-label">إجمالي الرواتب</div></div>
     <div class="hr-stat-card"><div class="hr-stat-num" id="prStatDeduct" style="font-size:1.3rem;color:#e53935">0</div><div class="hr-stat-label">إجمالي الخصومات</div></div>
@@ -273,6 +272,7 @@
     <div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">اختر الشهر واضغط تحميل</div></div>
   </div>
 </div>
+</div></div></div>
 <!-- MODALS -->
 <div class="modal-overlay hidden" id="detailModal"> <div class="modal large-modal"> <div class="modal-header"> <span class="modal-title" id="detailModalTitle">بيانات الموظف</span> <button class="btn-close" onclick="closeDetailModal()"></button></div> <div class="modal-body" id="detailModalBody"></div> <div class="modal-footer"> <button class="btn btn-danger btn-sm" onclick="resignEmployee()" id="resignBtn">تسجيل ترك العمل</button> <button class="btn btn-secondary btn-sm" onclick="openEditModal()"> تعديل</button> <button class="btn btn-outline btn-sm" onclick="closeDetailModal()">إغلاق</button></div></div>
 </div> <div class="modal-overlay hidden" id="editModal"> <div class="modal large-modal"> <div class="modal-header"> <span class="modal-title">تعديل بيانات الموظف</span> <button class="btn-close" onclick="closeEditModal()"></button></div> <div class="modal-body" id="editModalBody"></div> <div class="modal-footer"> <button class="btn btn-primary" onclick="saveEdit()" style="width:auto;padding:0.75rem 2rem"> حفظ التعديلات</button> <button class="btn btn-outline btn-sm" onclick="closeEditModal()">إلغاء</button></div></div>
@@ -280,7 +280,9 @@
 </div> <div class="modal-overlay hidden" id="leaveModal"> <div class="modal" style="max-width:520px"> <div class="modal-header"> <span class="modal-title">إضافة إجازة</span> <button class="btn-close" onclick="closeLeaveModal()"></button></div> <div class="modal-body"> <div class="form-group"> <label class="form-label">الموظف <span class="required">*</span></label> <input type="text" class="form-input" id="leaveEmpSearch" placeholder="ابحث بالاسم..." oninput="searchEmpForModal('leave')"/> <div class="emp-search-results hidden" id="leaveEmpResults"></div> <input type="hidden" id="leaveEmpId"/> <div id="leaveEmpSelected" style="margin-top:0.4rem;font-size:0.82rem;color:var(--primary);font-weight:700"></div></div> <div id="leaveBalanceInfo" style="display:none;margin-top:0.5rem;padding:0.6rem;background:var(--accent);border-radius:8px;font-size:0.8rem;color:var(--primary);font-weight:700"></div> <div class="form-grid-2" style="margin-top:0.75rem"> <div class="form-group"> <label class="form-label">نوع الإجازة <span class="required">*</span></label> <select class="form-input" id="leaveType" onchange="onLeaveTypeChange()"> <option value="emergency">عارضة (رصيد 6 أيام)</option> <option value="annual">اعتيادية (رصيد 15 يوم)</option> <option value="open">عرضة مفتوحة</option> <option value="private">خاصة مفتوحة</option></select></div> <div class="form-group"> <label class="form-label">التاريخ <span class="required">*</span></label> <input type="date" class="form-input" id="leaveDate"/></div> <div class="form-group" id="leaveDaysGroup"> <label class="form-label">عدد الأيام <span class="required">*</span></label> <input type="number" class="form-input" id="leaveDays" min="1" value="1"/></div> <div class="form-group" style="grid-column:1/-1"> <label class="form-label">ملاحظات</label> <input type="text" class="form-input form-input-ar" id="leaveNote" placeholder="اختياري"/></div></div></div> <div class="modal-footer"> <button class="btn btn-primary" onclick="saveLeave()" style="width:auto;padding:0.65rem 1.5rem"> حفظ</button> <button class="btn btn-outline btn-sm" onclick="closeLeaveModal()">إلغاء</button></div></div>
 </div> <div class="modal-overlay hidden" id="penaltyModal"> <div class="modal" style="max-width:520px"> <div class="modal-header"> <span class="modal-title">إضافة جزاء / إنذار / خصم</span> <button class="btn-close" onclick="closePenaltyModal()"></button></div> <div class="modal-body"> <div class="form-group"> <label class="form-label">الموظف <span class="required">*</span></label> <input type="text" class="form-input" id="penaltyEmpSearch" placeholder="ابحث بالاسم..." oninput="searchEmpForModal('penalty')"/> <div class="emp-search-results hidden" id="penaltyEmpResults"></div> <input type="hidden" id="penaltyEmpId"/> <div id="penaltyEmpSelected" style="margin-top:0.4rem;font-size:0.82rem;color:var(--primary);font-weight:700"></div></div> <div class="form-grid-2" style="margin-top:0.75rem"> <div class="form-group"> <label class="form-label">نوع الجزاء <span class="required">*</span></label> <select class="form-input" id="penaltyType" onchange="onPenaltyTypeChange()"> <option value="warning">إنذار</option> <option value="penalty">جزاء</option> <option value="deduction">خصم</option></select></div> <div class="form-group"> <label class="form-label">التاريخ <span class="required">*</span></label> <input type="date" class="form-input" id="penaltyDate"/></div> <div class="form-group" id="deductionGroup" style="display:none"> <label class="form-label">مقدار الخصم <span class="required">*</span></label> <select class="form-input" id="deductionAmount" onchange="onDeductionAmountChange()"> <option value="0.25">ربع يوم</option> <option value="0.5">نصف يوم</option> <option value="1">يوم واحد</option> <option value="2">يومان</option> <option value="custom">أكثر (تحديد يدوي)</option></select></div> <div class="form-group" id="deductionCustomGroup" style="display:none"> <label class="form-label">عدد الأيام</label> <input type="number" class="form-input" id="deductionCustom" min="1" placeholder="مثال: 3"/></div> <div class="form-group" style="grid-column:1/-1"> <label class="form-label">المخالفة / السبب <span class="required">*</span></label> <input type="text" class="form-input form-input-ar" id="penaltyReason" placeholder="وصف المخالفة أو السبب"/></div></div></div> <div class="modal-footer"> <button class="btn btn-primary" onclick="savePenalty()" style="width:auto;padding:0.65rem 1.5rem"> حفظ</button> <button class="btn btn-outline btn-sm" onclick="closePenaltyModal()">إلغاء</button></div></div>
 </div> <div class="modal-overlay hidden" id="rewardModal"> <div class="modal" style="max-width:520px"> <div class="modal-header"> <span class="modal-title">إضافة مكافأة</span> <button class="btn-close" onclick="closeRewardModal()"></button></div> <div class="modal-body"> <div class="form-group"> <label class="form-label">الموظف <span class="required">*</span></label> <input type="text" class="form-input" id="rewardEmpSearch" placeholder="ابحث بالاسم..." oninput="searchEmpForModal('reward')"/> <div class="emp-search-results hidden" id="rewardEmpResults"></div> <input type="hidden" id="rewardEmpId"/> <div id="rewardEmpSelected" style="margin-top:0.4rem;font-size:0.82rem;color:var(--primary);font-weight:700"></div></div> <div class="form-grid-2" style="margin-top:0.75rem"> <div class="form-group"> <label class="form-label">التاريخ <span class="required">*</span></label> <input type="date" class="form-input" id="rewardDate"/></div> <div class="form-group"> <label class="form-label">قيمة المكافأة (جنيه) <span class="required">*</span></label> <input type="number" class="form-input" id="rewardAmount" min="0" placeholder="0"/></div> <div class="form-group" style="grid-column:1/-1"> <label class="form-label">السبب <span class="required">*</span></label> <input type="text" class="form-input form-input-ar" id="rewardReason" placeholder="سبب المكافأة"/></div></div></div> <div class="modal-footer"> <button class="btn btn-primary" onclick="saveReward()" style="width:auto;padding:0.65rem 1.5rem"> حفظ</button> <button class="btn btn-outline btn-sm" onclick="closeRewardModal()">إلغاء</button></div></div>
-</div> <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
@@ -1772,6 +1774,20 @@ function initPayrollTab() {
     const now = new Date();
     monthInput.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   }
+  // لو الموظفون لسه بيتحملوا — استنى ثانيتين وحاول تاني
+  if (!allEmployees || allEmployees.length === 0) {
+    document.getElementById('payrollContent').innerHTML =
+      '<div style="text-align:center;padding:2rem;color:var(--text-light);font-weight:700">⏳ جاري تحميل بيانات الموظفين...</div>';
+    setTimeout(() => {
+      if (allEmployees && allEmployees.length > 0) {
+        loadPayroll();
+      } else {
+        document.getElementById('payrollContent').innerHTML =
+          '<div class="empty-state"><div class="empty-state-title">لم يتم العثور على موظفين — تأكد من تحميل الصفحة بشكل صحيح</div></div>';
+      }
+    }, 2000);
+    return;
+  }
   loadPayroll();
 }
 
@@ -2000,15 +2016,33 @@ function exportPayrollExcel() {
   if (deptF) rows = rows.filter(r => resolveDept(r.emp) === deptF);
   if (!rows.length) { alert('لا يوجد بيانات للتصدير — اضغط تحميل أولاً'); return; }
 
-  const headers = [
-    'الاسم','الوظيفة','حالة التأمين','الراتب','المبلغ التأميني',
-    'حضور فعلي','حضور فعلي معدل','غياب','جزاءات','تأخير',
-    'صافي الحضور','صافي الغياب من 30','سلف','تأمينات','اليوم',
-    'إجمالي الخصم','مكافأة','صافي الراتب','صافي الراتب لأقرب 5'
+  // اسم الشهر بالعربي
+  const [yr, mn] = monthVal.split('-');
+  const monthName = new Date(parseInt(yr), parseInt(mn)-1, 1)
+    .toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+
+  const school = SESSION.getSchool();
+  const schoolName = school?.name || 'المدرسة';
+  const primaryColor = (school?.primaryColor || '#1e2d5a').replace('#','');
+
+  // ─── بناء الشيت ───
+  const wb = XLSX.utils.book_new();
+
+  // عنوان في الأعلى
+  const titleRow  = [`كشف رواتب ${monthName} — ${schoolName}`];
+  const headerRow = [
+    '#','الاسم','الوظيفة','حالة التأمين',
+    'الراتب الأساسي','المبلغ التأميني',
+    'حضور فعلي','حضور معدل','غياب','جزاءات','تأخير',
+    'صافي الحضور','صافي الغياب/30',
+    'سلف','تأمينات','قيمة اليوم',
+    'إجمالي الخصم','مكافأة','صافي الراتب','صافي لأقرب 5'
   ];
-  const dataRows = rows.map(r => [
+
+  const dataRows = rows.map((r, i) => [
+    i + 1,
     r.emp.nameAr,
-    r.emp.jobTitle||'',
+    r.emp.jobTitle || '',
     r.insuranceStatus,
     r.salary,
     r.insurance,
@@ -2017,17 +2051,138 @@ function exportPayrollExcel() {
     r.absent,
     r.penaltyDays,
     r.lateDays,
-    r.netPresent.toFixed(1),
+    parseFloat(r.netPresent.toFixed(1)),
     r.netAbsent30,
     r.advance,
     r.insurance,
-    r.dayRate.toFixed(2),
-    r.totalDeduct.toFixed(2),
+    parseFloat(r.dayRate.toFixed(2)),
+    parseFloat(r.totalDeduct.toFixed(2)),
     r.reward,
-    r.netSalary.toFixed(2),
+    parseFloat(r.netSalary.toFixed(2)),
     r.netRounded
   ]);
-  downloadCSV(headers, dataRows, `كشف_رواتب_${monthVal}`);
+
+  // صف الإجماليات
+  const totRow = [
+    'الإجمالي', '', '', '',
+    rows.reduce((s,r)=>s+r.salary,0),
+    rows.reduce((s,r)=>s+r.insurance,0),
+    rows.reduce((s,r)=>s+r.actualPresent,0),
+    rows.reduce((s,r)=>s+r.adjustedPresent,0),
+    rows.reduce((s,r)=>s+r.absent,0),
+    rows.reduce((s,r)=>s+r.penaltyDays,0),
+    rows.reduce((s,r)=>s+r.lateDays,0),
+    '—','—',
+    rows.reduce((s,r)=>s+r.advance,0),
+    rows.reduce((s,r)=>s+r.insurance,0),
+    '—',
+    parseFloat(rows.reduce((s,r)=>s+r.totalDeduct,0).toFixed(2)),
+    rows.reduce((s,r)=>s+r.reward,0),
+    parseFloat(rows.reduce((s,r)=>s+r.netSalary,0).toFixed(2)),
+    rows.reduce((s,r)=>s+r.netRounded,0)
+  ];
+
+  // دمج كل الصفوف: عنوان + رأس + بيانات + إجماليات
+  const allRows = [titleRow, headerRow, ...dataRows, totRow];
+
+  const ws = XLSX.utils.aoa_to_sheet(allRows);
+
+  // عرض الأعمدة
+  ws['!cols'] = [
+    {wch:4},{wch:28},{wch:20},{wch:14},
+    {wch:14},{wch:14},
+    {wch:10},{wch:12},{wch:8},{wch:8},{wch:8},
+    {wch:12},{wch:14},
+    {wch:10},{wch:10},{wch:12},
+    {wch:14},{wch:10},{wch:14},{wch:14}
+  ];
+
+  // دمج خلايا العنوان
+  ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:headerRow.length-1} }];
+
+  // RTL
+  ws['!sheetview'] = [{ rightToLeft: true }];
+
+  // تنسيق خلايا العنوان
+  const titleCell = ws['A1'];
+  if (titleCell) {
+    titleCell.s = {
+      font:  { name:'Cairo', bold:true, sz:14, color:{rgb:'FFFFFF'} },
+      fill:  { patternType:'solid', fgColor:{rgb: primaryColor} },
+      alignment: { horizontal:'center', vertical:'center', readingOrder:2 }
+    };
+  }
+
+  // تنسيق صف الرأس (الصف 2)
+  headerRow.forEach((_h, ci) => {
+    const addr = XLSX.utils.encode_cell({r:1, c:ci});
+    if (!ws[addr]) ws[addr] = { v: headerRow[ci], t:'s' };
+    ws[addr].s = {
+      font:  { name:'Cairo', bold:true, sz:10, color:{rgb:'FFFFFF'} },
+      fill:  { patternType:'solid', fgColor:{rgb: primaryColor} },
+      alignment: { horizontal:'center', vertical:'center', wrapText:true, readingOrder:2 },
+      border: {
+        top:{style:'thin',color:{rgb:'FFFFFF'}},
+        bottom:{style:'thin',color:{rgb:'FFFFFF'}},
+        left:{style:'thin',color:{rgb:'FFFFFF'}},
+        right:{style:'thin',color:{rgb:'FFFFFF'}}
+      }
+    };
+  });
+
+  // تنسيق صفوف البيانات
+  dataRows.forEach((row, ri) => {
+    const isEven = ri % 2 === 0;
+    row.forEach((val, ci) => {
+      const addr = XLSX.utils.encode_cell({r: ri+2, c:ci});
+      if (!ws[addr]) ws[addr] = {};
+      const isDeduct = ci === 16;
+      const isReward = ci === 17;
+      const isNet    = ci === 18;
+      const isNet5   = ci === 19;
+
+      let fillColor = isEven ? 'F5F5F5' : 'FFFFFF';
+      let fontColor = '222222';
+      if (isDeduct) { fillColor = 'FFF5F5'; fontColor = 'C62828'; }
+      if (isReward) { fillColor = 'E3F2FD'; fontColor = '1565C0'; }
+      if (isNet)    { fillColor = 'E8F5E9'; fontColor = '2E7D32'; }
+      if (isNet5)   { fillColor = '2E7D32'; fontColor = 'FFFFFF'; }
+
+      ws[addr].s = {
+        font:      { name:'Cairo', sz:9, bold: isNet5, color:{rgb: fontColor} },
+        fill:      { patternType:'solid', fgColor:{rgb: fillColor} },
+        alignment: { horizontal: ci<=1 ? 'right' : 'center', vertical:'center', readingOrder:2 },
+        border: {
+          bottom:{style:'thin',color:{rgb:'DDDDDD'}},
+          left:  {style:'thin',color:{rgb:'DDDDDD'}},
+          right: {style:'thin',color:{rgb:'DDDDDD'}}
+        }
+      };
+    });
+  });
+
+  // تنسيق صف الإجماليات
+  const totRowIdx = dataRows.length + 2;
+  totRow.forEach((_v, ci) => {
+    const addr = XLSX.utils.encode_cell({r: totRowIdx, c:ci});
+    if (!ws[addr]) ws[addr] = {};
+    ws[addr].s = {
+      font:      { name:'Cairo', bold:true, sz:10, color:{rgb:'FFFFFF'} },
+      fill:      { patternType:'solid', fgColor:{rgb: primaryColor} },
+      alignment: { horizontal:'center', vertical:'center', readingOrder:2 }
+    };
+  });
+
+  // ارتفاع الصفوف
+  ws['!rows'] = [
+    { hpt: 30 }, // العنوان
+    { hpt: 28 }, // الرأس
+    ...dataRows.map(() => ({ hpt: 22 })),
+    { hpt: 26 }  // الإجماليات
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'كشف الرواتب');
+  XLSX.writeFile(wb, `كشف_رواتب_${monthVal}.xlsx`);
 }
 
 </script>
