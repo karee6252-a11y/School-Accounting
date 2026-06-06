@@ -2056,52 +2056,57 @@ function exportPayrollExcel() {
     const r2x = n => Math.round((n||0) * 100) / 100;
     const sumX = key => r2x(rows.reduce((s,r) => s + r2x(r[key]), 0));
 
-    // ─── الصفوف ───
+    // ─── الصفوف (معكوسة عشان RTL — العمود الأول يظهر على اليمين) ───
     const titleRow = [`كشف رواتب ${monthName} — ${schoolName}`];
     const headerRow = [
-      '#','الاسم','الوظيفة','التأمين',
-      'الراتب','مبلغ التأمين',
-      'حضور','حضور معدل','غياب','جزاءات','تأخير',
-      'صافي الحضور','غياب/30',
-      'سلف','تأمينات','قيمة اليوم',
-      'إجمالي الخصم','مكافأة','صافي الراتب','لأقرب 5'
+      'لأقرب 5','صافي الراتب','مكافأة','إجمالي الخصم',
+      'قيمة اليوم','تأمينات','سلف',
+      'غياب/30','صافي الحضور',
+      'تأخير','جزاءات','غياب','حضور معدل','حضور',
+      'مبلغ التأمين','الراتب',
+      'التأمين','الوظيفة','الاسم','#'
     ];
 
     const dataRows = rows.map((r, i) => [
-      i + 1,
-      r.emp.nameAr,
-      r.emp.jobTitle || '',
-      r.insuranceStatus,
-      r2x(r.salary),
-      r2x(r.insurance),
-      r.actualPresent,
-      r.adjustedPresent,
-      r.absent,
-      r.penaltyDays,
-      r.lateDays,
-      r2x(r.netPresent),
-      r.netAbsent30,
-      r2x(r.advance),
-      r2x(r.insurance),
-      r2x(r.dayRate),
-      r2x(r.totalDeduct),
-      r2x(r.reward),
+      r2x(r.netRounded),
       r2x(r.netSalary),
-      r2x(r.netRounded)
+      r2x(r.reward),
+      r2x(r.totalDeduct),
+      r2x(r.dayRate),
+      r2x(r.insurance),
+      r2x(r.advance),
+      r.netAbsent30,
+      r2x(r.netPresent),
+      r.lateDays,
+      r.penaltyDays,
+      r.absent,
+      r.adjustedPresent,
+      r.actualPresent,
+      r2x(r.insurance),
+      r2x(r.salary),
+      r.insuranceStatus,
+      r.emp.jobTitle || '',
+      r.emp.nameAr,
+      i + 1
     ]);
 
     const totRow = [
-      'الإجمالي','','','',
-      sumX('salary'), sumX('insurance'),
-      rows.reduce((s,r)=>s+r.actualPresent,0),
-      rows.reduce((s,r)=>s+r.adjustedPresent,0),
-      rows.reduce((s,r)=>s+r.absent,0),
-      rows.reduce((s,r)=>s+r.penaltyDays,0),
-      rows.reduce((s,r)=>s+r.lateDays,0),
+      sumX('netRounded'),
+      sumX('netSalary'),
+      sumX('reward'),
+      sumX('totalDeduct'),
+      '—',
+      sumX('insurance'),
+      sumX('advance'),
       '—','—',
-      sumX('advance'), sumX('insurance'), '—',
-      sumX('totalDeduct'), sumX('reward'),
-      sumX('netSalary'), sumX('netRounded')
+      rows.reduce((s,r)=>s+r.lateDays,0),
+      rows.reduce((s,r)=>s+r.penaltyDays,0),
+      rows.reduce((s,r)=>s+r.absent,0),
+      rows.reduce((s,r)=>s+r.adjustedPresent,0),
+      rows.reduce((s,r)=>s+r.actualPresent,0),
+      sumX('insurance'),
+      sumX('salary'),
+      '','','','الإجمالي'
     ];
 
     const wb = XLSX.utils.book_new();
@@ -2109,12 +2114,12 @@ function exportPayrollExcel() {
 
     // أعرض الأعمدة
     ws['!cols'] = [
-      {wch:4},{wch:28},{wch:18},{wch:13},
-      {wch:12},{wch:13},
-      {wch:9},{wch:11},{wch:7},{wch:7},{wch:7},
-      {wch:11},{wch:9},
-      {wch:9},{wch:9},{wch:11},
-      {wch:13},{wch:9},{wch:13},{wch:10}
+      {wch:10},{wch:13},{wch:9},{wch:13},
+      {wch:11},{wch:9},{wch:9},
+      {wch:9},{wch:11},
+      {wch:7},{wch:7},{wch:7},{wch:11},{wch:9},
+      {wch:13},{wch:12},
+      {wch:13},{wch:18},{wch:28},{wch:4}
     ];
 
     // دمج العنوان
@@ -2162,14 +2167,16 @@ function exportPayrollExcel() {
         const even = ri%2===0;
         let bg = even ? 'F7F7F7' : 'FFFFFF';
         let fc = '222222';
-        if (ci===16) { bg='FFF5F5'; fc='C62828'; }
-        if (ci===17) { bg='E3F2FD'; fc='1565C0'; }
-        if (ci===18) { bg='E8F5E9'; fc='2E7D32'; }
-        if (ci===19) { bg='2E7D32'; fc='FFFFFF'; }
+        if (ci===3) { bg='FFF5F5'; fc='C62828'; }
+        if (ci===2) { bg='E3F2FD'; fc='1565C0'; }
+        if (ci===1) { bg='E8F5E9'; fc='2E7D32'; }
+        if (ci===0) { bg='2E7D32'; fc='FFFFFF'; }
+        // عمود الاسم (ci=18) والوظيفة (ci=17) والتأمين (ci=16) محاذاة يمين
+        const isTextCol = (ci===18||ci===17||ci===16);
         ws[addr].s = {
-          font: {sz:9, bold:ci===19, color:{rgb:fc}},
+          font: {sz:9, bold:ci===0, color:{rgb:fc}},
           fill: {patternType:'solid', fgColor:{rgb:bg}},
-          alignment: {horizontal:ci<=1?'right':'center', vertical:'center', readingOrder:2},
+          alignment: {horizontal: isTextCol ? 'right' : 'center', vertical:'center', readingOrder:2},
           border: {
             bottom:{style:'thin',color:{rgb:'DDDDDD'}},
             left:  {style:'thin',color:{rgb:'DDDDDD'}},
@@ -2193,8 +2200,13 @@ function exportPayrollExcel() {
 
     XLSX.utils.book_append_sheet(wb, ws, 'كشف الرواتب');
 
-    // RTL — يتضبط على مستوى الـ workbook
+    // RTL — كل الطرق الممكنة عشان نضمن الاتجاه
+    ws['!sheetViews'] = [{ rightToLeft: true }];
     wb.Sheets['كشف الرواتب']['!sheetViews'] = [{ rightToLeft: true }];
+    if (!wb.Workbook) wb.Workbook = {};
+    if (!wb.Workbook.Sheets) wb.Workbook.Sheets = [];
+    if (!wb.Workbook.Sheets[0]) wb.Workbook.Sheets[0] = {};
+    wb.Workbook.Sheets[0].RTL = true;
 
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true });
     const blob = new Blob([wbout], { type: 'application/octet-stream' });
