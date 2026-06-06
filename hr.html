@@ -1963,7 +1963,8 @@ function renderPayrollTable() {
   updatePayrollStats(rows);
 
   const fmt = n => Number(n||0).toLocaleString('en-US', {maximumFractionDigits:2});
-  const S = (s,r) => s + (r||0);
+  const round2 = n => Math.round((n||0) * 100) / 100;
+  const sumOf  = (arr, key) => round2(arr.reduce((s,r) => s + round2(r[key]), 0));
 
   const thead = `<thead><tr>
     <th>#</th><th>الاسم</th><th>الوظيفة</th><th>التأمين</th>
@@ -2001,21 +2002,21 @@ function renderPayrollTable() {
 
   const tfoot = `<tfoot><tr>
     <td colspan="4">الإجمالي</td>
-    <td>${fmt(rows.reduce((s,r)=>s+r.salary,0))}</td>
-    <td>${fmt(rows.reduce((s,r)=>s+r.insurance,0))}</td>
+    <td>${fmt(sumOf(rows,'salary'))}</td>
+    <td>${fmt(sumOf(rows,'insurance'))}</td>
     <td>${rows.reduce((s,r)=>s+r.actualPresent,0)}</td>
     <td>${rows.reduce((s,r)=>s+r.adjustedPresent,0)}</td>
     <td>${rows.reduce((s,r)=>s+r.absent,0)}</td>
     <td>${rows.reduce((s,r)=>s+r.penaltyDays,0)}</td>
     <td>${rows.reduce((s,r)=>s+r.lateDays,0)}</td>
     <td>—</td><td>—</td>
-    <td>${fmt(rows.reduce((s,r)=>s+r.advance,0))}</td>
-    <td>${fmt(rows.reduce((s,r)=>s+r.insurance,0))}</td>
+    <td>${fmt(sumOf(rows,'advance'))}</td>
+    <td>${fmt(sumOf(rows,'insurance'))}</td>
     <td>—</td>
-    <td>${fmt(rows.reduce((s,r)=>s+r.totalDeduct,0))}</td>
-    <td>${fmt(rows.reduce((s,r)=>s+r.reward,0))}</td>
-    <td>${fmt(rows.reduce((s,r)=>s+r.netSalary,0))}</td>
-    <td>${fmt(rows.reduce((s,r)=>s+r.netRounded,0))}</td>
+    <td>${fmt(sumOf(rows,'totalDeduct'))}</td>
+    <td>${fmt(sumOf(rows,'reward'))}</td>
+    <td>${fmt(sumOf(rows,'netSalary'))}</td>
+    <td>${fmt(sumOf(rows,'netRounded'))}</td>
   </tr></tfoot>`;
 
   document.getElementById('payrollContent').innerHTML =
@@ -2024,10 +2025,12 @@ function renderPayrollTable() {
 
 function updatePayrollStats(rows) {
   const fmt = n => Number(n||0).toLocaleString('en-US', {maximumFractionDigits:0});
+  const r2 = n => Math.round((n||0) * 100) / 100;
+  const sum = (key) => r2(rows.reduce((s,r) => s + r2(r[key]), 0));
   document.getElementById('prStatCount').textContent = rows.length;
-  document.getElementById('prStatTotal').textContent = fmt(rows.reduce((s,r)=>s+r.salary,0));
-  document.getElementById('prStatDeduct').textContent = fmt(rows.reduce((s,r)=>s+r.totalDeduct,0));
-  document.getElementById('prStatNet').textContent = fmt(rows.reduce((s,r)=>s+r.netRounded,0));
+  document.getElementById('prStatTotal').textContent = fmt(sum('salary'));
+  document.getElementById('prStatDeduct').textContent = fmt(sum('totalDeduct'));
+  document.getElementById('prStatNet').textContent = fmt(sum('netRounded'));
 }
 
 function exportPayrollExcel() {
