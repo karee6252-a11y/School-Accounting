@@ -323,7 +323,7 @@
 </div> <div class="modal-overlay hidden" id="penaltyModal"> <div class="modal" style="max-width:520px"> <div class="modal-header"> <span class="modal-title">إضافة جزاء / إنذار / خصم</span> <button class="btn-close" onclick="closePenaltyModal()"></button></div> <div class="modal-body"> <div class="form-group"> <label class="form-label">الموظف <span class="required">*</span></label> <input type="text" class="form-input" id="penaltyEmpSearch" placeholder="ابحث بالاسم..." oninput="searchEmpForModal('penalty')"/> <div class="emp-search-results hidden" id="penaltyEmpResults"></div> <input type="hidden" id="penaltyEmpId"/> <div id="penaltyEmpSelected" style="margin-top:0.4rem;font-size:0.82rem;color:var(--primary);font-weight:700"></div></div> <div class="form-grid-2" style="margin-top:0.75rem"> <div class="form-group"> <label class="form-label">نوع الجزاء <span class="required">*</span></label> <select class="form-input" id="penaltyType" onchange="onPenaltyTypeChange()"> <option value="warning">إنذار</option> <option value="penalty">جزاء</option> <option value="deduction">خصم</option></select></div> <div class="form-group"> <label class="form-label">التاريخ <span class="required">*</span></label> <input type="date" class="form-input" id="penaltyDate"/></div> <div class="form-group" id="deductionGroup" style="display:none"> <label class="form-label">مقدار الخصم <span class="required">*</span></label> <select class="form-input" id="deductionAmount" onchange="onDeductionAmountChange()"> <option value="0.25">ربع يوم</option> <option value="0.5">نصف يوم</option> <option value="1">يوم واحد</option> <option value="2">يومان</option> <option value="custom">أكثر (تحديد يدوي)</option></select></div> <div class="form-group" id="deductionCustomGroup" style="display:none"> <label class="form-label">عدد الأيام</label> <input type="number" class="form-input" id="deductionCustom" min="1" placeholder="مثال: 3"/></div> <div class="form-group" style="grid-column:1/-1"> <label class="form-label">المخالفة / السبب <span class="required">*</span></label> <input type="text" class="form-input form-input-ar" id="penaltyReason" placeholder="وصف المخالفة أو السبب"/></div></div></div> <div class="modal-footer"> <button class="btn btn-primary" onclick="savePenalty()" style="width:auto;padding:0.65rem 1.5rem"> حفظ</button> <button class="btn btn-outline btn-sm" onclick="closePenaltyModal()">إلغاء</button></div></div>
 </div> <div class="modal-overlay hidden" id="rewardModal"> <div class="modal" style="max-width:520px"> <div class="modal-header"> <span class="modal-title">إضافة مكافأة</span> <button class="btn-close" onclick="closeRewardModal()"></button></div> <div class="modal-body"> <div class="form-group"> <label class="form-label">الموظف <span class="required">*</span></label> <input type="text" class="form-input" id="rewardEmpSearch" placeholder="ابحث بالاسم..." oninput="searchEmpForModal('reward')"/> <div class="emp-search-results hidden" id="rewardEmpResults"></div> <input type="hidden" id="rewardEmpId"/> <div id="rewardEmpSelected" style="margin-top:0.4rem;font-size:0.82rem;color:var(--primary);font-weight:700"></div></div> <div class="form-grid-2" style="margin-top:0.75rem"> <div class="form-group"> <label class="form-label">التاريخ <span class="required">*</span></label> <input type="date" class="form-input" id="rewardDate"/></div> <div class="form-group"> <label class="form-label">قيمة المكافأة (جنيه) <span class="required">*</span></label> <input type="number" class="form-input" id="rewardAmount" min="0" placeholder="0"/></div> <div class="form-group" style="grid-column:1/-1"> <label class="form-label">السبب <span class="required">*</span></label> <input type="text" class="form-input form-input-ar" id="rewardReason" placeholder="سبب المكافأة"/></div></div></div> <div class="modal-footer"> <button class="btn btn-primary" onclick="saveReward()" style="width:auto;padding:0.65rem 1.5rem"> حفظ</button> <button class="btn btn-outline btn-sm" onclick="closeRewardModal()">إلغاء</button></div></div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -2087,23 +2087,25 @@ function exportPayrollExcel() {
   ]);
 
   // صف الإجماليات
+  const r2x = n => Math.round((n||0) * 100) / 100;
+  const sumX = key => r2x(rows.reduce((s,r) => s + r2x(r[key]), 0));
   const totRow = [
     'الإجمالي', '', '', '',
-    rows.reduce((s,r)=>s+r.salary,0),
-    rows.reduce((s,r)=>s+r.insurance,0),
+    sumX('salary'),
+    sumX('insurance'),
     rows.reduce((s,r)=>s+r.actualPresent,0),
     rows.reduce((s,r)=>s+r.adjustedPresent,0),
     rows.reduce((s,r)=>s+r.absent,0),
     rows.reduce((s,r)=>s+r.penaltyDays,0),
     rows.reduce((s,r)=>s+r.lateDays,0),
     '—','—',
-    rows.reduce((s,r)=>s+r.advance,0),
-    rows.reduce((s,r)=>s+r.insurance,0),
+    sumX('advance'),
+    sumX('insurance'),
     '—',
-    parseFloat(rows.reduce((s,r)=>s+r.totalDeduct,0).toFixed(2)),
-    rows.reduce((s,r)=>s+r.reward,0),
-    parseFloat(rows.reduce((s,r)=>s+r.netSalary,0).toFixed(2)),
-    rows.reduce((s,r)=>s+r.netRounded,0)
+    sumX('totalDeduct'),
+    sumX('reward'),
+    sumX('netSalary'),
+    sumX('netRounded')
   ];
 
   // دمج كل الصفوف: عنوان + رأس + بيانات + إجماليات
