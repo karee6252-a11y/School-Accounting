@@ -199,8 +199,32 @@
  transition: var(--transition);
  }
  .profile-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
- .profile-tab-pane { display: none; }
- .profile-tab-pane.active { display: block; }
+/* PAYROLL TABLE */
+ .payroll-table { width:100%; border-collapse:collapse; font-size:0.78rem; min-width:1200px; }
+ .payroll-table th {
+   padding:0.6rem 0.7rem; text-align:center; white-space:nowrap;
+   background:var(--primary); color:#fff; font-weight:700;
+   border-left:1px solid rgba(255,255,255,0.15); position:sticky; top:0; z-index:1;
+ }
+ .payroll-table th:first-child { text-align:right; }
+ .payroll-table th:nth-child(2) { text-align:right; }
+ .payroll-table td {
+   padding:0.5rem 0.7rem; text-align:center; border-bottom:1px solid var(--border);
+   border-left:1px solid var(--border); white-space:nowrap;
+ }
+ .payroll-table td:first-child { text-align:right; font-weight:700; }
+ .payroll-table td:nth-child(2) { text-align:right; font-weight:800; color:var(--text-dark); }
+ .payroll-table tbody tr:nth-child(even) { background:var(--bg); }
+ .payroll-table tbody tr:hover { background:var(--accent); }
+ .payroll-table tfoot td {
+   background:var(--primary); color:#fff; font-weight:800;
+   padding:0.6rem 0.7rem; border-left:1px solid rgba(255,255,255,0.15);
+ }
+ .payroll-table .col-deduct { background:#fff5f5 !important; color:#c62828; font-weight:700; }
+ .payroll-table .col-reward { background:#e3f2fd !important; color:#1565c0; font-weight:700; }
+ .payroll-table .col-net { background:#e8f5e9 !important; color:#2e7d32; font-weight:700; }
+ .payroll-table .col-net5 { background:#2e7d32 !important; color:#fff; font-weight:900; }
+ .payroll-scroll { overflow-x:auto; border-radius:var(--radius); border:1px solid var(--border); max-height:65vh; overflow-y:auto; }
 
  @media (max-width: 768px) {
  .hr-stats { grid-template-columns: repeat(2, 1fr); }
@@ -1768,44 +1792,40 @@ async function loadPayroll() {
     // جلب الموظفين النشطين فقط
     const activeEmps = allEmployees.filter(e => e.status !== 'resigned');
 
-    // جلب الحضور للشهر
+    // جلب الحضور — schoolId فقط وفلترة التاريخ في JS (تفادي composite index)
     const attSnap = await db.collection('attendance')
       .where('schoolId','==',currentSchoolId)
-      .where('date','>=',dateFrom)
-      .where('date','<=',dateTo)
       .get();
 
-    // جلب الجزاءات للشهر
+    // جلب الجزاءات
     const penSnap = await db.collection('penalties')
       .where('schoolId','==',currentSchoolId)
-      .where('date','>=',dateFrom)
-      .where('date','<=',dateTo)
       .get();
 
-    // جلب المكافآت للشهر
+    // جلب المكافآت
     const rewSnap = await db.collection('rewards')
       .where('schoolId','==',currentSchoolId)
-      .where('date','>=',dateFrom)
-      .where('date','<=',dateTo)
       .get();
 
+    // فلترة التواريخ في JS
+    const inMonth = d => d >= dateFrom && d <= dateTo;
+
     // بناء maps
-    // attendance: { empId: { present, absent, excused, totalDays } }
     const attMap = {};
-    // عدد أيام الشهر الفريدة المسجلة (أيام العمل الفعلية في الشهر)
     const recordedDates = new Set();
     attSnap.docs.forEach(d => {
       const r = d.data();
+      if (!inMonth(r.date)) return;
       recordedDates.add(r.date);
       if (!attMap[r.empId]) attMap[r.empId] = { present:0, absent:0, excused:0 };
       attMap[r.empId][r.status] = (attMap[r.empId][r.status]||0) + 1;
     });
-    const workDays = recordedDates.size || lastDay; // أيام العمل المسجلة
+    const workDays = recordedDates.size || lastDay;
 
-    // penalties: { empId: { deductionDays, penaltyCount, warningCount, lateCount } }
     const penMap = {};
     penSnap.docs.forEach(d => {
       const r = d.data();
+      if (!inMonth(r.date)) return;
       if (!penMap[r.empId]) penMap[r.empId] = { deductionDays:0, penaltyCount:0, warningCount:0, lateCount:0 };
       if (r.type === 'deduction') penMap[r.empId].deductionDays += (r.deductionDays||0);
       if (r.type === 'penalty') penMap[r.empId].penaltyCount++;
@@ -1813,10 +1833,10 @@ async function loadPayroll() {
       if (r.type === 'late') penMap[r.empId].lateCount++;
     });
 
-    // rewards: { empId: totalAmount }
     const rewMap = {};
     rewSnap.docs.forEach(d => {
       const r = d.data();
+      if (!inMonth(r.date)) return;
       rewMap[r.empId] = (rewMap[r.empId]||0) + (r.amount||0);
     });
 
@@ -1906,79 +1926,63 @@ function renderPayrollTable() {
   updatePayrollStats(rows);
 
   const fmt = n => Number(n||0).toLocaleString('ar-EG', {maximumFractionDigits:2});
+  const S = (s,r) => s + (r||0);
 
-  const tableHTML = `
-    <div style="overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)">
-      <table style="width:100%;border-collapse:collapse;font-size:0.78rem;min-width:1100px">
-        <thead>
-          <tr style="background:var(--primary);color:#fff">
-            <th style="padding:0.6rem 0.75rem;text-align:right;white-space:nowrap;position:sticky;right:0;background:var(--primary);z-index:2">#</th>
-            <th style="padding:0.6rem 0.75rem;text-align:right;white-space:nowrap;position:sticky;right:2rem;background:var(--primary);z-index:2">الاسم</th>
-            <th style="padding:0.6rem 0.75rem;text-align:right;white-space:nowrap">الوظيفة</th>
-            <th style="padding:0.6rem 0.75rem;text-align:right;white-space:nowrap">حالة التأمين</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap">الراتب</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap">المبلغ التأميني</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap">حضور فعلي</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap">حضور فعلي معدل</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap">غياب</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap">جزاءات</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap">تأخير</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap">صافي الحضور</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap">صافي الغياب/30</th>
-            <th style="padding:0.6rem 0.75rpm;text-align:center;white-space:nowrap">سلف</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap">تأمينات</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap">اليوم</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap;background:#c62828">إجمالي الخصم</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap;background:#1565c0">مكافأة</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap;background:#2e7d32">صافي الراتب</th>
-            <th style="padding:0.6rem 0.75rem;text-align:center;white-space:nowrap;background:#1b5e20">صافي لأقرب 5</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows.map((r, i) => `
-            <tr style="border-bottom:1px solid var(--border);${i%2===1?'background:var(--bg)':'background:var(--card-bg)'}">
-              <td style="padding:0.55rem 0.75rem;font-weight:700;position:sticky;right:0;${i%2===1?'background:var(--bg)':'background:var(--card-bg)'}">${i+1}</td>
-              <td style="padding:0.55rem 0.75rem;font-weight:800;color:var(--text-dark);white-space:nowrap;position:sticky;right:2rem;${i%2===1?'background:var(--bg)':'background:var(--card-bg)'}">${r.emp.nameAr}</td>
-              <td style="padding:0.55rem 0.75rem;color:var(--text-mid);white-space:nowrap">${r.emp.jobTitle||'-'}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center"><span class="tag ${r.insuranceStatus==='مؤمن عليه'?'tag-green':'tag-orange'}">${r.insuranceStatus}</span></td>
-              <td style="padding:0.55rem 0.75rem;text-align:center;font-weight:700">${fmt(r.salary)}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center">${fmt(r.insurance)}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center">${r.actualPresent}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center">${r.adjustedPresent}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center;color:${r.absent>0?'#e53935':'inherit'}">${r.absent}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center;color:${r.penaltyDays>0?'#e53935':'inherit'}">${r.penaltyDays}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center;color:${r.lateDays>0?'#e65100':'inherit'}">${r.lateDays}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center;font-weight:700;color:var(--success)">${r.netPresent.toFixed(1)}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center">${r.netAbsent30}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center;color:${r.advance>0?'#c62828':'inherit'}">${fmt(r.advance)}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center">${fmt(r.insurance)}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center">${fmt(r.dayRate)}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center;font-weight:700;color:#c62828;background:#fff5f5">${fmt(r.totalDeduct)}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center;font-weight:700;color:#1565c0;background:#e3f2fd">${fmt(r.reward)}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center;font-weight:700;color:#2e7d32;background:#e8f5e9">${fmt(r.netSalary)}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:center;font-weight:900;color:#fff;background:#2e7d32">${fmt(r.netRounded)}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-        <tfoot>
-          <tr style="background:var(--primary);color:#fff;font-weight:800">
-            <td colspan="4" style="padding:0.6rem 0.75rem">الإجمالي</td>
-            <td style="padding:0.6rem 0.75rem;text-align:center">${fmt(rows.reduce((s,r)=>s+r.salary,0))}</td>
-            <td style="padding:0.6rem 0.75rem;text-align:center">${fmt(rows.reduce((s,r)=>s+r.insurance,0))}</td>
-            <td colspan="7" style="padding:0.6rem 0.75rem"></td>
-            <td style="padding:0.6rem 0.75rem;text-align:center">${fmt(rows.reduce((s,r)=>s+r.advance,0))}</td>
-            <td style="padding:0.6rem 0.75rem;text-align:center">${fmt(rows.reduce((s,r)=>s+r.insurance,0))}</td>
-            <td></td>
-            <td style="padding:0.6rem 0.75rem;text-align:center">${fmt(rows.reduce((s,r)=>s+r.totalDeduct,0))}</td>
-            <td style="padding:0.6rem 0.75rem;text-align:center">${fmt(rows.reduce((s,r)=>s+r.reward,0))}</td>
-            <td style="padding:0.6rem 0.75rem;text-align:center">${fmt(rows.reduce((s,r)=>s+r.netSalary,0))}</td>
-            <td style="padding:0.6rem 0.75rem;text-align:center">${fmt(rows.reduce((s,r)=>s+r.netRounded,0))}</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>`;
+  const thead = `<thead><tr>
+    <th>#</th><th>الاسم</th><th>الوظيفة</th><th>حالة التأمين</th>
+    <th>الراتب</th><th>المبلغ التأميني</th><th>حضور فعلي</th><th>حضور فعلي معدل</th>
+    <th>غياب</th><th>جزاءات</th><th>تأخير</th><th>صافي الحضور</th><th>صافي الغياب/30</th>
+    <th>سلف</th><th>تأمينات</th><th>اليوم</th>
+    <th class="col-deduct">إجمالي الخصم</th>
+    <th class="col-reward">مكافأة</th>
+    <th class="col-net">صافي الراتب</th>
+    <th class="col-net5">صافي لأقرب 5</th>
+  </tr></thead>`;
 
-  document.getElementById('payrollContent').innerHTML = tableHTML;
+  const tbody = '<tbody>' + rows.map((r,i) => `<tr>
+    <td>${i+1}</td>
+    <td>${r.emp.nameAr}</td>
+    <td style="color:var(--text-mid)">${r.emp.jobTitle||'-'}</td>
+    <td><span class="tag ${r.insuranceStatus==='مؤمن عليه'?'tag-green':'tag-orange'}">${r.insuranceStatus}</span></td>
+    <td style="font-weight:700">${fmt(r.salary)}</td>
+    <td>${fmt(r.insurance)}</td>
+    <td>${r.actualPresent}</td>
+    <td>${r.adjustedPresent}</td>
+    <td style="color:${r.absent>0?'#e53935':'inherit'};font-weight:${r.absent>0?700:400}">${r.absent}</td>
+    <td style="color:${r.penaltyDays>0?'#e53935':'inherit'};font-weight:${r.penaltyDays>0?700:400}">${r.penaltyDays}</td>
+    <td style="color:${r.lateDays>0?'#e65100':'inherit'}">${r.lateDays}</td>
+    <td style="color:var(--success);font-weight:700">${r.netPresent.toFixed(1)}</td>
+    <td>${r.netAbsent30}</td>
+    <td style="color:${r.advance>0?'#c62828':'inherit'}">${fmt(r.advance)}</td>
+    <td>${fmt(r.insurance)}</td>
+    <td style="color:var(--text-mid)">${fmt(r.dayRate)}</td>
+    <td class="col-deduct">${fmt(r.totalDeduct)}</td>
+    <td class="col-reward">${fmt(r.reward)}</td>
+    <td class="col-net">${fmt(r.netSalary)}</td>
+    <td class="col-net5">${fmt(r.netRounded)}</td>
+  </tr>`).join('') + '</tbody>';
+
+  const tfoot = `<tfoot><tr>
+    <td colspan="4">الإجمالي</td>
+    <td>${fmt(rows.reduce((s,r)=>s+r.salary,0))}</td>
+    <td>${fmt(rows.reduce((s,r)=>s+r.insurance,0))}</td>
+    <td>${rows.reduce((s,r)=>s+r.actualPresent,0)}</td>
+    <td>${rows.reduce((s,r)=>s+r.adjustedPresent,0)}</td>
+    <td>${rows.reduce((s,r)=>s+r.absent,0)}</td>
+    <td>${rows.reduce((s,r)=>s+r.penaltyDays,0)}</td>
+    <td>${rows.reduce((s,r)=>s+r.lateDays,0)}</td>
+    <td>—</td><td>—</td>
+    <td>${fmt(rows.reduce((s,r)=>s+r.advance,0))}</td>
+    <td>${fmt(rows.reduce((s,r)=>s+r.insurance,0))}</td>
+    <td>—</td>
+    <td>${fmt(rows.reduce((s,r)=>s+r.totalDeduct,0))}</td>
+    <td>${fmt(rows.reduce((s,r)=>s+r.reward,0))}</td>
+    <td>${fmt(rows.reduce((s,r)=>s+r.netSalary,0))}</td>
+    <td>${fmt(rows.reduce((s,r)=>s+r.netRounded,0))}</td>
+  </tr></tfoot>`;
+
+  document.getElementById('payrollContent').innerHTML =
+    `<div class="payroll-scroll"><table class="payroll-table">${thead}${tbody}${tfoot}</table></div>`;
 }
 
 function updatePayrollStats(rows) {
