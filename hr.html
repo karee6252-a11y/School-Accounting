@@ -2034,181 +2034,171 @@ function updatePayrollStats(rows) {
 }
 
 function exportPayrollExcel() {
-  const monthVal = document.getElementById('payrollMonth')?.value || '';
-  const deptF = document.getElementById('payrollFilterDept')?.value || '';
-  let rows = payrollData;
-  if (deptF) rows = rows.filter(r => resolveDept(r.emp) === deptF);
-  if (!rows.length) { alert('لا يوجد بيانات للتصدير — اضغط تحميل أولاً'); return; }
+  try {
+    const monthVal = document.getElementById('payrollMonth')?.value || '';
+    const deptF = document.getElementById('payrollFilterDept')?.value || '';
+    let rows = payrollData;
+    if (deptF) rows = rows.filter(r => resolveDept(r.emp) === deptF);
+    if (!rows.length) { alert('لا يوجد بيانات للتصدير — اضغط تحميل أولاً'); return; }
 
-  // اسم الشهر بالعربي
-  const [yr, mn] = monthVal.split('-');
-  const monthName = new Date(parseInt(yr), parseInt(mn)-1, 1)
-    .toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+    // اسم الشهر
+    let monthName = monthVal;
+    if (monthVal && monthVal.includes('-')) {
+      const [yr, mn] = monthVal.split('-');
+      monthName = new Date(parseInt(yr), parseInt(mn)-1, 1)
+        .toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+    }
 
-  const school = SESSION.getSchool();
-  const schoolName = school?.name || 'المدرسة';
-  const primaryColor = (school?.primaryColor || '#1e2d5a').replace('#','');
+    const school = SESSION.getSchool();
+    const schoolName = school?.name || 'المدرسة';
+    const pc = (school?.primaryColor || '#1e2d5a').replace('#','');
 
-  // ─── بناء الشيت ───
-  const wb = XLSX.utils.book_new();
+    const r2x = n => Math.round((n||0) * 100) / 100;
+    const sumX = key => r2x(rows.reduce((s,r) => s + r2x(r[key]), 0));
 
-  // عنوان في الأعلى
-  const titleRow  = [`كشف رواتب ${monthName} — ${schoolName}`];
-  const headerRow = [
-    '#','الاسم','الوظيفة','حالة التأمين',
-    'الراتب الأساسي','المبلغ التأميني',
-    'حضور فعلي','حضور معدل','غياب','جزاءات','تأخير',
-    'صافي الحضور','صافي الغياب/30',
-    'سلف','تأمينات','قيمة اليوم',
-    'إجمالي الخصم','مكافأة','صافي الراتب','صافي لأقرب 5'
-  ];
+    // ─── الصفوف ───
+    const titleRow = [`كشف رواتب ${monthName} — ${schoolName}`];
+    const headerRow = [
+      '#','الاسم','الوظيفة','التأمين',
+      'الراتب','مبلغ التأمين',
+      'حضور','حضور معدل','غياب','جزاءات','تأخير',
+      'صافي الحضور','غياب/30',
+      'سلف','تأمينات','قيمة اليوم',
+      'إجمالي الخصم','مكافأة','صافي الراتب','لأقرب 5'
+    ];
 
-  const dataRows = rows.map((r, i) => [
-    i + 1,
-    r.emp.nameAr,
-    r.emp.jobTitle || '',
-    r.insuranceStatus,
-    r.salary,
-    r.insurance,
-    r.actualPresent,
-    r.adjustedPresent,
-    r.absent,
-    r.penaltyDays,
-    r.lateDays,
-    parseFloat(r.netPresent.toFixed(1)),
-    r.netAbsent30,
-    r.advance,
-    r.insurance,
-    parseFloat(r.dayRate.toFixed(2)),
-    parseFloat(r.totalDeduct.toFixed(2)),
-    r.reward,
-    parseFloat(r.netSalary.toFixed(2)),
-    r.netRounded
-  ]);
+    const dataRows = rows.map((r, i) => [
+      i + 1,
+      r.emp.nameAr,
+      r.emp.jobTitle || '',
+      r.insuranceStatus,
+      r2x(r.salary),
+      r2x(r.insurance),
+      r.actualPresent,
+      r.adjustedPresent,
+      r.absent,
+      r.penaltyDays,
+      r.lateDays,
+      r2x(r.netPresent),
+      r.netAbsent30,
+      r2x(r.advance),
+      r2x(r.insurance),
+      r2x(r.dayRate),
+      r2x(r.totalDeduct),
+      r2x(r.reward),
+      r2x(r.netSalary),
+      r2x(r.netRounded)
+    ]);
 
-  // صف الإجماليات
-  const r2x = n => Math.round((n||0) * 100) / 100;
-  const sumX = key => r2x(rows.reduce((s,r) => s + r2x(r[key]), 0));
-  const totRow = [
-    'الإجمالي', '', '', '',
-    sumX('salary'),
-    sumX('insurance'),
-    rows.reduce((s,r)=>s+r.actualPresent,0),
-    rows.reduce((s,r)=>s+r.adjustedPresent,0),
-    rows.reduce((s,r)=>s+r.absent,0),
-    rows.reduce((s,r)=>s+r.penaltyDays,0),
-    rows.reduce((s,r)=>s+r.lateDays,0),
-    '—','—',
-    sumX('advance'),
-    sumX('insurance'),
-    '—',
-    sumX('totalDeduct'),
-    sumX('reward'),
-    sumX('netSalary'),
-    sumX('netRounded')
-  ];
+    const totRow = [
+      'الإجمالي','','','',
+      sumX('salary'), sumX('insurance'),
+      rows.reduce((s,r)=>s+r.actualPresent,0),
+      rows.reduce((s,r)=>s+r.adjustedPresent,0),
+      rows.reduce((s,r)=>s+r.absent,0),
+      rows.reduce((s,r)=>s+r.penaltyDays,0),
+      rows.reduce((s,r)=>s+r.lateDays,0),
+      '—','—',
+      sumX('advance'), sumX('insurance'), '—',
+      sumX('totalDeduct'), sumX('reward'),
+      sumX('netSalary'), sumX('netRounded')
+    ];
 
-  // دمج كل الصفوف: عنوان + رأس + بيانات + إجماليات
-  const allRows = [titleRow, headerRow, ...dataRows, totRow];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([titleRow, headerRow, ...dataRows, totRow]);
 
-  const ws = XLSX.utils.aoa_to_sheet(allRows);
+    // أعرض الأعمدة
+    ws['!cols'] = [
+      {wch:4},{wch:28},{wch:18},{wch:13},
+      {wch:12},{wch:13},
+      {wch:9},{wch:11},{wch:7},{wch:7},{wch:7},
+      {wch:11},{wch:9},
+      {wch:9},{wch:9},{wch:11},
+      {wch:13},{wch:9},{wch:13},{wch:10}
+    ];
 
-  // عرض الأعمدة
-  ws['!cols'] = [
-    {wch:4},{wch:28},{wch:20},{wch:14},
-    {wch:14},{wch:14},
-    {wch:10},{wch:12},{wch:8},{wch:8},{wch:8},
-    {wch:12},{wch:14},
-    {wch:10},{wch:10},{wch:12},
-    {wch:14},{wch:10},{wch:14},{wch:14}
-  ];
+    // دمج العنوان
+    ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:headerRow.length-1} }];
 
-  // دمج خلايا العنوان
-  ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:headerRow.length-1} }];
+    // RTL
+    ws['!sheetViews'] = [{ rightToLeft: true }];
 
-  // RTL
-  ws['!sheetview'] = [{ rightToLeft: true }];
+    // ارتفاع الصفوف
+    ws['!rows'] = [
+      {hpt:30}, {hpt:30},
+      ...dataRows.map(()=>({hpt:22})),
+      {hpt:26}
+    ];
 
-  // تنسيق خلايا العنوان
-  const titleCell = ws['A1'];
-  if (titleCell) {
-    titleCell.s = {
-      font:  { name:'Cairo', bold:true, sz:14, color:{rgb:'FFFFFF'} },
-      fill:  { patternType:'solid', fgColor:{rgb: primaryColor} },
-      alignment: { horizontal:'center', vertical:'center', readingOrder:2 }
+    // ── تنسيق العنوان ──
+    const A1 = ws['A1'];
+    if (A1) A1.s = {
+      font: {bold:true, sz:13, color:{rgb:'FFFFFF'}},
+      fill: {patternType:'solid', fgColor:{rgb:pc}},
+      alignment: {horizontal:'center', vertical:'center', readingOrder:2}
     };
-  }
 
-  // تنسيق صف الرأس (الصف 2)
-  headerRow.forEach((_h, ci) => {
-    const addr = XLSX.utils.encode_cell({r:1, c:ci});
-    if (!ws[addr]) ws[addr] = { v: headerRow[ci], t:'s' };
-    ws[addr].s = {
-      font:  { name:'Cairo', bold:true, sz:10, color:{rgb:'FFFFFF'} },
-      fill:  { patternType:'solid', fgColor:{rgb: primaryColor} },
-      alignment: { horizontal:'center', vertical:'center', wrapText:true, readingOrder:2 },
-      border: {
-        top:{style:'thin',color:{rgb:'FFFFFF'}},
-        bottom:{style:'thin',color:{rgb:'FFFFFF'}},
-        left:{style:'thin',color:{rgb:'FFFFFF'}},
-        right:{style:'thin',color:{rgb:'FFFFFF'}}
-      }
-    };
-  });
-
-  // تنسيق صفوف البيانات
-  dataRows.forEach((row, ri) => {
-    const isEven = ri % 2 === 0;
-    row.forEach((val, ci) => {
-      const addr = XLSX.utils.encode_cell({r: ri+2, c:ci});
-      if (!ws[addr]) ws[addr] = {};
-      const isDeduct = ci === 16;
-      const isReward = ci === 17;
-      const isNet    = ci === 18;
-      const isNet5   = ci === 19;
-
-      let fillColor = isEven ? 'F5F5F5' : 'FFFFFF';
-      let fontColor = '222222';
-      if (isDeduct) { fillColor = 'FFF5F5'; fontColor = 'C62828'; }
-      if (isReward) { fillColor = 'E3F2FD'; fontColor = '1565C0'; }
-      if (isNet)    { fillColor = 'E8F5E9'; fontColor = '2E7D32'; }
-      if (isNet5)   { fillColor = '2E7D32'; fontColor = 'FFFFFF'; }
-
+    // ── تنسيق الرأس ──
+    headerRow.forEach((_,ci) => {
+      const addr = XLSX.utils.encode_cell({r:1, c:ci});
+      if (!ws[addr]) ws[addr] = {v:headerRow[ci], t:'s'};
       ws[addr].s = {
-        font:      { name:'Cairo', sz:9, bold: isNet5, color:{rgb: fontColor} },
-        fill:      { patternType:'solid', fgColor:{rgb: fillColor} },
-        alignment: { horizontal: ci<=1 ? 'right' : 'center', vertical:'center', readingOrder:2 },
+        font: {bold:true, sz:10, color:{rgb:'FFFFFF'}},
+        fill: {patternType:'solid', fgColor:{rgb:pc}},
+        alignment: {horizontal:'center', vertical:'center', wrapText:true, readingOrder:2},
         border: {
-          bottom:{style:'thin',color:{rgb:'DDDDDD'}},
-          left:  {style:'thin',color:{rgb:'DDDDDD'}},
-          right: {style:'thin',color:{rgb:'DDDDDD'}}
+          top:{style:'thin',color:{rgb:'CCCCCC'}},
+          bottom:{style:'thin',color:{rgb:'CCCCCC'}},
+          left:{style:'thin',color:{rgb:'CCCCCC'}},
+          right:{style:'thin',color:{rgb:'CCCCCC'}}
         }
       };
     });
-  });
 
-  // تنسيق صف الإجماليات
-  const totRowIdx = dataRows.length + 2;
-  totRow.forEach((_v, ci) => {
-    const addr = XLSX.utils.encode_cell({r: totRowIdx, c:ci});
-    if (!ws[addr]) ws[addr] = {};
-    ws[addr].s = {
-      font:      { name:'Cairo', bold:true, sz:10, color:{rgb:'FFFFFF'} },
-      fill:      { patternType:'solid', fgColor:{rgb: primaryColor} },
-      alignment: { horizontal:'center', vertical:'center', readingOrder:2 }
-    };
-  });
+    // ── تنسيق البيانات ──
+    dataRows.forEach((row, ri) => {
+      row.forEach((_, ci) => {
+        const addr = XLSX.utils.encode_cell({r:ri+2, c:ci});
+        if (!ws[addr]) ws[addr] = {v:'', t:'s'};
+        const even = ri%2===0;
+        let bg = even ? 'F7F7F7' : 'FFFFFF';
+        let fc = '222222';
+        if (ci===16) { bg='FFF5F5'; fc='C62828'; }
+        if (ci===17) { bg='E3F2FD'; fc='1565C0'; }
+        if (ci===18) { bg='E8F5E9'; fc='2E7D32'; }
+        if (ci===19) { bg='2E7D32'; fc='FFFFFF'; }
+        ws[addr].s = {
+          font: {sz:9, bold:ci===19, color:{rgb:fc}},
+          fill: {patternType:'solid', fgColor:{rgb:bg}},
+          alignment: {horizontal:ci<=1?'right':'center', vertical:'center', readingOrder:2},
+          border: {
+            bottom:{style:'thin',color:{rgb:'DDDDDD'}},
+            left:  {style:'thin',color:{rgb:'DDDDDD'}},
+            right: {style:'thin',color:{rgb:'DDDDDD'}}
+          }
+        };
+      });
+    });
 
-  // ارتفاع الصفوف
-  ws['!rows'] = [
-    { hpt: 30 }, // العنوان
-    { hpt: 28 }, // الرأس
-    ...dataRows.map(() => ({ hpt: 22 })),
-    { hpt: 26 }  // الإجماليات
-  ];
+    // ── تنسيق الإجماليات ──
+    const totIdx = dataRows.length + 2;
+    totRow.forEach((_,ci) => {
+      const addr = XLSX.utils.encode_cell({r:totIdx, c:ci});
+      if (!ws[addr]) ws[addr] = {v:'', t:'s'};
+      ws[addr].s = {
+        font: {bold:true, sz:10, color:{rgb:'FFFFFF'}},
+        fill: {patternType:'solid', fgColor:{rgb:pc}},
+        alignment: {horizontal:'center', vertical:'center', readingOrder:2}
+      };
+    });
 
-  XLSX.utils.book_append_sheet(wb, ws, 'كشف الرواتب');
-  XLSX.writeFile(wb, `كشف_رواتب_${monthVal}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, 'كشف الرواتب');
+    XLSX.writeFile(wb, `كشف_رواتب_${monthVal || 'export'}.xlsx`);
+
+  } catch(err) {
+    console.error('Export error:', err);
+    alert('خطأ في التصدير: ' + err.message);
+  }
 }
 
 </script>
