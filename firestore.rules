@@ -2,151 +2,120 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ==============================
-    // دالة مساعدة: هل المستخدم مسجّل دخول؟
-    // ==============================
-    function isAuth() {
+    // ── helpers ──
+    function isSignedIn() {
       return request.auth != null;
     }
 
-    // ==============================
-    // دالة مساعدة: هل البيانات المكتوبة تحتوي على schoolId صحيح؟
-    // ==============================
-    function hasSchoolId() {
-      return request.resource.data.schoolId is string
-          && request.resource.data.schoolId.size() > 0;
-    }
-
-    // ==============================
-    // دالة مساعدة: هل المستخدم أدمن؟
-    // ==============================
+    // لو الـ email في قائمة الـ admins
     function isAdmin() {
-      return request.auth.token.email in [
-        'admin@schools-system.com',
-        'admin2@schools-system.com'
-      ];
-    }
-
-    // ==============================
-    // دالة مساعدة: هل المستخدم مصرح له بالكتابة على هذه المدرسة؟
-    // الأدمن يقدر يكتب على أي مدرسة — المحاسب بس على مدرسته
-    // ==============================
-    function canWriteToSchool(sid) {
-      return isAdmin() || (
-        (sid == 'bristol'   && request.auth.token.email in ['acc1.bristol@bristol-school.com',   'acc2.bristol@bristol-school.com']) ||
-        (sid == 'cardiff'   && request.auth.token.email in ['acc1.cardiff@cardiff-school.com',   'acc2.cardiff@cardiff-school.com']) ||
-        (sid == 'stanford1' && request.auth.token.email in ['acc1.stanford1@stanford-school.com','acc2.stanford1@stanford-school.com']) ||
-        (sid == 'stanford2' && request.auth.token.email in ['acc1.stanford2@stanford-school.com','acc2.stanford2@stanford-school.com'])
+      return isSignedIn() && (
+        request.auth.token.email == 'admin@schools-system.com' ||
+        request.auth.token.email == 'admin2@schools-system.com'
       );
     }
 
-    // ==============================
-    // دالة مساعدة: هل المستخدم يقدر يقرأ بيانات مدرسة معينة؟
-    // ==============================
-    function canReadSchool(sid) {
-      return isAdmin() || canWriteToSchool(sid);
+    // موظفو HR لأي مدرسة
+    function isHR() {
+      return isSignedIn() && (
+        request.auth.token.email.matches('hr@.*-school\\.com') ||
+        request.auth.token.email.matches('hr2@.*-school\\.com') ||
+        request.auth.token.email.matches('hr@stanford[12]-school\\.com') ||
+        request.auth.token.email.matches('hr2@stanford[12]-school\\.com')
+      );
     }
 
-    // ==============================
-    // transactions — تحصيل الطلاب
-    // ==============================
+    // محاسبو أي مدرسة
+    function isAccountant() {
+      return isSignedIn() && (
+        request.auth.token.email.matches('acc[12]\\..*@.*-school\\.com') ||
+        request.auth.token.email.matches('acc[12]\\..*@stanford[12]-school\\.com')
+      );
+    }
+
+    function isHRorAdmin() { return isHR() || isAdmin(); }
+    function isAccOrAdmin() { return isAccountant() || isAdmin(); }
+    function isAnyStaff()   { return isHR() || isAccountant() || isAdmin(); }
+
+    // ══════════════════════════════
+    // employees — HR يقرأ ويكتب، المحاسب يقرأ بس
+    // ══════════════════════════════
+    match /employees/{docId} {
+      allow read:  if isAnyStaff();
+      allow write: if isHRorAdmin();
+    }
+
+    // ══════════════════════════════
+    // attendance — HR يقرأ ويكتب
+    // ══════════════════════════════
+    match /attendance/{docId} {
+      allow read:  if isAnyStaff();
+      allow write: if isHRorAdmin();
+    }
+
+    // ══════════════════════════════
+    // penalties — HR يقرأ ويكتب
+    // ══════════════════════════════
+    match /penalties/{docId} {
+      allow read:  if isAnyStaff();
+      allow write: if isHRorAdmin();
+    }
+
+    // ══════════════════════════════
+    // rewards — HR يقرأ ويكتب
+    // ══════════════════════════════
+    match /rewards/{docId} {
+      allow read:  if isAnyStaff();
+      allow write: if isHRorAdmin();
+    }
+
+    // ══════════════════════════════
+    // permissions (إذونات) — HR فقط
+    // ══════════════════════════════
+    match /permissions/{docId} {
+      allow read:  if isHRorAdmin();
+      allow write: if isHRorAdmin();
+    }
+
+    // ══════════════════════════════
+    // leaves (إجازات) — HR فقط
+    // ══════════════════════════════
+    match /leaves/{docId} {
+      allow read:  if isHRorAdmin();
+      allow write: if isHRorAdmin();
+    }
+
+    // ══════════════════════════════
+    // باقي collections (محاسبة) — المحاسب والأدمن فقط
+    // ══════════════════════════════
     match /transactions/{docId} {
-      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
-      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
+      allow read, write: if isAccOrAdmin();
     }
-
-    // ==============================
-    // debts — المديونيات
-    // ==============================
     match /debts/{docId} {
-      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
-      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
+      allow read, write: if isAccOrAdmin();
     }
-
-    // ==============================
-    // expenses — بند المصروفات
-    // ==============================
     match /expenses/{docId} {
-      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
-      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
+      allow read, write: if isAccOrAdmin();
+    }
+    match /contractors/{docId} {
+      allow read, write: if isAccOrAdmin();
+    }
+    match /buses/{docId} {
+      allow read, write: if isAccOrAdmin();
+    }
+    match /reports/{docId} {
+      allow read, write: if isAccOrAdmin();
+    }
+    match /party/{docId} {
+      allow read, write: if isAccOrAdmin();
+    }
+    match /photoPackages/{docId} {
+      allow read, write: if isAccOrAdmin();
     }
 
-    // ==============================
-    // custodians — العهد
-    // ==============================
-    match /custodians/{sid} {
-      allow read: if isAuth() && canReadSchool(sid);
-      allow write: if isAuth() && canWriteToSchool(sid);
-    }
-
-    // ==============================
-    // busCompanies — شركات الباصات
-    // ==============================
-    match /busCompanies/{sid} {
-      allow read: if isAuth() && canReadSchool(sid);
-      allow write: if isAuth() && canWriteToSchool(sid);
-      match /companies/{companyId} {
-        allow read: if isAuth() && canReadSchool(sid);
-        allow write: if isAuth() && canWriteToSchool(sid);
-      }
-    }
-
-    // ==============================
-    // busData — بيانات الباصات القديمة
-    // ==============================
-    match /busData/{sid} {
-      allow read: if isAuth() && canReadSchool(sid);
-      allow write: if isAuth() && canWriteToSchool(sid);
-    }
-
-    // ==============================
-    // contractors — الموردون والمقاولون
-    // ==============================
-    match /contractors_suppliers/{docId} {
-      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
-      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
-    }
-    match /contractors_purchases/{docId} {
-      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
-      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
-    }
-    match /contractors_contracts/{docId} {
-      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
-      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
-    }
-
-    // ==============================
-    // custody_entries — دفعات العهدة
-    // ==============================
-    match /custody_entries/{docId} {
-      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
-      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
-    }
-
-    // ==============================
-    // partyAttendees — تسجيل الحفلة
-    // ==============================
-    match /partyAttendees/{docId} {
-      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
-      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
-    }
-
-    // ==============================
-    // photoDirectStudents — طلاب التصوير المباشر
-    // ==============================
-    match /photoDirectStudents/{docId} {
-      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
-      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
+    // أي document تاني — Admin بس
+    match /{document=**} {
+      allow read, write: if isAdmin();
     }
   }
 }
-
