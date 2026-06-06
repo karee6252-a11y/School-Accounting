@@ -2120,12 +2120,7 @@ function exportPayrollExcel() {
     // دمج العنوان
     ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:headerRow.length-1} }];
 
-    // RTL
-    ws['!sheetViews'] = [{
-      rightToLeft: true,
-      showGridLines: true,
-      tabSelected: true
-    }];
+    // RTL — يتضبط بعد الـ append
 
     // ارتفاع الصفوف
     ws['!rows'] = [
@@ -2198,10 +2193,18 @@ function exportPayrollExcel() {
 
     XLSX.utils.book_append_sheet(wb, ws, 'كشف الرواتب');
 
-    // RTL — لازم تتضاف بعد الـ append
+    // RTL — يتضبط على مستوى الـ workbook
     wb.Sheets['كشف الرواتب']['!sheetViews'] = [{ rightToLeft: true }];
 
-    XLSX.writeFile(wb, `كشف_رواتب_${monthVal || 'export'}.xlsx`);
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `كشف_رواتب_${monthVal || 'export'}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
 
   } catch(err) {
     console.error('Export error:', err);
