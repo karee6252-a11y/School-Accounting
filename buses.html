@@ -98,7 +98,7 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 1rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
     }
     .bus-stat-card {
       border-radius: var(--radius);
@@ -114,6 +114,40 @@
     .bus-stat-card.diff   { background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247)); }
     .bus-stat-card .lbl   { font-size: 0.8rem; opacity: 0.8; font-weight: 600; }
     .bus-stat-card .val   { font-size: 1.8rem; font-weight: 900; line-height: 1; }
+
+    /* Custodian cards - like expenses page */
+    .cust-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .cust-card {
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .cust-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.08);
+      border-radius: inherit;
+      pointer-events: none;
+    }
+    .cust-card.prev  { background: linear-gradient(135deg, #1565c0, #0d47a1); }
+    .cust-card.new   { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
+    .cust-card.rem   { background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247)); }
+    .cust-card .clbl { font-size: 0.8rem; opacity: 0.8; font-weight: 600; }
+    .cust-card .cval { font-size: 1.8rem; font-weight: 900; line-height: 1; }
+    .cust-card .csub { font-size: 0.72rem; opacity: 0.7; }
+    .cust-card .cico { font-size: 2rem; position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.22; }
 
     /* Modal */
     .modal-overlay {
@@ -164,6 +198,7 @@
 
     @media (max-width: 768px) {
       .bus-stats-grid   { grid-template-columns: 1fr; }
+      .cust-summary-grid { grid-template-columns: 1fr; }
       .bus-input-row    { grid-template-columns: 1fr; }
     }
   </style>
@@ -175,6 +210,28 @@
     <div id="topbarContainer"></div>
 
     <div class="page-content">
+
+      <!-- Custodian Summary (من بيانات المصروفات) -->
+      <div class="cust-summary-grid animate-in">
+        <div class="cust-card prev">
+          <div class="cico"></div>
+          <div class="clbl">العهدة السابقة</div>
+          <div class="cval" id="busCustPrev">—</div>
+          <div class="csub">الرصيد المرحّل</div>
+        </div>
+        <div class="cust-card new">
+          <div class="cico"></div>
+          <div class="clbl">العهدة الجديدة</div>
+          <div class="cval" id="busCustNew">—</div>
+          <div class="csub">المبلغ المستلم جديداً</div>
+        </div>
+        <div class="cust-card rem" id="busCustRemCard">
+          <div class="cico"></div>
+          <div class="clbl">الرصيد المتبقي</div>
+          <div class="cval" id="busCustRem">—</div>
+          <div class="csub">السابقة + الجديدة - المصروفات</div>
+        </div>
+      </div>
 
       <!-- Stats Summary -->
       <div class="bus-stats-grid animate-in" id="busStatsGrid">
@@ -199,6 +256,9 @@
         </button>
         <button class="btn btn-secondary" onclick="saveBusData()">
            حفظ كل الشركات
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="openBusCalcModal()" style="background:#1a3a6b;color:white;border-color:#1a3a6b;font-weight:800;font-size:0.82rem;padding:0.45rem 1rem">
+           حسابات الباصات
         </button>
         <div style="flex:1"></div>
         <button class="btn btn-outline btn-sm" onclick="exportBusExcel()"> Excel</button>
@@ -241,29 +301,25 @@
 
 <!-- Modal: إضافة/تعديل شركة -->
 <div class="modal-overlay hidden" id="busCompanyModal">
-  <div class="modal-box">
+  <div class="modal-box" style="max-width:680px">
     <div class="modal-header">
       <span class="modal-title" id="busCompanyModalTitle"> إضافة شركة باص</span>
       <button class="modal-close" onclick="closeBusCompanyModal()">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="busCompanyEditId" value="" />
+
+      <!-- اسم الشركة -->
       <div class="form-group">
         <label class="form-label">اسم الشركة <span class="required">*</span></label>
         <input type="text" class="form-input form-input-ar" id="busCompanyName" placeholder="مثال: شركة النيل للنقل" />
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-        <div class="form-group">
-          <label class="form-label">عدد السيارات</label>
-          <input type="number" class="form-input" id="busCompanyCars" placeholder="0" min="0" oninput="calcCompanyModal()" />
-        </div>
+
+      <!-- بيانات عامة -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:1rem">
         <div class="form-group">
           <label class="form-label">عدد أيام الشهر</label>
           <input type="number" class="form-input" id="busCompanyDays" placeholder="0" min="0" oninput="calcCompanyModal()" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">قيمة اليوم للسيارة (ج.م)</label>
-          <input type="number" class="form-input" id="busCompanyDayVal" placeholder="0.00" step="0.01" oninput="calcCompanyModal()" />
         </div>
         <div class="form-group">
           <label class="form-label">عدد المشتركين</label>
@@ -274,9 +330,25 @@
           <input type="number" class="form-input" id="busCompanySubVal" placeholder="0.00" step="0.01" oninput="calcCompanyModal()" />
         </div>
       </div>
-      <div style="padding:0.75rem;background:var(--accent);border-radius:var(--radius-sm);border:1px solid var(--primary-light,#c5d8f5);margin-top:0.5rem" id="busModalCalc">
+
+      <!-- قسم العربيات -->
+      <div style="background:var(--accent);border-radius:var(--radius-sm);border:1px solid var(--primary-light,#c5d8f5);padding:1rem;margin-bottom:0.75rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+          <div style="font-size:0.85rem;font-weight:800;color:var(--primary)"> العربيات</div>
+          <button type="button" onclick="addVehicleRow()" style="padding:0.3rem 0.9rem;background:var(--primary);color:white;border:none;border-radius:var(--radius-sm);font-family:Cairo,sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer"> إضافة عربية</button>
+        </div>
+        <div id="vehicleRowsContainer">
+          <!-- rows added dynamically -->
+        </div>
+        <div id="vehicleRowsEmpty" style="text-align:center;padding:1rem;color:var(--text-light);font-size:0.8rem">
+          اضغط "إضافة عربية" لإضافة أول عربية
+        </div>
+      </div>
+
+      <!-- ملخص الحساب -->
+      <div style="padding:0.75rem;background:var(--accent);border-radius:var(--radius-sm);border:1px solid var(--primary-light,#c5d8f5)" id="busModalCalc">
         <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.25rem">
-          <span>تكلفة الشركة</span><span id="mCalcCost" style="font-weight:800;color:#c0392b">0 ج.م</span>
+          <span>إجمالي تكلفة العربيات</span><span id="mCalcCost" style="font-weight:800;color:#c0392b">0 ج.م</span>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.25rem">
           <span>إيرادات الاشتراكات</span><span id="mCalcRev" style="font-weight:800;color:#2e7d32">0 ج.م</span>
@@ -293,6 +365,41 @@
   </div>
 </div>
 
+<!-- Modal: خصم من العهدة -->
+<div class="modal-overlay hidden" id="busDeductModal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title"> خصم من العهدة</span>
+      <button class="modal-close" onclick="document.getElementById('busDeductModal').classList.add('hidden')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--accent);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1rem;border:1px solid var(--primary-light,#c5d8f5)">
+        <div style="font-size:0.8rem;color:var(--text-mid)">العهدة الحالية (السابقة + الجديدة - المصروفات)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:var(--primary)" id="deductCurrentBalance">—</div>
+      </div>
+      <input type="hidden" id="deductCompanyId" />
+      <input type="hidden" id="deductVehicleId" />
+      <div class="form-group">
+        <label class="form-label">اسم الشركة / العربية</label>
+        <input type="text" class="form-input form-input-ar" id="deductLabel" readonly style="background:#f5f7fa" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">المبلغ المراد خصمه (ج.م) <span class="required">*</span></label>
+        <input type="number" class="form-input" id="deductAmount" placeholder="0.00" min="0" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">ملاحظات</label>
+        <input type="text" class="form-input form-input-ar" id="deductNotes" placeholder="مثال: دفعة شهر يناير" />
+      </div>
+      <div id="deductAlert" style="display:none;padding:0.6rem 0.8rem;border-radius:var(--radius-sm);font-size:0.82rem;margin-top:0.5rem"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('busDeductModal').classList.add('hidden')">إلغاء</button>
+      <button class="btn btn-primary" id="deductSaveBtn" onclick="saveDeduction()" style="background:#c0392b;border-color:#c0392b"> تأكيد الخصم</button>
+    </div>
+  </div>
+</div>
+
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -305,17 +412,105 @@
   const session  = SESSION.get();
   const schoolId = session.schoolId;
   let busCompanies = [];
+  let vehicleRows  = [];   // العربيات في المودال الحالي
+  let vehicleRowId = 0;    // counter للـ rows
 
-  // ---- حساب المودال ----
+  // ===== العهدة (من المصروفات) =====
+  let custodianBalance = 0;
+
+  async function loadCustodianBalance() {
+    try {
+      const doc = await db.collection('custodians').doc(schoolId).get();
+      let prev = 0, nw = 0;
+      if (doc.exists) { prev = doc.data().prevAmount || 0; nw = doc.data().newAmount || 0; }
+      const snap = await db.collection('expenses').where('schoolId','==',schoolId).get();
+      let totalExp = 0;
+      snap.forEach(d => { totalExp += d.data().amount || 0; });
+      custodianBalance = prev + nw - totalExp;
+
+      // تحديث كروت العهدة
+      document.getElementById('busCustPrev').textContent = formatCurrency(prev);
+      document.getElementById('busCustNew').textContent  = formatCurrency(nw);
+      document.getElementById('busCustRem').textContent  = formatCurrency(custodianBalance);
+      const remCard = document.getElementById('busCustRemCard');
+      if (custodianBalance < 0) {
+        remCard.style.background = 'linear-gradient(135deg,#c62828,#b71c1c)';
+      } else {
+        remCard.style.background = '';
+      }
+    } catch(e) {
+      custodianBalance = 0;
+      document.getElementById('busCustPrev').textContent = '—';
+      document.getElementById('busCustNew').textContent  = '—';
+      document.getElementById('busCustRem').textContent  = '—';
+    }
+  }
+
+  // ===== إدارة صفوف العربيات في المودال =====
+  function addVehicleRow(data = {}) {
+    const id = ++vehicleRowId;
+    vehicleRows.push(id);
+    const cont = document.getElementById('vehicleRowsContainer');
+    document.getElementById('vehicleRowsEmpty').style.display = 'none';
+
+    const row = document.createElement('div');
+    row.id = `vrow_${id}`;
+    row.style.cssText = 'background:white;border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem;margin-bottom:0.5rem;position:relative';
+    row.innerHTML = `
+      <button type="button" onclick="removeVehicleRow(${id})" style="position:absolute;top:0.4rem;left:0.4rem;background:none;border:none;color:#c0392b;cursor:pointer;font-size:1rem;line-height:1">✕</button>
+      <div style="font-size:0.75rem;font-weight:800;color:var(--primary);margin-bottom:0.5rem"> عربية ${id}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;margin-bottom:0.5rem">
+        <div>
+          <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:2px">اسم العربية <span style="color:red">*</span></label>
+          <input type="text" class="form-input form-input-ar" id="vplate_${id}" placeholder="مثال: عربية المدينة" value="${data.plate||''}" style="font-size:0.82rem" />
+        </div>
+        <div>
+          <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:2px">رقم الخط</label>
+          <input type="text" class="form-input" id="vline_${id}" placeholder="مثال: خط 5" value="${data.lineNum||''}" style="font-size:0.82rem" />
+        </div>
+        <div>
+          <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:2px">قيمة اليوم (ج.م)</label>
+          <input type="number" class="form-input" id="vdayval_${id}" placeholder="0.00" step="0.01" min="0" value="${data.dayVal||''}" oninput="calcCompanyModal()" style="font-size:0.82rem" />
+        </div>
+      </div>
+      <div>
+        <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:2px">خط السير</label>
+        <input type="text" class="form-input form-input-ar" id="vroute_${id}" placeholder="مثال: المدينة ← الحي الجديد" value="${data.route||''}" style="font-size:0.82rem;width:100%" />
+      </div>
+    `;
+    cont.appendChild(row);
+    calcCompanyModal();
+  }
+
+  function removeVehicleRow(id) {
+    vehicleRows = vehicleRows.filter(r => r !== id);
+    const el = document.getElementById(`vrow_${id}`);
+    if (el) el.remove();
+    if (vehicleRows.length === 0) document.getElementById('vehicleRowsEmpty').style.display = 'block';
+    calcCompanyModal();
+  }
+
+  function getVehiclesFromModal() {
+    return vehicleRows.map(id => ({
+      id: null,
+      plate:   (document.getElementById(`vplate_${id}`)?.value  || '').trim(),
+      lineNum: (document.getElementById(`vline_${id}`)?.value   || '').trim(),
+      route:   (document.getElementById(`vroute_${id}`)?.value  || '').trim(),
+      dayVal:  parseFloat(document.getElementById(`vdayval_${id}`)?.value) || 0,
+    }));
+  }
+
+  // ===== حساب المودال =====
   function calcCompanyModal() {
-    const cars   = parseFloat(document.getElementById('busCompanyCars').value)    || 0;
     const days   = parseFloat(document.getElementById('busCompanyDays').value)    || 0;
-    const dayVal = parseFloat(document.getElementById('busCompanyDayVal').value)  || 0;
     const subCnt = parseFloat(document.getElementById('busCompanySubCount').value)|| 0;
     const subVal = parseFloat(document.getElementById('busCompanySubVal').value)  || 0;
-    const cost   = cars * days * dayVal;
-    const rev    = subCnt * subVal;
-    const diff   = rev - cost;
+
+    const vehicles = getVehiclesFromModal();
+    const cost = vehicles.reduce((s, v) => s + v.dayVal * days, 0);
+    const rev  = subCnt * subVal;
+    const diff = rev - cost;
+
     document.getElementById('mCalcCost').textContent      = formatCurrency(cost);
     document.getElementById('mCalcRev').textContent       = formatCurrency(rev);
     document.getElementById('mCalcDiff').textContent      = formatCurrency(Math.abs(diff));
@@ -323,32 +518,51 @@
     document.getElementById('mCalcDiffLabel').textContent = diff >= 0 ? 'فائض' : 'عجز';
   }
 
-  // ---- فتح مودال إضافة ----
+  // ===== فتح مودال إضافة =====
   function openAddCompanyModal() {
     document.getElementById('busCompanyEditId').value   = '';
     document.getElementById('busCompanyName').value     = '';
-    document.getElementById('busCompanyCars').value     = '';
     document.getElementById('busCompanyDays').value     = '';
-    document.getElementById('busCompanyDayVal').value   = '';
     document.getElementById('busCompanySubCount').value = '';
     document.getElementById('busCompanySubVal').value   = '';
     document.getElementById('busCompanyModalTitle').textContent = ' إضافة شركة باص';
+
+    // مسح العربيات
+    vehicleRows = [];
+    vehicleRowId = 0;
+    document.getElementById('vehicleRowsContainer').innerHTML = '';
+    document.getElementById('vehicleRowsEmpty').style.display = 'block';
+
     calcCompanyModal();
     document.getElementById('busCompanyModal').classList.remove('hidden');
   }
 
-  // ---- فتح مودال تعديل ----
-  function openEditCompanyModal(companyId) {
+  // ===== فتح مودال تعديل =====
+  async function openEditCompanyModal(companyId) {
     const company = busCompanies.find(c => c.id === companyId);
     if (!company) return;
     document.getElementById('busCompanyEditId').value   = companyId;
     document.getElementById('busCompanyName').value     = company.name     || '';
-    document.getElementById('busCompanyCars').value     = company.cars     || '';
     document.getElementById('busCompanyDays').value     = company.days     || '';
-    document.getElementById('busCompanyDayVal').value   = company.dayVal   || '';
     document.getElementById('busCompanySubCount').value = company.subCount || '';
     document.getElementById('busCompanySubVal').value   = company.subVal   || '';
     document.getElementById('busCompanyModalTitle').textContent = ' تعديل: ' + company.name;
+
+    // تحميل العربيات من Firestore
+    vehicleRows = [];
+    vehicleRowId = 0;
+    document.getElementById('vehicleRowsContainer').innerHTML = '';
+    document.getElementById('vehicleRowsEmpty').style.display = 'block';
+
+    try {
+      const snap = await db.collection('busCompanies').doc(schoolId)
+        .collection('companies').doc(companyId).collection('vehicles')
+        .orderBy('createdAt','asc').get();
+      snap.forEach(vDoc => {
+        addVehicleRow({ ...vDoc.data(), _vid: vDoc.id });
+      });
+    } catch(e) { /* no vehicles yet */ }
+
     calcCompanyModal();
     document.getElementById('busCompanyModal').classList.remove('hidden');
   }
@@ -357,21 +571,28 @@
     document.getElementById('busCompanyModal').classList.add('hidden');
   }
 
-  // ---- حفظ شركة ----
+  // ===== حفظ شركة + عربياتها =====
   async function saveBusCompany() {
     const name     = document.getElementById('busCompanyName').value.trim();
-    const cars     = parseFloat(document.getElementById('busCompanyCars').value)    || 0;
     const days     = parseFloat(document.getElementById('busCompanyDays').value)    || 0;
-    const dayVal   = parseFloat(document.getElementById('busCompanyDayVal').value)  || 0;
     const subCount = parseFloat(document.getElementById('busCompanySubCount').value)|| 0;
     const subVal   = parseFloat(document.getElementById('busCompanySubVal').value)  || 0;
-    if (!name) { alert('من فضلك ادخل اسم الشركة'); return; }
-    const monthly  = cars * days * dayVal;
-    const subTotal = subCount * subVal;
-    const editId   = document.getElementById('busCompanyEditId').value;
 
-    const data = {
-      schoolId, name, cars, days, dayVal, monthly,
+    if (!name) { alert('من فضلك ادخل اسم الشركة'); return; }
+
+    const vehicles = getVehiclesFromModal();
+    if (vehicles.length === 0) { alert('من فضلك أضف عربية واحدة على الأقل'); return; }
+    for (const v of vehicles) {
+      if (!v.plate) { alert('من فضلك ادخل اسم كل عربية'); return; }
+    }
+
+    const cars    = vehicles.length;
+    const monthly = vehicles.reduce((s, v) => s + v.dayVal * days, 0);
+    const subTotal= subCount * subVal;
+    const editId  = document.getElementById('busCompanyEditId').value;
+
+    const companyData = {
+      schoolId, name, cars, days, monthly,
       subCount, subVal, subTotal,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedBy: session.email
@@ -379,12 +600,42 @@
 
     try {
       const colRef = db.collection('busCompanies').doc(schoolId).collection('companies');
+      let companyId = editId;
+
       if (editId) {
-        await colRef.doc(editId).set(data, { merge: true });
+        await colRef.doc(editId).set(companyData, { merge: true });
       } else {
-        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-        await colRef.add(data);
+        companyData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        const ref = await colRef.add(companyData);
+        companyId = ref.id;
       }
+
+      // حفظ كل عربية في subcollection
+      const vColRef = colRef.doc(companyId).collection('vehicles');
+
+      // حذف العربيات القديمة عند التعديل
+      if (editId) {
+        const oldVehicles = await vColRef.get();
+        const batch = db.batch();
+        oldVehicles.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+
+      // إضافة العربيات الجديدة
+      for (const v of vehicles) {
+        await vColRef.add({
+          companyId,
+          schoolId,
+          plate:   v.plate,
+          lineNum: v.lineNum,
+          route:   v.route,
+          dayVal:  v.dayVal,
+          monthlyCost: v.dayVal * days,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: session.email
+        });
+      }
+
       closeBusCompanyModal();
       await loadBusData();
     } catch(err) {
@@ -392,18 +643,24 @@
     }
   }
 
-  // ---- حذف شركة ----
+  // ===== حذف شركة =====
   async function deleteBusCompany(companyId) {
-    if (!confirm('هل تريد حذف هذه الشركة؟')) return;
+    if (!confirm('هل تريد حذف هذه الشركة وكل عربياتها؟')) return;
     try {
-      await db.collection('busCompanies').doc(schoolId).collection('companies').doc(companyId).delete();
+      const colRef = db.collection('busCompanies').doc(schoolId).collection('companies');
+      // حذف العربيات أولاً
+      const vSnap = await colRef.doc(companyId).collection('vehicles').get();
+      const batch = db.batch();
+      vSnap.forEach(d => batch.delete(d.ref));
+      batch.delete(colRef.doc(companyId));
+      await batch.commit();
       await loadBusData();
     } catch(err) {
       alert('خطأ في الحذف: ' + err.message);
     }
   }
 
-  // ---- حفظ كل الشركات (batch) ----
+  // ===== حفظ كل الشركات =====
   async function saveBusData() {
     if (busCompanies.length === 0) { alert('لا توجد شركات لحفظها. أضف شركة أولاً.'); return; }
     try {
@@ -420,10 +677,11 @@
     }
   }
 
-  // ---- تحميل الشركات ----
+  // ===== تحميل الشركات =====
   async function loadBusData() {
     const container = document.getElementById('busCompaniesContainer');
     container.innerHTML = '<div class="loading-spinner"></div>';
+    await loadCustodianBalance();
     try {
       const snap = await db.collection('busCompanies').doc(schoolId).collection('companies')
         .orderBy('createdAt', 'asc').get();
@@ -432,11 +690,11 @@
     } catch(e) {
       busCompanies = [];
     }
-    renderBusCompanies();
+    await renderBusCompanies();
   }
 
-  // ---- رندر الشركات ----
-  function renderBusCompanies() {
+  // ===== رندر الشركات + عربياتها =====
+  async function renderBusCompanies() {
     const container = document.getElementById('busCompaniesContainer');
     document.getElementById('companiesCount').textContent = busCompanies.length + ' شركات';
 
@@ -453,46 +711,63 @@
     }
 
     let totalCost = 0, totalRevenue = 0;
-    const cards = busCompanies.map(c => {
-      const cost    = c.monthly    || (c.cars * c.days * c.dayVal) || 0;
-      const revenue = c.subTotal   || (c.subCount * c.subVal)      || 0;
+    let allCards = '';
+
+    for (const c of busCompanies) {
+      const cost    = c.monthly    || 0;
+      const revenue = c.subTotal   || (c.subCount * c.subVal) || 0;
       const diff    = revenue - cost;
       totalCost    += cost;
       totalRevenue += revenue;
       const diffColor = diff >= 0 ? '#2e7d32' : '#c0392b';
       const diffLabel = diff >= 0 ? 'فائض' : 'عجز';
-      return `
+
+      // تحميل العربيات
+      let vehiclesHtml = '';
+      try {
+        const vSnap = await db.collection('busCompanies').doc(schoolId)
+          .collection('companies').doc(c.id).collection('vehicles')
+          .orderBy('createdAt','asc').get();
+
+        if (!vSnap.empty) {
+          vehiclesHtml = `<div style="margin-top:0.75rem">
+            <div style="font-size:0.75rem;font-weight:800;color:var(--primary);margin-bottom:0.4rem;border-bottom:1px solid var(--border);padding-bottom:0.3rem"> العربيات (${vSnap.size})</div>
+            <div style="display:flex;flex-direction:column;gap:0.4rem">`;
+          vSnap.forEach(vDoc => {
+            const v = vDoc.data();
+            vehiclesHtml += `
+              <div style="background:white;border:1px solid var(--border);border-radius:4px;padding:0.5rem 0.75rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
+                <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center">
+                  <span style="font-weight:800;font-size:0.85rem;color:var(--primary)">${v.plate || '—'}</span>
+                  ${v.lineNum ? `<span style="font-size:0.75rem;background:#e8f0fe;color:var(--primary);padding:1px 8px;border-radius:10px;font-weight:700">خط ${v.lineNum}</span>` : ''}
+                  ${v.route   ? `<span style="font-size:0.75rem;color:var(--text-mid)"> ${v.route}</span>` : ''}
+                  <span style="font-size:0.75rem;color:#c0392b;font-weight:700">${formatCurrency(v.monthlyCost||0)}/شهر</span>
+                </div>
+                <button onclick="openDeductModal('${c.id}','${vDoc.id}','${(c.name+' - '+(v.plate||'')).replace(/'/g,"\\'")}',${v.monthlyCost||0})"
+                  style="padding:0.2rem 0.7rem;background:#c0392b;color:white;border:none;border-radius:4px;cursor:pointer;font-family:Cairo,sans-serif;font-size:0.72rem;font-weight:700;white-space:nowrap">
+                   خصم من العهدة
+                </button>
+              </div>`;
+          });
+          vehiclesHtml += '</div></div>';
+        } else {
+          vehiclesHtml = `<div style="font-size:0.75rem;color:var(--text-light);margin-top:0.5rem;text-align:center">لا توجد عربيات مسجلة — افتح تعديل لإضافتها</div>`;
+        }
+      } catch(e) { vehiclesHtml = ''; }
+
+      allCards += `
         <div style="background:var(--bg,#f5f7fa);border-radius:var(--radius-sm);border:1px solid var(--border);padding:1rem;margin-bottom:0.75rem">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
-            <div style="font-size:0.95rem;font-weight:800;color:var(--primary)">${c.name}</div>
+            <div>
+              <div style="font-size:0.95rem;font-weight:800;color:var(--primary)">${c.name}</div>
+              <div style="font-size:0.72rem;color:var(--text-light)">${c.cars||0} عربية | ${c.days||0} يوم/شهر</div>
+            </div>
             <div style="display:flex;gap:0.5rem">
               <button onclick="openEditCompanyModal('${c.id}')" style="padding:0.25rem 0.75rem;border:1px solid var(--primary);background:transparent;color:var(--primary);border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:Cairo,sans-serif;font-weight:700"> تعديل</button>
               <button onclick="deleteBusCompany('${c.id}')" style="padding:0.25rem 0.75rem;border:1px solid #c0392b;background:transparent;color:#c0392b;border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:Cairo,sans-serif;font-weight:700"> حذف</button>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;text-align:center">
-            <div style="background:white;padding:0.4rem;border-radius:4px;border:1px solid var(--border)">
-              <div style="font-size:0.65rem;color:var(--text-light)">السيارات</div>
-              <div style="font-size:0.9rem;font-weight:800">${c.cars || 0}</div>
-            </div>
-            <div style="background:white;padding:0.4rem;border-radius:4px;border:1px solid var(--border)">
-              <div style="font-size:0.65rem;color:var(--text-light)">الأيام</div>
-              <div style="font-size:0.9rem;font-weight:800">${c.days || 0}</div>
-            </div>
-            <div style="background:white;padding:0.4rem;border-radius:4px;border:1px solid var(--border)">
-              <div style="font-size:0.65rem;color:var(--text-light)">قيمة اليوم</div>
-              <div style="font-size:0.9rem;font-weight:800">${formatCurrency(c.dayVal || 0)}</div>
-            </div>
-            <div style="background:white;padding:0.4rem;border-radius:4px;border:1px solid var(--border)">
-              <div style="font-size:0.65rem;color:var(--text-light)">المشتركون</div>
-              <div style="font-size:0.9rem;font-weight:800">${c.subCount || 0}</div>
-            </div>
-            <div style="background:white;padding:0.4rem;border-radius:4px;border:1px solid var(--border)">
-              <div style="font-size:0.65rem;color:var(--text-light)">اشتراك/شخص</div>
-              <div style="font-size:0.9rem;font-weight:800">${formatCurrency(c.subVal || 0)}</div>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;margin-top:0.5rem">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem">
             <div style="background:#fdecea;padding:0.5rem;border-radius:4px;text-align:center">
               <div style="font-size:0.7rem;color:#c0392b">تكلفة الشهر</div>
               <div style="font-weight:900;color:#c0392b">${formatCurrency(cost)}</div>
@@ -506,12 +781,12 @@
               <div style="font-weight:900;color:${diffColor}">${formatCurrency(Math.abs(diff))}</div>
             </div>
           </div>
+          ${vehiclesHtml}
         </div>`;
-    }).join('');
+    }
 
-    container.innerHTML = cards;
+    container.innerHTML = allCards;
 
-    // ملخص الإجماليات
     const totalDiff = totalRevenue - totalCost;
     document.getElementById('busTotalCost').textContent    = formatCurrency(totalCost);
     document.getElementById('busTotalRevenue').textContent = formatCurrency(totalRevenue);
@@ -520,6 +795,75 @@
     document.getElementById('busTotalSummary').style.display = 'block';
 
     updateStats(totalCost, totalRevenue);
+  }
+
+  // ===== مودال الخصم من العهدة =====
+  function openDeductModal(companyId, vehicleId, label, suggestedAmount) {
+    document.getElementById('deductCompanyId').value  = companyId;
+    document.getElementById('deductVehicleId').value  = vehicleId;
+    document.getElementById('deductLabel').value      = label;
+    document.getElementById('deductAmount').value     = suggestedAmount || '';
+    document.getElementById('deductNotes').value      = '';
+    document.getElementById('deductAlert').style.display = 'none';
+    document.getElementById('deductCurrentBalance').textContent = formatCurrency(custodianBalance);
+    document.getElementById('busDeductModal').classList.remove('hidden');
+  }
+
+  async function saveDeduction() {
+    const amount = parseFloat(document.getElementById('deductAmount').value) || 0;
+    const notes  = document.getElementById('deductNotes').value.trim();
+    const label  = document.getElementById('deductLabel').value;
+
+    if (!amount || amount <= 0) {
+      showDeductAlert('من فضلك ادخل مبلغ صحيح', 'error'); return;
+    }
+    if (amount > custodianBalance) {
+      showDeductAlert(`المبلغ (${formatCurrency(amount)}) أكبر من العهدة المتاحة (${formatCurrency(custodianBalance)})`, 'error'); return;
+    }
+
+    const btn = document.getElementById('deductSaveBtn');
+    btn.disabled = true; btn.textContent = 'جاري الخصم...';
+
+    try {
+      // تسجيل كمصروف في collection expenses
+      const today = new Date().toISOString().split('T')[0];
+      await db.collection('expenses').add({
+        schoolId,
+        recipientName: label,
+        date: today,
+        amount,
+        category: 'transport',
+        categoryLabel: 'بدل انتقال (باصات)',
+        notes: notes || `خصم باصات — ${label}`,
+        createdBy: session.email,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        year:  new Date(today).getFullYear(),
+        month: new Date(today).getMonth() + 1,
+        week:  1,
+        sourceModule: 'buses'
+      });
+
+      // تحديث الرصيد محلياً
+      custodianBalance -= amount;
+      document.getElementById('deductCurrentBalance').textContent = formatCurrency(custodianBalance);
+      showDeductAlert(`تم الخصم بنجاح! الرصيد المتبقي: ${formatCurrency(custodianBalance)}`, 'success');
+      setTimeout(() => {
+        document.getElementById('busDeductModal').classList.add('hidden');
+      }, 1800);
+    } catch(err) {
+      showDeductAlert('خطأ: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = ' تأكيد الخصم';
+    }
+  }
+
+  function showDeductAlert(msg, type) {
+    const el = document.getElementById('deductAlert');
+    el.style.display = 'block';
+    el.style.background = type === 'success' ? '#e8f5e9' : '#fdecea';
+    el.style.color      = type === 'success' ? '#2e7d32' : '#c0392b';
+    el.style.border     = `1px solid ${type === 'success' ? '#a5d6a7' : '#ef9a9a'}`;
+    el.textContent      = msg;
   }
 
   function updateStats(totalCost, totalRevenue) {
@@ -539,8 +883,8 @@
     const school = SESSION.getSchool();
     let totalCost = 0, totalRev = 0;
     const rows = busCompanies.map((c, i) => {
-      const cost = c.monthly  || (c.cars * c.days * c.dayVal) || 0;
-      const rev  = c.subTotal || (c.subCount * c.subVal)      || 0;
+      const cost = c.monthly  || 0;
+      const rev  = c.subTotal || (c.subCount * c.subVal) || 0;
       const diff = rev - cost;
       totalCost += cost; totalRev += rev;
       return `<tr>
@@ -548,7 +892,6 @@
         <td>${c.name}</td>
         <td>${c.cars||0}</td>
         <td>${c.days||0}</td>
-        <td>${formatCurrency(c.dayVal||0)}</td>
         <td style="color:#c0392b;font-weight:800">${formatCurrency(cost)}</td>
         <td>${c.subCount||0}</td>
         <td>${formatCurrency(c.subVal||0)}</td>
@@ -581,13 +924,13 @@
       </div>
       <table>
         <thead><tr>
-          <th>#</th><th>الشركة</th><th>السيارات</th><th>الأيام</th><th>قيمة اليوم</th>
+          <th>#</th><th>الشركة</th><th>السيارات</th><th>الأيام</th>
           <th>تكلفة الشهر</th><th>المشتركون</th><th>اشتراك/شخص</th><th>الإيرادات</th><th>الفارق</th>
         </tr></thead>
         <tbody>${rows}</tbody>
         <tfoot>
           <tr style="background:#1a3a6b;color:white;font-weight:900">
-            <td colspan="5">الإجمالي</td>
+            <td colspan="4">الإجمالي</td>
             <td>${formatCurrency(totalCost)}</td>
             <td colspan="2"></td>
             <td>${formatCurrency(totalRev)}</td>
@@ -613,7 +956,7 @@
     wb.creator = 'Eng. Kareem Ali Mousa';
     const ws = wb.addWorksheet('بند الباصات', { views: [{ rightToLeft: true }] });
     ws.columns = [
-      {width:5},{width:24},{width:10},{width:10},{width:14},
+      {width:5},{width:24},{width:10},{width:10},
       {width:16},{width:14},{width:14},{width:14},{width:14}
     ];
     const hStyle = (bg, fc='FFFFFF') => ({
@@ -624,39 +967,39 @@
     });
 
     // Title
-    ws.mergeCells('A1:J1');
+    ws.mergeCells('A1:I1');
     const r1 = ws.getRow(1); r1.height = 32;
     r1.getCell(1).value = `بند الباصات  —  ${school?.name||''}  —  السنة الدراسية 2026/2027`;
     r1.getCell(1).style = hStyle('DDD9C4', 'C00000');
     r1.getCell(1).font  = { name:'Arial', bold:true, size:14, color:{argb:'FFC00000'} };
 
     // Header
-    const hdr = ws.addRow(['م','اسم الشركة','السيارات','الأيام','قيمة اليوم','تكلفة الشهر','المشتركون','اشتراك/شخص','الإيرادات','فائض/عجز']);
+    const hdr = ws.addRow(['م','اسم الشركة','السيارات','الأيام','تكلفة الشهر','المشتركون','اشتراك/شخص','الإيرادات','فائض/عجز']);
     hdr.height = 24;
     hdr.eachCell({includeEmpty:true}, cell => { cell.style = hStyle('AD818A'); });
 
     let totalCost=0, totalRev=0;
     busCompanies.forEach((c, i) => {
-      const cost = c.monthly  || (c.cars*c.days*c.dayVal) || 0;
-      const rev  = c.subTotal || (c.subCount*c.subVal)    || 0;
+      const cost = c.monthly  || 0;
+      const rev  = c.subTotal || (c.subCount*c.subVal) || 0;
       const diff = rev - cost;
       totalCost += cost; totalRev += rev;
-      const row = ws.addRow([i+1,c.name,c.cars||0,c.days||0,c.dayVal||0,cost,c.subCount||0,c.subVal||0,rev,diff]);
+      const row = ws.addRow([i+1,c.name,c.cars||0,c.days||0,cost,c.subCount||0,c.subVal||0,rev,diff]);
       row.height = 20;
       const bg = i%2===1 ? 'FFF5F0F0' : null;
       row.eachCell({includeEmpty:true}, (cell, col) => {
         cell.style = { font:{name:'Arial',size:10}, fill: bg?{type:'pattern',pattern:'solid',fgColor:{argb:bg}}:undefined, alignment:{horizontal:'center',vertical:'middle',readingOrder:2} };
-        if([5,6,8,9,10].includes(col)) cell.numFmt='#,##0';
-        if(col===10) cell.font={name:'Arial',bold:true,size:10,color:{argb:diff>=0?'FF1B5E20':'FFC00000'}};
+        if([5,7,8,9].includes(col)) cell.numFmt='#,##0';
+        if(col===9) cell.font={name:'Arial',bold:true,size:10,color:{argb:diff>=0?'FF1B5E20':'FFC00000'}};
       });
     });
 
     const totalDiff = totalRev - totalCost;
-    const tot = ws.addRow(['','الإجمالي','','','',totalCost,'','',totalRev,totalDiff]);
+    const tot = ws.addRow(['','الإجمالي','','',totalCost,'','',totalRev,totalDiff]);
     tot.height = 24;
     tot.eachCell({includeEmpty:true}, (cell, col) => {
       cell.style = { font:{name:'Arial',bold:true,size:12,color:{argb:'FFFFFFFF'}}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FF1A3A6B'}}, alignment:{horizontal:'center',vertical:'middle',readingOrder:2} };
-      if([6,9,10].includes(col)) { cell.numFmt='#,##0'; if(col===10) cell.font.color={argb:totalDiff>=0?'FF90EE90':'FFFF9999'}; }
+      if([5,8,9].includes(col)) { cell.numFmt='#,##0'; if(col===9) cell.font.color={argb:totalDiff>=0?'FF90EE90':'FFFF9999'}; }
     });
 
     const buffer = await wb.xlsx.writeBuffer();
@@ -668,9 +1011,504 @@
     URL.revokeObjectURL(url);
   }
 
+  // ============================================================
+  // حسابات الباصات Modal
+  // ============================================================
+  const TERM1_MONTHS = [
+    { key:'sep',  label:'سبتمبر 2025'  },
+    { key:'oct',  label:'أكتوبر 2025'  },
+    { key:'nov',  label:'نوفمبر 2025'  },
+    { key:'dec',  label:'ديسمبر 2025'  },
+    { key:'jan',  label:'يناير 2026'   },
+    { key:'feb',  label:'فبراير 2026'  },
+  ];
+  const TERM2_MONTHS = [
+    { key:'mar',  label:'مارس 2026'          },
+    { key:'apr',  label:'أبريل 2026 (تقديري)' },
+    { key:'may',  label:'مايو 2026 (تقديري)'  },
+  ];
+
+  let calcCurrentVehicle = null;   // { dayVal, monthlyCost, days, companyDays }
+  let calcData = {};               // key → { days, dayVal, revenue, note, remark }
+
+  async function openBusCalcModal() {
+    const school = SESSION.getSchool();
+    document.getElementById('calcModalSchoolName').textContent = school?.name || '';
+
+    // ملء dropdown الشركات
+    const sel = document.getElementById('calcCompanySelect');
+    sel.innerHTML = '<option value="">— اختر شركة —</option>';
+    busCompanies.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name;
+      sel.appendChild(opt);
+    });
+    document.getElementById('calcVehicleSelect').innerHTML = '<option value="">— اختر عربية —</option>';
+    document.getElementById('calcVehicleSelect').disabled = true;
+
+    calcCurrentVehicle = null;
+    calcData = {};
+    renderCalcTables();
+    document.getElementById('busCalcModal').classList.remove('hidden');
+  }
+
+  function closeBusCalcModal() {
+    document.getElementById('busCalcModal').classList.add('hidden');
+  }
+
+  async function onCalcCompanyChange() {
+    const companyId = document.getElementById('calcCompanySelect').value;
+    const vSel = document.getElementById('calcVehicleSelect');
+    vSel.innerHTML = '<option value="">— اختر عربية —</option>';
+    vSel.disabled = true;
+    calcCurrentVehicle = null;
+    calcData = {};
+    renderCalcTables();
+    if (!companyId) return;
+
+    try {
+      const snap = await db.collection('busCompanies').doc(schoolId)
+        .collection('companies').doc(companyId).collection('vehicles')
+        .orderBy('createdAt','asc').get();
+      snap.forEach(vDoc => {
+        const v = vDoc.data();
+        const opt = document.createElement('option');
+        opt.value = vDoc.id;
+        opt.dataset.dayVal = v.dayVal || 0;
+        opt.dataset.companyId = companyId;
+        const company = busCompanies.find(c => c.id === companyId);
+        opt.dataset.days = company?.days || 0;
+        opt.dataset.subVal = company?.subVal || 0;
+        opt.dataset.subCount = company?.subCount || 0;
+        opt.textContent = `${v.plate || 'عربية'} ${v.lineNum ? '— خط '+v.lineNum : ''} ${v.route ? '— '+v.route : ''}`;
+        vSel.appendChild(opt);
+      });
+      if (!snap.empty) vSel.disabled = false;
+    } catch(e) {}
+  }
+
+  function onCalcVehicleChange() {
+    const vSel = document.getElementById('calcVehicleSelect');
+    const opt = vSel.options[vSel.selectedIndex];
+    if (!opt || !opt.value) { calcCurrentVehicle = null; calcData = {}; renderCalcTables(); return; }
+
+    const dayVal   = parseFloat(opt.dataset.dayVal)   || 0;
+    const days     = parseFloat(opt.dataset.days)      || 0;
+    const subVal   = parseFloat(opt.dataset.subVal)    || 0;
+    const subCount = parseFloat(opt.dataset.subCount)  || 0;
+    const revenue  = subVal * subCount;
+
+    calcCurrentVehicle = { dayVal, days, revenue };
+
+    // تهيئة البيانات بالقيم الافتراضية
+    calcData = {};
+    [...TERM1_MONTHS, ...TERM2_MONTHS].forEach(m => {
+      calcData[m.key] = {
+        days:    days,
+        dayVal:  dayVal,
+        revenue: revenue,
+        note:    '',
+        remark:  ''
+      };
+    });
+
+    renderCalcTables();
+  }
+
+  function renderCalcTables() {
+    const noData = document.getElementById('calcNoData');
+    const t1 = document.getElementById('calcT1Body');
+    const t2 = document.getElementById('calcT2Body');
+    const finalRow = document.getElementById('calcFinalRow');
+
+    if (!calcCurrentVehicle) {
+      noData.style.display = 'block';
+      t1.innerHTML = '';
+      t2.innerHTML = '';
+      finalRow.style.display = 'none';
+      document.getElementById('calcTotalRev').textContent  = '0 ج.م';
+      document.getElementById('calcTotalCost').textContent = '0 ج.م';
+      document.getElementById('calcFinalVal').textContent  = '0 ج.م';
+      return;
+    }
+
+    noData.style.display = 'none';
+    finalRow.style.display = 'grid';
+
+    function buildRows(months, bodyEl, borderColor) {
+      bodyEl.innerHTML = '';
+      months.forEach(m => {
+        const d = calcData[m.key] || { days: 0, dayVal: 0, revenue: 0, note: '', remark: '' };
+        const total = (d.days || 0) * (d.dayVal || 0);
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = `1px solid ${borderColor}`;
+        tr.innerHTML = `
+          <td style="padding:0.45rem 0.75rem;font-weight:700;white-space:nowrap;border:1px solid ${borderColor}">
+            حساب شهر ${m.label}
+          </td>
+          <td style="padding:0.3rem 0.4rem;border:1px solid ${borderColor};text-align:center">
+            <input type="number" value="${d.days}" min="0" step="1"
+              style="width:60px;text-align:center;border:1px solid #ddd;border-radius:4px;padding:2px 4px;font-family:Cairo,sans-serif;font-size:0.82rem"
+              onchange="updateCalcCell('${m.key}','days',this.value)" />
+          </td>
+          <td style="padding:0.3rem 0.4rem;border:1px solid ${borderColor};text-align:center">
+            <input type="number" value="${d.dayVal}" min="0" step="0.01"
+              style="width:75px;text-align:center;border:1px solid #ddd;border-radius:4px;padding:2px 4px;font-family:Cairo,sans-serif;font-size:0.82rem"
+              onchange="updateCalcCell('${m.key}','dayVal',this.value)" />
+          </td>
+          <td style="padding:0.45rem 0.75rem;text-align:center;font-weight:800;color:#c0392b;border:1px solid ${borderColor}" id="calcTotal_${m.key}">
+            ${formatCurrency(total)}
+          </td>
+          <td style="padding:0.3rem 0.4rem;border:1px solid ${borderColor};text-align:center">
+            <input type="number" value="${d.revenue}" min="0" step="0.01"
+              style="width:90px;text-align:center;border:1px solid #ddd;border-radius:4px;padding:2px 4px;font-family:Cairo,sans-serif;font-size:0.82rem;color:#2e7d32;font-weight:700"
+              onchange="updateCalcCell('${m.key}','revenue',this.value)" />
+          </td>
+          <td style="padding:0.3rem 0.4rem;border:1px solid ${borderColor}">
+            <input type="text" value="${d.note}" placeholder="بيان..."
+              style="width:100%;border:1px solid #ddd;border-radius:4px;padding:2px 6px;font-family:Cairo,sans-serif;font-size:0.78rem"
+              onchange="updateCalcCell('${m.key}','note',this.value)" />
+          </td>
+          <td style="padding:0.3rem 0.4rem;border:1px solid ${borderColor}">
+            <input type="text" value="${d.remark}" placeholder="ملاحظة..."
+              style="width:100%;border:1px solid #ddd;border-radius:4px;padding:2px 6px;font-family:Cairo,sans-serif;font-size:0.78rem"
+              onchange="updateCalcCell('${m.key}','remark',this.value)" />
+          </td>
+        `;
+        bodyEl.appendChild(tr);
+      });
+
+      // صف الإجماليات
+      const sumDays = months.reduce((s,m) => s + (calcData[m.key]?.days||0), 0);
+      const sumCost = months.reduce((s,m) => s + (calcData[m.key]?.days||0)*(calcData[m.key]?.dayVal||0), 0);
+      const sumRev  = months.reduce((s,m) => s + (calcData[m.key]?.revenue||0), 0);
+      const totTr = document.createElement('tr');
+      totTr.style.background = borderColor === '#f0e07a' ? '#fffde7' : '#c8e6c9';
+      totTr.innerHTML = `
+        <td style="padding:0.5rem 0.75rem;font-weight:900;border:1px solid ${borderColor}">إجمالي الترم</td>
+        <td style="padding:0.5rem;text-align:center;font-weight:800;border:1px solid ${borderColor}">${sumDays}</td>
+        <td style="padding:0.5rem;border:1px solid ${borderColor}"></td>
+        <td style="padding:0.5rem;text-align:center;font-weight:900;color:#c0392b;border:1px solid ${borderColor}">${formatCurrency(sumCost)}</td>
+        <td style="padding:0.5rem;text-align:center;font-weight:900;color:#2e7d32;border:1px solid ${borderColor}">${formatCurrency(sumRev)}</td>
+        <td colspan="2" style="border:1px solid ${borderColor}"></td>
+      `;
+      bodyEl.appendChild(totTr);
+    }
+
+    buildRows(TERM1_MONTHS, t1, '#f0e07a');
+    buildRows(TERM2_MONTHS, t2, '#a5d6a7');
+    updateCalcSummary();
+  }
+
+  function updateCalcCell(key, field, value) {
+    if (!calcData[key]) return;
+    calcData[key][field] = field === 'note' || field === 'remark' ? value : (parseFloat(value) || 0);
+
+    // تحديث خلية الإجمالي في نفس الصف
+    if (field === 'days' || field === 'dayVal') {
+      const total = (calcData[key].days||0) * (calcData[key].dayVal||0);
+      const el = document.getElementById(`calcTotal_${key}`);
+      if (el) el.textContent = formatCurrency(total);
+    }
+
+    // إعادة رندر الصفوف الإجمالية
+    renderCalcTables();
+  }
+
+  function updateCalcSummary() {
+    const allMonths = [...TERM1_MONTHS, ...TERM2_MONTHS];
+    const totalCost = allMonths.reduce((s,m) => s + (calcData[m.key]?.days||0)*(calcData[m.key]?.dayVal||0), 0);
+    const totalRev  = allMonths.reduce((s,m) => s + (calcData[m.key]?.revenue||0), 0);
+    const final     = totalRev - totalCost;
+
+    document.getElementById('calcTotalRev').textContent  = formatCurrency(totalRev);
+    document.getElementById('calcTotalCost').textContent = formatCurrency(totalCost);
+    document.getElementById('calcFinalVal').textContent  = formatCurrency(Math.abs(final));
+    document.getElementById('calcFinalLabel').textContent = final >= 0 ? 'التصفية النهائية (فائض)' : 'التصفية النهائية (عجز)';
+    const card = document.getElementById('calcFinalCard');
+    if (final < 0) {
+      card.style.background = '#fdecea'; card.style.borderColor = '#c62828';
+      document.getElementById('calcFinalLabel').style.color = '#c62828';
+      document.getElementById('calcFinalVal').style.color   = '#c62828';
+    } else {
+      card.style.background = '#e8f5e9'; card.style.borderColor = '#2e7d32';
+      document.getElementById('calcFinalLabel').style.color = '#2e7d32';
+      document.getElementById('calcFinalVal').style.color   = '#2e7d32';
+    }
+  }
+
+  // ---- تصدير Excel حسابات الباصات ----
+  async function exportCalcExcel() {
+    if (!calcCurrentVehicle) { alert('اختر شركة وعربية أولاً'); return; }
+    if (typeof ExcelJS === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      document.head.appendChild(s);
+      await new Promise(r => s.onload = r);
+    }
+
+    const school      = SESSION.getSchool();
+    const companyName = document.getElementById('calcCompanySelect').options[document.getElementById('calcCompanySelect').selectedIndex]?.text || '';
+    const vehicleName = document.getElementById('calcVehicleSelect').options[document.getElementById('calcVehicleSelect').selectedIndex]?.text || '';
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Eng. Kareem Ali Mousa';
+    const ws = wb.addWorksheet('حسابات الباصات', { views:[{ rightToLeft:true }] });
+
+    // column widths
+    ws.columns = [
+      {width:3},{width:26},{width:16},{width:14},{width:16},{width:16},{width:20},{width:22},{width:3},
+      {width:24},{width:18},{width:14},{width:18}
+    ];
+
+    // helpers
+    const border = (color='B0B0B0') => ({
+      top:{style:'thin',color:{argb:'FF'+color}},
+      bottom:{style:'thin',color:{argb:'FF'+color}},
+      left:{style:'thin',color:{argb:'FF'+color}},
+      right:{style:'thin',color:{argb:'FF'+color}}
+    });
+    const fill = (hex) => ({ type:'pattern', pattern:'solid', fgColor:{argb:'FF'+hex} });
+    const font = (bold=false, size=10, color='1a1a2e', name='Arial') => ({ name, bold, size, color:{argb:'FF'+color} });
+    const align = (h='center', v='middle') => ({ horizontal:h, vertical:v, readingOrder:2, wrapText:true });
+
+    // ===== Title row =====
+    ws.mergeCells('B1:H1');
+    const titleRow = ws.getRow(1); titleRow.height = 36;
+    const tc = titleRow.getCell(2);
+    tc.value = `حسابات باصات — ${school?.name||''} — ${companyName} — ${vehicleName}`;
+    tc.style = { font:font(true,14,'FFFFFF'), fill:fill('1A3A6B'), alignment:align(), border:border('1A3A6B') };
+
+    // ===== Header row =====
+    ws.mergeCells('B2:H2');
+    const h2 = ws.getRow(2); h2.height = 22;
+    const hc = h2.getCell(2);
+    hc.value = 'بيان التكاليف والإيرادات الشهرية';
+    hc.style = { font:font(true,11,'1A3A6B'), fill:fill('E8F0FE'), alignment:align(), border:border('1A3A6B') };
+
+    // ===== Column headers =====
+    const colHdr = ws.addRow([null,'البيان','عدد أيام العمل','قيمة اليوم','الإجمالي','مبلغ الإيراد','بيان','ملاحظات']);
+    colHdr.height = 24;
+    ['B','C','D','E','F','G','H'].forEach((col,i) => {
+      const cell = colHdr.getCell(col);
+      cell.style = {
+        font:  font(true,10,'FFFFFF'),
+        fill:  fill('1A3A6B'),
+        alignment: align(),
+        border: border('1A3A6B')
+      };
+    });
+
+    // helper: write term block
+    const writeTermRows = (months, termLabel, hdrFill, rowFill, borderCol) => {
+      // term header
+      const termHdrRow = ws.addRow([null, termLabel]);
+      ws.mergeCells(`B${termHdrRow.number}:H${termHdrRow.number}`);
+      termHdrRow.height = 22;
+      termHdrRow.getCell('B').style = {
+        font: font(true,11,'FFFFFF'),
+        fill: fill(hdrFill),
+        alignment: align(),
+        border: border(borderCol)
+      };
+
+      let sumDays=0, sumCost=0, sumRev=0;
+
+      months.forEach(m => {
+        const d = calcData[m.key] || { days:0, dayVal:0, revenue:0, note:'', remark:'' };
+        const total = (d.days||0)*(d.dayVal||0);
+        sumDays += (d.days||0); sumCost += total; sumRev += (d.revenue||0);
+
+        const r = ws.addRow([null, `حساب شهر ${m.label}`, d.days||0, d.dayVal||0, total, d.revenue||0, d.note||'', d.remark||'']);
+        r.height = 20;
+        ['B','C','D','E','F','G','H'].forEach(col => {
+          const cell = r.getCell(col);
+          const isNum = ['C','D','E','F'].includes(col);
+          cell.style = {
+            font: font(false,10,'1a1a2e'),
+            fill: fill(rowFill),
+            alignment: isNum ? align('center') : align('right'),
+            border: border(borderCol)
+          };
+          if(isNum) cell.numFmt = '#,##0.00';
+          if(col==='E') cell.style.font = font(true,10,'C00000');
+          if(col==='F') cell.style.font = font(true,10,'1B5E20');
+        });
+      });
+
+      // sum row
+      const sumRow = ws.addRow([null,'إجمالي الترم', sumDays, '', sumCost, sumRev, '', '']);
+      sumRow.height = 22;
+      ['B','C','D','E','F','G','H'].forEach(col => {
+        const cell = sumRow.getCell(col);
+        cell.style = {
+          font: font(true,10,'FFFFFF'),
+          fill: fill(hdrFill),
+          alignment: align(),
+          border: border(borderCol)
+        };
+        if(['E','F'].includes(col)) cell.numFmt='#,##0.00';
+      });
+
+      return { sumDays, sumCost, sumRev };
+    };
+
+    const t1 = writeTermRows(TERM1_MONTHS, 'ترم أول', 'F9A825', 'FFFDE7', 'F9A825');
+    ws.addRow([]); // فراغ
+    const t2 = writeTermRows(TERM2_MONTHS, 'ترم ثان', '43A047', 'E8F5E9', '43A047');
+    ws.addRow([]); // فراغ
+
+    // التصفية النهائية
+    const allMonths = [...TERM1_MONTHS,...TERM2_MONTHS];
+    const totalRev  = allMonths.reduce((s,m)=>s+(calcData[m.key]?.revenue||0),0);
+    const totalCost = allMonths.reduce((s,m)=>s+(calcData[m.key]?.days||0)*(calcData[m.key]?.dayVal||0),0);
+    const finalVal  = totalRev - totalCost;
+
+    const finalHdr = ws.addRow([null,'التصفية النهائية','','','',`${finalVal>=0?'فائض':'عجز'}: ${Math.abs(finalVal).toLocaleString('ar-EG')} ج.م`]);
+    ws.mergeCells(`B${finalHdr.number}:E${finalHdr.number}`);
+    ws.mergeCells(`F${finalHdr.number}:H${finalHdr.number}`);
+    finalHdr.height = 28;
+    finalHdr.getCell('B').style = { font:font(true,12,'FFFFFF'), fill:fill('1A3A6B'), alignment:align(), border:border('1A3A6B') };
+    finalHdr.getCell('F').style = { font:font(true,12, finalVal>=0?'90EE90':'FF9999'), fill:fill('1A3A6B'), alignment:align(), border:border('1A3A6B') };
+
+    // summary block
+    ws.addRow([]);
+    const sHdr = ws.addRow([null,'ملخص السنة','إجمالي الإيراد','','إجمالي المنصرف','','التصفية']);
+    ws.mergeCells(`C${sHdr.number}:D${sHdr.number}`);
+    ws.mergeCells(`E${sHdr.number}:F${sHdr.number}`);
+    sHdr.height = 22;
+    ['B','C','E','G'].forEach(col => {
+      sHdr.getCell(col).style={ font:font(true,10,'FFFFFF'), fill:fill('1A3A6B'), alignment:align(), border:border('1A3A6B') };
+    });
+    const sVals = ws.addRow([null,'',totalRev,'',totalCost,'',finalVal]);
+    ws.mergeCells(`C${sVals.number}:D${sVals.number}`);
+    ws.mergeCells(`E${sVals.number}:F${sVals.number}`);
+    sVals.height = 26;
+    ['C','E','G'].forEach(col => {
+      const cell = sVals.getCell(col);
+      cell.numFmt = '#,##0';
+      cell.style = {
+        font: font(true,13, col==='C'?'1B5E20': col==='E'?'C00000': finalVal>=0?'1B5E20':'C00000'),
+        fill: fill('F8F9FA'),
+        alignment: align(),
+        border: border('1A3A6B')
+      };
+    });
+
+    const buf  = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href=url; a.download=`حسابات_باصات_${school?.name||''}_${vehicleName}.xlsx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   // ---- Init ----
   loadBusData();
 </script>
+
+<!-- ======================================================
+     Modal: حسابات الباصات
+     ====================================================== -->
+<div class="modal-overlay hidden" id="busCalcModal">
+  <div class="modal-box" style="max-width:820px;font-family:Cairo,sans-serif">
+    <div class="modal-header" style="background:linear-gradient(135deg,#1a3a6b,#0d2247);color:white;border-radius:var(--radius) var(--radius) 0 0">
+      <span class="modal-title" style="color:white;font-size:1.05rem"> حسابات الباصات — <span id="calcModalSchoolName"></span></span>
+      <button class="modal-close" onclick="closeBusCalcModal()" style="color:white;font-size:1.3rem">✕</button>
+    </div>
+
+    <div class="modal-body" style="padding:1.25rem">
+
+      <!-- اختيار الشركة والعربية -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem">
+        <div class="form-group">
+          <label class="form-label" style="font-weight:800"> اختر الشركة</label>
+          <select class="form-select" id="calcCompanySelect" onchange="onCalcCompanyChange()">
+            <option value="">— اختر شركة —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="font-weight:800"> اختر العربية</label>
+          <select class="form-select" id="calcVehicleSelect" onchange="onCalcVehicleChange()" disabled>
+            <option value="">— اختر عربية —</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- جدول الأشهر - الترم الأول -->
+      <div style="background:#fffde7;border:2px solid #f9a825;border-radius:var(--radius-sm);margin-bottom:0.75rem;overflow:hidden">
+        <div style="background:#f9a825;color:white;padding:0.5rem 1rem;font-weight:800;font-size:0.88rem"> ترم أول</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:0.82rem;direction:rtl" id="calcT1Table">
+            <thead>
+              <tr style="background:#fff9c4">
+                <th style="padding:0.5rem 0.75rem;text-align:right;border:1px solid #f0e07a;white-space:nowrap">البيان</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #f0e07a;white-space:nowrap">عدد أيام العمل</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #f0e07a;white-space:nowrap">قيمة اليوم</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #f0e07a;white-space:nowrap;color:#c0392b">الإجمالي</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #f0e07a;white-space:nowrap;color:#2e7d32">مبلغ الإيراد</th>
+                <th style="padding:0.5rem 0.75rem;text-align:right;border:1px solid #f0e07a">بيان</th>
+                <th style="padding:0.5rem 0.75rem;text-align:right;border:1px solid #f0e07a">ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody id="calcT1Body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- جدول الأشهر - الترم الثاني -->
+      <div style="background:#e8f5e9;border:2px solid #43a047;border-radius:var(--radius-sm);margin-bottom:0.75rem;overflow:hidden">
+        <div style="background:#43a047;color:white;padding:0.5rem 1rem;font-weight:800;font-size:0.88rem"> ترم ثان</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:0.82rem;direction:rtl" id="calcT2Table">
+            <thead>
+              <tr style="background:#c8e6c9">
+                <th style="padding:0.5rem 0.75rem;text-align:right;border:1px solid #a5d6a7;white-space:nowrap">البيان</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #a5d6a7;white-space:nowrap">عدد أيام العمل</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #a5d6a7;white-space:nowrap">قيمة اليوم</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #a5d6a7;white-space:nowrap;color:#c0392b">الإجمالي</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #a5d6a7;white-space:nowrap;color:#2e7d32">مبلغ الإيراد</th>
+                <th style="padding:0.5rem 0.75rem;text-align:right;border:1px solid #a5d6a7">بيان</th>
+                <th style="padding:0.5rem 0.75rem;text-align:right;border:1px solid #a5d6a7">ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody id="calcT2Body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- صف التصفية النهائية -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:0.75rem" id="calcFinalRow">
+        <div style="background:#e3f2fd;border:2px solid #1565c0;border-radius:var(--radius-sm);padding:0.75rem;text-align:center">
+          <div style="font-size:0.75rem;color:#1565c0;font-weight:700">إجمالي الإيراد</div>
+          <div style="font-size:1.3rem;font-weight:900;color:#1565c0" id="calcTotalRev">0 ج.م</div>
+        </div>
+        <div style="background:#fdecea;border:2px solid #c62828;border-radius:var(--radius-sm);padding:0.75rem;text-align:center">
+          <div style="font-size:0.75rem;color:#c62828;font-weight:700">إجمالي المنصرف</div>
+          <div style="font-size:1.3rem;font-weight:900;color:#c62828" id="calcTotalCost">0 ج.م</div>
+        </div>
+        <div style="background:#e8f5e9;border:2px solid #2e7d32;border-radius:var(--radius-sm);padding:0.75rem;text-align:center" id="calcFinalCard">
+          <div style="font-size:0.75rem;color:#2e7d32;font-weight:700" id="calcFinalLabel">التصفية النهائية</div>
+          <div style="font-size:1.3rem;font-weight:900;color:#2e7d32" id="calcFinalVal">0 ج.م</div>
+        </div>
+      </div>
+
+      <!-- تنبيه بلا بيانات -->
+      <div id="calcNoData" style="display:none;text-align:center;padding:2rem;color:var(--text-light)">
+        <div style="font-size:2.5rem"></div>
+        <div style="font-weight:700;margin-top:0.5rem">اختر شركة وعربية لعرض الحسابات</div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeBusCalcModal()">إغلاق</button>
+      <button class="btn btn-outline btn-sm" onclick="exportCalcExcel()" style="background:#1b5e20;color:white;border-color:#1b5e20;font-weight:700"> تصدير Excel</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
