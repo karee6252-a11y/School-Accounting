@@ -97,7 +97,7 @@
 <body>
 
 <div class="app-layout">
-  <div class="main-content" style="margin-right: 0 !important; width: 100%;">
+  <div class="main-content">
     <div id="topbarContainer"></div>
     <div class="page-content">
 
@@ -304,42 +304,14 @@
 
 <script>
   // ══════════════════════════════════════════════
-  // INIT — حماية الصفحة: شئون الطلاب والـ Admin بس
+  // INIT — حماية الصفحة + sidebar حسب الدور
   // ══════════════════════════════════════════════
   (function () {
-    // guardShu2onPage تتحقق من الدور وتطبق الثيم
     const session = guardShu2onPage();
     if (!session) return;
-
-    const school = SESSION.getSchool();
-    const isAdmin = SESSION.isAdmin();
-
-    // Topbar بدون sidebar (صفحة مستقلة لشئون الطلاب)
-    const topbar = document.createElement('div');
-    topbar.className = 'topbar';
-    topbar.innerHTML = `
-      <div class="d-flex align-center gap-1">
-        <img src="${school?.logo || ''}" alt="${school?.name || ''}"
-          onerror="this.style.display='none'"
-          style="width:36px;height:36px;object-fit:contain;border-radius:8px;margin-left:8px" />
-        <h1 class="topbar-title">شئون الطلاب</h1>
-      </div>
-      <div class="topbar-actions">
-        <div class="badge badge-primary">${school?.name || ''}</div>
-        <div style="font-size:0.8rem;color:var(--text-light)">
-          ${new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
-        </div>
-        ${isAdmin ? `<a href="dashboard.html" class="btn btn-outline btn-sm" style="width:auto">← لوحة التحكم</a>` : ''}
-        <button class="btn btn-outline btn-sm" onclick="logout()" style="width:auto">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-          خروج
-        </button>
-      </div>`;
-    document.getElementById('topbarContainer').appendChild(topbar);
+    // renderLayout تبني السايد بار تلقائي حسب الدور:
+    // محاسب/أدمن → كل الصفحات | shu2on → شئون الطلاب بس
+    renderLayout('student-affairs', 'شئون الطلاب');
   })();
 
   // ══════════════════════════════════════════════
