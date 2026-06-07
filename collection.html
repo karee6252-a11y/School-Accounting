@@ -298,14 +298,9 @@
         alertEl.classList.remove('hidden');
         setTimeout(() => alertEl.classList.add('hidden'), 6000);
 
-        // تحديث حالة الطالب في Firestore → in_progress
+        // حفظ الـ studentDocId بس — من غير تغيير الـ status
         if (prefill.studentDocId) {
           _shu2onStudentId = prefill.studentDocId;
-          db.collection('studentAffairs').doc(prefill.studentDocId).update({
-            status: 'in_progress',
-            collectionStartedBy: session.email,
-            collectionStartedAt: firebase.firestore.FieldValue.serverTimestamp()
-          }).catch(e => console.warn('shu2on status update failed:', e));
         }
       } catch(e) { console.warn('prefill parse error:', e); }
     }

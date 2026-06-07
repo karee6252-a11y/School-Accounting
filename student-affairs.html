@@ -594,11 +594,11 @@
   // ══════════════════════════════════════════════
   async function loadPendingCount() {
     try {
-      const [snapPending, snapInProgress] = await Promise.all([
-        db.collection('studentAffairs').where('schoolId','==',schoolId).where('status','==','pending').get(),
-        db.collection('studentAffairs').where('schoolId','==',schoolId).where('status','==','in_progress').get(),
-      ]);
-      document.getElementById('pendingBadge').textContent = snapPending.size + snapInProgress.size;
+      const snap = await db.collection('studentAffairs')
+        .where('schoolId', '==', schoolId)
+        .where('status', '==', 'pending')
+        .get();
+      document.getElementById('pendingBadge').textContent = snap.size;
     } catch(e) { console.warn(e); }
   }
 
@@ -612,14 +612,12 @@
     try {
       // ملاحظة: لو Firestore طلب Composite Index على schoolId+status+createdAt
       // ابعت الـ link اللي بيظهر في الـ console لـ Firebase وهيعمله تلقائي
-      const [snapP, snapI] = await Promise.all([
-        db.collection('studentAffairs').where('schoolId','==',schoolId).where('status','==','pending').orderBy('createdAt','desc').get(),
-        db.collection('studentAffairs').where('schoolId','==',schoolId).where('status','==','in_progress').orderBy('createdAt','desc').get(),
-      ]);
-      allStudents = [
-        ...snapP.docs.map(d => ({ id: d.id, ...d.data() })),
-        ...snapI.docs.map(d => ({ id: d.id, ...d.data() })),
-      ].sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+      const snap = await db.collection('studentAffairs')
+        .where('schoolId', '==', schoolId)
+        .where('status', '==', 'pending')
+        .orderBy('createdAt', 'desc')
+        .get();
+      allStudents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       updateStats();
       renderStudents(allStudents);
     } catch(err) {
@@ -682,17 +680,13 @@
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end">
-          ${s.status === 'in_progress'
-            ? `<span style="font-size:0.72rem;color:#0d6efd;background:#e7f1ff;border:1px solid #9ec5fe;border-radius:8px;padding:0.3rem 0.65rem;font-weight:700;white-space:nowrap">
-                🔄 جاري التحصيل
+          ${canCollect
+            ? `<button class="btn-transfer" onclick="goToCollection('${s.id}')">
+                💰 تسديد التحصيل
+               </button>`
+            : `<span style="font-size:0.72rem;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:0.3rem 0.65rem;font-weight:700;white-space:nowrap">
+                ⏳ في انتظار المحاسب
                </span>`
-            : canCollect
-              ? `<button class="btn-transfer" onclick="goToCollection('${s.id}')">
-                  💰 تسديد التحصيل
-                 </button>`
-              : `<span style="font-size:0.72rem;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:0.3rem 0.65rem;font-weight:700;white-space:nowrap">
-                  ⏳ في انتظار المحاسب
-                 </span>`
           }
           <button onclick="deleteStudent('${s.id}','${escHtml(s.studentName).replace(/'/g,"\\'")}'"
             style="font-size:0.72rem;color:var(--danger);background:none;border:none;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700">
