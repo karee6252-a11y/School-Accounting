@@ -196,10 +196,102 @@
       display: flex; gap: 0.75rem; justify-content: flex-end;
     }
 
+    /* ===== Tabs ===== */
+    .buses-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--primary);
+      margin-bottom: 1.5rem;
+    }
+    .buses-tab-btn {
+      padding: 0.65rem 1.4rem;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      font-family: 'Cairo', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-mid, #555);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .buses-tab-btn:hover { color: var(--primary); background: var(--accent); }
+    .buses-tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: var(--accent);
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    }
+    .buses-tab-pane { display: none; }
+    .buses-tab-pane.active { display: block; }
+
+    /* ===== Subscriptions tab ===== */
+    .sub-form-card {
+      background: var(--bg, #f5f7fa);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .sub-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .sub-term-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+    .sub-term-badge.term1 { background: #fff9c4; color: #f57f17; border: 1px solid #f9a825; }
+    .sub-term-badge.term2 { background: #e8f5e9; color: #2e7d32; border: 1px solid #43a047; }
+
+    /* ===== Expenses tab ===== */
+    .exp-form-card {
+      background: var(--bg, #f5f7fa);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .exp-table-wrapper { overflow-x: auto; }
+    .exp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .exp-table th {
+      background: var(--primary);
+      color: white;
+      padding: 0.55rem 0.75rem;
+      text-align: right;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .exp-table td {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .exp-table tr:nth-child(even) td { background: #f8f9fa; }
+    .exp-category-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
     @media (max-width: 768px) {
       .bus-stats-grid   { grid-template-columns: 1fr; }
       .cust-summary-grid { grid-template-columns: 1fr; }
       .bus-input-row    { grid-template-columns: 1fr; }
+      .sub-form-grid    { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -210,6 +302,16 @@
     <div id="topbarContainer"></div>
 
     <div class="page-content">
+
+      <!-- ===== Tabs Nav ===== -->
+      <div class="buses-tabs animate-in">
+        <button class="buses-tab-btn active" onclick="switchBusTab('companies')"> شركات الباصات</button>
+        <button class="buses-tab-btn" onclick="switchBusTab('subscriptions')"> اشتراكات جديدة</button>
+        <button class="buses-tab-btn" onclick="switchBusTab('busexpenses')"> تسجيل مصروفات</button>
+      </div>
+
+      <!-- ===== TAB: شركات الباصات ===== -->
+      <div class="buses-tab-pane active" id="tabPane-companies">
 
       <!-- Custodian Summary (من بيانات المصروفات) -->
       <div class="cust-summary-grid animate-in">
@@ -293,7 +395,201 @@
             <div style="font-size:1.1rem;font-weight:900" id="busTotalDiff">0 ج.م</div>
           </div>
         </div>
-      </div>
+      </div><!-- end busTotalSummary -->
+
+      </div><!-- end tabPane-companies -->
+
+      <!-- ===== TAB: اشتراكات جديدة ===== -->
+      <div class="buses-tab-pane" id="tabPane-subscriptions">
+
+        <!-- نموذج تسجيل اشتراك -->
+        <div class="sub-form-card animate-in">
+          <div class="bus-panel-title"> تسجيل اشتراك جديد</div>
+          <div class="sub-form-grid">
+            <div class="bus-input-group">
+              <label>اسم الطالب <span style="color:red">*</span></label>
+              <input type="text" class="form-input form-input-ar" id="subStudentName" placeholder="اسم الطالب كامل" />
+            </div>
+            <div class="bus-input-group">
+              <label>الصف <span style="color:red">*</span></label>
+              <input type="text" class="form-input form-input-ar" id="subStudentGrade" placeholder="مثال: الصف الأول أ" />
+            </div>
+            <div class="bus-input-group">
+              <label>تاريخ التسديد <span style="color:red">*</span></label>
+              <input type="date" class="form-input" id="subPayDate" onchange="autoDetectTerm()" />
+            </div>
+            <div class="bus-input-group">
+              <label>الترم</label>
+              <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.25rem">
+                <span class="sub-term-badge term1" id="subTermBadge">— اختر تاريخ أولاً —</span>
+                <input type="hidden" id="subTerm" value="" />
+              </div>
+            </div>
+            <div class="bus-input-group">
+              <label>المبلغ المدفوع (ج.م) <span style="color:red">*</span></label>
+              <input type="number" class="form-input" id="subAmount" placeholder="0.00" min="0" step="0.01" />
+            </div>
+            <div class="bus-input-group">
+              <label>ملاحظات</label>
+              <input type="text" class="form-input form-input-ar" id="subNotes" placeholder="اختياري..." />
+            </div>
+          </div>
+          <button class="bus-save-btn" onclick="saveSubscription()"> حفظ الاشتراك</button>
+          <div id="subSaveMsg" style="display:none;margin-top:0.6rem;padding:0.5rem 0.75rem;border-radius:var(--radius-sm);font-size:0.82rem;text-align:center"></div>
+        </div>
+
+        <!-- جدول الاشتراكات -->
+        <div class="card animate-in">
+          <div class="card-header">
+            <span class="card-title"> سجل الاشتراكات</span>
+            <div style="display:flex;gap:0.5rem;align-items:center">
+              <select class="form-select" id="subFilterTerm" onchange="renderSubscriptionsTable()" style="font-size:0.8rem;padding:0.3rem 0.6rem;width:auto">
+                <option value="">كل الترمات</option>
+                <option value="ترم أول">ترم أول</option>
+                <option value="ترم ثان">ترم ثان</option>
+              </select>
+              <span class="badge badge-primary" id="subCount">0 اشتراك</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="exp-table-wrapper">
+              <table class="exp-table" id="subTable">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>اسم الطالب</th>
+                    <th>الصف</th>
+                    <th>تاريخ التسديد</th>
+                    <th>الترم</th>
+                    <th>المبلغ المدفوع</th>
+                    <th>ملاحظات</th>
+                    <th>حذف</th>
+                  </tr>
+                </thead>
+                <tbody id="subTableBody">
+                  <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-light)">لا توجد اشتراكات بعد</td></tr>
+                </tbody>
+                <tfoot>
+                  <tr id="subTotalRow" style="display:none">
+                    <td colspan="5" style="font-weight:800;text-align:center;background:#e8f5e9;color:#2e7d32"> الإجمالي</td>
+                    <td style="font-weight:900;color:#2e7d32;background:#e8f5e9" id="subTotalAmount"></td>
+                    <td colspan="2" style="background:#e8f5e9"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end tabPane-subscriptions -->
+
+      <!-- ===== TAB: تسجيل مصروفات ===== -->
+      <div class="buses-tab-pane" id="tabPane-busexpenses">
+
+        <!-- نموذج تسجيل مصروف -->
+        <div class="exp-form-card animate-in">
+          <div class="bus-panel-title"> تسجيل مصروف جديد</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:0.75rem">
+            <div class="bus-input-group" style="grid-column:1/-1">
+              <label>البند <span style="color:red">*</span></label>
+              <select class="form-select" id="busExpCategory" onchange="toggleBusExpOther()">
+                <option value="">— اختر البند —</option>
+                <option value="رواتب المشرفين">رواتب المشرفين</option>
+                <option value="شحن رصيد موبايل">شحن رصيد موبايل</option>
+                <option value="مصروفات أخرى">مصروفات أخرى</option>
+                <option value="انتقالات أخرى">انتقالات أخرى</option>
+              </select>
+            </div>
+            <div class="bus-input-group" id="busExpOtherGroup" style="display:none;grid-column:1/-1">
+              <label>تفاصيل البند <span style="color:red">*</span></label>
+              <input type="text" class="form-input form-input-ar" id="busExpOtherDesc" placeholder="اكتب تفاصيل البند..." />
+            </div>
+            <div class="bus-input-group">
+              <label>اسم المستلم / البيان</label>
+              <input type="text" class="form-input form-input-ar" id="busExpRecipient" placeholder="مثال: أحمد محمد" />
+            </div>
+            <div class="bus-input-group">
+              <label>التاريخ <span style="color:red">*</span></label>
+              <input type="date" class="form-input" id="busExpDate" />
+            </div>
+            <div class="bus-input-group">
+              <label>المبلغ (ج.م) <span style="color:red">*</span></label>
+              <input type="number" class="form-input" id="busExpAmount" placeholder="0.00" min="0" step="0.01" />
+            </div>
+          </div>
+          <div class="bus-input-group" style="margin-bottom:0.75rem">
+            <label>ملاحظات</label>
+            <input type="text" class="form-input form-input-ar" id="busExpNotes" placeholder="اختياري..." />
+          </div>
+          <button class="bus-save-btn" onclick="saveBusExpense()"> حفظ المصروف</button>
+          <div id="busExpSaveMsg" style="display:none;margin-top:0.6rem;padding:0.5rem 0.75rem;border-radius:var(--radius-sm);font-size:0.82rem;text-align:center"></div>
+        </div>
+
+        <!-- ملخص المصروفات -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-bottom:1rem" id="busExpSummaryGrid">
+          <div style="background:linear-gradient(135deg,#1565c0,#0d47a1);border-radius:var(--radius-sm);padding:0.75rem;color:white;text-align:center">
+            <div style="font-size:0.72rem;opacity:0.8">رواتب المشرفين</div>
+            <div style="font-size:1.1rem;font-weight:900" id="expSumSalaries">0 ج.م</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#6a1b9a,#4a148c);border-radius:var(--radius-sm);padding:0.75rem;color:white;text-align:center">
+            <div style="font-size:0.72rem;opacity:0.8">شحن موبايل</div>
+            <div style="font-size:1.1rem;font-weight:900" id="expSumMobile">0 ج.م</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#e65100,#bf360c);border-radius:var(--radius-sm);padding:0.75rem;color:white;text-align:center">
+            <div style="font-size:0.72rem;opacity:0.8">مصروفات أخرى / انتقالات</div>
+            <div style="font-size:1.1rem;font-weight:900" id="expSumOther">0 ج.م</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#c62828,#b71c1c);border-radius:var(--radius-sm);padding:0.75rem;color:white;text-align:center">
+            <div style="font-size:0.72rem;opacity:0.8">الإجمالي الكلي</div>
+            <div style="font-size:1.1rem;font-weight:900" id="expSumTotal">0 ج.م</div>
+          </div>
+        </div>
+
+        <!-- جدول المصروفات -->
+        <div class="card animate-in">
+          <div class="card-header">
+            <span class="card-title"> سجل المصروفات</span>
+            <div style="display:flex;gap:0.5rem;align-items:center">
+              <select class="form-select" id="busExpFilterCat" onchange="renderBusExpensesTable()" style="font-size:0.8rem;padding:0.3rem 0.6rem;width:auto">
+                <option value="">كل البنود</option>
+                <option value="رواتب المشرفين">رواتب المشرفين</option>
+                <option value="شحن رصيد موبايل">شحن رصيد موبايل</option>
+                <option value="مصروفات أخرى">مصروفات أخرى</option>
+                <option value="انتقالات أخرى">انتقالات أخرى</option>
+              </select>
+              <span class="badge badge-primary" id="busExpCount">0 مصروف</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="exp-table-wrapper">
+              <table class="exp-table" id="busExpTable">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>البند</th>
+                    <th>البيان / المستلم</th>
+                    <th>التاريخ</th>
+                    <th>المبلغ</th>
+                    <th>ملاحظات</th>
+                    <th>حذف</th>
+                  </tr>
+                </thead>
+                <tbody id="busExpTableBody">
+                  <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-light)">لا توجد مصروفات بعد</td></tr>
+                </tbody>
+                <tfoot>
+                  <tr id="busExpTotalRow" style="display:none">
+                    <td colspan="4" style="font-weight:800;text-align:center;background:#fdecea;color:#c0392b"> الإجمالي</td>
+                    <td style="font-weight:900;color:#c0392b;background:#fdecea" id="busExpTotalAmount"></td>
+                    <td colspan="2" style="background:#fdecea"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end tabPane-busexpenses -->
 
     </div>
   </div>
@@ -1407,6 +1703,338 @@
 
   // ---- Init ----
   loadBusData();
+  initSubDate();
+  initBusExpDate();
+
+  // ============================================================
+  // Tab Switching
+  // ============================================================
+  function switchBusTab(name) {
+    document.querySelectorAll('.buses-tab-btn').forEach((btn, i) => {
+      const names = ['companies','subscriptions','busexpenses'];
+      btn.classList.toggle('active', names[i] === name);
+    });
+    document.querySelectorAll('.buses-tab-pane').forEach(p => {
+      p.classList.toggle('active', p.id === 'tabPane-' + name);
+    });
+  }
+
+  // ============================================================
+  // اشتراكات جديدة
+  // ============================================================
+  let subscriptionsList = [];
+
+  function initSubDate() {
+    const today = new Date().toISOString().split('T')[0];
+    const el = document.getElementById('subPayDate');
+    if (el) { el.value = today; autoDetectTerm(); }
+  }
+
+  // تحديد الترم أوتوماتيك:
+  // ترم أول: سبتمبر (9)، أكتوبر (10)، نوفمبر (11)، ديسمبر (12)، يناير (1)، فبراير (2)
+  // ترم ثان: مارس (3) → مايو (5)
+  function autoDetectTerm() {
+    const val = document.getElementById('subPayDate').value;
+    const badge = document.getElementById('subTermBadge');
+    const hiddenTerm = document.getElementById('subTerm');
+    if (!val) {
+      badge.textContent = '— اختر تاريخ أولاً —';
+      badge.className = 'sub-term-badge term1';
+      hiddenTerm.value = '';
+      return;
+    }
+    const month = new Date(val).getMonth() + 1; // 1-12
+    let term = '';
+    if (month >= 9 || month <= 2) {
+      term = 'ترم أول';
+      badge.textContent = ' ترم أول';
+      badge.className = 'sub-term-badge term1';
+    } else if (month >= 3 && month <= 5) {
+      term = 'ترم ثان';
+      badge.textContent = ' ترم ثان';
+      badge.className = 'sub-term-badge term2';
+    } else {
+      term = 'ترم ثان';
+      badge.textContent = ' ترم ثان';
+      badge.className = 'sub-term-badge term2';
+    }
+    hiddenTerm.value = term;
+  }
+
+  async function saveSubscription() {
+    const name   = document.getElementById('subStudentName').value.trim();
+    const grade  = document.getElementById('subStudentGrade').value.trim();
+    const date   = document.getElementById('subPayDate').value;
+    const term   = document.getElementById('subTerm').value;
+    const amount = parseFloat(document.getElementById('subAmount').value) || 0;
+    const notes  = document.getElementById('subNotes').value.trim();
+
+    if (!name)   { showSubMsg('من فضلك ادخل اسم الطالب', 'error'); return; }
+    if (!grade)  { showSubMsg('من فضلك ادخل الصف', 'error'); return; }
+    if (!date)   { showSubMsg('من فضلك اختر تاريخ التسديد', 'error'); return; }
+    if (!term)   { showSubMsg('لم يتم تحديد الترم — اختر تاريخاً صحيحاً', 'error'); return; }
+    if (amount <= 0) { showSubMsg('من فضلك ادخل مبلغ صحيح', 'error'); return; }
+
+    try {
+      await db.collection('busSubscriptions').add({
+        schoolId,
+        studentName: name,
+        grade,
+        payDate: date,
+        term,
+        amount,
+        notes,
+        createdBy: session.email,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        year:  new Date(date).getFullYear(),
+        month: new Date(date).getMonth() + 1,
+      });
+
+      showSubMsg(' تم حفظ الاشتراك بنجاح', 'success');
+      document.getElementById('subStudentName').value = '';
+      document.getElementById('subStudentGrade').value = '';
+      document.getElementById('subAmount').value = '';
+      document.getElementById('subNotes').value = '';
+      initSubDate();
+      await loadSubscriptions();
+    } catch(err) {
+      showSubMsg('خطأ في الحفظ: ' + err.message, 'error');
+    }
+  }
+
+  function showSubMsg(msg, type) {
+    const el = document.getElementById('subSaveMsg');
+    el.style.display = 'block';
+    el.style.background = type === 'success' ? '#e8f5e9' : '#fdecea';
+    el.style.color      = type === 'success' ? '#2e7d32' : '#c0392b';
+    el.style.border     = `1px solid ${type === 'success' ? '#a5d6a7' : '#ef9a9a'}`;
+    el.textContent      = msg;
+    if (type === 'success') setTimeout(() => { el.style.display = 'none'; }, 3000);
+  }
+
+  async function loadSubscriptions() {
+    try {
+      const snap = await db.collection('busSubscriptions')
+        .where('schoolId','==',schoolId)
+        .orderBy('createdAt','desc').get();
+      subscriptionsList = [];
+      snap.forEach(doc => subscriptionsList.push({ id: doc.id, ...doc.data() }));
+    } catch(e) { subscriptionsList = []; }
+    renderSubscriptionsTable();
+  }
+
+  function renderSubscriptionsTable() {
+    const filterTerm = document.getElementById('subFilterTerm').value;
+    const filtered = filterTerm
+      ? subscriptionsList.filter(s => s.term === filterTerm)
+      : subscriptionsList;
+
+    const tbody = document.getElementById('subTableBody');
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-light)">لا توجد اشتراكات</td></tr>`;
+      document.getElementById('subCount').textContent = '0 اشتراك';
+      document.getElementById('subTotalRow').style.display = 'none';
+      return;
+    }
+
+    let totalAmt = 0;
+    tbody.innerHTML = filtered.map((s, i) => {
+      totalAmt += s.amount || 0;
+      const termColor = s.term === 'ترم أول' ? '#f57f17' : '#2e7d32';
+      const termBg    = s.term === 'ترم أول' ? '#fff9c4' : '#e8f5e9';
+      return `<tr>
+        <td style="text-align:center">${i+1}</td>
+        <td style="font-weight:700">${s.studentName || '—'}</td>
+        <td>${s.grade || '—'}</td>
+        <td style="text-align:center">${s.payDate || '—'}</td>
+        <td style="text-align:center">
+          <span style="background:${termBg};color:${termColor};padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:800">${s.term || '—'}</span>
+        </td>
+        <td style="text-align:center;font-weight:800;color:#2e7d32">${formatCurrency(s.amount||0)}</td>
+        <td style="font-size:0.8rem;color:var(--text-mid)">${s.notes || ''}</td>
+        <td style="text-align:center">
+          <button onclick="deleteSubscription('${s.id}')"
+            style="padding:2px 8px;background:none;border:1px solid #c0392b;color:#c0392b;border-radius:4px;cursor:pointer;font-size:0.75rem;font-family:Cairo,sans-serif">
+            حذف
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('subCount').textContent = filtered.length + ' اشتراك';
+    document.getElementById('subTotalAmount').textContent = formatCurrency(totalAmt);
+    document.getElementById('subTotalRow').style.display = '';
+  }
+
+  async function deleteSubscription(id) {
+    if (!confirm('هل تريد حذف هذا الاشتراك؟')) return;
+    try {
+      await db.collection('busSubscriptions').doc(id).delete();
+      await loadSubscriptions();
+    } catch(err) { alert('خطأ: ' + err.message); }
+  }
+
+  // ============================================================
+  // مصروفات الباصات
+  // ============================================================
+  let busExpensesList = [];
+
+  function initBusExpDate() {
+    const today = new Date().toISOString().split('T')[0];
+    const el = document.getElementById('busExpDate');
+    if (el) el.value = today;
+  }
+
+  function toggleBusExpOther() {
+    const cat = document.getElementById('busExpCategory').value;
+    const showOther = cat === 'مصروفات أخرى' || cat === 'انتقالات أخرى';
+    document.getElementById('busExpOtherGroup').style.display = showOther ? 'block' : 'none';
+    if (!showOther) document.getElementById('busExpOtherDesc').value = '';
+  }
+
+  async function saveBusExpense() {
+    const category  = document.getElementById('busExpCategory').value;
+    const otherDesc = document.getElementById('busExpOtherDesc').value.trim();
+    const recipient = document.getElementById('busExpRecipient').value.trim();
+    const date      = document.getElementById('busExpDate').value;
+    const amount    = parseFloat(document.getElementById('busExpAmount').value) || 0;
+    const notes     = document.getElementById('busExpNotes').value.trim();
+
+    if (!category)  { showBusExpMsg('من فضلك اختر البند', 'error'); return; }
+    const needsDesc = category === 'مصروفات أخرى' || category === 'انتقالات أخرى';
+    if (needsDesc && !otherDesc) { showBusExpMsg('من فضلك اكتب تفاصيل البند', 'error'); return; }
+    if (!date)      { showBusExpMsg('من فضلك اختر التاريخ', 'error'); return; }
+    if (amount <= 0){ showBusExpMsg('من فضلك ادخل مبلغ صحيح', 'error'); return; }
+
+    const categoryLabel = needsDesc ? `${category} — ${otherDesc}` : category;
+
+    try {
+      await db.collection('busExpenses').add({
+        schoolId,
+        category,
+        categoryLabel,
+        otherDesc: otherDesc || '',
+        recipient: recipient || '',
+        date,
+        amount,
+        notes,
+        createdBy: session.email,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        year:  new Date(date).getFullYear(),
+        month: new Date(date).getMonth() + 1,
+      });
+
+      showBusExpMsg(' تم حفظ المصروف بنجاح', 'success');
+      document.getElementById('busExpCategory').value   = '';
+      document.getElementById('busExpOtherDesc').value  = '';
+      document.getElementById('busExpOtherGroup').style.display = 'none';
+      document.getElementById('busExpRecipient').value  = '';
+      document.getElementById('busExpAmount').value     = '';
+      document.getElementById('busExpNotes').value      = '';
+      initBusExpDate();
+      await loadBusExpenses();
+    } catch(err) {
+      showBusExpMsg('خطأ في الحفظ: ' + err.message, 'error');
+    }
+  }
+
+  function showBusExpMsg(msg, type) {
+    const el = document.getElementById('busExpSaveMsg');
+    el.style.display = 'block';
+    el.style.background = type === 'success' ? '#e8f5e9' : '#fdecea';
+    el.style.color      = type === 'success' ? '#2e7d32' : '#c0392b';
+    el.style.border     = `1px solid ${type === 'success' ? '#a5d6a7' : '#ef9a9a'}`;
+    el.textContent      = msg;
+    if (type === 'success') setTimeout(() => { el.style.display = 'none'; }, 3000);
+  }
+
+  async function loadBusExpenses() {
+    try {
+      const snap = await db.collection('busExpenses')
+        .where('schoolId','==',schoolId)
+        .orderBy('createdAt','desc').get();
+      busExpensesList = [];
+      snap.forEach(doc => busExpensesList.push({ id: doc.id, ...doc.data() }));
+    } catch(e) { busExpensesList = []; }
+    renderBusExpensesTable();
+    updateBusExpSummary();
+  }
+
+  function updateBusExpSummary() {
+    const salaries = busExpensesList.filter(e => e.category === 'رواتب المشرفين').reduce((s,e) => s + (e.amount||0), 0);
+    const mobile   = busExpensesList.filter(e => e.category === 'شحن رصيد موبايل').reduce((s,e) => s + (e.amount||0), 0);
+    const other    = busExpensesList.filter(e => e.category === 'مصروفات أخرى' || e.category === 'انتقالات أخرى').reduce((s,e) => s + (e.amount||0), 0);
+    const total    = salaries + mobile + other;
+    document.getElementById('expSumSalaries').textContent = formatCurrency(salaries);
+    document.getElementById('expSumMobile').textContent   = formatCurrency(mobile);
+    document.getElementById('expSumOther').textContent    = formatCurrency(other);
+    document.getElementById('expSumTotal').textContent    = formatCurrency(total);
+  }
+
+  function renderBusExpensesTable() {
+    const filterCat = document.getElementById('busExpFilterCat').value;
+    const filtered  = filterCat
+      ? busExpensesList.filter(e => e.category === filterCat)
+      : busExpensesList;
+
+    const tbody = document.getElementById('busExpTableBody');
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-light)">لا توجد مصروفات</td></tr>`;
+      document.getElementById('busExpCount').textContent = '0 مصروف';
+      document.getElementById('busExpTotalRow').style.display = 'none';
+      return;
+    }
+
+    const catColors = {
+      'رواتب المشرفين':   { bg:'#e3f2fd', color:'#1565c0' },
+      'شحن رصيد موبايل': { bg:'#f3e5f5', color:'#6a1b9a' },
+      'مصروفات أخرى':    { bg:'#fff3e0', color:'#e65100' },
+      'انتقالات أخرى':   { bg:'#fce4ec', color:'#c62828' },
+    };
+
+    let totalAmt = 0;
+    tbody.innerHTML = filtered.map((e, i) => {
+      totalAmt += e.amount || 0;
+      const cc = catColors[e.category] || { bg:'#f5f5f5', color:'#333' };
+      return `<tr>
+        <td style="text-align:center">${i+1}</td>
+        <td>
+          <span class="exp-category-badge" style="background:${cc.bg};color:${cc.color}">${e.categoryLabel || e.category}</span>
+        </td>
+        <td>${e.recipient || '—'}</td>
+        <td style="text-align:center">${e.date || '—'}</td>
+        <td style="text-align:center;font-weight:800;color:#c0392b">${formatCurrency(e.amount||0)}</td>
+        <td style="font-size:0.8rem;color:var(--text-mid)">${e.notes || ''}</td>
+        <td style="text-align:center">
+          <button onclick="deleteBusExpense('${e.id}')"
+            style="padding:2px 8px;background:none;border:1px solid #c0392b;color:#c0392b;border-radius:4px;cursor:pointer;font-size:0.75rem;font-family:Cairo,sans-serif">
+            حذف
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('busExpCount').textContent = filtered.length + ' مصروف';
+    document.getElementById('busExpTotalAmount').textContent = formatCurrency(totalAmt);
+    document.getElementById('busExpTotalRow').style.display = '';
+  }
+
+  async function deleteBusExpense(id) {
+    if (!confirm('هل تريد حذف هذا المصروف؟')) return;
+    try {
+      await db.collection('busExpenses').doc(id).delete();
+      await loadBusExpenses();
+    } catch(err) { alert('خطأ: ' + err.message); }
+  }
+
+  // تحميل الاشتراكات والمصروفات عند فتح التابات
+  document.querySelectorAll('.buses-tab-btn').forEach((btn, i) => {
+    const names = ['companies','subscriptions','busexpenses'];
+    btn.addEventListener('click', () => {
+      if (names[i] === 'subscriptions' && subscriptionsList.length === 0) loadSubscriptions();
+      if (names[i] === 'busexpenses'   && busExpensesList.length  === 0) loadBusExpenses();
+    });
+  });
 </script>
 
 <!-- ======================================================
