@@ -188,7 +188,10 @@ function guardHRPage() {
 function guardShu2onPage() {
   const session = SESSION.get();
   if (!session) { window.location.href = 'index.html'; return null; }
-  if (session.role !== 'shu2on' && session.role !== 'admin') {
+  // سمح لـ: shu2on + admin + محاسب
+  const isKnownAccountant = Object.values(SCHOOLS).some(sc => sc.users.includes(session.email));
+  const isKnownAdmin      = ADMINS.includes(session.email);
+  if (session.role !== 'shu2on' && !isKnownAdmin && !isKnownAccountant) {
     window.location.href = 'index.html';
     return null;
   }
