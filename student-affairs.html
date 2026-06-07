@@ -121,36 +121,22 @@
             <div class="alert hidden" id="regAlert"></div>
             <div class="alert alert-success hidden" id="regSuccess"></div>
 
-            <!-- بيانات الطالب -->
+            <!-- ══ بيانات الطالب ══ -->
             <div class="section-title">بيانات الطالب</div>
             <div class="form-grid-2" style="margin-bottom:0.85rem">
               <div class="form-group">
-                <label class="form-label">اسم الطالب <span class="required">*</span></label>
-                <input type="text" class="form-input form-input-ar" id="studentName" placeholder="الاسم رباعياً" />
+                <label class="form-label">اسم الطالب (عربي) <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="studentName" placeholder="الاسم رباعياً بالعربي" />
               </div>
               <div class="form-group">
-                <label class="form-label">الصف <span class="required">*</span></label>
-                <select class="form-input" id="grade">
-                  <option value="">-- اختر الصف --</option>
-                  <optgroup label="ما قبل المدرسة">
-                    <option value="Pre-KG">Pre-KG</option>
-                    <option value="KG1">KG 1</option>
-                    <option value="KG2">KG 2</option>
-                  </optgroup>
-                  <optgroup label="الابتدائية">
-                    <option value="Grade 1">Grade 1</option>
-                    <option value="Grade 2">Grade 2</option>
-                    <option value="Grade 3">Grade 3</option>
-                    <option value="Grade 4">Grade 4</option>
-                    <option value="Grade 5">Grade 5</option>
-                    <option value="Grade 6">Grade 6</option>
-                  </optgroup>
-                  <optgroup label="الإعدادية">
-                    <option value="Prep 1">Prep 1</option>
-                    <option value="Prep 2">Prep 2</option>
-                    <option value="Prep 3">Prep 3</option>
-                  </optgroup>
-                </select>
+                <label class="form-label">اسم الطالب (إنجليزي) <span class="required">*</span></label>
+                <input type="text" class="form-input" id="studentNameEn" placeholder="Full Name in English"
+                  style="direction:ltr;text-align:left" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">الرقم القومي للطالب <span class="required">*</span></label>
+                <input type="text" class="form-input" id="studentNid" placeholder="14 رقم"
+                  style="direction:ltr;text-align:left" maxlength="14" />
               </div>
               <div class="form-group">
                 <label class="form-label">النوع <span class="required">*</span></label>
@@ -183,32 +169,119 @@
                 </select>
               </div>
               <div class="form-group">
+                <label class="form-label">الديانة <span class="required">*</span></label>
+                <select class="form-input" id="religion">
+                  <option value="">-- اختر --</option>
+                  <option value="مسلم">مسلم</option>
+                  <option value="مسيحي">مسيحي</option>
+                  <option value="أخرى">أخرى</option>
+                </select>
+              </div>
+              <div class="form-group">
                 <label class="form-label">تاريخ الميلاد <span class="required">*</span></label>
                 <input type="date" class="form-input" id="birthDate" onchange="calcAge()" />
                 <div class="age-display" id="ageDisplay"></div>
               </div>
+              <div class="form-group">
+                <label class="form-label">الصف <span class="required">*</span></label>
+                <select class="form-input" id="grade">
+                  <option value="">-- اختر الصف --</option>
+                  <optgroup label="ما قبل المدرسة">
+                    <option value="Pre-KG">Pre-KG</option>
+                    <option value="KG1">KG 1</option>
+                    <option value="KG2">KG 2</option>
+                  </optgroup>
+                  <optgroup label="الابتدائية">
+                    <option value="Grade 1">Grade 1</option>
+                    <option value="Grade 2">Grade 2</option>
+                    <option value="Grade 3">Grade 3</option>
+                    <option value="Grade 4">Grade 4</option>
+                    <option value="Grade 5">Grade 5</option>
+                    <option value="Grade 6">Grade 6</option>
+                  </optgroup>
+                  <optgroup label="الإعدادية">
+                    <option value="Prep 1">Prep 1</option>
+                    <option value="Prep 2">Prep 2</option>
+                    <option value="Prep 3">Prep 3</option>
+                  </optgroup>
+                </select>
+              </div>
             </div>
 
-            <!-- بيانات ولي الأمر -->
-            <div class="section-title" style="margin-top:1.25rem">بيانات ولي الأمر</div>
+            <!-- ══ اللغة الثانية والفصل ══ -->
+            <div class="section-title" style="margin-top:1.25rem">بيانات إضافية</div>
             <div class="form-grid-2" style="margin-bottom:0.85rem">
               <div class="form-group">
-                <label class="form-label">اسم الأب <span class="required">*</span></label>
-                <input type="text" class="form-input form-input-ar" id="fatherName" placeholder="الاسم كاملاً" />
+                <label class="form-label">اللغة الثانية <span style="font-size:0.75rem;color:var(--text-light);font-weight:600">(اختياري)</span></label>
+                <select class="form-input" id="secondLang">
+                  <option value="">-- اختر --</option>
+                  <option value="فرنسي">فرنسي</option>
+                  <option value="ألماني">ألماني</option>
+                </select>
               </div>
               <div class="form-group">
-                <label class="form-label">رقم هاتف الأب <span class="required">*</span></label>
+                <label class="form-label">الفصل <span style="font-size:0.75rem;color:var(--text-light);font-weight:600">(اختياري)</span></label>
+                <input type="text" class="form-input" id="classroom" placeholder="مثال: 3B ، أو الفصل الثالث" />
+              </div>
+            </div>
+
+            <!-- ══ بيانات الأب ══ -->
+            <div class="section-title" style="margin-top:1.25rem">بيانات الأب</div>
+            <div class="form-grid-2" style="margin-bottom:0.85rem">
+              <div class="form-group">
+                <label class="form-label">اسم الأب (عربي) <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="fatherName" placeholder="الاسم كاملاً بالعربي" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">اسم الأب (إنجليزي) <span class="required">*</span></label>
+                <input type="text" class="form-input" id="fatherNameEn" placeholder="Full Name in English"
+                  style="direction:ltr;text-align:left" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">الرقم القومي للأب <span class="required">*</span></label>
+                <input type="text" class="form-input" id="fatherNid" placeholder="14 رقم"
+                  style="direction:ltr;text-align:left" maxlength="14" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">تليفون الأب <span class="required">*</span></label>
                 <input type="tel" class="form-input" id="fatherPhone" placeholder="01XXXXXXXXX"
                   style="direction:ltr;text-align:left" maxlength="11" />
               </div>
               <div class="form-group">
-                <label class="form-label">اسم الأم <span class="required">*</span></label>
-                <input type="text" class="form-input form-input-ar" id="motherName" placeholder="الاسم كاملاً" />
+                <label class="form-label">وظيفة الأب <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="fatherJob" placeholder="مثال: مهندس، طبيب، موظف حكومي..." />
               </div>
               <div class="form-group">
-                <label class="form-label">رقم هاتف الأم</label>
+                <label class="form-label">العنوان <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="address" placeholder="العنوان بالتفصيل" />
+              </div>
+            </div>
+
+            <!-- ══ بيانات الأم ══ -->
+            <div class="section-title" style="margin-top:1.25rem">بيانات الأم</div>
+            <div class="form-grid-2" style="margin-bottom:0.85rem">
+              <div class="form-group">
+                <label class="form-label">اسم الأم (عربي) <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="motherName" placeholder="الاسم كاملاً بالعربي" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">اسم الأم (إنجليزي) <span class="required">*</span></label>
+                <input type="text" class="form-input" id="motherNameEn" placeholder="Full Name in English"
+                  style="direction:ltr;text-align:left" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">الرقم القومي للأم <span class="required">*</span></label>
+                <input type="text" class="form-input" id="motherNid" placeholder="14 رقم"
+                  style="direction:ltr;text-align:left" maxlength="14" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">تليفون الأم</label>
                 <input type="tel" class="form-input" id="motherPhone" placeholder="01XXXXXXXXX"
                   style="direction:ltr;text-align:left" maxlength="11" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">وظيفة الأم <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="motherJob" placeholder="مثال: ربة منزل، معلمة، طبيبة..." />
               </div>
             </div>
 
@@ -347,24 +420,25 @@
   // ══════════════════════════════════════════════
   // حساب السن
   // ══════════════════════════════════════════════
+  // ── السن يُحسب دائماً من تاريخ الميلاد إلى 1 أكتوبر 2026 ──
+  const AGE_REF_DATE = new Date(2026, 9, 1);
+
   function calcAge() {
     const val = document.getElementById('birthDate').value;
     const disp = document.getElementById('ageDisplay');
     if (!val) { disp.textContent = ''; return; }
     const birth = new Date(val);
-    const today = new Date();
-    let years  = today.getFullYear() - birth.getFullYear();
-    let months = today.getMonth() - birth.getMonth();
+    let years  = AGE_REF_DATE.getFullYear() - birth.getFullYear();
+    let months = AGE_REF_DATE.getMonth()    - birth.getMonth();
     if (months < 0) { years--; months += 12; }
-    disp.textContent = `العمر: ${years} سنة ${months > 0 ? 'و ' + months + ' شهر' : ''}`;
+    disp.textContent = `العمر في 1 أكتوبر 2026: ${years} سنة ${months > 0 ? 'و ' + months + ' شهر' : ''}`;
   }
 
   function calcAgeFromDate(dateStr) {
     if (!dateStr) return '—';
     const birth = new Date(dateStr);
-    const today = new Date();
-    let years  = today.getFullYear() - birth.getFullYear();
-    let months = today.getMonth() - birth.getMonth();
+    let years  = AGE_REF_DATE.getFullYear() - birth.getFullYear();
+    let months = AGE_REF_DATE.getMonth()    - birth.getMonth();
     if (months < 0) { years--; months += 12; }
     return `${years}س${months > 0 ? ' ' + months + 'ش' : ''}`;
   }
@@ -380,15 +454,31 @@
   // حفظ الطالب
   // ══════════════════════════════════════════════
   async function saveStudent() {
-    const studentName  = document.getElementById('studentName').value.trim();
-    const grade        = document.getElementById('grade').value;
-    const gender       = document.getElementById('gender').value;
-    const nationality  = document.getElementById('nationality').value;
-    const birthDate    = document.getElementById('birthDate').value;
-    const fatherName   = document.getElementById('fatherName').value.trim();
-    const fatherPhone  = document.getElementById('fatherPhone').value.trim();
-    const motherName   = document.getElementById('motherName').value.trim();
-    const motherPhone  = document.getElementById('motherPhone').value.trim();
+    // ── بيانات الطالب ──
+    const studentName    = document.getElementById('studentName').value.trim();
+    const studentNameEn  = document.getElementById('studentNameEn').value.trim();
+    const studentNid     = document.getElementById('studentNid').value.trim();
+    const gender         = document.getElementById('gender').value;
+    const nationality    = document.getElementById('nationality').value;
+    const religion       = document.getElementById('religion').value;
+    const birthDate      = document.getElementById('birthDate').value;
+    const grade          = document.getElementById('grade').value;
+    // ── بيانات إضافية ──
+    const secondLang     = document.getElementById('secondLang').value;
+    const classroom      = document.getElementById('classroom').value.trim();
+    // ── بيانات الأب ──
+    const fatherName     = document.getElementById('fatherName').value.trim();
+    const fatherNameEn   = document.getElementById('fatherNameEn').value.trim();
+    const fatherNid      = document.getElementById('fatherNid').value.trim();
+    const fatherPhone    = document.getElementById('fatherPhone').value.trim();
+    const fatherJob      = document.getElementById('fatherJob').value.trim();
+    const address        = document.getElementById('address').value.trim();
+    // ── بيانات الأم ──
+    const motherName     = document.getElementById('motherName').value.trim();
+    const motherNameEn   = document.getElementById('motherNameEn').value.trim();
+    const motherNid      = document.getElementById('motherNid').value.trim();
+    const motherPhone    = document.getElementById('motherPhone').value.trim();
+    const motherJob      = document.getElementById('motherJob').value.trim();
 
     const alertEl   = document.getElementById('regAlert');
     const successEl = document.getElementById('regSuccess');
@@ -401,16 +491,27 @@
     }
 
     // ─── Validation ───
-    if (!studentName)  return showErr('من فضلك ادخل اسم الطالب');
-    if (!grade)        return showErr('من فضلك اختر الصف');
-    if (!gender)       return showErr('من فضلك اختر النوع');
-    if (!nationality)  return showErr('من فضلك اختر الجنسية');
-    if (!birthDate)    return showErr('من فضلك ادخل تاريخ الميلاد');
-    if (!fatherName)   return showErr('من فضلك ادخل اسم الأب');
-    if (!fatherPhone)  return showErr('من فضلك ادخل رقم هاتف الأب');
-    if (!isValidPhone(fatherPhone)) return showErr('رقم هاتف الأب غير صحيح — يجب أن يبدأ بـ 01 ويكون 11 رقم');
-    if (!motherName)   return showErr('من فضلك ادخل اسم الأم');
-    if (motherPhone && !isValidPhone(motherPhone)) return showErr('رقم هاتف الأم غير صحيح');
+    if (!studentName)              return showErr('من فضلك ادخل اسم الطالب بالعربي');
+    if (!studentNameEn)            return showErr('من فضلك ادخل اسم الطالب بالإنجليزي');
+    if (!studentNid || studentNid.length !== 14) return showErr('الرقم القومي للطالب يجب أن يكون 14 رقم');
+    if (!gender)                   return showErr('من فضلك اختر النوع');
+    if (!nationality)              return showErr('من فضلك اختر الجنسية');
+    if (!religion)                 return showErr('من فضلك اختر الديانة');
+    if (!birthDate)                return showErr('من فضلك ادخل تاريخ الميلاد');
+    if (!grade)                    return showErr('من فضلك اختر الصف');
+
+    if (!fatherName)               return showErr('من فضلك ادخل اسم الأب بالعربي');
+    if (!fatherNameEn)             return showErr('من فضلك ادخل اسم الأب بالإنجليزي');
+    if (!fatherNid || fatherNid.length !== 14) return showErr('الرقم القومي للأب يجب أن يكون 14 رقم');
+    if (!fatherPhone)              return showErr('من فضلك ادخل تليفون الأب');
+    if (!isValidPhone(fatherPhone))return showErr('رقم تليفون الأب غير صحيح — يجب أن يبدأ بـ 01 ويكون 11 رقم');
+    if (!fatherJob)                return showErr('من فضلك ادخل وظيفة الأب');
+    if (!address)                  return showErr('من فضلك ادخل العنوان');
+    if (!motherName)               return showErr('من فضلك ادخل اسم الأم بالعربي');
+    if (!motherNameEn)             return showErr('من فضلك ادخل اسم الأم بالإنجليزي');
+    if (!motherNid || motherNid.length !== 14) return showErr('الرقم القومي للأم يجب أن يكون 14 رقم');
+    if (motherPhone && !isValidPhone(motherPhone)) return showErr('رقم تليفون الأم غير صحيح');
+    if (!motherJob)                return showErr('من فضلك ادخل وظيفة الأم');
 
     const btn = document.getElementById('saveBtn');
     const txt = document.getElementById('saveBtnText');
@@ -418,24 +519,39 @@
 
     try {
       const birth = new Date(birthDate);
-      const today = new Date();
-      let ageYears  = today.getFullYear() - birth.getFullYear();
-      let ageMonths = today.getMonth() - birth.getMonth();
+      let ageYears  = AGE_REF_DATE.getFullYear() - birth.getFullYear();
+      let ageMonths = AGE_REF_DATE.getMonth()    - birth.getMonth();
       if (ageMonths < 0) { ageYears--; ageMonths += 12; }
 
       await db.collection('studentAffairs').add({
         schoolId,
+        // الطالب
         studentName,
-        grade,
+        studentNameEn,
+        studentNid,
         gender,
         nationality,
+        religion,
         birthDate,
         ageYears,
         ageMonths,
+        grade,
+        // إضافية
+        secondLang,
+        classroom: classroom || '',
+        // الأب
         fatherName,
+        fatherNameEn,
+        fatherNid,
         fatherPhone,
+        fatherJob,
+        address,
+        // الأم
         motherName,
+        motherNameEn,
+        motherNid,
         motherPhone: motherPhone || '',
+        motherJob,
         status: 'pending',
         registeredBy: session.email,
         registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -460,10 +576,13 @@
   // مسح الفورم
   // ══════════════════════════════════════════════
   function resetForm() {
-    ['studentName','fatherName','motherName','fatherPhone','motherPhone'].forEach(id => {
-      document.getElementById(id).value = '';
-    });
-    ['grade','gender','nationality'].forEach(id => {
+    [
+      'studentName','studentNameEn','studentNid',
+      'fatherName','fatherNameEn','fatherNid','fatherPhone','fatherJob','address',
+      'motherName','motherNameEn','motherNid','motherPhone','motherJob',
+      'classroom'
+    ].forEach(id => { document.getElementById(id).value = ''; });
+    ['grade','gender','nationality','religion','secondLang'].forEach(id => {
       document.getElementById(id).value = '';
     });
     document.getElementById('birthDate').value = '';
@@ -545,8 +664,8 @@
         <div class="student-info">
           <div class="student-name">${escHtml(s.studentName)}</div>
           <div class="student-meta">
-            ${escHtml(s.fatherName)} · ${escHtml(s.fatherPhone)}
-            ${s.motherPhone ? ' · ' + escHtml(s.motherPhone) : ''}
+            ${escHtml(s.fatherName)} (${escHtml(s.fatherNameEn || "")}) · ${escHtml(s.fatherPhone)}
+            ${s.motherPhone ? " · أم: " + escHtml(s.motherPhone) : ""}
           </div>
           <div class="student-badges">
             <span class="grade-badge">${escHtml(s.grade)}</span>
@@ -612,11 +731,14 @@
 
     // حفظ بيانات الطالب في sessionStorage — collection.html هيقراها
     sessionStorage.setItem('shu2on_prefill', JSON.stringify({
-      studentName:  student.studentName,
-      grade:        student.grade,
-      fatherName:   student.fatherName,
-      fatherPhone:  student.fatherPhone,
-      studentDocId: student.id,   // محتاجينه نحدّث status بعد الدفع
+      studentName:    student.studentName,
+      studentNameEn:  student.studentNameEn || '',
+      grade:          student.grade,
+      classroom:      student.classroom || '',
+      fatherName:     student.fatherName,
+      fatherNameEn:   student.fatherNameEn || '',
+      fatherPhone:    student.fatherPhone,
+      studentDocId:   student.id,
     }));
 
     // لو Admin — روّح لـ collection مباشرة
