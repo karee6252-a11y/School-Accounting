@@ -444,10 +444,16 @@
         </div>
         <div class="form-group">
           <label class="form-label">المقابل <span class="required">*</span></label>
-          <select class="form-select" id="expenseCategory">
+          <select class="form-select" id="expenseCategory" onchange="onExpCategoryChange()">
             <option value="">— اختر الفئة —</option>
           </select>
         </div>
+      </div>
+
+      <!-- حقل البيان — يظهر فقط عند أخري / استرداد / سلفه -->
+      <div class="form-group" id="customLabelGroup" style="display:none">
+        <label class="form-label">البيان <span class="required">*</span></label>
+        <input type="text" class="form-input form-input-ar" id="expenseCustomLabel" placeholder="اكتب البيان هنا..." />
       </div>
 
       <div class="form-group">
@@ -528,6 +534,9 @@
     { value: 'taxes',         label: 'ضرائب',                icon: '' },
     { value: 'insurance',     label: 'تأمينات',              icon: '' },
     { value: 'martyrs',       label: 'مدفوعات الشهداء',      icon: '' },
+    { value: 'other_custom',  label: 'أخري',                 icon: '', customLabel: true },
+    { value: 'refund',        label: 'استرداد',              icon: '', customLabel: true },
+    { value: 'advance',       label: 'سلفه',                 icon: '', customLabel: true },
   ];
 
   let currentPeriod = 'daily';
@@ -552,6 +561,22 @@
     });
   }
   populateCategories();
+
+  // إظهار / إخفاء حقل البيان
+  function onExpCategoryChange(selectId, groupId) {
+    selectId = selectId || 'expenseCategory';
+    groupId  = groupId  || 'customLabelGroup';
+    const val = document.getElementById(selectId).value;
+    const cat = EXPENSE_CATEGORIES.find(c => c.value === val);
+    const grp = document.getElementById(groupId);
+    if (cat?.customLabel) {
+      grp.style.display = 'block';
+      grp.querySelector('input')?.focus();
+    } else {
+      grp.style.display = 'none';
+      if (grp.querySelector('input')) grp.querySelector('input').value = '';
+    }
+  }
 
   //  Set today defaults 
   const todayStr = localDateStr();
@@ -802,11 +827,13 @@
   }
   function closeAddModal() {
     document.getElementById('addModal').classList.add('hidden');
-    document.getElementById('recipientName').value = '';
-    document.getElementById('expenseDate').value   = todayStr;
-    document.getElementById('expenseAmount').value = '';
-    document.getElementById('expenseCategory').value = '';
-    document.getElementById('expenseNotes').value  = '';
+    document.getElementById('recipientName').value    = '';
+    document.getElementById('expenseDate').value      = todayStr;
+    document.getElementById('expenseAmount').value    = '';
+    document.getElementById('expenseCategory').value  = '';
+    document.getElementById('expenseCustomLabel').value = '';
+    document.getElementById('customLabelGroup').style.display = 'none';
+    document.getElementById('expenseNotes').value     = '';
   }
 
   function showAddAlert(msg, type='error') {
@@ -823,11 +850,15 @@
     const amount        = parseFloat(document.getElementById('expenseAmount').value);
     const category      = document.getElementById('expenseCategory').value;
     const notes         = document.getElementById('expenseNotes').value.trim();
+    const customLabel   = document.getElementById('expenseCustomLabel').value.trim();
 
     if (!recipientName) return showAddAlert('من فضلك ادخل اسم المستلم');
     if (!date)          return showAddAlert('من فضلك اختر التاريخ');
     if (!amount || amount <= 0) return showAddAlert('من فضلك ادخل مبلغ صحيح');
     if (!category)      return showAddAlert('من فضلك اختر فئة المصروف (المقابل)');
+
+    const cat = EXPENSE_CATEGORIES.find(c => c.value === category);
+    if (cat?.customLabel && !customLabel) return showAddAlert('من فضلك اكتب البيان');
 
     const btn     = document.getElementById('saveExpenseBtn');
     const btnText = document.getElementById('saveBtnText');
@@ -837,13 +868,15 @@
     loader.classList.remove('hidden');
 
     try {
+      const finalLabel = cat?.customLabel ? customLabel : (cat?.label || category);
       const expense = {
         schoolId,
         recipientName,
         date,
         amount,
         category,
-        categoryLabel: EXPENSE_CATEGORIES.find(c => c.value === category)?.label || category,
+        categoryLabel: finalLabel,
+        customLabel:   cat?.customLabel ? customLabel : null,
         notes,
         createdBy: session.email,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1486,23 +1519,51 @@
   // ============================================================
   let editingExpenseId = null;
 
+  // ملء select التعديل من نفس قائمة الفئات
+  function populateEditCategory() {
+    const sel = document.getElementById('editExpCategory');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— اختر —</option>';
+    EXPENSE_CATEGORIES.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.value;
+      opt.textContent = `${c.icon} ${c.label}`;
+      sel.appendChild(opt);
+    });
+  }
+  populateEditCategory();
+
   async function openEditExpenseModal(id) {
     const doc = await db.collection('expenses').doc(id).get();
     if (!doc.exists) return alert('لم يتم العثور على السجل');
     const d = doc.data();
     editingExpenseId = id;
 
-    document.getElementById('editExpRecipient').value = d.recipientName || '';
-    document.getElementById('editExpAmount').value    = d.amount || '';
-    document.getElementById('editExpDate').value      = d.date || '';
-    document.getElementById('editExpCategory').value  = d.category || '';
-    document.getElementById('editExpNotes').value     = d.notes || '';
+    document.getElementById('editExpRecipient').value  = d.recipientName || '';
+    document.getElementById('editExpAmount').value     = d.amount || '';
+    document.getElementById('editExpDate').value       = d.date || '';
+    document.getElementById('editExpCategory').value   = d.category || '';
+    document.getElementById('editExpNotes').value      = d.notes || '';
+
+    // حقل البيان
+    const cat = EXPENSE_CATEGORIES.find(c => c.value === d.category);
+    const grp = document.getElementById('editCustomLabelGroup');
+    const inp = document.getElementById('editExpCustomLabel');
+    if (cat?.customLabel) {
+      grp.style.display = 'flex';
+      inp.value = d.customLabel || d.categoryLabel || '';
+    } else {
+      grp.style.display = 'none';
+      inp.value = '';
+    }
 
     document.getElementById('editExpenseModal').style.display = 'flex';
   }
 
   function closeEditExpenseModal() {
     document.getElementById('editExpenseModal').style.display = 'none';
+    document.getElementById('editCustomLabelGroup').style.display = 'none';
+    document.getElementById('editExpCustomLabel').value = '';
     editingExpenseId = null;
   }
 
@@ -1513,16 +1574,24 @@
     const date          = document.getElementById('editExpDate').value;
     const category      = document.getElementById('editExpCategory').value;
     const notes         = document.getElementById('editExpNotes').value.trim();
+    const customLabel   = document.getElementById('editExpCustomLabel').value.trim();
 
     if (!recipientName) return alert('ادخل اسم المستلم');
     if (!amount || amount <= 0) return alert('ادخل مبلغ صحيح');
     if (!date) return alert('اختر التاريخ');
+
+    const cat = EXPENSE_CATEGORIES.find(c => c.value === category);
+    if (cat?.customLabel && !customLabel) return alert('من فضلك اكتب البيان');
+
+    const finalLabel = cat?.customLabel ? customLabel : (cat?.label || category);
 
     const btn = document.getElementById('editExpSaveBtn');
     btn.disabled = true; btn.textContent = 'جاري الحفظ...';
     try {
       await db.collection('expenses').doc(editingExpenseId).update({
         recipientName, amount, date, category, notes,
+        categoryLabel: finalLabel,
+        customLabel:   cat?.customLabel ? customLabel : null,
         editedBy: session.email,
         editedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -1557,14 +1626,15 @@
         <input id="editExpDate" type="date" class="form-input" />
       </div>
       <div style="display:flex;flex-direction:column;gap:4px">
-        <label style="font-size:0.82rem;font-weight:700">الفئة</label>
-        <select id="editExpCategory" class="form-select">
-          <option value="salary">رواتب</option>
-          <option value="maintenance">صيانة</option>
-          <option value="supplies">مستلزمات</option>
-          <option value="utilities">مرافق</option>
-          <option value="other">أخرى</option>
+        <label style="font-size:0.82rem;font-weight:700">المقابل</label>
+        <select id="editExpCategory" class="form-select" onchange="onExpCategoryChange('editExpCategory','editCustomLabelGroup')">
+          <option value="">— اختر —</option>
         </select>
+      </div>
+      <!-- حقل البيان للتعديل -->
+      <div id="editCustomLabelGroup" style="grid-column:1/-1;display:none;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">البيان <span style="color:red">*</span></label>
+        <input id="editExpCustomLabel" type="text" class="form-input form-input-ar" placeholder="اكتب البيان هنا..." />
       </div>
       <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:4px">
         <label style="font-size:0.82rem;font-weight:700">ملاحظات</label>
