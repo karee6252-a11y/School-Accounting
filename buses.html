@@ -196,102 +196,10 @@
       display: flex; gap: 0.75rem; justify-content: flex-end;
     }
 
-    /* ===== Tabs ===== */
-    .buses-tabs {
-      display: flex;
-      gap: 0;
-      border-bottom: 2px solid var(--primary);
-      margin-bottom: 1.5rem;
-    }
-    .buses-tab-btn {
-      padding: 0.65rem 1.4rem;
-      background: none;
-      border: none;
-      border-bottom: 3px solid transparent;
-      margin-bottom: -2px;
-      font-family: 'Cairo', sans-serif;
-      font-size: 0.88rem;
-      font-weight: 700;
-      color: var(--text-mid, #555);
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    .buses-tab-btn:hover { color: var(--primary); background: var(--accent); }
-    .buses-tab-btn.active {
-      color: var(--primary);
-      border-bottom-color: var(--primary);
-      background: var(--accent);
-      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-    }
-    .buses-tab-pane { display: none; }
-    .buses-tab-pane.active { display: block; }
-
-    /* ===== Subscriptions tab ===== */
-    .sub-form-card {
-      background: var(--bg, #f5f7fa);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 1.25rem;
-      margin-bottom: 1rem;
-    }
-    .sub-form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 0.75rem;
-      margin-bottom: 0.75rem;
-    }
-    .sub-term-badge {
-      display: inline-block;
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
-      font-size: 0.78rem;
-      font-weight: 800;
-    }
-    .sub-term-badge.term1 { background: #fff9c4; color: #f57f17; border: 1px solid #f9a825; }
-    .sub-term-badge.term2 { background: #e8f5e9; color: #2e7d32; border: 1px solid #43a047; }
-
-    /* ===== Expenses tab ===== */
-    .exp-form-card {
-      background: var(--bg, #f5f7fa);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 1.25rem;
-      margin-bottom: 1rem;
-    }
-    .exp-table-wrapper { overflow-x: auto; }
-    .exp-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-    .exp-table th {
-      background: var(--primary);
-      color: white;
-      padding: 0.55rem 0.75rem;
-      text-align: right;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-    .exp-table td {
-      padding: 0.5rem 0.75rem;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
-    }
-    .exp-table tr:nth-child(even) td { background: #f8f9fa; }
-    .exp-category-badge {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 700;
-    }
-
     @media (max-width: 768px) {
       .bus-stats-grid   { grid-template-columns: 1fr; }
       .cust-summary-grid { grid-template-columns: 1fr; }
       .bus-input-row    { grid-template-columns: 1fr; }
-      .sub-form-grid    { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -302,16 +210,6 @@
     <div id="topbarContainer"></div>
 
     <div class="page-content">
-
-      <!-- ===== Tabs Nav ===== -->
-      <div class="buses-tabs animate-in">
-        <button class="buses-tab-btn active" onclick="switchBusTab('companies')"> شركات الباصات</button>
-        <button class="buses-tab-btn" onclick="switchBusTab('subscriptions')"> اشتراكات جديدة</button>
-        <button class="buses-tab-btn" onclick="switchBusTab('busexpenses')"> تسجيل مصروفات</button>
-      </div>
-
-      <!-- ===== TAB: شركات الباصات ===== -->
-      <div class="buses-tab-pane active" id="tabPane-companies">
 
       <!-- Custodian Summary (من بيانات المصروفات) -->
       <div class="cust-summary-grid animate-in">
@@ -395,201 +293,7 @@
             <div style="font-size:1.1rem;font-weight:900" id="busTotalDiff">0 ج.م</div>
           </div>
         </div>
-      </div><!-- end busTotalSummary -->
-
-      </div><!-- end tabPane-companies -->
-
-      <!-- ===== TAB: اشتراكات جديدة ===== -->
-      <div class="buses-tab-pane" id="tabPane-subscriptions">
-
-        <!-- نموذج تسجيل اشتراك -->
-        <div class="sub-form-card animate-in">
-          <div class="bus-panel-title"> تسجيل اشتراك جديد</div>
-          <div class="sub-form-grid">
-            <div class="bus-input-group">
-              <label>اسم الطالب <span style="color:red">*</span></label>
-              <input type="text" class="form-input form-input-ar" id="subStudentName" placeholder="اسم الطالب كامل" />
-            </div>
-            <div class="bus-input-group">
-              <label>الصف <span style="color:red">*</span></label>
-              <input type="text" class="form-input form-input-ar" id="subStudentGrade" placeholder="مثال: الصف الأول أ" />
-            </div>
-            <div class="bus-input-group">
-              <label>تاريخ التسديد <span style="color:red">*</span></label>
-              <input type="date" class="form-input" id="subPayDate" onchange="autoDetectTerm()" />
-            </div>
-            <div class="bus-input-group">
-              <label>الترم</label>
-              <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.25rem">
-                <span class="sub-term-badge term1" id="subTermBadge">— اختر تاريخ أولاً —</span>
-                <input type="hidden" id="subTerm" value="" />
-              </div>
-            </div>
-            <div class="bus-input-group">
-              <label>المبلغ المدفوع (ج.م) <span style="color:red">*</span></label>
-              <input type="number" class="form-input" id="subAmount" placeholder="0.00" min="0" step="0.01" />
-            </div>
-            <div class="bus-input-group">
-              <label>ملاحظات</label>
-              <input type="text" class="form-input form-input-ar" id="subNotes" placeholder="اختياري..." />
-            </div>
-          </div>
-          <button class="bus-save-btn" onclick="saveSubscription()"> حفظ الاشتراك</button>
-          <div id="subSaveMsg" style="display:none;margin-top:0.6rem;padding:0.5rem 0.75rem;border-radius:var(--radius-sm);font-size:0.82rem;text-align:center"></div>
-        </div>
-
-        <!-- جدول الاشتراكات -->
-        <div class="card animate-in">
-          <div class="card-header">
-            <span class="card-title"> سجل الاشتراكات</span>
-            <div style="display:flex;gap:0.5rem;align-items:center">
-              <select class="form-select" id="subFilterTerm" onchange="renderSubscriptionsTable()" style="font-size:0.8rem;padding:0.3rem 0.6rem;width:auto">
-                <option value="">كل الترمات</option>
-                <option value="ترم أول">ترم أول</option>
-                <option value="ترم ثان">ترم ثان</option>
-              </select>
-              <span class="badge badge-primary" id="subCount">0 اشتراك</span>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="exp-table-wrapper">
-              <table class="exp-table" id="subTable">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>اسم الطالب</th>
-                    <th>الصف</th>
-                    <th>تاريخ التسديد</th>
-                    <th>الترم</th>
-                    <th>المبلغ المدفوع</th>
-                    <th>ملاحظات</th>
-                    <th>حذف</th>
-                  </tr>
-                </thead>
-                <tbody id="subTableBody">
-                  <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-light)">لا توجد اشتراكات بعد</td></tr>
-                </tbody>
-                <tfoot>
-                  <tr id="subTotalRow" style="display:none">
-                    <td colspan="5" style="font-weight:800;text-align:center;background:#e8f5e9;color:#2e7d32"> الإجمالي</td>
-                    <td style="font-weight:900;color:#2e7d32;background:#e8f5e9" id="subTotalAmount"></td>
-                    <td colspan="2" style="background:#e8f5e9"></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- end tabPane-subscriptions -->
-
-      <!-- ===== TAB: تسجيل مصروفات ===== -->
-      <div class="buses-tab-pane" id="tabPane-busexpenses">
-
-        <!-- نموذج تسجيل مصروف -->
-        <div class="exp-form-card animate-in">
-          <div class="bus-panel-title"> تسجيل مصروف جديد</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:0.75rem">
-            <div class="bus-input-group" style="grid-column:1/-1">
-              <label>البند <span style="color:red">*</span></label>
-              <select class="form-select" id="busExpCategory" onchange="toggleBusExpOther()">
-                <option value="">— اختر البند —</option>
-                <option value="رواتب المشرفين">رواتب المشرفين</option>
-                <option value="شحن رصيد موبايل">شحن رصيد موبايل</option>
-                <option value="مصروفات أخرى">مصروفات أخرى</option>
-                <option value="انتقالات أخرى">انتقالات أخرى</option>
-              </select>
-            </div>
-            <div class="bus-input-group" id="busExpOtherGroup" style="display:none;grid-column:1/-1">
-              <label>تفاصيل البند <span style="color:red">*</span></label>
-              <input type="text" class="form-input form-input-ar" id="busExpOtherDesc" placeholder="اكتب تفاصيل البند..." />
-            </div>
-            <div class="bus-input-group">
-              <label>اسم المستلم / البيان</label>
-              <input type="text" class="form-input form-input-ar" id="busExpRecipient" placeholder="مثال: أحمد محمد" />
-            </div>
-            <div class="bus-input-group">
-              <label>التاريخ <span style="color:red">*</span></label>
-              <input type="date" class="form-input" id="busExpDate" />
-            </div>
-            <div class="bus-input-group">
-              <label>المبلغ (ج.م) <span style="color:red">*</span></label>
-              <input type="number" class="form-input" id="busExpAmount" placeholder="0.00" min="0" step="0.01" />
-            </div>
-          </div>
-          <div class="bus-input-group" style="margin-bottom:0.75rem">
-            <label>ملاحظات</label>
-            <input type="text" class="form-input form-input-ar" id="busExpNotes" placeholder="اختياري..." />
-          </div>
-          <button class="bus-save-btn" onclick="saveBusExpense()"> حفظ المصروف</button>
-          <div id="busExpSaveMsg" style="display:none;margin-top:0.6rem;padding:0.5rem 0.75rem;border-radius:var(--radius-sm);font-size:0.82rem;text-align:center"></div>
-        </div>
-
-        <!-- ملخص المصروفات -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-bottom:1rem" id="busExpSummaryGrid">
-          <div style="background:linear-gradient(135deg,#1565c0,#0d47a1);border-radius:var(--radius-sm);padding:0.75rem;color:white;text-align:center">
-            <div style="font-size:0.72rem;opacity:0.8">رواتب المشرفين</div>
-            <div style="font-size:1.1rem;font-weight:900" id="expSumSalaries">0 ج.م</div>
-          </div>
-          <div style="background:linear-gradient(135deg,#6a1b9a,#4a148c);border-radius:var(--radius-sm);padding:0.75rem;color:white;text-align:center">
-            <div style="font-size:0.72rem;opacity:0.8">شحن موبايل</div>
-            <div style="font-size:1.1rem;font-weight:900" id="expSumMobile">0 ج.م</div>
-          </div>
-          <div style="background:linear-gradient(135deg,#e65100,#bf360c);border-radius:var(--radius-sm);padding:0.75rem;color:white;text-align:center">
-            <div style="font-size:0.72rem;opacity:0.8">مصروفات أخرى / انتقالات</div>
-            <div style="font-size:1.1rem;font-weight:900" id="expSumOther">0 ج.م</div>
-          </div>
-          <div style="background:linear-gradient(135deg,#c62828,#b71c1c);border-radius:var(--radius-sm);padding:0.75rem;color:white;text-align:center">
-            <div style="font-size:0.72rem;opacity:0.8">الإجمالي الكلي</div>
-            <div style="font-size:1.1rem;font-weight:900" id="expSumTotal">0 ج.م</div>
-          </div>
-        </div>
-
-        <!-- جدول المصروفات -->
-        <div class="card animate-in">
-          <div class="card-header">
-            <span class="card-title"> سجل المصروفات</span>
-            <div style="display:flex;gap:0.5rem;align-items:center">
-              <select class="form-select" id="busExpFilterCat" onchange="renderBusExpensesTable()" style="font-size:0.8rem;padding:0.3rem 0.6rem;width:auto">
-                <option value="">كل البنود</option>
-                <option value="رواتب المشرفين">رواتب المشرفين</option>
-                <option value="شحن رصيد موبايل">شحن رصيد موبايل</option>
-                <option value="مصروفات أخرى">مصروفات أخرى</option>
-                <option value="انتقالات أخرى">انتقالات أخرى</option>
-              </select>
-              <span class="badge badge-primary" id="busExpCount">0 مصروف</span>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="exp-table-wrapper">
-              <table class="exp-table" id="busExpTable">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>البند</th>
-                    <th>البيان / المستلم</th>
-                    <th>التاريخ</th>
-                    <th>المبلغ</th>
-                    <th>ملاحظات</th>
-                    <th>حذف</th>
-                  </tr>
-                </thead>
-                <tbody id="busExpTableBody">
-                  <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-light)">لا توجد مصروفات بعد</td></tr>
-                </tbody>
-                <tfoot>
-                  <tr id="busExpTotalRow" style="display:none">
-                    <td colspan="4" style="font-weight:800;text-align:center;background:#fdecea;color:#c0392b"> الإجمالي</td>
-                    <td style="font-weight:900;color:#c0392b;background:#fdecea" id="busExpTotalAmount"></td>
-                    <td colspan="2" style="background:#fdecea"></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- end tabPane-busexpenses -->
+      </div>
 
     </div>
   </div>
@@ -1534,7 +1238,7 @@
     }
   }
 
-  // ---- تصدير Excel حسابات الباصات ----
+  // ---- تصدير Excel حسابات الباصات (شكل الشيت الرسمي) ----
   async function exportCalcExcel() {
     if (!calcCurrentVehicle) { alert('اختر شركة وعربية أولاً'); return; }
     if (typeof ExcelJS === 'undefined') {
@@ -1547,494 +1251,388 @@
     const school      = SESSION.getSchool();
     const companyName = document.getElementById('calcCompanySelect').options[document.getElementById('calcCompanySelect').selectedIndex]?.text || '';
     const vehicleName = document.getElementById('calcVehicleSelect').options[document.getElementById('calcVehicleSelect').selectedIndex]?.text || '';
+    const companyId   = document.getElementById('calcCompanySelect').value;
+    const company     = busCompanies.find(c => c.id === companyId) || {};
 
-    const wb = new ExcelJS.Workbook();
-    wb.creator = 'Eng. Kareem Ali Mousa';
-    const ws = wb.addWorksheet('حسابات الباصات', { views:[{ rightToLeft:true }] });
+    // ===== حسابات البيانات =====
+    const allMonths = [...TERM1_MONTHS, ...TERM2_MONTHS];
 
-    // column widths
-    ws.columns = [
-      {width:3},{width:26},{width:16},{width:14},{width:16},{width:16},{width:20},{width:22},{width:3},
-      {width:24},{width:18},{width:14},{width:18}
-    ];
+    // إجماليات الترم الأول
+    const t1Cost = TERM1_MONTHS.reduce((s,m)=>s+(calcData[m.key]?.days||0)*(calcData[m.key]?.dayVal||0),0);
+    const t1Rev  = TERM1_MONTHS.reduce((s,m)=>s+(calcData[m.key]?.revenue||0),0);
 
-    // helpers
-    const border = (color='B0B0B0') => ({
-      top:{style:'thin',color:{argb:'FF'+color}},
-      bottom:{style:'thin',color:{argb:'FF'+color}},
-      left:{style:'thin',color:{argb:'FF'+color}},
-      right:{style:'thin',color:{argb:'FF'+color}}
-    });
-    const fill = (hex) => ({ type:'pattern', pattern:'solid', fgColor:{argb:'FF'+hex} });
-    const font = (bold=false, size=10, color='1a1a2e', name='Arial') => ({ name, bold, size, color:{argb:'FF'+color} });
-    const align = (h='center', v='middle') => ({ horizontal:h, vertical:v, readingOrder:2, wrapText:true });
+    // إجماليات الترم الثاني
+    const t2Cost = TERM2_MONTHS.reduce((s,m)=>s+(calcData[m.key]?.days||0)*(calcData[m.key]?.dayVal||0),0);
+    const t2Rev  = TERM2_MONTHS.reduce((s,m)=>s+(calcData[m.key]?.revenue||0),0);
 
-    // ===== Title row =====
-    ws.mergeCells('B1:H1');
-    const titleRow = ws.getRow(1); titleRow.height = 36;
-    const tc = titleRow.getCell(2);
-    tc.value = `حسابات باصات — ${school?.name||''} — ${companyName} — ${vehicleName}`;
-    tc.style = { font:font(true,14,'FFFFFF'), fill:fill('1A3A6B'), alignment:align(), border:border('1A3A6B') };
-
-    // ===== Header row =====
-    ws.mergeCells('B2:H2');
-    const h2 = ws.getRow(2); h2.height = 22;
-    const hc = h2.getCell(2);
-    hc.value = 'بيان التكاليف والإيرادات الشهرية';
-    hc.style = { font:font(true,11,'1A3A6B'), fill:fill('E8F0FE'), alignment:align(), border:border('1A3A6B') };
-
-    // ===== Column headers =====
-    const colHdr = ws.addRow([null,'البيان','عدد أيام العمل','قيمة اليوم','الإجمالي','مبلغ الإيراد','بيان','ملاحظات']);
-    colHdr.height = 24;
-    ['B','C','D','E','F','G','H'].forEach((col,i) => {
-      const cell = colHdr.getCell(col);
-      cell.style = {
-        font:  font(true,10,'FFFFFF'),
-        fill:  fill('1A3A6B'),
-        alignment: align(),
-        border: border('1A3A6B')
-      };
-    });
-
-    // helper: write term block
-    const writeTermRows = (months, termLabel, hdrFill, rowFill, borderCol) => {
-      // term header
-      const termHdrRow = ws.addRow([null, termLabel]);
-      ws.mergeCells(`B${termHdrRow.number}:H${termHdrRow.number}`);
-      termHdrRow.height = 22;
-      termHdrRow.getCell('B').style = {
-        font: font(true,11,'FFFFFF'),
-        fill: fill(hdrFill),
-        alignment: align(),
-        border: border(borderCol)
-      };
-
-      let sumDays=0, sumCost=0, sumRev=0;
-
-      months.forEach(m => {
-        const d = calcData[m.key] || { days:0, dayVal:0, revenue:0, note:'', remark:'' };
-        const total = (d.days||0)*(d.dayVal||0);
-        sumDays += (d.days||0); sumCost += total; sumRev += (d.revenue||0);
-
-        const r = ws.addRow([null, `حساب شهر ${m.label}`, d.days||0, d.dayVal||0, total, d.revenue||0, d.note||'', d.remark||'']);
-        r.height = 20;
-        ['B','C','D','E','F','G','H'].forEach(col => {
-          const cell = r.getCell(col);
-          const isNum = ['C','D','E','F'].includes(col);
-          cell.style = {
-            font: font(false,10,'1a1a2e'),
-            fill: fill(rowFill),
-            alignment: isNum ? align('center') : align('right'),
-            border: border(borderCol)
-          };
-          if(isNum) cell.numFmt = '#,##0.00';
-          if(col==='E') cell.style.font = font(true,10,'C00000');
-          if(col==='F') cell.style.font = font(true,10,'1B5E20');
-        });
-      });
-
-      // sum row
-      const sumRow = ws.addRow([null,'إجمالي الترم', sumDays, '', sumCost, sumRev, '', '']);
-      sumRow.height = 22;
-      ['B','C','D','E','F','G','H'].forEach(col => {
-        const cell = sumRow.getCell(col);
-        cell.style = {
-          font: font(true,10,'FFFFFF'),
-          fill: fill(hdrFill),
-          alignment: align(),
-          border: border(borderCol)
-        };
-        if(['E','F'].includes(col)) cell.numFmt='#,##0.00';
-      });
-
-      return { sumDays, sumCost, sumRev };
-    };
-
-    const t1 = writeTermRows(TERM1_MONTHS, 'ترم أول', 'F9A825', 'FFFDE7', 'F9A825');
-    ws.addRow([]); // فراغ
-    const t2 = writeTermRows(TERM2_MONTHS, 'ترم ثان', '43A047', 'E8F5E9', '43A047');
-    ws.addRow([]); // فراغ
-
-    // التصفية النهائية
-    const allMonths = [...TERM1_MONTHS,...TERM2_MONTHS];
-    const totalRev  = allMonths.reduce((s,m)=>s+(calcData[m.key]?.revenue||0),0);
-    const totalCost = allMonths.reduce((s,m)=>s+(calcData[m.key]?.days||0)*(calcData[m.key]?.dayVal||0),0);
+    const totalRev  = t1Rev  + t2Rev;
+    const totalCost = t1Cost + t2Cost;
     const finalVal  = totalRev - totalCost;
 
-    const finalHdr = ws.addRow([null,'التصفية النهائية','','','',`${finalVal>=0?'فائض':'عجز'}: ${Math.abs(finalVal).toLocaleString('ar-EG')} ج.م`]);
-    ws.mergeCells(`B${finalHdr.number}:E${finalHdr.number}`);
-    ws.mergeCells(`F${finalHdr.number}:H${finalHdr.number}`);
-    finalHdr.height = 28;
-    finalHdr.getCell('B').style = { font:font(true,12,'FFFFFF'), fill:fill('1A3A6B'), alignment:align(), border:border('1A3A6B') };
-    finalHdr.getCell('F').style = { font:font(true,12, finalVal>=0?'90EE90':'FF9999'), fill:fill('1A3A6B'), alignment:align(), border:border('1A3A6B') };
+    // بيانات الشركة للمصروفات
+    const monthly      = company.monthly   || 0;       // إجمالي تكلفة العربيات شهرياً
+    const subTotal     = company.subTotal  || (company.subCount||0)*(company.subVal||0);
+    const custPrev     = parseFloat(document.getElementById('busCustPrev').textContent.replace(/[^\d.]/g,'')) || 0;
+    const custNew      = parseFloat(document.getElementById('busCustNew').textContent.replace(/[^\d.]/g,''))  || 0;
+    const custRem      = custodianBalance || 0;
 
-    // summary block
-    ws.addRow([]);
-    const sHdr = ws.addRow([null,'ملخص السنة','إجمالي الإيراد','','إجمالي المنصرف','','التصفية']);
-    ws.mergeCells(`C${sHdr.number}:D${sHdr.number}`);
-    ws.mergeCells(`E${sHdr.number}:F${sHdr.number}`);
-    sHdr.height = 22;
-    ['B','C','E','G'].forEach(col => {
-      sHdr.getCell(col).style={ font:font(true,10,'FFFFFF'), fill:fill('1A3A6B'), alignment:align(), border:border('1A3A6B') };
+    // ===== Workbook =====
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Eng. Kareem Ali Mousa';
+    const ws = wb.addWorksheet(school?.name || 'حسابات الباصات', { views:[{ rightToLeft:true }] });
+
+    // عرض الأعمدة — A:H رئيسي | I فراغ | J:M تفاصيل عهدة
+    ws.columns = [
+      {width:3},   // A
+      {width:44},  // B - البيان
+      {width:16},  // C - عدد الأيام
+      {width:19},  // D - قيمة اليوم
+      {width:20},  // E - الإجمالي
+      {width:14},  // F - مبلغ الإيراد
+      {width:37},  // G - بيان
+      {width:17},  // H - ملاحظات
+      {width:2},   // I - فاصل
+      {width:13},  // J - تفاصيل يسار
+      {width:24},  // K
+      {width:16},  // L
+      {width:18},  // M
+    ];
+
+    // ===== helpers =====
+    const bdr = (c='B0B0B0') => ({
+      top:{style:'thin',color:{argb:'FF'+c}}, bottom:{style:'thin',color:{argb:'FF'+c}},
+      left:{style:'thin',color:{argb:'FF'+c}}, right:{style:'thin',color:{argb:'FF'+c}}
     });
-    const sVals = ws.addRow([null,'',totalRev,'',totalCost,'',finalVal]);
-    ws.mergeCells(`C${sVals.number}:D${sVals.number}`);
-    ws.mergeCells(`E${sVals.number}:F${sVals.number}`);
-    sVals.height = 26;
-    ['C','E','G'].forEach(col => {
-      const cell = sVals.getCell(col);
-      cell.numFmt = '#,##0';
-      cell.style = {
-        font: font(true,13, col==='C'?'1B5E20': col==='E'?'C00000': finalVal>=0?'1B5E20':'C00000'),
-        fill: fill('F8F9FA'),
-        alignment: align(),
-        border: border('1A3A6B')
-      };
+    const fill  = hex => ({ type:'pattern', pattern:'solid', fgColor:{argb:'FF'+hex} });
+    const fnt   = (bold=false, sz=12, clr='1A1A2E') => ({ name:'Arial', bold, size:sz, color:{argb:'FF'+clr} });
+    const aln   = (h='center', wrap=true) => ({ horizontal:h, vertical:'middle', readingOrder:2, wrapText:wrap });
+
+    const styleCell = (cell, val, bold, sz, clr, bg, halign, numFmt, merge) => {
+      cell.value = val;
+      cell.style = { font:fnt(bold,sz,clr), fill:fill(bg), alignment:aln(halign), border:bdr(bg==='FFFFFF'||bg==='F5F7FA'?'C8C8C8':'1A3A6B') };
+      if(numFmt) cell.numFmt = numFmt;
+    };
+
+    // =====================================================
+    // صف 1: عنوان الشيت
+    // =====================================================
+    ws.mergeCells('B1:H1');
+    const r1 = ws.getRow(1); r1.height = 16;
+    // خلي R1 فاضية — زي الشيت الأصلي اللي row 1 فاضية
+
+    // =====================================================
+    // صف 2-3: عنوان كبير (B2:H3 merged)
+    // =====================================================
+    ws.mergeCells('B2:H3');
+    const titleCell = ws.getRow(2).getCell('B');
+    titleCell.value = `${school?.name||''} — ${companyName} — ${vehicleName}`;
+    titleCell.style = {
+      font: fnt(true,16,'C00000'),
+      fill: fill('FFF9C4'),
+      alignment: aln('center'),
+      border: bdr('F9A825')
+    };
+    ws.getRow(2).height = 28;
+    ws.getRow(3).height = 16;
+
+    // =====================================================
+    // صف 4: رؤوس الأعمدة
+    // =====================================================
+    const hdrRow = ws.getRow(4); hdrRow.height = 22;
+    const hdrCols = ['B','C','D','E','F','G','H'];
+    const hdrVals = ['البيان','عدد ايام العمل','قيمة اليوم','الإجمالي','مبلغ الايراد','بيان','ملاحظات'];
+    hdrCols.forEach((col,i) => {
+      const cell = hdrRow.getCell(col);
+      cell.value = hdrVals[i];
+      cell.style = { font:fnt(true,16,'1A1A2E'), fill:fill('FFFFFF'), alignment:aln('center'), border:bdr('C8C8C8') };
     });
 
+    // =====================================================
+    // صف 5: ترم أول (أصفر) — B5:H5 merged
+    // =====================================================
+    ws.mergeCells('B5:H5');
+    const t1HdrRow = ws.getRow(5); t1HdrRow.height = 28;
+    const t1HdrCell = t1HdrRow.getCell('B');
+    t1HdrCell.value = 'ترم اول';
+    t1HdrCell.style = { font:fnt(true,20,'1A1A2E'), fill:fill('FFFF00'), alignment:aln('center'), border:bdr('F9A825') };
+
+    // =====================================================
+    // صفوف 6-10: بيانات الترم الأول
+    // =====================================================
+    const t1Rows = [
+      { label:'اجمالي الشهور',    eCol:t1Cost, fCol:t1Rev,  bold:true,  sz:14, bg:'FFFFFF', eBg:'FFFFFF', fBg:'FFFFFF' },
+      { label:'اجمالي شحن موبيل', eCol:null,   fCol:null,   bold:true,  sz:14, bg:'FFFFFF', eBg:'FFFFFF', fBg:'FFFFFF' },
+      { label:'اجمالي الرواتب',   eCol:null,   fCol:null,   bold:true,  sz:14, bg:'FFFFFF', eBg:'FFFFFF', fBg:'FFFFFF' },
+      { label:'مصروفات اخري',     eCol:null,   fCol:null,   bold:true,  sz:14, bg:'FFFFFF', eBg:'FFFFFF', fBg:'FFFFFF' },
+      { label:'الاجمالي',         eCol:null,   fCol:t1Rev,  bold:true,  sz:14, bg:'BDD7EE', eBg:'BDD7EE', fBg:'BDD7EE', totalRow:true },
+    ];
+
+    let rowNum = 6;
+    t1Rows.forEach((rd, idx) => {
+      const r = ws.getRow(rowNum); r.height = 30;
+      // B: البيان
+      const bCell = r.getCell('B');
+      bCell.value = rd.label;
+      bCell.style = { font:fnt(rd.bold,rd.sz,'1A1A2E'), fill:fill(rd.bg), alignment:aln('center'), border:bdr('C8C8C8') };
+
+      // C,D: فارغة
+      ['C','D'].forEach(col => {
+        const c = r.getCell(col);
+        c.value = null;
+        c.style = { font:fnt(rd.bold,rd.sz,'1A1A2E'), fill:fill(rd.bg), alignment:aln('center'), border:bdr('C8C8C8') };
+      });
+
+      // E: الإجمالي
+      const eCell = r.getCell('E');
+      eCell.value = rd.eCol !== null && rd.eCol !== undefined ? rd.eCol : null;
+      eCell.style = { font:fnt(rd.bold,rd.sz,'C00000'), fill:fill(rd.eBg), alignment:aln('center'), border:bdr('C8C8C8') };
+      if(rd.eCol !== null && rd.eCol !== undefined) eCell.numFmt = '#,##0.00';
+
+      // F: مبلغ الإيراد — صف الإجمالي يعرض مجموع F6:F9 بمعادلة
+      const fCell = r.getCell('F');
+      if(rd.totalRow) {
+        fCell.value = { formula: 'SUM(F6:F9)' };
+      } else {
+        fCell.value = rd.fCol !== null && rd.fCol !== undefined ? rd.fCol : null;
+      }
+      fCell.style = { font:fnt(rd.bold,rd.sz,'1B5E20'), fill:fill(rd.fBg), alignment:aln('center'), border:bdr('C8C8C8') };
+      if(rd.fCol !== null && rd.fCol !== undefined || rd.totalRow) fCell.numFmt = '#,##0.00';
+
+      // G,H: فارغة
+      ['G','H'].forEach(col => {
+        const c = r.getCell(col);
+        c.value = null;
+        c.style = { font:fnt(false,12,'1A1A2E'), fill:fill(rd.bg), alignment:aln('right'), border:bdr('C8C8C8') };
+      });
+
+      rowNum++;
+    });
+
+    // =====================================================
+    // صف 11: ترم ثان (أصفر) — B11:H11 merged
+    // =====================================================
+    ws.mergeCells(`B${rowNum}:H${rowNum}`);
+    const t2HdrRow = ws.getRow(rowNum); t2HdrRow.height = 30;
+    const t2HdrCell = t2HdrRow.getCell('B');
+    t2HdrCell.value = 'ترم ثان';
+    t2HdrCell.style = { font:fnt(true,20,'1A1A2E'), fill:fill('FFFF00'), alignment:aln('center'), border:bdr('F9A825') };
+    rowNum++;
+
+    // =====================================================
+    // صفوف 12-16: بيانات الترم الثاني
+    // =====================================================
+    const t2StartF = rowNum;
+    const t2Rows = [
+      { label:'اجمالي الشهور',    eCol:t2Cost, fCol:t2Rev,  bold:true, sz:14, bg:'FFFFFF', totalRow:false },
+      { label:'اجمالي شحن موبيل', eCol:null,   fCol:null,   bold:true, sz:14, bg:'FFFFFF', totalRow:false },
+      { label:'اجمالي الرواتب',   eCol:null,   fCol:null,   bold:true, sz:14, bg:'FFFFFF', totalRow:false },
+      { label:'مصروفات اخري',     eCol:null,   fCol:null,   bold:true, sz:14, bg:'FFFFFF', totalRow:false },
+      { label:'الاجمالي',         eCol:null,   fCol:null,   bold:true, sz:14, bg:'BDD7EE',  totalRow:true  },
+    ];
+
+    t2Rows.forEach((rd, idx) => {
+      const r = ws.getRow(rowNum); r.height = 30;
+      const isTotal = rd.totalRow;
+      const bg = rd.bg;
+
+      const bCell = r.getCell('B');
+      bCell.value = rd.label;
+      bCell.style = { font:fnt(true,rd.sz,'1A1A2E'), fill:fill(bg), alignment:aln('center'), border:bdr('C8C8C8') };
+
+      ['C','D'].forEach(col => {
+        const c = r.getCell(col);
+        c.style = { font:fnt(false,12,'1A1A2E'), fill:fill(bg), alignment:aln('center'), border:bdr('C8C8C8') };
+      });
+
+      const eCell = r.getCell('E');
+      eCell.value = rd.eCol !== null && rd.eCol !== undefined ? rd.eCol : null;
+      eCell.style = { font:fnt(true,rd.sz,'C00000'), fill:fill(bg), alignment:aln('center'), border:bdr('C8C8C8') };
+      if(rd.eCol !== null && rd.eCol !== undefined) eCell.numFmt = '#,##0.00';
+
+      const fCell = r.getCell('F');
+      if(isTotal) {
+        fCell.value = { formula: `SUM(F${t2StartF}:F${rowNum-1})` };
+      } else {
+        fCell.value = rd.fCol !== null && rd.fCol !== undefined ? rd.fCol : null;
+      }
+      fCell.style = { font:fnt(true,rd.sz,'1B5E20'), fill:fill(bg), alignment:aln('center'), border:bdr('C8C8C8') };
+      if(rd.fCol !== null && rd.fCol !== undefined || isTotal) fCell.numFmt = '#,##0.00';
+
+      ['G','H'].forEach(col => {
+        const c = r.getCell(col);
+        c.style = { font:fnt(false,12,'1A1A2E'), fill:fill(bg), alignment:aln('right'), border:bdr('C8C8C8') };
+      });
+
+      rowNum++;
+    });
+
+    // =====================================================
+    // صف التصفية النهائية — B:C merged | F:H merged
+    // =====================================================
+    ws.mergeCells(`B${rowNum}:C${rowNum}`);
+    ws.mergeCells(`D${rowNum}:E${rowNum}`);
+    ws.mergeCells(`F${rowNum}:H${rowNum}`);
+    const tfRow = ws.getRow(rowNum); tfRow.height = 30;
+
+    const tfB = tfRow.getCell('B');
+    tfB.value = 'التصفية النهائية';
+    tfB.style = { font:fnt(true,14,'1A1A2E'), fill:fill('FFC000'), alignment:aln('center'), border:bdr('E6A800') };
+
+    const tfD = tfRow.getCell('D');
+    tfD.value = null;
+    tfD.style = { font:fnt(true,14,'1A1A2E'), fill:fill('FFC000'), alignment:aln('center'), border:bdr('E6A800') };
+
+    const tfF = tfRow.getCell('F');
+    tfF.value = finalVal;
+    tfF.style = { font:fnt(true,14, finalVal>=0?'1B5E20':'C00000'), fill:fill('FFC000'), alignment:aln('center'), border:bdr('E6A800') };
+    tfF.numFmt = '#,##0.00';
+    rowNum++;
+
+    // =====================================================
+    // فراغ
+    // =====================================================
+    ws.getRow(rowNum).height = 10;
+    rowNum++;
+
+    // =====================================================
+    // جدول المصروفات والعهدة
+    // =====================================================
+    // عنوان القسم
+    ws.mergeCells(`B${rowNum}:H${rowNum}`);
+    const expTitleRow = ws.getRow(rowNum); expTitleRow.height = 26;
+    const expTitleCell = expTitleRow.getCell('B');
+    expTitleCell.value = 'بند المصروفات والعهدة';
+    expTitleCell.style = { font:fnt(true,14,'FFFFFF'), fill:fill('1A3A6B'), alignment:aln('center'), border:bdr('1A3A6B') };
+    rowNum++;
+
+    // رؤوس جدول المصروفات
+    const expHdrRow = ws.getRow(rowNum); expHdrRow.height = 22;
+    const expHdrs = [
+      ['B','البيان'], ['C','إجمالي التكلفة الشهرية'], ['D','إجمالي الاشتراكات'],
+      ['E','الفارق (فائض/عجز)'], ['F','العهدة السابقة'], ['G','العهدة الجديدة'], ['H','الرصيد المتبقي']
+    ];
+    expHdrs.forEach(([col, val]) => {
+      const c = expHdrRow.getCell(col);
+      c.value = val;
+      c.style = { font:fnt(true,11,'FFFFFF'), fill:fill('1A3A6B'), alignment:aln('center'), border:bdr('1A3A6B') };
+    });
+    rowNum++;
+
+    // صف البيانات
+    const expDataRow = ws.getRow(rowNum); expDataRow.height = 30;
+    const busTotal   = busCompanies.reduce((s,c)=>s+(c.monthly||0),0);
+    const busRev     = busCompanies.reduce((s,c)=>s+(c.subTotal||(c.subCount*c.subVal)||0),0);
+    const busDiff    = busRev - busTotal;
+
+    const expData = [
+      ['B', companyName,               false, '1A1A2E', 'F5F7FA', null],
+      ['C', monthly,                   true,  'C00000', 'FDE8E8', '#,##0.00'],
+      ['D', subTotal,                  true,  '1B5E20', 'E8F5E9', '#,##0.00'],
+      ['E', busDiff,                   true,  busDiff>=0?'1B5E20':'C00000', busDiff>=0?'E8F5E9':'FDE8E8', '#,##0.00'],
+      ['F', custPrev,                  true,  '1565C0', 'E3F2FD', '#,##0.00'],
+      ['G', custNew,                   true,  '2E7D32', 'E8F5E9', '#,##0.00'],
+      ['H', custRem,                   true,  custRem>=0?'1B5E20':'C00000', custRem>=0?'E8F5E9':'FDE8E8', '#,##0.00'],
+    ];
+    expData.forEach(([col, val, bold, clr, bg, numFmt]) => {
+      const cell = expDataRow.getCell(col);
+      cell.value = val;
+      cell.style = { font:fnt(bold,12,clr), fill:fill(bg), alignment:aln('center'), border:bdr('1A3A6B') };
+      if(numFmt) cell.numFmt = numFmt;
+    });
+    rowNum++;
+
+    // =====================================================
+    // فراغ ثم جدول تفاصيل الشركات
+    // =====================================================
+    ws.getRow(rowNum).height = 8;
+    rowNum++;
+
+    // عنوان جدول الشركات
+    ws.mergeCells(`B${rowNum}:H${rowNum}`);
+    const coTitleRow = ws.getRow(rowNum); coTitleRow.height = 24;
+    const coTitleCell = coTitleRow.getCell('B');
+    coTitleCell.value = 'تفاصيل الشركات والعربيات';
+    coTitleCell.style = { font:fnt(true,13,'FFFFFF'), fill:fill('375A8C'), alignment:aln('center'), border:bdr('375A8C') };
+    rowNum++;
+
+    // رؤوس جدول الشركات
+    const coHdrRow = ws.getRow(rowNum); coHdrRow.height = 20;
+    [['B','الشركة'],['C','عدد العربيات'],['D','الأيام/شهر'],['E','تكلفة الشهر'],['F','المشتركون'],['G','اشتراك/شخص'],['H','إيرادات الاشتراكات']].forEach(([col,val])=>{
+      const c = coHdrRow.getCell(col);
+      c.value = val;
+      c.style = { font:fnt(true,11,'FFFFFF'), fill:fill('375A8C'), alignment:aln('center'), border:bdr('375A8C') };
+    });
+    rowNum++;
+
+    // بيانات كل شركة
+    busCompanies.forEach((c, idx) => {
+      const cost = c.monthly  || 0;
+      const rev  = c.subTotal || (c.subCount||0)*(c.subVal||0);
+      const diff = rev - cost;
+      const bg   = idx % 2 === 0 ? 'F5F7FA' : 'FFFFFF';
+      const r    = ws.getRow(rowNum); r.height = 22;
+
+      [
+        ['B', c.name,         false,'1A1A2E', bg, null],
+        ['C', c.cars||0,      false,'1A1A2E', bg, null],
+        ['D', c.days||0,      false,'1A1A2E', bg, null],
+        ['E', cost,           true, 'C00000', bg, '#,##0.00'],
+        ['F', c.subCount||0,  false,'1A1A2E', bg, null],
+        ['G', c.subVal||0,    false,'1A1A2E', bg, '#,##0.00'],
+        ['H', rev,            true, '1B5E20', bg, '#,##0.00'],
+      ].forEach(([col,val,bold,clr,cbg,numFmt])=>{
+        const cell = r.getCell(col);
+        cell.value = val;
+        cell.style = { font:fnt(bold,11,clr), fill:fill(cbg), alignment:aln('center'), border:bdr('C8C8C8') };
+        if(numFmt) cell.numFmt = numFmt;
+      });
+      rowNum++;
+    });
+
+    // صف إجمالي الشركات
+    const coTotRow = ws.getRow(rowNum); coTotRow.height = 24;
+    [
+      ['B','الإجمالي',   true, 'FFFFFF','1A3A6B', null],
+      ['C','',           false,'FFFFFF','1A3A6B', null],
+      ['D','',           false,'FFFFFF','1A3A6B', null],
+      ['E', busTotal,    true, 'FFCC00','1A3A6B', '#,##0.00'],
+      ['F','',           false,'FFFFFF','1A3A6B', null],
+      ['G','',           false,'FFFFFF','1A3A6B', null],
+      ['H', busRev,      true, '90EE90','1A3A6B', '#,##0.00'],
+    ].forEach(([col,val,bold,clr,bg,numFmt])=>{
+      const cell = coTotRow.getCell(col);
+      cell.value = val;
+      cell.style = { font:fnt(bold,12,clr), fill:fill(bg), alignment:aln('center'), border:bdr('1A3A6B') };
+      if(numFmt) cell.numFmt = numFmt;
+    });
+    rowNum++;
+
+    // =====================================================
+    // تذييل: اسم المصدر والتاريخ
+    // =====================================================
+    ws.getRow(rowNum).height = 8;
+    rowNum++;
+    ws.mergeCells(`B${rowNum}:H${rowNum}`);
+    const footRow = ws.getRow(rowNum); footRow.height = 18;
+    const footCell = footRow.getCell('B');
+    footCell.value = `تم الإصدار بتاريخ: ${new Date().toLocaleDateString('ar-EG')}  —  ${school?.name||''}  —  إعداد: Eng. Kareem Ali Mousa`;
+    footCell.style = { font:fnt(false,10,'888888'), fill:fill('F5F7FA'), alignment:aln('center'), border:bdr('C8C8C8') };
+
+    // =====================================================
+    // تصدير الملف
+    // =====================================================
     const buf  = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
-    a.href=url; a.download=`حسابات_باصات_${school?.name||''}_${vehicleName}.xlsx`;
+    a.href = url;
+    a.download = `حسابات_باصات_${school?.name||''}_${companyName}.xlsx`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
 
   // ---- Init ----
   loadBusData();
-  initSubDate();
-  initBusExpDate();
-
-  // ============================================================
-  // Tab Switching
-  // ============================================================
-  function switchBusTab(name) {
-    document.querySelectorAll('.buses-tab-btn').forEach((btn, i) => {
-      const names = ['companies','subscriptions','busexpenses'];
-      btn.classList.toggle('active', names[i] === name);
-    });
-    document.querySelectorAll('.buses-tab-pane').forEach(p => {
-      p.classList.toggle('active', p.id === 'tabPane-' + name);
-    });
-  }
-
-  // ============================================================
-  // اشتراكات جديدة
-  // ============================================================
-  let subscriptionsList = [];
-
-  function initSubDate() {
-    const today = new Date().toISOString().split('T')[0];
-    const el = document.getElementById('subPayDate');
-    if (el) { el.value = today; autoDetectTerm(); }
-  }
-
-  // تحديد الترم أوتوماتيك:
-  // ترم أول: سبتمبر (9)، أكتوبر (10)، نوفمبر (11)، ديسمبر (12)، يناير (1)، فبراير (2)
-  // ترم ثان: مارس (3) → مايو (5)
-  function autoDetectTerm() {
-    const val = document.getElementById('subPayDate').value;
-    const badge = document.getElementById('subTermBadge');
-    const hiddenTerm = document.getElementById('subTerm');
-    if (!val) {
-      badge.textContent = '— اختر تاريخ أولاً —';
-      badge.className = 'sub-term-badge term1';
-      hiddenTerm.value = '';
-      return;
-    }
-    const month = new Date(val).getMonth() + 1; // 1-12
-    let term = '';
-    if (month >= 9 || month <= 2) {
-      term = 'ترم أول';
-      badge.textContent = ' ترم أول';
-      badge.className = 'sub-term-badge term1';
-    } else if (month >= 3 && month <= 5) {
-      term = 'ترم ثان';
-      badge.textContent = ' ترم ثان';
-      badge.className = 'sub-term-badge term2';
-    } else {
-      term = 'ترم ثان';
-      badge.textContent = ' ترم ثان';
-      badge.className = 'sub-term-badge term2';
-    }
-    hiddenTerm.value = term;
-  }
-
-  async function saveSubscription() {
-    const name   = document.getElementById('subStudentName').value.trim();
-    const grade  = document.getElementById('subStudentGrade').value.trim();
-    const date   = document.getElementById('subPayDate').value;
-    const term   = document.getElementById('subTerm').value;
-    const amount = parseFloat(document.getElementById('subAmount').value) || 0;
-    const notes  = document.getElementById('subNotes').value.trim();
-
-    if (!name)   { showSubMsg('من فضلك ادخل اسم الطالب', 'error'); return; }
-    if (!grade)  { showSubMsg('من فضلك ادخل الصف', 'error'); return; }
-    if (!date)   { showSubMsg('من فضلك اختر تاريخ التسديد', 'error'); return; }
-    if (!term)   { showSubMsg('لم يتم تحديد الترم — اختر تاريخاً صحيحاً', 'error'); return; }
-    if (amount <= 0) { showSubMsg('من فضلك ادخل مبلغ صحيح', 'error'); return; }
-
-    try {
-      await db.collection('busSubscriptions').add({
-        schoolId,
-        studentName: name,
-        grade,
-        payDate: date,
-        term,
-        amount,
-        notes,
-        createdBy: session.email,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        year:  new Date(date).getFullYear(),
-        month: new Date(date).getMonth() + 1,
-      });
-
-      showSubMsg(' تم حفظ الاشتراك بنجاح', 'success');
-      document.getElementById('subStudentName').value = '';
-      document.getElementById('subStudentGrade').value = '';
-      document.getElementById('subAmount').value = '';
-      document.getElementById('subNotes').value = '';
-      initSubDate();
-      await loadSubscriptions();
-    } catch(err) {
-      showSubMsg('خطأ في الحفظ: ' + err.message, 'error');
-    }
-  }
-
-  function showSubMsg(msg, type) {
-    const el = document.getElementById('subSaveMsg');
-    el.style.display = 'block';
-    el.style.background = type === 'success' ? '#e8f5e9' : '#fdecea';
-    el.style.color      = type === 'success' ? '#2e7d32' : '#c0392b';
-    el.style.border     = `1px solid ${type === 'success' ? '#a5d6a7' : '#ef9a9a'}`;
-    el.textContent      = msg;
-    if (type === 'success') setTimeout(() => { el.style.display = 'none'; }, 3000);
-  }
-
-  async function loadSubscriptions() {
-    try {
-      const snap = await db.collection('busSubscriptions')
-        .where('schoolId','==',schoolId)
-        .orderBy('createdAt','desc').get();
-      subscriptionsList = [];
-      snap.forEach(doc => subscriptionsList.push({ id: doc.id, ...doc.data() }));
-    } catch(e) { subscriptionsList = []; }
-    renderSubscriptionsTable();
-  }
-
-  function renderSubscriptionsTable() {
-    const filterTerm = document.getElementById('subFilterTerm').value;
-    const filtered = filterTerm
-      ? subscriptionsList.filter(s => s.term === filterTerm)
-      : subscriptionsList;
-
-    const tbody = document.getElementById('subTableBody');
-    if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-light)">لا توجد اشتراكات</td></tr>`;
-      document.getElementById('subCount').textContent = '0 اشتراك';
-      document.getElementById('subTotalRow').style.display = 'none';
-      return;
-    }
-
-    let totalAmt = 0;
-    tbody.innerHTML = filtered.map((s, i) => {
-      totalAmt += s.amount || 0;
-      const termColor = s.term === 'ترم أول' ? '#f57f17' : '#2e7d32';
-      const termBg    = s.term === 'ترم أول' ? '#fff9c4' : '#e8f5e9';
-      return `<tr>
-        <td style="text-align:center">${i+1}</td>
-        <td style="font-weight:700">${s.studentName || '—'}</td>
-        <td>${s.grade || '—'}</td>
-        <td style="text-align:center">${s.payDate || '—'}</td>
-        <td style="text-align:center">
-          <span style="background:${termBg};color:${termColor};padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:800">${s.term || '—'}</span>
-        </td>
-        <td style="text-align:center;font-weight:800;color:#2e7d32">${formatCurrency(s.amount||0)}</td>
-        <td style="font-size:0.8rem;color:var(--text-mid)">${s.notes || ''}</td>
-        <td style="text-align:center">
-          <button onclick="deleteSubscription('${s.id}')"
-            style="padding:2px 8px;background:none;border:1px solid #c0392b;color:#c0392b;border-radius:4px;cursor:pointer;font-size:0.75rem;font-family:Cairo,sans-serif">
-            حذف
-          </button>
-        </td>
-      </tr>`;
-    }).join('');
-
-    document.getElementById('subCount').textContent = filtered.length + ' اشتراك';
-    document.getElementById('subTotalAmount').textContent = formatCurrency(totalAmt);
-    document.getElementById('subTotalRow').style.display = '';
-  }
-
-  async function deleteSubscription(id) {
-    if (!confirm('هل تريد حذف هذا الاشتراك؟')) return;
-    try {
-      await db.collection('busSubscriptions').doc(id).delete();
-      await loadSubscriptions();
-    } catch(err) { alert('خطأ: ' + err.message); }
-  }
-
-  // ============================================================
-  // مصروفات الباصات
-  // ============================================================
-  let busExpensesList = [];
-
-  function initBusExpDate() {
-    const today = new Date().toISOString().split('T')[0];
-    const el = document.getElementById('busExpDate');
-    if (el) el.value = today;
-  }
-
-  function toggleBusExpOther() {
-    const cat = document.getElementById('busExpCategory').value;
-    const showOther = cat === 'مصروفات أخرى' || cat === 'انتقالات أخرى';
-    document.getElementById('busExpOtherGroup').style.display = showOther ? 'block' : 'none';
-    if (!showOther) document.getElementById('busExpOtherDesc').value = '';
-  }
-
-  async function saveBusExpense() {
-    const category  = document.getElementById('busExpCategory').value;
-    const otherDesc = document.getElementById('busExpOtherDesc').value.trim();
-    const recipient = document.getElementById('busExpRecipient').value.trim();
-    const date      = document.getElementById('busExpDate').value;
-    const amount    = parseFloat(document.getElementById('busExpAmount').value) || 0;
-    const notes     = document.getElementById('busExpNotes').value.trim();
-
-    if (!category)  { showBusExpMsg('من فضلك اختر البند', 'error'); return; }
-    const needsDesc = category === 'مصروفات أخرى' || category === 'انتقالات أخرى';
-    if (needsDesc && !otherDesc) { showBusExpMsg('من فضلك اكتب تفاصيل البند', 'error'); return; }
-    if (!date)      { showBusExpMsg('من فضلك اختر التاريخ', 'error'); return; }
-    if (amount <= 0){ showBusExpMsg('من فضلك ادخل مبلغ صحيح', 'error'); return; }
-
-    const categoryLabel = needsDesc ? `${category} — ${otherDesc}` : category;
-
-    try {
-      await db.collection('busExpenses').add({
-        schoolId,
-        category,
-        categoryLabel,
-        otherDesc: otherDesc || '',
-        recipient: recipient || '',
-        date,
-        amount,
-        notes,
-        createdBy: session.email,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        year:  new Date(date).getFullYear(),
-        month: new Date(date).getMonth() + 1,
-      });
-
-      showBusExpMsg(' تم حفظ المصروف بنجاح', 'success');
-      document.getElementById('busExpCategory').value   = '';
-      document.getElementById('busExpOtherDesc').value  = '';
-      document.getElementById('busExpOtherGroup').style.display = 'none';
-      document.getElementById('busExpRecipient').value  = '';
-      document.getElementById('busExpAmount').value     = '';
-      document.getElementById('busExpNotes').value      = '';
-      initBusExpDate();
-      await loadBusExpenses();
-    } catch(err) {
-      showBusExpMsg('خطأ في الحفظ: ' + err.message, 'error');
-    }
-  }
-
-  function showBusExpMsg(msg, type) {
-    const el = document.getElementById('busExpSaveMsg');
-    el.style.display = 'block';
-    el.style.background = type === 'success' ? '#e8f5e9' : '#fdecea';
-    el.style.color      = type === 'success' ? '#2e7d32' : '#c0392b';
-    el.style.border     = `1px solid ${type === 'success' ? '#a5d6a7' : '#ef9a9a'}`;
-    el.textContent      = msg;
-    if (type === 'success') setTimeout(() => { el.style.display = 'none'; }, 3000);
-  }
-
-  async function loadBusExpenses() {
-    try {
-      const snap = await db.collection('busExpenses')
-        .where('schoolId','==',schoolId)
-        .orderBy('createdAt','desc').get();
-      busExpensesList = [];
-      snap.forEach(doc => busExpensesList.push({ id: doc.id, ...doc.data() }));
-    } catch(e) { busExpensesList = []; }
-    renderBusExpensesTable();
-    updateBusExpSummary();
-  }
-
-  function updateBusExpSummary() {
-    const salaries = busExpensesList.filter(e => e.category === 'رواتب المشرفين').reduce((s,e) => s + (e.amount||0), 0);
-    const mobile   = busExpensesList.filter(e => e.category === 'شحن رصيد موبايل').reduce((s,e) => s + (e.amount||0), 0);
-    const other    = busExpensesList.filter(e => e.category === 'مصروفات أخرى' || e.category === 'انتقالات أخرى').reduce((s,e) => s + (e.amount||0), 0);
-    const total    = salaries + mobile + other;
-    document.getElementById('expSumSalaries').textContent = formatCurrency(salaries);
-    document.getElementById('expSumMobile').textContent   = formatCurrency(mobile);
-    document.getElementById('expSumOther').textContent    = formatCurrency(other);
-    document.getElementById('expSumTotal').textContent    = formatCurrency(total);
-  }
-
-  function renderBusExpensesTable() {
-    const filterCat = document.getElementById('busExpFilterCat').value;
-    const filtered  = filterCat
-      ? busExpensesList.filter(e => e.category === filterCat)
-      : busExpensesList;
-
-    const tbody = document.getElementById('busExpTableBody');
-    if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-light)">لا توجد مصروفات</td></tr>`;
-      document.getElementById('busExpCount').textContent = '0 مصروف';
-      document.getElementById('busExpTotalRow').style.display = 'none';
-      return;
-    }
-
-    const catColors = {
-      'رواتب المشرفين':   { bg:'#e3f2fd', color:'#1565c0' },
-      'شحن رصيد موبايل': { bg:'#f3e5f5', color:'#6a1b9a' },
-      'مصروفات أخرى':    { bg:'#fff3e0', color:'#e65100' },
-      'انتقالات أخرى':   { bg:'#fce4ec', color:'#c62828' },
-    };
-
-    let totalAmt = 0;
-    tbody.innerHTML = filtered.map((e, i) => {
-      totalAmt += e.amount || 0;
-      const cc = catColors[e.category] || { bg:'#f5f5f5', color:'#333' };
-      return `<tr>
-        <td style="text-align:center">${i+1}</td>
-        <td>
-          <span class="exp-category-badge" style="background:${cc.bg};color:${cc.color}">${e.categoryLabel || e.category}</span>
-        </td>
-        <td>${e.recipient || '—'}</td>
-        <td style="text-align:center">${e.date || '—'}</td>
-        <td style="text-align:center;font-weight:800;color:#c0392b">${formatCurrency(e.amount||0)}</td>
-        <td style="font-size:0.8rem;color:var(--text-mid)">${e.notes || ''}</td>
-        <td style="text-align:center">
-          <button onclick="deleteBusExpense('${e.id}')"
-            style="padding:2px 8px;background:none;border:1px solid #c0392b;color:#c0392b;border-radius:4px;cursor:pointer;font-size:0.75rem;font-family:Cairo,sans-serif">
-            حذف
-          </button>
-        </td>
-      </tr>`;
-    }).join('');
-
-    document.getElementById('busExpCount').textContent = filtered.length + ' مصروف';
-    document.getElementById('busExpTotalAmount').textContent = formatCurrency(totalAmt);
-    document.getElementById('busExpTotalRow').style.display = '';
-  }
-
-  async function deleteBusExpense(id) {
-    if (!confirm('هل تريد حذف هذا المصروف؟')) return;
-    try {
-      await db.collection('busExpenses').doc(id).delete();
-      await loadBusExpenses();
-    } catch(err) { alert('خطأ: ' + err.message); }
-  }
-
-  // تحميل الاشتراكات والمصروفات عند فتح التابات
-  document.querySelectorAll('.buses-tab-btn').forEach((btn, i) => {
-    const names = ['companies','subscriptions','busexpenses'];
-    btn.addEventListener('click', () => {
-      if (names[i] === 'subscriptions' && subscriptionsList.length === 0) loadSubscriptions();
-      if (names[i] === 'busexpenses'   && busExpensesList.length  === 0) loadBusExpenses();
-    });
-  });
 </script>
 
 <!-- ======================================================
