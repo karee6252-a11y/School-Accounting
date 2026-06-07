@@ -21,6 +21,15 @@
     <div id="topbarContainer"></div>
     <div class="page-content">
 
+      <!-- Main Section Tabs -->
+      <div class="report-period-tabs animate-in" id="mainSectionTabs">
+        <button class="period-tab active" onclick="showSection('financial', this)"> تقارير مالية</button>
+        <button class="period-tab" onclick="showSection('payroll', this)"> كشف الرواتب</button>
+      </div>
+
+      <!-- ===== FINANCIAL SECTION ===== -->
+      <div id="section-financial">
+
       <!-- Period Tabs -->
       <div class="report-period-tabs animate-in">
         <button class="period-tab active" onclick="setPeriod('daily', this)"> يومي</button>
@@ -48,7 +57,13 @@
         <div><div class="sub">إجمالي التحصيل</div><div class="big-num" id="summaryTotal">ج.م 0</div><div class="sub" id="summaryPeriod">التقرير اليومي</div></div>
         <div><div style="font-size:2rem;font-weight:900" id="summaryCount">0</div><div class="sub">عملية</div></div>
         <div><div style="font-size:2rem;font-weight:900" id="summaryStudents">0</div><div class="sub">طالب</div></div>
-        <div class="export-btn-group no-print"><button class="btn btn-secondary btn-sm" id="exportExcelBtn" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> Excel</button><button class="btn btn-secondary btn-sm" onclick="exportPDF()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> PDF</button><button class="btn btn-secondary btn-sm" onclick="window.print()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> طباعة</button><button class="btn btn-secondary btn-sm" id="revenueReviewBtn" onclick="handleRevenueReview()" style="background:rgba(255,215,0,0.25);color:#FFD700;border:1px solid rgba(255,215,0,0.6);font-weight:800" title="مراجعة الإيرادات الكاملة بالمراحل">📊 مراجعة الإيرادات</button></div>
+        <div class="export-btn-group no-print"><button class="btn btn-secondary btn-sm" id="exportExcelBtn" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> Excel</button><button class="btn btn-secondary btn-sm" onclick="exportPDF()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> PDF</button><button class="btn btn-secondary btn-sm" onclick="window.print()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> طباعة</button><button class="btn btn-secondary btn-sm" id="revenueReviewBtn" onclick="handleRevenueReview()" style="background:rgba(255,215,0,0.25);color:#FFD700;border:1px solid rgba(255,215,0,0.6);font-weight:800" title="مراجعة الإيرادات الكاملة بالمراحل">📊 مراجعة الإيرادات</button>
+          <!-- زرار كشف الرواتب -->
+          <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap">
+            <input type="month" id="payrollMonthPicker" style="padding:0.3rem 0.5rem;border-radius:6px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);color:white;font-family:Cairo,sans-serif;font-size:0.78rem;max-width:140px" title="اختر الشهر"/>
+            <button class="btn btn-secondary btn-sm" onclick="exportPayrollExcelFromReports()" style="background:rgba(46,125,50,0.5);color:#fff;border:1px solid rgba(46,125,50,0.8);font-weight:800;white-space:nowrap" title="تصدير كشف الرواتب Excel"> كشف الرواتب</button>
+          </div>
+        </div>
       </div>
 
       <!-- Results Table -->
@@ -1793,6 +1808,192 @@
     setTimeout(() => el.style.display = 'none', 4000);
   }
 
+</script>
+
+<!-- xlsx-js-style لكشف الرواتب -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════
+// كشف الرواتب — تصدير Excel من صفحة التقارير
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const picker = document.getElementById('payrollMonthPicker');
+  if (picker && !picker.value) {
+    const now = new Date();
+    picker.value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  }
+});
+
+async function exportPayrollExcelFromReports() {
+  const btn = document.querySelector('button[onclick="exportPayrollExcelFromReports()"]');
+  try {
+    const monthVal = document.getElementById('payrollMonthPicker').value;
+    if (!monthVal) { alert('اختار الشهر أولاً من حقل الشهر بجوار الزرار'); return; }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'جاري التحميل...'; }
+
+    const [year, month] = monthVal.split('-');
+    const dateFrom = year + '-' + month + '-01';
+    const lastDay  = new Date(parseInt(year), parseInt(month), 0).getDate();
+    const dateTo   = year + '-' + month + '-' + String(lastDay).padStart(2,'0');
+    const inMonth  = function(d) { return d >= dateFrom && d <= dateTo; };
+
+    // جلب الموظفين
+    const empSnap = await db.collection('employees').where('schoolId','==',schoolId).get();
+    const allEmps = empSnap.docs.map(function(d) { return Object.assign({id: d.id}, d.data()); });
+    const activeEmps = allEmps.filter(function(e) { return e.status !== 'resigned'; });
+    if (!activeEmps.length) { alert('لا يوجد موظفون نشطون'); return; }
+
+    // جلب الحضور
+    var attMap = {};
+    try {
+      const attSnap = await db.collection('attendance').where('schoolId','==',schoolId).get();
+      const recordedDates = new Set();
+      attSnap.docs.forEach(function(d) {
+        const r = d.data();
+        if (!inMonth(r.date)) return;
+        recordedDates.add(r.date);
+        if (!attMap[r.empId]) attMap[r.empId] = { present:0, absent:0, excused:0 };
+        attMap[r.empId][r.status] = (attMap[r.empId][r.status]||0) + 1;
+      });
+    } catch(e) { console.warn('attendance:', e.message); }
+
+    // جلب الجزاءات
+    var penMap = {};
+    try {
+      const penSnap = await db.collection('penalties').where('schoolId','==',schoolId).get();
+      penSnap.docs.forEach(function(d) {
+        const r = d.data();
+        if (!inMonth(r.date)) return;
+        if (!penMap[r.empId]) penMap[r.empId] = { deductionDays:0, penaltyCount:0, warningCount:0, lateCount:0 };
+        if (r.type === 'deduction') penMap[r.empId].deductionDays += (r.deductionDays||0);
+        if (r.type === 'penalty')   penMap[r.empId].penaltyCount++;
+        if (r.type === 'warning')   penMap[r.empId].warningCount++;
+        if (r.type === 'late')      penMap[r.empId].lateCount++;
+      });
+    } catch(e) { console.warn('penalties:', e.message); }
+
+    // جلب المكافآت
+    var rewMap = {};
+    try {
+      const rewSnap = await db.collection('rewards').where('schoolId','==',schoolId).get();
+      rewSnap.docs.forEach(function(d) {
+        const r = d.data();
+        if (!inMonth(r.date)) return;
+        rewMap[r.empId] = (rewMap[r.empId]||0) + (r.amount||0);
+      });
+    } catch(e) { console.warn('rewards:', e.message); }
+
+    // حساب الكشف
+    const payrollData = activeEmps.map(function(emp) {
+      const salary    = emp.salary || 0;
+      const att       = attMap[emp.id] || { present:0, absent:0, excused:0 };
+      const pen       = penMap[emp.id] || { deductionDays:0, penaltyCount:0, warningCount:0, lateCount:0 };
+      const reward    = rewMap[emp.id] || 0;
+      const advance   = emp.advance || 0;
+      const insurance = emp.insuranceAmount || 0;
+      const dayRate         = salary / 30;
+      const actualPresent   = att.present;
+      const adjustedPresent = att.present + att.excused;
+      const absent          = att.absent;
+      const penaltyDays     = pen.penaltyCount;
+      const lateDays        = pen.lateCount;
+      const penaltyDeduct   = (penaltyDays + pen.deductionDays + lateDays) * dayRate;
+      const netPresent      = adjustedPresent - pen.deductionDays - penaltyDays - lateDays;
+      const netAbsent30     = 30 - adjustedPresent;
+      const totalDeduct     = (absent * dayRate) + penaltyDeduct + advance + insurance;
+      const netSalary       = salary + reward - totalDeduct;
+      const netRounded      = Math.ceil(netSalary / 5) * 5;
+      return { emp, salary, insuranceStatus: emp.insuranceStatus || 'مؤمن عليه', insurance, advance, actualPresent, adjustedPresent, absent, penaltyDays, lateDays, netPresent, netAbsent30, dayRate, totalDeduct, reward, netSalary, netRounded };
+    });
+
+    // اسم الشهر
+    var monthName = monthVal;
+    if (monthVal.includes('-')) {
+      const parts = monthVal.split('-');
+      monthName = new Date(parseInt(parts[0]), parseInt(parts[1])-1, 1).toLocaleDateString('ar-EG', { month:'long', year:'numeric' });
+    }
+
+    const school = SESSION.getSchool();
+    const schoolName = school ? (school.name || 'المدرسة') : 'المدرسة';
+    const pc = (school && school.primaryColor ? school.primaryColor : '#1e2d5a').replace('#','');
+
+    const r2x = function(n) { return Math.round((n||0) * 100) / 100; };
+    const sumX = function(key) { return r2x(payrollData.reduce(function(s,r) { return s + r2x(r[key]); }, 0)); };
+
+    const titleRow = ['كشف رواتب ' + monthName + ' — ' + schoolName];
+    const headerRow = ['لأقرب 5','صافي الراتب','مكافأة','إجمالي الخصم','قيمة اليوم','تأمينات','سلف','غياب/30','صافي الحضور','تأخير','جزاءات','غياب','حضور معدل','حضور','مبلغ التأمين','الراتب','التأمين','الوظيفة','الاسم','#'];
+
+    const dataRows = payrollData.map(function(r, i) {
+      return [r2x(r.netRounded),r2x(r.netSalary),r2x(r.reward),r2x(r.totalDeduct),r2x(r.dayRate),r2x(r.insurance),r2x(r.advance),r.netAbsent30,r2x(r.netPresent),r.lateDays,r.penaltyDays,r.absent,r.adjustedPresent,r.actualPresent,r2x(r.insurance),r2x(r.salary),r.insuranceStatus,r.emp.jobTitle||'',r.emp.nameAr,i+1];
+    });
+
+    const totRow = [sumX('netRounded'),sumX('netSalary'),sumX('reward'),sumX('totalDeduct'),'—',sumX('insurance'),sumX('advance'),'—','—',payrollData.reduce(function(s,r){return s+r.lateDays;},0),payrollData.reduce(function(s,r){return s+r.penaltyDays;},0),payrollData.reduce(function(s,r){return s+r.absent;},0),payrollData.reduce(function(s,r){return s+r.adjustedPresent;},0),payrollData.reduce(function(s,r){return s+r.actualPresent;},0),sumX('insurance'),sumX('salary'),'','','','الإجمالي'];
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([titleRow, headerRow].concat(dataRows).concat([totRow]));
+
+    ws['!cols'] = [{wch:10},{wch:13},{wch:9},{wch:13},{wch:11},{wch:9},{wch:9},{wch:9},{wch:11},{wch:7},{wch:7},{wch:7},{wch:11},{wch:9},{wch:13},{wch:12},{wch:13},{wch:18},{wch:28},{wch:4}];
+    ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:headerRow.length-1} }];
+    ws['!rows'] = [{hpt:30},{hpt:30}].concat(dataRows.map(function(){return {hpt:22};})).concat([{hpt:26}]);
+
+    var A1 = ws['A1'];
+    if (A1) A1.s = { font:{bold:true,sz:13,color:{rgb:'FFFFFF'}}, fill:{patternType:'solid',fgColor:{rgb:pc}}, alignment:{horizontal:'center',vertical:'center',readingOrder:2} };
+
+    headerRow.forEach(function(_,ci) {
+      var addr = XLSX.utils.encode_cell({r:1,c:ci});
+      if (!ws[addr]) ws[addr] = {v:headerRow[ci],t:'s'};
+      ws[addr].s = { font:{bold:true,sz:10,color:{rgb:'FFFFFF'}}, fill:{patternType:'solid',fgColor:{rgb:pc}}, alignment:{horizontal:'center',vertical:'center',wrapText:true,readingOrder:2}, border:{top:{style:'thin',color:{rgb:'CCCCCC'}},bottom:{style:'thin',color:{rgb:'CCCCCC'}},left:{style:'thin',color:{rgb:'CCCCCC'}},right:{style:'thin',color:{rgb:'CCCCCC'}}} };
+    });
+
+    dataRows.forEach(function(row,ri) {
+      row.forEach(function(_,ci) {
+        var addr = XLSX.utils.encode_cell({r:ri+2,c:ci});
+        if (!ws[addr]) ws[addr] = {v:'',t:'s'};
+        var even = ri%2===0;
+        var bg = even ? 'F7F7F7' : 'FFFFFF';
+        var fc = '222222';
+        if (ci===3){bg='FFF5F5';fc='C62828';}
+        if (ci===2){bg='E3F2FD';fc='1565C0';}
+        if (ci===1){bg='E8F5E9';fc='2E7D32';}
+        if (ci===0){bg='2E7D32';fc='FFFFFF';}
+        var isTextCol = (ci===18||ci===17||ci===16);
+        ws[addr].s = { font:{sz:9,bold:ci===0,color:{rgb:fc}}, fill:{patternType:'solid',fgColor:{rgb:bg}}, alignment:{horizontal:isTextCol?'right':'center',vertical:'center',readingOrder:2}, border:{bottom:{style:'thin',color:{rgb:'DDDDDD'}},left:{style:'thin',color:{rgb:'DDDDDD'}},right:{style:'thin',color:{rgb:'DDDDDD'}}} };
+      });
+    });
+
+    var totIdx = dataRows.length + 2;
+    totRow.forEach(function(_,ci) {
+      var addr = XLSX.utils.encode_cell({r:totIdx,c:ci});
+      if (!ws[addr]) ws[addr] = {v:'',t:'s'};
+      ws[addr].s = { font:{bold:true,sz:10,color:{rgb:'FFFFFF'}}, fill:{patternType:'solid',fgColor:{rgb:pc}}, alignment:{horizontal:'center',vertical:'center',readingOrder:2} };
+    });
+
+    XLSX.utils.book_append_sheet(wb, ws, 'كشف الرواتب');
+    ws['!sheetViews'] = [{ rightToLeft:true }];
+    wb.Sheets['كشف الرواتب']['!sheetViews'] = [{ rightToLeft:true }];
+    if (!wb.Workbook) wb.Workbook = {};
+    if (!wb.Workbook.Sheets) wb.Workbook.Sheets = [];
+    if (!wb.Workbook.Sheets[0]) wb.Workbook.Sheets[0] = {};
+    wb.Workbook.Sheets[0].RTL = true;
+
+    const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array', cellStyles:true });
+    const blob = new Blob([wbout], { type:'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'كشف_رواتب_' + monthVal + '.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() { URL.revokeObjectURL(url); a.remove(); }, 1000);
+
+  } catch(err) {
+    console.error('Payroll Export error:', err);
+    alert('خطأ في تصدير الرواتب: ' + err.message);
+  } finally {
+    if (btn) { btn.disabled=false; btn.textContent='كشف الرواتب'; }
+  }
+}
 </script>
 
 <!-- ====== EDIT TRANSACTION MODAL ====== -->
