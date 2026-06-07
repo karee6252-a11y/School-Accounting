@@ -226,6 +226,7 @@
   const schoolId = session.schoolId;
   let selectedItems = {};
   let todayTransactions = [];
+  let _shu2onStudentId = null;  // يتعبّى لما يجي من شئون الطلاب
 
   const isCardiff = schoolId === 'cardiff';
 
@@ -249,6 +250,65 @@
     renderPaymentItems(null);
     loadTodayTransactions();
     loadStudentSuggestions();
+
+    // ══ تعبئة أوتوماتيك من شئون الطلاب ══
+    const prefillRaw = sessionStorage.getItem('shu2on_prefill');
+    if (prefillRaw) {
+      try {
+        const prefill = JSON.parse(prefillRaw);
+        // نمسح الـ key عشان ما يتعبّيش تاني لو رجع المحاسب
+        sessionStorage.removeItem('shu2on_prefill');
+
+        // اسم الطالب
+        if (prefill.studentName) {
+          document.getElementById('studentName').value = prefill.studentName;
+          checkStudentDebt();
+        }
+
+        // تحديد المرحلة حسب الصف
+        if (prefill.grade) {
+          let stageKey = null;
+          if (isCardiff) {
+            // Cardiff: ابحث في CARDIFF_STAGES
+            for (const [key, stageData] of Object.entries(CARDIFF_STAGES)) {
+              if (stageData.grades.includes(prefill.grade)) { stageKey = key; break; }
+            }
+          } else {
+            // Bristol / Stanford
+            if (prefill.grade === 'Pre-KG')                                            stageKey = 'pre_kg';
+            else if (['KG1','KG2'].includes(prefill.grade))                            stageKey = 'kg';
+            else if (prefill.grade.startsWith('Grade'))                                stageKey = 'grade';
+            else if (prefill.grade.startsWith('Prep'))                                 stageKey = 'prep';
+          }
+          if (stageKey) {
+            document.getElementById('stageSelect').value = stageKey;
+            onStageChange();   // يبني الـ grades ويحدّث الأسعار
+            // بعد onStageChange نختار الصف
+            setTimeout(() => {
+              const gradeEl = document.getElementById('gradeSelect');
+              if (gradeEl) { gradeEl.value = prefill.grade; onGradeChange(); }
+            }, 50);
+          }
+        }
+
+        // إشعار بصري إن البيانات اتملت من الشئون
+        const alertEl = document.getElementById('formAlert');
+        alertEl.className = 'alert alert-success';
+        alertEl.innerHTML = `✅ تم جلب بيانات الطالب <strong>${prefill.studentName}</strong> من شئون الطلاب — أكمل بيانات الدفع`;
+        alertEl.classList.remove('hidden');
+        setTimeout(() => alertEl.classList.add('hidden'), 6000);
+
+        // تحديث حالة الطالب في Firestore → in_progress
+        if (prefill.studentDocId) {
+          _shu2onStudentId = prefill.studentDocId;
+          db.collection('studentAffairs').doc(prefill.studentDocId).update({
+            status: 'in_progress',
+            collectionStartedBy: session.email,
+            collectionStartedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }).catch(e => console.warn('shu2on status update failed:', e));
+        }
+      } catch(e) { console.warn('prefill parse error:', e); }
+    }
   }
 
   function getStageData(stage) {
@@ -617,7 +677,8 @@
         receiptNumber, date, notes, createdBy:session.email,
         createdAt:firebase.firestore.FieldValue.serverTimestamp(),
         year:new Date(date).getFullYear(), month:new Date(date).getMonth()+1, week:getWeekNumber(new Date(date)),
-        academicYear: getAcademicYear(date)
+        academicYear: getAcademicYear(date),
+        ...(_shu2onStudentId ? { shu2onStudentId: _shu2onStudentId } : {})
       };
       const docRef = await db.collection('transactions').add(transaction);
       if (debt>0) {
@@ -665,6 +726,17 @@
       }
       showAlert('تم حفظ التحصيل بنجاح!'+(debt>0?` - مديونية: ${formatCurrency(debt)}`:''), 'success');
       loadTodayTransactions();
+
+      // لو التحصيل ده كان من شئون الطلاب — نحدّث الـ status لـ collected
+      // الـ studentDocId بيكون اتحفظ في الـ transaction كـ shu2onStudentId
+      if (transaction.shu2onStudentId) {
+        db.collection('studentAffairs').doc(transaction.shu2onStudentId).update({
+          status: 'collected',
+          collectedBy: session.email,
+          collectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          transactionId: docRef.id
+        }).catch(e => console.warn('shu2on collected update failed:', e));
+      }
       document.getElementById('studentName').value='';
       document.getElementById('amountInput').value='';
       document.getElementById('notes').value='';

@@ -554,6 +554,8 @@
       container.innerHTML = '<div class="empty-msg"><div class="empty-icon">✅</div>لا يوجد طلاب منتظرون</div>';
       return;
     }
+    // هل المستخدم الحالي محاسب أو أدمن؟ (مش شئون طلاب)
+    const canCollect = SESSION.isAdmin() || !SESSION.isShu2on();
     container.innerHTML = list.map(s => `
       <div class="student-pending-card">
         <div class="student-avatar">${s.studentName?.charAt(0) || '؟'}</div>
@@ -577,9 +579,14 @@
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end">
-          <button class="btn-transfer" onclick="goToCollection('${s.id}')">
-            📋 تسجيل المصروفات
-          </button>
+          ${canCollect
+            ? `<button class="btn-transfer" onclick="goToCollection('${s.id}')">
+                💰 تسديد التحصيل
+               </button>`
+            : `<span style="font-size:0.72rem;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:0.3rem 0.65rem;font-weight:700;white-space:nowrap">
+                ⏳ في انتظار المحاسب
+               </span>`
+          }
           <button onclick="deleteStudent('${s.id}','${escHtml(s.studentName).replace(/'/g,"\\'")}'"
             style="font-size:0.72rem;color:var(--danger);background:none;border:none;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700">
             🗑 حذف

@@ -38,7 +38,9 @@ const SCHOOLS = {
     ],
     shu2onUsers: [
       "shu2on@bristol-school.com",
-      "shu2on2@bristol-school.com"
+      "shu2on2@bristol-school.com",
+      "shu2on3@bristol-school.com",
+      "shu2on4@bristol-school.com"
     ]
   },
   cardiff: {
@@ -59,7 +61,9 @@ const SCHOOLS = {
     ],
     shu2onUsers: [
       "shu2on@cardiff-school.com",
-      "shu2on2@cardiff-school.com"
+      "shu2on2@cardiff-school.com",
+      "shu2on3@cardiff-school.com",
+      "shu2on4@cardiff-school.com"
     ]
   },
   stanford1: {
@@ -80,7 +84,9 @@ const SCHOOLS = {
     ],
     shu2onUsers: [
       "shu2on@stanford1-school.com",
-      "shu2on2@stanford1-school.com"
+      "shu2on2@stanford1-school.com",
+      "shu2on3@stanford1-school.com",
+      "shu2on4@stanford1-school.com"
     ]
   },
   stanford2: {
@@ -101,7 +107,9 @@ const SCHOOLS = {
     ],
     shu2onUsers: [
       "shu2on@stanford2-school.com",
-      "shu2on2@stanford2-school.com"
+      "shu2on2@stanford2-school.com",
+      "shu2on3@stanford2-school.com",
+      "shu2on4@stanford2-school.com"
     ]
   }
 };
