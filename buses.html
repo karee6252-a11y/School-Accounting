@@ -2092,7 +2092,7 @@
     const monthly = parseFloat(document.getElementById('subMonthlyFee').value) || 0;
     const months  = parseFloat(document.getElementById('subMonthsCount').value)|| 0;
     const paid    = parseFloat(document.getElementById('subPaidAmount').value) || 0;
-    const total   = monthly * months;
+    const total   = monthly;
     const rem     = total - paid;
     document.getElementById('subTotalFee').value      = total || '';
     document.getElementById('mSubTotal').textContent  = fmtC(total);
@@ -2119,7 +2119,7 @@
 
     const data = {
       schoolId, studentName: name, grade, term: parseInt(term),
-      monthlyFee: monthly, monthsCount: months, totalFee: monthly * months,
+      monthlyFee: monthly, monthsCount: months, totalFee: monthly,
       paidAmount: paid, payDate, notes,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedBy: session.email
