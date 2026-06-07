@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>تسجيل الدخول - نظام اداره مدرسة</title>
+  <title>تسجيل الدخول - نظام المحاسبة المدرسية</title>
   <link rel="stylesheet" href="styles.css?v=1.1" />
   <style>
     .login-page { background: linear-gradient(135deg, #1a2a4a 0%, #0d1b35 60%, #050d1a 100%); }
@@ -118,8 +118,8 @@
       <!-- Header -->
       <div class="login-header">
         <div class="login-logo-area" id="schoolLogos"></div>
-        <h1 class="login-title">نظام ادارة المدرسة</h1>
-        <p class="login-subtitle">تسجيل الدخول للاداريين</p>
+        <h1 class="login-title">نظام المحاسبة المدرسية</h1>
+        <p class="login-subtitle">تسجيل الدخول للمحاسبين</p>
       </div>
 
       <!-- Alert -->
@@ -313,7 +313,7 @@
         return;
       }
 
-      // ── HR — بيتعرف تلقائياً بدون اختيار منفصل ──
+      // ── HR ──
       if (selectedSchool.hrUsers?.includes(email)) {
         SESSION.set({
           uid: user.uid, email, role: 'hr',
@@ -322,6 +322,18 @@
           name: email.split('@')[0]
         });
         window.location.href = 'hr.html';
+        return;
+      }
+
+      // ── شئون الطلاب ──
+      if (selectedSchool.shu2onUsers?.includes(email)) {
+        SESSION.set({
+          uid: user.uid, email, role: 'shu2on',
+          schoolId: selectedSchool.id,
+          schoolName: selectedSchool.name,
+          name: email.split('@')[0]
+        });
+        window.location.href = 'student-affairs.html';
         return;
       }
 
@@ -377,9 +389,10 @@
   // If already logged in → redirect to correct page
   const session = SESSION.get();
   if (session) {
-    if (session.role === 'admin')   window.location.href = 'admin.html';
-    else if (session.role === 'hr') window.location.href = 'hr.html';
-    else                            window.location.href = 'dashboard.html';
+    if (session.role === 'admin')        window.location.href = 'admin.html';
+    else if (session.role === 'hr')      window.location.href = 'hr.html';
+    else if (session.role === 'shu2on')  window.location.href = 'student-affairs.html';
+    else                                 window.location.href = 'dashboard.html';
   }
 </script>
 </body>
