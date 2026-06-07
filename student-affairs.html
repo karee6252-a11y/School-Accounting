@@ -615,9 +615,10 @@
       const snap = await db.collection('studentAffairs')
         .where('schoolId', '==', schoolId)
         .where('status', '==', 'pending')
-        .orderBy('createdAt', 'desc')
         .get();
-      allStudents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      allStudents = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       updateStats();
       renderStudents(allStudents);
     } catch(err) {
