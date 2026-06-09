@@ -42,6 +42,266 @@ function renderLayout(activePage, pageTitle) {
   const session = requireAuth();
   if (!session) return;
 
+  // ── Mobile CSS — يتحقن مرة واحدة بس ──
+  if (!document.getElementById('_layout_mobile_css')) {
+    const mobileStyle = document.createElement('style');
+    mobileStyle.id = '_layout_mobile_css';
+    mobileStyle.textContent = `
+      /* ===== MOBILE LAYOUT FIX ===== */
+
+      /* الـ overlay اللي بيغطي الشاشة لما الـ sidebar يفتح */
+      #sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 998;
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+      }
+      #sidebar-overlay.active { display: block; }
+
+      @media (max-width: 768px) {
+
+        /* ── الـ app layout ── */
+        .app-layout {
+          flex-direction: column !important;
+          min-height: 100dvh !important;
+        }
+
+        /* ── الـ sidebar يتحول لـ drawer من اليمين (RTL) ── */
+        .sidebar {
+          position: fixed !important;
+          top: 0 !important;
+          right: -280px !important;
+          left: auto !important;
+          width: 270px !important;
+          height: 100dvh !important;
+          z-index: 999 !important;
+          overflow-y: auto !important;
+          transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+          box-shadow: none !important;
+        }
+
+        /* لما الـ sidebar يفتح */
+        .sidebar.open {
+          right: 0 !important;
+          box-shadow: -8px 0 32px rgba(0,0,0,0.25) !important;
+        }
+
+        /* ── الـ main content ياخد كل الشاشة ── */
+        .main-content {
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          min-height: 100dvh !important;
+          overflow-x: hidden !important;
+        }
+
+        /* ── الـ topbar ── */
+        .topbar {
+          position: sticky !important;
+          top: 0 !important;
+          z-index: 100 !important;
+          padding: 0.6rem 0.85rem !important;
+          gap: 0.5rem !important;
+          flex-wrap: nowrap !important;
+          min-height: 52px !important;
+        }
+
+        .topbar-title {
+          font-size: 1rem !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          max-width: 55vw !important;
+        }
+
+        .topbar-actions {
+          gap: 0.4rem !important;
+          flex-shrink: 0 !important;
+        }
+
+        .topbar-actions > div:last-child {
+          display: none !important; /* إخفاء التاريخ على موبايل */
+        }
+
+        /* ── الـ hamburger button يظهر دايماً على موبايل ── */
+        #sidebarToggle {
+          display: flex !important;
+          flex-shrink: 0 !important;
+          width: 36px !important;
+          height: 36px !important;
+          align-items: center !important;
+          justify-content: center !important;
+          border-radius: 8px !important;
+          border: 1px solid var(--border, #e2e8f0) !important;
+          background: var(--surface, white) !important;
+          cursor: pointer !important;
+        }
+
+        /* ── page content padding ── */
+        .page-content {
+          padding: 0.85rem !important;
+        }
+
+        /* ── cards و stats ── */
+        .stats-grid {
+          grid-template-columns: 1fr 1fr !important;
+          gap: 0.6rem !important;
+        }
+
+        .stat-card {
+          padding: 0.85rem !important;
+          gap: 0.6rem !important;
+        }
+
+        .stat-value {
+          font-size: 1.3rem !important;
+        }
+
+        .stat-label {
+          font-size: 0.72rem !important;
+        }
+
+        /* ── card ── */
+        .card {
+          padding: 0.9rem !important;
+          border-radius: 12px !important;
+        }
+
+        .card-header {
+          flex-wrap: wrap !important;
+          gap: 0.5rem !important;
+          margin-bottom: 0.75rem !important;
+        }
+
+        .card-title {
+          font-size: 0.95rem !important;
+        }
+
+        /* ── الجداول تتسكرول أفقياً بدل ما تتكسر ── */
+        .table-wrapper {
+          overflow-x: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+          border-radius: 8px !important;
+          margin: 0 -0.1rem !important;
+        }
+
+        table {
+          min-width: 480px !important;
+          font-size: 0.78rem !important;
+        }
+
+        th, td {
+          padding: 0.5rem 0.6rem !important;
+          white-space: nowrap !important;
+        }
+
+        /* ── الـ tabs ── */
+        .tabs {
+          overflow-x: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+          flex-wrap: nowrap !important;
+          scrollbar-width: none !important;
+          gap: 0.25rem !important;
+          padding-bottom: 2px !important;
+        }
+
+        .tabs::-webkit-scrollbar { display: none !important; }
+
+        .tab-btn {
+          white-space: nowrap !important;
+          padding: 0.45rem 0.75rem !important;
+          font-size: 0.8rem !important;
+          flex-shrink: 0 !important;
+        }
+
+        /* ── الـ forms ── */
+        .form-grid,
+        .grid-2,
+        .grid-3,
+        [style*="grid-template-columns"] {
+          grid-template-columns: 1fr !important;
+        }
+
+        .form-input, .form-select, select, input, textarea {
+          font-size: 16px !important; /* يمنع iOS من الـ zoom على focus */
+        }
+
+        /* ── الـ buttons ── */
+        .btn {
+          padding: 0.55rem 0.9rem !important;
+          font-size: 0.82rem !important;
+        }
+
+        /* ── modals ── */
+        .modal-content {
+          width: 96vw !important;
+          max-width: 96vw !important;
+          max-height: 88dvh !important;
+          border-radius: 16px 16px 0 0 !important;
+          margin: auto auto 0 !important;
+          overflow-y: auto !important;
+        }
+
+        .modal-overlay {
+          align-items: flex-end !important;
+        }
+
+        /* ── badges ── */
+        .badge {
+          font-size: 0.68rem !important;
+          padding: 0.2rem 0.5rem !important;
+        }
+
+        /* ── section-header flex ── */
+        .section-header,
+        .d-flex.justify-between {
+          flex-wrap: wrap !important;
+          gap: 0.5rem !important;
+        }
+
+        /* ── filter bar ── */
+        .filters-bar,
+        .filter-row {
+          flex-direction: column !important;
+          gap: 0.5rem !important;
+        }
+
+        .filters-bar .form-input,
+        .filters-bar .form-select,
+        .filter-row .form-input,
+        .filter-row .form-select {
+          width: 100% !important;
+        }
+
+        /* ── summary cards ── */
+        .summary-cards,
+        .summary-grid {
+          grid-template-columns: 1fr 1fr !important;
+          gap: 0.5rem !important;
+        }
+      }
+
+      /* موبايل صغير جداً */
+      @media (max-width: 380px) {
+        .stats-grid {
+          grid-template-columns: 1fr !important;
+        }
+        .summary-cards,
+        .summary-grid {
+          grid-template-columns: 1fr !important;
+        }
+        .topbar-title {
+          font-size: 0.9rem !important;
+          max-width: 50vw !important;
+        }
+      }
+    `;
+    document.head.appendChild(mobileStyle);
+  }
+
   const school = SESSION.getSchool();
   const isAdmin = SESSION.isAdmin();
   const isHR = SESSION.isHR();
@@ -147,12 +407,25 @@ function renderLayout(activePage, pageTitle) {
   `;
 
   document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
+
+  // ── أضف الـ overlay ──
+  if (!document.getElementById('sidebar-overlay')) {
+    const overlay = document.createElement('div');
+    overlay.id = 'sidebar-overlay';
+    overlay.onclick = () => {
+      document.getElementById('sidebar').classList.remove('open');
+      overlay.classList.remove('active');
+    };
+    document.body.appendChild(overlay);
+  }
+
   document.getElementById('topbarContainer').innerHTML = topbarHTML;
 
-  //  تحديد visibility الـ toggle button بشكل صحيح
+  //  الـ toggle button يظهر دايماً على موبايل — CSS بيتكفل بده
   const toggleBtn = document.getElementById('sidebarToggle');
   if (toggleBtn) {
-    toggleBtn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+    // CSS هيخفيه على desktop ويظهره على موبايل
+    // مش محتاج JS هنا غير للـ resize
   }
 
   // Footer credit
@@ -163,7 +436,10 @@ function renderLayout(activePage, pageTitle) {
 }
 
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
+  const sidebar  = document.getElementById('sidebar');
+  const overlay  = document.getElementById('sidebar-overlay');
+  const isOpen   = sidebar.classList.toggle('open');
+  if (overlay) overlay.classList.toggle('active', isOpen);
 }
 
 function showSchoolSwitcher() {
@@ -175,14 +451,15 @@ function showSchoolSwitcher() {
   }
 }
 
-//  debounced resize — بدل ما يتنادى كل pixel
+//  debounced resize — بيغلق الـ sidebar لو اتفتح الـ desktop mode
 let _resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(_resizeTimer);
   _resizeTimer = setTimeout(() => {
-    const toggleBtn = document.getElementById('sidebarToggle');
-    if (toggleBtn) {
-      toggleBtn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+    if (window.innerWidth > 768) {
+      // على desktop — أغلق الـ sidebar المفتوح وشيل الـ overlay
+      document.getElementById('sidebar')?.classList.remove('open');
+      document.getElementById('sidebar-overlay')?.classList.remove('active');
     }
   }, 150);
 });
