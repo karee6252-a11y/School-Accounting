@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>تسجيل الدخول - نظام المحاسبة المدرسية</title>
+    <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#1a3a6b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="المحاسبة" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<title>تسجيل الدخول - نظام المحاسبة المدرسية</title>
   <link rel="stylesheet" href="styles.css?v=1.1" />
   <style>
     .login-page { background: linear-gradient(135deg, #1a2a4a 0%, #0d1b35 60%, #050d1a 100%); }
@@ -373,6 +380,22 @@
   }
 
   document.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
+
+  // PWA — Service Worker (index.html لا تستخدم layout.js)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+    });
+    let _dp = null;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault(); _dp = e;
+      const btn = document.createElement('button');
+      btn.innerHTML = '📲 تثبيت التطبيق';
+      btn.style.cssText = 'position:fixed;bottom:1.5rem;left:1.5rem;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:12px;padding:0.6rem 1.1rem;font-family:Cairo,sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;z-index:9998;box-shadow:0 4px 16px rgba(0,0,0,0.3)';
+      btn.onclick = async () => { _dp.prompt(); const {outcome} = await _dp.userChoice; if(outcome==='accepted') btn.remove(); _dp=null; };
+      document.body.appendChild(btn);
+    });
+  }
 
   renderSchools();
 

@@ -186,3 +186,101 @@ window.addEventListener('resize', () => {
     }
   }, 150);
 });
+
+// ========================================
+// PWA — Service Worker Registration
+// يشتغل أوتوماتيك في كل صفحة بتستخدم layout.js
+// ========================================
+(function initPWA() {
+  if (!('serviceWorker' in navigator)) return;
+
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(reg => {
+        // لو في تحديث جديد للـ SW
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              _showPWAUpdateBanner();
+            }
+          });
+        });
+      })
+      .catch(() => {}); // silent fail
+
+    // لو الـ SW اتحدث — reload تلقائي
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
+  });
+
+  // ── زر Install ──
+  let _deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _deferredPrompt = e;
+    _showPWAInstallBtn();
+  });
+  window.addEventListener('appinstalled', () => {
+    document.getElementById('_pwa_install_btn')?.remove();
+    _deferredPrompt = null;
+  });
+
+  window._installPWA = async function() {
+    if (!_deferredPrompt) return;
+    _deferredPrompt.prompt();
+    const { outcome } = await _deferredPrompt.userChoice;
+    if (outcome === 'accepted') document.getElementById('_pwa_install_btn')?.remove();
+    _deferredPrompt = null;
+  };
+
+  function _showPWAInstallBtn() {
+    if (document.getElementById('_pwa_install_btn')) return;
+    const btn = document.createElement('button');
+    btn.id = '_pwa_install_btn';
+    btn.innerHTML = '📲 تثبيت التطبيق';
+    btn.style.cssText = [
+      'position:fixed','bottom:1.5rem','left:1.5rem',
+      'background:#1a3a6b','color:white','border:none','border-radius:12px',
+      'padding:0.6rem 1.1rem','font-family:Cairo,sans-serif','font-size:0.82rem',
+      'font-weight:700','cursor:pointer','z-index:9998',
+      'box-shadow:0 4px 16px rgba(26,58,107,0.4)',
+      'animation:_pwa_slide .3s ease'
+    ].join(';');
+    btn.onclick = window._installPWA;
+
+    const style = document.createElement('style');
+    style.textContent = '@keyframes _pwa_slide{from{transform:translateY(80px);opacity:0}to{transform:translateY(0);opacity:1}}';
+    document.head.appendChild(style);
+    document.body.appendChild(btn);
+  }
+
+  function _showPWAUpdateBanner() {
+    if (document.getElementById('_pwa_update_banner')) return;
+    const div = document.createElement('div');
+    div.id = '_pwa_update_banner';
+    div.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:800;font-size:0.88rem">🔄 يوجد تحديث جديد للتطبيق</div>
+          <div style="font-size:0.75rem;opacity:0.8;margin-top:2px">اضغط تحديث لتطبيق أحدث نسخة</div>
+        </div>
+        <div style="display:flex;gap:0.4rem;flex-shrink:0">
+          <button onclick="(function(){navigator.serviceWorker.controller&&navigator.serviceWorker.controller.postMessage({type:'SKIP_WAITING'});document.getElementById('_pwa_update_banner').remove()})()"
+            style="background:#4caf50;color:white;border:none;border-radius:8px;padding:0.4rem 0.9rem;font-family:Cairo,sans-serif;font-weight:700;cursor:pointer;font-size:0.8rem">تحديث</button>
+          <button onclick="document.getElementById('_pwa_update_banner').remove()"
+            style="background:rgba(255,255,255,0.18);color:white;border:none;border-radius:8px;padding:0.4rem 0.7rem;font-family:Cairo,sans-serif;font-weight:700;cursor:pointer;font-size:0.8rem">لاحقاً</button>
+        </div>
+      </div>`;
+    div.style.cssText = [
+      'position:fixed','bottom:1.5rem','right:1.5rem','left:1.5rem',
+      'background:#1a3a6b','color:white','border-radius:14px',
+      'padding:1rem 1.25rem','z-index:99999',
+      'box-shadow:0 8px 32px rgba(0,0,0,0.28)',
+      'font-family:Cairo,sans-serif',
+      'animation:_pwa_slide .35s ease'
+    ].join(';');
+    document.body.appendChild(div);
+  }
+})();
