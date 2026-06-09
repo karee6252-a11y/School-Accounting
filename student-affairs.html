@@ -483,11 +483,13 @@
   const schoolId = session?.schoolId;
   let allStudents = [];
 
-  // ══ إخفاء تاب التسجيل للمحاسب ══
+  // ══ إخفاء تاب التسجيل والاستيراد للمحاسب ══
   const _isAccountant = Object.values(SCHOOLS).some(sc => sc.users.includes(session?.email));
   if (_isAccountant && !SESSION.isAdmin()) {
     const regBtn = document.getElementById('tabRegisterBtn');
     if (regBtn) regBtn.style.display = 'none';
+    const importBtn = document.getElementById('tabImportBtn');
+    if (importBtn) importBtn.style.display = 'none';
     document.getElementById('tab-register').classList.remove('active');
     document.getElementById('tab-pending').classList.add('active');
     document.querySelectorAll('.shu2on-tab').forEach((t,i) => t.classList.toggle('active', i===1));
