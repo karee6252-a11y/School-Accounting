@@ -99,6 +99,9 @@
     /* ── empty ── */
     .empty-msg { text-align: center; padding: 3rem 1rem; color: var(--text-light); font-size: 0.9rem; }
     .empty-msg .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+    /* ── preview table ── */
+    #previewTable tr:hover td { background: var(--accent); }
   </style>
 </head>
 <body>
@@ -115,6 +118,7 @@
           الطلاب المنتظرون
           <span id="pendingBadge" style="background:var(--primary);color:#fff;border-radius:20px;padding:1px 8px;font-size:0.7rem;margin-right:4px">0</span>
         </button>
+        <button class="shu2on-tab" id="tabImportBtn" onclick="switchTab('import')">📥 استيراد من Excel</button>
       </div>
 
       <!-- ══ TAB 1: تسجيل طالب جديد ══ -->
@@ -371,10 +375,88 @@
         </div>
       </div>
 
+      <!-- ══ TAB 3: استيراد من Excel ══ -->
+      <div class="tab-pane" id="tab-import">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">استيراد الطلاب من Excel</h2>
+            <span class="badge badge-primary">شئون الطلاب</span>
+          </div>
+          <div class="card-body">
+
+            <!-- منطقة رفع الملف -->
+            <div id="importDropZone" style="
+              border: 2px dashed var(--primary-light); border-radius: var(--radius);
+              padding: 2.5rem; text-align: center; cursor: pointer;
+              background: var(--accent); transition: var(--transition); margin-bottom: 1.25rem;
+            " onclick="document.getElementById('xlsxFileInput').click()"
+               ondragover="event.preventDefault();this.style.borderColor='var(--primary)'"
+               ondragleave="this.style.borderColor='var(--primary-light)'"
+               ondrop="handleFileDrop(event)">
+              <div style="font-size:2.5rem;margin-bottom:0.5rem">📊</div>
+              <div style="font-weight:800;color:var(--primary);font-size:1rem;margin-bottom:0.25rem">
+                اسحب ملف Excel هنا أو اضغط للاختيار
+              </div>
+              <div style="font-size:0.78rem;color:var(--text-light)">يدعم ملفات .xlsx فقط</div>
+              <input type="file" id="xlsxFileInput" accept=".xlsx" style="display:none" onchange="handleFileSelect(this)" />
+            </div>
+
+            <!-- معلومات الملف بعد الرفع -->
+            <div id="importFileInfo" style="display:none;margin-bottom:1rem">
+              <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:0.85rem 1rem;display:flex;align-items:center;gap:0.75rem">
+                <span style="font-size:1.4rem">✅</span>
+                <div>
+                  <div style="font-weight:800;color:#2e7d32" id="importFileName"></div>
+                  <div style="font-size:0.78rem;color:#388e3c" id="importFileStats"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- معاينة -->
+            <div id="importPreview" style="display:none;margin-bottom:1.25rem">
+              <div class="section-title">معاينة البيانات</div>
+              <div style="overflow-x:auto">
+                <table style="width:100%;border-collapse:collapse;font-size:0.78rem" id="previewTable">
+                  <thead id="previewHead"></thead>
+                  <tbody id="previewBody"></tbody>
+                </table>
+              </div>
+              <div style="font-size:0.75rem;color:var(--text-light);margin-top:0.5rem" id="previewNote"></div>
+            </div>
+
+            <!-- أزرار -->
+            <div id="importActions" style="display:none;display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1rem">
+              <button class="btn btn-secondary" onclick="resetImport()">إلغاء</button>
+              <button class="btn btn-primary" id="importBtn" onclick="startImport()" style="width:auto;padding:0.75rem 2rem">
+                <span id="importBtnText">🚀 استيراد الطلاب</span>
+              </button>
+            </div>
+
+            <!-- شريط التقدم -->
+            <div id="importProgress" style="display:none;margin-top:1.25rem">
+              <div style="display:flex;justify-content:space-between;font-size:0.78rem;font-weight:700;margin-bottom:0.4rem">
+                <span id="progressLabel">جاري الاستيراد...</span>
+                <span id="progressPct">0%</span>
+              </div>
+              <div style="background:var(--border);border-radius:20px;height:10px;overflow:hidden">
+                <div id="progressBar" style="height:100%;background:var(--primary);border-radius:20px;transition:width 0.3s;width:0%"></div>
+              </div>
+              <div style="font-size:0.75rem;color:var(--text-light);margin-top:0.4rem" id="progressDetail"></div>
+            </div>
+
+            <!-- نتيجة الاستيراد -->
+            <div id="importResult" style="display:none;margin-top:1.25rem"></div>
+
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
 
+<!-- SheetJS for Excel parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -417,7 +499,7 @@
   // ══════════════════════════════════════════════
   function switchTab(name) {
     document.querySelectorAll('.shu2on-tab').forEach((t, i) => {
-      t.classList.toggle('active', ['register','pending'][i] === name);
+      t.classList.toggle('active', ['register','pending','import'][i] === name);
     });
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
@@ -771,6 +853,365 @@
     } catch(err) {
       alert('خطأ في الحذف: ' + err.message);
     }
+  }
+
+  // ══════════════════════════════════════════════
+  // IMPORT FROM EXCEL
+  // ══════════════════════════════════════════════
+
+  // map sheet name → grade value
+  const SHEET_GRADE_MAP = {
+    'kg 1': 'KG1', 'kg2': 'KG2',
+    'gr 1': 'Grade 1', 'gr2': 'Grade 2', 'gr3': 'Grade 3',
+    'gr4': 'Grade 4', 'gr5': 'Grade 5', 'gr6': 'Grade 6',
+    'prep1': 'Prep 1', 'prep2': 'Prep 2', 'prep3': 'Prep 3',
+    'sec 1': 'Prep 1',
+  };
+
+  // second language normalization
+  const LANG_MAP = {
+    'فرنسى': 'فرنسي', 'فرنسي': 'فرنسي', 'فرنساوى': 'فرنسي', 'فرنساوي': 'فرنسي',
+    'المانى': 'ألماني', 'الماني': 'ألماني', 'ألماني': 'ألماني', 'ألمانى': 'ألماني',
+  };
+
+  let importedStudents = [];
+
+  function handleFileDrop(e) {
+    e.preventDefault();
+    document.getElementById('importDropZone').style.borderColor = 'var(--primary-light)';
+    const file = e.dataTransfer.files[0];
+    if (file) processXlsxFile(file);
+  }
+
+  function handleFileSelect(input) {
+    const file = input.files[0];
+    if (file) processXlsxFile(file);
+  }
+
+  function clean(val) {
+    if (val === null || val === undefined) return '';
+    const s = String(val).trim();
+    return s === 'nan' || s === 'NaN' ? '' : s;
+  }
+
+  function makeDate(day, month, year) {
+    try {
+      const d = parseInt(day), m = parseInt(month), y = parseInt(year);
+      if (isNaN(d) || isNaN(m) || isNaN(y) || y < 1980 || y > 2030) return '';
+      return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    } catch { return ''; }
+  }
+
+  function normalizeNationality(val) {
+    const v = clean(val);
+    if (!v) return 'مصرية';
+    if (v.includes('مصر')) return 'مصرية';
+    if (v.includes('سعود')) return 'سعودية';
+    if (v.includes('يمن')) return 'يمنية';
+    if (v.includes('سور')) return 'سورية';
+    if (v.includes('كويت')) return 'كويتية';
+    if (v.includes('أردن') || v.includes('اردن')) return 'أردنية';
+    if (v.includes('لبنان')) return 'لبنانية';
+    if (v.includes('فلسط')) return 'فلسطينية';
+    if (v.includes('سودان')) return 'سودانية';
+    if (v.includes('ليبيا') || v.includes('ليبي')) return 'ليبية';
+    if (v.includes('تونس')) return 'تونسية';
+    if (v.includes('جزائر')) return 'جزائرية';
+    if (v.includes('مغرب')) return 'مغربية';
+    if (v.includes('عراق')) return 'عراقية';
+    return 'مصرية';
+  }
+
+  function normalizeReligion(val) {
+    const v = clean(val).toLowerCase();
+    if (v.includes('مسيح') || v.includes('قبط')) return 'مسيحي';
+    return 'مسلم';
+  }
+
+  function normalizeGender(val) {
+    const v = clean(val);
+    if (v.includes('أنثى') || v.includes('انثى') || v.includes('بنت')) return 'أنثى';
+    return 'ذكر';
+  }
+
+  function normalizePhone(val) {
+    let v = clean(val).replace(/[^\d]/g, '').slice(0,11);
+    if (v.startsWith('2') && v.length > 11) v = v.slice(1);
+    // take first number if multiple
+    const raw = clean(val);
+    const match = raw.match(/0?1[0125]\d{8}/);
+    if (match) {
+      let p = match[0];
+      if (!p.startsWith('0')) p = '0' + p;
+      return p;
+    }
+    return v;
+  }
+
+  function parseSheetRows(ws, grade) {
+    const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+    // find header row
+    let headerIdx = -1;
+    for (let i = 0; i < data.length; i++) {
+      if (data[i].some(c => String(c).includes('اسم التلميذ'))) {
+        headerIdx = i;
+        break;
+      }
+    }
+    if (headerIdx < 0) return [];
+
+    // data starts 2 rows after header (skip sub-header يوم/شهر/سنة)
+    const rows = data.slice(headerIdx + 2);
+    const has23Cols = data[headerIdx].length >= 23;
+
+    const students = [];
+    for (const row of rows) {
+      const studentName = clean(row[2]);
+      if (!studentName || studentName === 'اسم التلميذ') continue;
+
+      // date columns: 5=day, 6=month, 7=year
+      const birthDate = makeDate(row[5], row[6], row[7]);
+
+      // secondLang: col 22 if 23-col sheet, else empty
+      const rawLang = has23Cols ? clean(row[22]) : '';
+      const secondLang = LANG_MAP[rawLang] || (rawLang ? rawLang : '');
+
+      // phone: take first valid 11-digit number
+      const fatherPhoneRaw = clean(row[15]);
+      const motherPhoneRaw = has23Cols ? clean(row[21]) : clean(row[21]);
+
+      students.push({
+        grade,
+        classroom: clean(row[0]) || '',
+        studentName:   studentName,
+        studentNameEn: clean(row[3]),
+        studentNid:    clean(row[4]),
+        gender:        normalizeGender(row[8]),
+        nationality:   normalizeNationality(row[9]),
+        religion:      normalizeReligion(row[10]),
+        birthDate,
+        secondLang,
+        // أب
+        fatherName:    clean(row[11]),
+        fatherNameEn:  clean(row[12]),
+        fatherNid:     clean(row[13]),
+        fatherJob:     clean(row[14]),
+        fatherPhone:   normalizePhone(fatherPhoneRaw),
+        address:       clean(row[16]),
+        // أم
+        motherName:    clean(row[17]),
+        motherNameEn:  clean(row[18]),
+        motherNid:     clean(row[19]),
+        motherJob:     clean(row[20]),
+        motherPhone:   normalizePhone(motherPhoneRaw),
+      });
+    }
+    return students;
+  }
+
+  function processXlsxFile(file) {
+    if (!file.name.endsWith('.xlsx')) {
+      alert('من فضلك ارفع ملف .xlsx فقط');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        let allStudentsImport = [];
+
+        for (const shName of wb.SheetNames) {
+          const gradeKey = shName.trim().toLowerCase();
+          let grade = null;
+          for (const [k, v] of Object.entries(SHEET_GRADE_MAP)) {
+            if (gradeKey === k) { grade = v; break; }
+          }
+          if (!grade) {
+            // try partial match
+            for (const [k, v] of Object.entries(SHEET_GRADE_MAP)) {
+              if (gradeKey.includes(k) || k.includes(gradeKey)) { grade = v; break; }
+            }
+          }
+          if (!grade) continue;
+
+          const ws = wb.Sheets[shName];
+          const rows = parseSheetRows(ws, grade);
+          allStudentsImport = allStudentsImport.concat(rows);
+        }
+
+        importedStudents = allStudentsImport.filter(s => s.studentName);
+
+        // show file info
+        document.getElementById('importFileInfo').style.display = 'block';
+        document.getElementById('importFileName').textContent = `📂 ${file.name}`;
+        document.getElementById('importFileStats').textContent =
+          `تم قراءة ${importedStudents.length} طالب من ${wb.SheetNames.length} شييت`;
+
+        // build preview table (first 8 rows)
+        showPreview(importedStudents.slice(0, 8));
+
+        // show actions
+        document.getElementById('importActions').style.display = 'flex';
+        document.getElementById('importResult').style.display = 'none';
+        document.getElementById('importProgress').style.display = 'none';
+
+      } catch(err) {
+        alert('خطأ في قراءة الملف: ' + err.message);
+        console.error(err);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function showPreview(rows) {
+    const cols = ['الاسم عربي','الاسم إنجليزي','الصف','الفصل','النوع','الجنسية','تاريخ الميلاد','الأب','تليفون الأب'];
+    const head = document.getElementById('previewHead');
+    const body = document.getElementById('previewBody');
+
+    head.innerHTML = `<tr>${cols.map(c =>
+      `<th style="background:var(--primary);color:#fff;padding:0.4rem 0.6rem;white-space:nowrap;font-size:0.72rem">${c}</th>`
+    ).join('')}</tr>`;
+
+    body.innerHTML = rows.map(s => `
+      <tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.studentName}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem;direction:ltr;text-align:left;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.studentNameEn}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem">${s.grade}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem">${s.classroom}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem">${s.gender}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem">${s.nationality}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem;direction:ltr;text-align:left">${s.birthDate}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.fatherName}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem;direction:ltr;text-align:left">${s.fatherPhone}</td>
+      </tr>`).join('');
+
+    document.getElementById('previewNote').textContent =
+      `معاينة أول ${rows.length} طلاب فقط — الإجمالي: ${importedStudents.length} طالب`;
+    document.getElementById('importPreview').style.display = 'block';
+  }
+
+  function resetImport() {
+    importedStudents = [];
+    document.getElementById('xlsxFileInput').value = '';
+    document.getElementById('importFileInfo').style.display = 'none';
+    document.getElementById('importPreview').style.display = 'none';
+    document.getElementById('importActions').style.display = 'none';
+    document.getElementById('importProgress').style.display = 'none';
+    document.getElementById('importResult').style.display = 'none';
+  }
+
+  async function startImport() {
+    if (!importedStudents.length) return;
+
+    const btn = document.getElementById('importBtn');
+    btn.disabled = true;
+    document.getElementById('importBtnText').textContent = 'جاري الاستيراد...';
+    document.getElementById('importProgress').style.display = 'block';
+    document.getElementById('importActions').style.display = 'none';
+    document.getElementById('importResult').style.display = 'none';
+
+    const AGE_REF = new Date(2026, 9, 1);
+    let done = 0, errors = 0;
+    const total = importedStudents.length;
+    const BATCH_SIZE = 400; // Firestore batch limit
+
+    // split into batches of 400
+    for (let bStart = 0; bStart < total; bStart += BATCH_SIZE) {
+      const chunk = importedStudents.slice(bStart, bStart + BATCH_SIZE);
+      const batch = db.batch();
+
+      for (const s of chunk) {
+        try {
+          // calc age
+          let ageYears = 0, ageMonths = 0;
+          if (s.birthDate) {
+            const birth = new Date(s.birthDate);
+            ageYears  = AGE_REF.getFullYear() - birth.getFullYear();
+            ageMonths = AGE_REF.getMonth()    - birth.getMonth();
+            if (ageMonths < 0) { ageYears--; ageMonths += 12; }
+          }
+
+          const ref = db.collection('studentAffairs').doc();
+          batch.set(ref, {
+            schoolId,
+            studentName:    s.studentName,
+            studentNameEn:  s.studentNameEn,
+            studentNid:     s.studentNid,
+            gender:         s.gender,
+            nationality:    s.nationality,
+            religion:       s.religion,
+            birthDate:      s.birthDate,
+            ageYears,
+            ageMonths,
+            grade:          s.grade,
+            classroom:      s.classroom,
+            secondLang:     s.secondLang,
+            fatherName:     s.fatherName,
+            fatherNameEn:   s.fatherNameEn,
+            fatherNid:      s.fatherNid,
+            fatherJob:      s.fatherJob,
+            fatherPhone:    s.fatherPhone,
+            address:        s.address,
+            motherName:     s.motherName,
+            motherNameEn:   s.motherNameEn,
+            motherNid:      s.motherNid,
+            motherJob:      s.motherJob,
+            motherPhone:    s.motherPhone || '',
+            status: 'pending',
+            registeredBy: session.email,
+            importedFrom: 'excel',
+            registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt:    firebase.firestore.FieldValue.serverTimestamp(),
+          });
+          done++;
+        } catch(e) {
+          errors++;
+          console.error('Error processing student:', s.studentName, e);
+        }
+      }
+
+      try {
+        await batch.commit();
+      } catch(e) {
+        errors += chunk.length;
+        done -= chunk.length;
+        console.error('Batch commit error:', e);
+      }
+
+      // update progress
+      const pct = Math.round((bStart + chunk.length) / total * 100);
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('progressPct').textContent = pct + '%';
+      document.getElementById('progressDetail').textContent =
+        `تم: ${Math.min(bStart + chunk.length, total)} / ${total}`;
+    }
+
+    // final progress
+    document.getElementById('progressBar').style.width = '100%';
+    document.getElementById('progressPct').textContent = '100%';
+    document.getElementById('progressLabel').textContent = 'اكتمل الاستيراد ✓';
+
+    // show result
+    const resultEl = document.getElementById('importResult');
+    resultEl.style.display = 'block';
+    if (errors === 0) {
+      resultEl.innerHTML = `
+        <div class="alert alert-success">
+          ✅ تم استيراد <strong>${done}</strong> طالب بنجاح إلى قاعدة البيانات!
+          <br><span style="font-size:0.82rem">يمكنك الآن مشاهدتهم في تاب "الطلاب المنتظرون"</span>
+        </div>`;
+    } else {
+      resultEl.innerHTML = `
+        <div class="alert alert-error">
+          ⚠️ تم استيراد <strong>${done}</strong> طالب — و <strong>${errors}</strong> سجل لم يُضف بسبب أخطاء
+        </div>`;
+    }
+
+    btn.disabled = false;
+    document.getElementById('importBtnText').textContent = '🚀 استيراد الطلاب';
+    loadPendingCount();
   }
 
   // ══════════════════════════════════════════════
