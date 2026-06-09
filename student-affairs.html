@@ -778,7 +778,7 @@
                 ⏳ في انتظار المحاسب
                </span>`
           }
-          <button onclick="deleteStudent('${s.id}','${escHtml(s.studentName).replace(/'/g,"\\'")}'"
+          <button class="btn-delete-student" data-id="${s.id}" data-name="${escHtml(s.studentName)}"
             style="font-size:0.72rem;color:var(--danger);background:none;border:none;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700">
             🗑 حذف
           </button>
@@ -786,7 +786,12 @@
       </div>`).join('');
   }
 
-  // ── XSS protection ──
+  // ── event delegation للحذف ──
+  document.getElementById('pendingList').addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-delete-student');
+    if (!btn) return;
+    deleteStudent(btn.dataset.id, btn.dataset.name);
+  });
   function escHtml(str) {
     return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
@@ -841,10 +846,10 @@
   async function deleteStudent(id, name) {
     if (!confirm(`هل تريد حذف بيانات "${name}"؟\n(سيتم الحذف نهائياً)`)) return;
     try {
-      // soft delete: نغيّر status بدل الحذف الفعلي
+      const _session = SESSION.get();
       await db.collection('studentAffairs').doc(id).update({
         status: 'deleted',
-        deletedBy: session.email,
+        deletedBy: _session?.email || '',
         deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
       allStudents = allStudents.filter(s => s.id !== id);
