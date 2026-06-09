@@ -3,14 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- PWA -->
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#1a3a6b" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="المحاسبة" />
-  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-<title>تسجيل الحفلة - نظام المحاسبة</title>
+  <title>تسجيل الحفلة - نظام المحاسبة</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
     /* ===== PARTY PAGE STYLES ===== */
@@ -1393,6 +1386,20 @@
     btn.disabled = true;
     btn.textContent = 'جاري التأكيد...';
     try {
+      // تأكد إن Firebase Auth token موجود وشغال
+      let user = auth.currentUser;
+      if (!user) {
+        user = await new Promise((resolve, reject) => {
+          const unsub = auth.onAuthStateChanged(u => {
+            unsub();
+            if (u) resolve(u);
+            else reject(new Error('انتهت الجلسة — من فضلك سجّل دخول مرة أخرى'));
+          });
+        });
+      }
+      // تأكد من تجديد الـ token
+      await user.getIdToken(true);
+
       await db.collection('partyAttendees').doc(docId).update({
         status: 'attended',
         attendedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1595,13 +1602,26 @@
     if (d) openQRModal(d);
   }
 
+
   async function markAttended(docId) {
     try {
+      // تأكد إن Firebase Auth token موجود وشغال
+      let user = auth.currentUser;
+      if (!user) {
+        user = await new Promise((resolve, reject) => {
+          const unsub = auth.onAuthStateChanged(u => {
+            unsub();
+            if (u) resolve(u);
+            else reject(new Error('انتهت الجلسة — من فضلك سجّل دخول مرة أخرى'));
+          });
+        });
+      }
+      await user.getIdToken(true);
+
       await db.collection('partyAttendees').doc(docId).update({
         status: 'attended',
         attendedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      // تحديث الـ cache محلياً
       const idx = allAttendees.findIndex(a => a.id === docId);
       if (idx !== -1) {
         allAttendees[idx].status = 'attended';
