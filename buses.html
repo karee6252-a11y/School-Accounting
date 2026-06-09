@@ -473,6 +473,7 @@
             <option value="">الكل</option>
             <option value="1">ترم أول</option>
             <option value="2">ترم ثاني</option>
+            <option value="full">عام كامل</option>
           </select>
           <select class="sub-filter-sel" id="subFilterStatus" onchange="renderSubTable()">
             <option value="">كل الحالات</option>
@@ -499,17 +500,14 @@
                     <th>اسم الطالب</th>
                     <th>الصف</th>
                     <th>الترم</th>
-                    <th>الأشهر</th>
-                    <th>إجمالي الاشتراك</th>
                     <th>المدفوع</th>
-                    <th>المتبقي</th>
                     <th>تاريخ التسديد</th>
                     <th>الحالة</th>
                     <th>إجراءات</th>
                   </tr>
                 </thead>
                 <tbody id="subTableBody">
-                  <tr><td colspan="11" style="padding:2.5rem;color:var(--text-light)">اضغط على التاب لتحميل البيانات</td></tr>
+                  <tr><td colspan="8" style="padding:2.5rem;color:var(--text-light)">اضغط على التاب لتحميل البيانات</td></tr>
                 </tbody>
               </table>
             </div>
@@ -584,33 +582,6 @@
       </div>
       <div class="mf-row">
         <div>
-          <label class="mfl">الترم <span style="color:red">*</span></label>
-          <select class="mfi" id="subTerm" onchange="onTermChange()">
-            <option value="">— اختر الترم —</option>
-            <option value="1">ترم أول (سبتمبر — يناير)</option>
-            <option value="2">ترم ثاني (فبراير — مايو)</option>
-          </select>
-        </div>
-        <div>
-          <label class="mfl">الاشتراك الشهري (ج.م) <span style="color:red">*</span></label>
-          <input type="number" class="mfi" id="subMonthlyFee" placeholder="0.00" step="0.01" min="0" oninput="calcSubModal()" />
-        </div>
-      </div>
-      <div class="term-info-pill" id="subTermInfo" style="display:none">
-        <span></span><span id="subTermInfoText"></span>
-      </div>
-      <div class="mf-row">
-        <div>
-          <label class="mfl">عدد الأشهر (تلقائي)</label>
-          <input type="number" class="mfi" id="subMonthsCount" readonly />
-        </div>
-        <div>
-          <label class="mfl">إجمالي الاشتراك (ج.م)</label>
-          <input type="number" class="mfi" id="subTotalFee" readonly style="color:var(--primary);font-weight:700" />
-        </div>
-      </div>
-      <div class="mf-row">
-        <div>
           <label class="mfl">المبلغ المدفوع (ج.م) <span style="color:red">*</span></label>
           <input type="number" class="mfi" id="subPaidAmount" placeholder="0.00" step="0.01" min="0" oninput="calcSubModal()" />
         </div>
@@ -619,6 +590,29 @@
           <input type="date" class="mfi" id="subPayDate" />
         </div>
       </div>
+      <!-- حقل الترم تلقائي أو يدوي -->
+      <div class="mf-row">
+        <div>
+          <label class="mfl">الترم <span style="color:red">*</span></label>
+          <select class="mfi" id="subTerm" onchange="calcSubModal()">
+            <option value="">— اختر الترم —</option>
+            <option value="1">ترم أول</option>
+            <option value="2">ترم ثاني</option>
+            <option value="full">عام كامل</option>
+          </select>
+        </div>
+        <div>
+          <!-- حقل مخفي للتوافق -->
+          <input type="hidden" id="subMonthlyFee" value="0" />
+          <input type="hidden" id="subMonthsCount" value="0" />
+          <input type="hidden" id="subTotalFee" value="0" />
+          <label class="mfl">الترم المُحدَّد تلقائياً</label>
+          <div id="subAutoTermDisplay" style="padding:0.5rem 0.75rem;background:#f0f4ff;border:1px solid #c5d8f5;border-radius:var(--radius-sm);font-size:0.875rem;font-weight:700;color:var(--primary);min-height:2.2rem;display:flex;align-items:center">—</div>
+        </div>
+      </div>
+      <div class="term-info-pill" id="subTermInfo" style="display:none">
+        <span></span><span id="subTermInfoText"></span>
+      </div>
       <div class="mf-row1">
         <label class="mfl">ملاحظات</label>
         <input type="text" class="mfi" id="subNotes" placeholder="أي ملاحظات..." style="direction:rtl" />
@@ -626,13 +620,10 @@
       <!-- ملخص -->
       <div style="background:var(--accent,#eef3fb);border:1px solid var(--primary-light,#c5d8f5);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-top:0.25rem">
         <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.25rem">
-          <span>إجمالي الاشتراك</span><span id="mSubTotal" style="font-weight:800;color:var(--primary)">0 ج.م</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.25rem">
-          <span>المدفوع</span><span id="mSubPaid" style="font-weight:800;color:#2e7d32">0 ج.م</span>
+          <span>المبلغ المدفوع</span><span id="mSubPaid" style="font-weight:800;color:#2e7d32">0 ج.م</span>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:0.9rem;font-weight:900;border-top:1px solid var(--border);padding-top:0.3rem">
-          <span>المتبقي</span><span id="mSubRem" style="color:#c0392b">0 ج.م</span>
+          <span>الترم المحدد</span><span id="mSubTotal" style="color:var(--primary)">—</span>
         </div>
       </div>
     </div>
@@ -1236,50 +1227,17 @@
 
   async function saveDeduction() {
     const amount = parseFloat(document.getElementById('deductAmount').value) || 0;
-    const notes  = document.getElementById('deductNotes').value.trim();
     const label  = document.getElementById('deductLabel').value;
 
     if (!amount || amount <= 0) {
       showDeductAlert('من فضلك ادخل مبلغ صحيح', 'error'); return;
     }
-    if (amount > custodianBalance) {
-      showDeductAlert(`المبلغ (${formatCurrency(amount)}) أكبر من العهدة المتاحة (${formatCurrency(custodianBalance)})`, 'error'); return;
-    }
 
-    const btn = document.getElementById('deductSaveBtn');
-    btn.disabled = true; btn.textContent = 'جاري الخصم...';
-
-    try {
-      // تسجيل كمصروف في collection expenses
-      const today = new Date().toISOString().split('T')[0];
-      await db.collection('expenses').add({
-        schoolId,
-        recipientName: label,
-        date: today,
-        amount,
-        category: 'transport',
-        categoryLabel: 'بدل انتقال (باصات)',
-        notes: notes || `خصم باصات — ${label}`,
-        createdBy: session.email,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        year:  new Date(today).getFullYear(),
-        month: new Date(today).getMonth() + 1,
-        week:  1,
-        sourceModule: 'buses'
-      });
-
-      // تحديث الرصيد محلياً
-      custodianBalance -= amount;
-      document.getElementById('deductCurrentBalance').textContent = formatCurrency(custodianBalance);
-      showDeductAlert(`تم الخصم بنجاح! الرصيد المتبقي: ${formatCurrency(custodianBalance)}`, 'success');
-      setTimeout(() => {
-        document.getElementById('busDeductModal').classList.add('hidden');
-      }, 1800);
-    } catch(err) {
-      showDeductAlert('خطأ: ' + err.message, 'error');
-    } finally {
-      btn.disabled = false; btn.textContent = ' تأكيد الخصم';
-    }
+    // عرض فقط — بدون خصم فعلي من العهدة
+    showDeductAlert(`تم التسجيل بنجاح! المبلغ: ${formatCurrency(amount)} — (للعرض فقط، لا يُخصم من العهدة)`, 'success');
+    setTimeout(() => {
+      document.getElementById('busDeductModal').classList.add('hidden');
+    }, 2200);
   }
 
   function showDeductAlert(msg, type) {
@@ -1982,7 +1940,7 @@
 
   async function loadSubs() {
     document.getElementById('subTableBody').innerHTML =
-      '<tr><td colspan="11" style="padding:2rem;color:var(--text-light)">جاري التحميل...</td></tr>';
+      '<tr><td colspan="8" style="padding:2rem;color:var(--text-light)">جاري التحميل...</td></tr>';
     try {
       const snap = await db.collection('busSubscriptions')
         .where('schoolId','==', schoolId)
@@ -2006,25 +1964,28 @@
     document.getElementById('subCount').textContent = filtered.length + ' اشتراك';
     if (!filtered.length) {
       document.getElementById('subTableBody').innerHTML =
-        '<tr><td colspan="11" style="padding:2.5rem;color:var(--text-light)">لا توجد اشتراكات مطابقة</td></tr>';
+        '<tr><td colspan="8" style="padding:2.5rem;color:var(--text-light)">لا توجد اشتراكات مطابقة</td></tr>';
       return;
     }
     let html = '';
     filtered.forEach((s, i) => {
-      const total = parseFloat(s.totalFee)||0;
       const paid  = parseFloat(s.paidAmount)||0;
-      const rem   = total - paid;
-      const ti    = termInfo(s.term);
-      const st    = payStatus(paid, total);
+      const term  = s.term;
+      let termLabel = '—', termBadge = '';
+      if (term == 1 || term === '1') {
+        termLabel = 'ترم أول'; termBadge = '<span class="stbadge stb-t1">ترم أول</span>';
+      } else if (term == 2 || term === '2') {
+        termLabel = 'ترم ثاني'; termBadge = '<span class="stbadge stb-t2">ترم ثاني</span>';
+      } else if (term === 'full') {
+        termLabel = 'عام كامل'; termBadge = '<span class="stbadge" style="background:#e8eaf6;color:#283593">عام كامل</span>';
+      }
+      const st = paid > 0 ? 'paid' : 'unpaid';
       html += `<tr>
         <td>${i+1}</td>
         <td style="text-align:right;font-weight:700">${s.studentName||'—'}</td>
         <td>${s.grade||'—'}</td>
-        <td><span class="stbadge ${s.term==1?'stb-t1':'stb-t2'}">ترم ${s.term==1?'أول':'ثاني'}</span></td>
-        <td style="font-size:0.75rem;color:var(--text-mid)">${ti?ti.label:'—'}</td>
-        <td style="font-weight:700;color:var(--primary)">${fmtC(total)}</td>
+        <td>${termBadge}</td>
         <td style="font-weight:700;color:#2e7d32">${fmtC(paid)}</td>
-        <td style="font-weight:700;color:${rem>0?'#c0392b':'#2e7d32'}">${fmtC(rem)}</td>
         <td style="font-size:0.78rem">${s.payDate||'—'}</td>
         <td>${statusBadge(st)}</td>
         <td><div style="display:flex;gap:0.3rem;justify-content:center">
@@ -2037,12 +1998,11 @@
   }
 
   function updateSubSummary() {
-    const total     = subsData.reduce((s,r) => s+(parseFloat(r.totalFee)||0),   0);
     const collected = subsData.reduce((s,r) => s+(parseFloat(r.paidAmount)||0), 0);
     document.getElementById('sTotalStudents').textContent  = subsData.length;
-    document.getElementById('sTotalFees').textContent      = fmtC(total);
+    document.getElementById('sTotalFees').textContent      = fmtC(collected);
     document.getElementById('sTotalCollected').textContent = fmtC(collected);
-    document.getElementById('sTotalRemaining').textContent = fmtC(total - collected);
+    document.getElementById('sTotalRemaining').textContent = fmtC(0);
   }
 
   function openSubModal(editId = null) {
@@ -2053,74 +2013,94 @@
       document.getElementById('subModalTitle').textContent   = ' تعديل: ' + s.studentName;
       document.getElementById('subStudentName').value = s.studentName || '';
       document.getElementById('subGrade').value        = s.grade       || '';
-      document.getElementById('subTerm').value         = s.term        || '';
-      document.getElementById('subMonthlyFee').value   = s.monthlyFee  || '';
+      document.getElementById('subTerm').value         = s.term == 1 ? '1' : s.term == 2 ? '2' : (s.term === 'full' ? 'full' : '');
       document.getElementById('subPaidAmount').value   = s.paidAmount  || '';
       document.getElementById('subPayDate').value      = s.payDate     || '';
       document.getElementById('subNotes').value        = s.notes       || '';
-      onTermChange(); calcSubModal();
+      calcSubModal();
     } else {
       document.getElementById('subModalTitle').textContent = ' تسجيل اشتراك جديد';
-      ['subStudentName','subGrade','subMonthlyFee','subPaidAmount','subNotes'].forEach(id => document.getElementById(id).value = '');
+      ['subStudentName','subGrade','subPaidAmount','subNotes'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('subTerm').value    = '';
       document.getElementById('subPayDate').value = todayStr();
       document.getElementById('subTermInfo').style.display = 'none';
-      document.getElementById('subMonthsCount').value = '';
-      document.getElementById('subTotalFee').value     = '';
-      ['mSubTotal','mSubPaid','mSubRem'].forEach(id => document.getElementById(id).textContent = '0 ج.م');
+      document.getElementById('subAutoTermDisplay').textContent = '—';
+      ['mSubTotal','mSubPaid'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = el.id === 'mSubTotal' ? '—' : '0 ج.م'; });
     }
     document.getElementById('subModal').classList.remove('hidden');
   }
   function closeSubModal() { document.getElementById('subModal').classList.add('hidden'); }
 
-  function onTermChange() {
-    const t  = document.getElementById('subTerm').value;
-    const ti = termInfo(t);
-    const box = document.getElementById('subTermInfo');
-    if (ti) {
-      box.style.display = 'flex';
-      document.getElementById('subTermInfoText').textContent = ti.label;
-      document.getElementById('subMonthsCount').value = ti.count;
-    } else {
-      box.style.display = 'none';
-      document.getElementById('subMonthsCount').value = '';
-    }
-    calcSubModal();
+  function onTermChange() { calcSubModal(); }
+
+  // حدد الترم تلقائياً بناءً على المبلغ المدفوع
+  function autoDetectTerm(paid) {
+    if (paid === 6500) return { value: '1', label: 'ترم أول' };
+    if (paid === 13000) return { value: 'full', label: 'ترم أول + ترم ثاني (عام كامل)' };
+    return null;
+  }
+
+  function getTermLabel(termVal) {
+    if (termVal == 1 || termVal === '1') return 'ترم أول';
+    if (termVal == 2 || termVal === '2') return 'ترم ثاني';
+    if (termVal === 'full') return 'ترم أول + ترم ثاني (عام كامل)';
+    return '—';
   }
 
   function calcSubModal() {
-    const monthly = parseFloat(document.getElementById('subMonthlyFee').value) || 0;
-    const months  = parseFloat(document.getElementById('subMonthsCount').value)|| 0;
     const paid    = parseFloat(document.getElementById('subPaidAmount').value) || 0;
-    const total   = monthly;
-    const rem     = total - paid;
-    document.getElementById('subTotalFee').value      = total || '';
-    document.getElementById('mSubTotal').textContent  = fmtC(total);
-    document.getElementById('mSubPaid').textContent   = fmtC(paid);
-    document.getElementById('mSubRem').textContent    = fmtC(Math.max(rem, 0));
-    document.getElementById('mSubRem').style.color    = rem > 0 ? '#c0392b' : '#2e7d32';
+    const termSel = document.getElementById('subTerm').value;
+
+    // تحديد الترم تلقائياً بناءً على المبلغ
+    const autoTerm = autoDetectTerm(paid);
+    const autoDisplay = document.getElementById('subAutoTermDisplay');
+
+    if (autoTerm) {
+      // تعيين الترم تلقائياً في القائمة
+      document.getElementById('subTerm').value = autoTerm.value;
+      autoDisplay.textContent = autoTerm.label;
+      autoDisplay.style.color = '#2e7d32';
+    } else if (paid > 0) {
+      autoDisplay.textContent = 'المبلغ غير معياري — اختر الترم يدوياً';
+      autoDisplay.style.color = '#e65100';
+    } else {
+      autoDisplay.textContent = '—';
+      autoDisplay.style.color = 'var(--primary)';
+    }
+
+    const finalTerm = document.getElementById('subTerm').value;
+    const termLabel = getTermLabel(finalTerm);
+
+    document.getElementById('mSubPaid').textContent = fmtC(paid);
+    document.getElementById('mSubTotal').textContent = finalTerm ? termLabel : '—';
+
+    // حقول مخفية للحفظ
+    document.getElementById('subTotalFee').value  = paid;
+    document.getElementById('subMonthlyFee').value = paid;
+    document.getElementById('subMonthsCount').value = finalTerm === 'full' ? 9 : finalTerm === '1' ? 5 : finalTerm === '2' ? 4 : 0;
   }
 
   async function saveSub() {
     const name    = document.getElementById('subStudentName').value.trim();
     const grade   = document.getElementById('subGrade').value.trim();
     const term    = document.getElementById('subTerm').value;
-    const monthly = parseFloat(document.getElementById('subMonthlyFee').value) || 0;
-    const months  = parseFloat(document.getElementById('subMonthsCount').value)|| 0;
     const paid    = parseFloat(document.getElementById('subPaidAmount').value) || 0;
     const payDate = document.getElementById('subPayDate').value;
     const notes   = document.getElementById('subNotes').value.trim();
     const editId  = document.getElementById('subEditId').value;
 
-    if (!name)    { alert('من فضلك ادخل اسم الطالب'); return; }
-    if (!grade)   { alert('من فضلك ادخل الصف'); return; }
-    if (!term)    { alert('من فضلك اختر الترم'); return; }
-    if (!monthly) { alert('من فضلك ادخل قيمة الاشتراك الشهري'); return; }
+    if (!name)  { alert('من فضلك ادخل اسم الطالب'); return; }
+    if (!grade) { alert('من فضلك ادخل الصف'); return; }
+    if (!term)  { alert('من فضلك اختر الترم أو أدخل المبلغ لتحديده تلقائياً'); return; }
+    if (!paid)  { alert('من فضلك ادخل المبلغ المدفوع'); return; }
 
+    // الترم المحفوظ: '1' أو '2' أو 'full'
     const data = {
-      schoolId, studentName: name, grade, term: parseInt(term),
-      monthlyFee: monthly, monthsCount: months, totalFee: monthly,
-      paidAmount: paid, payDate, notes,
+      schoolId, studentName: name, grade,
+      term,       // 'full' أو '1' أو '2'
+      paidAmount: paid, totalFee: paid,
+      monthlyFee: paid, monthsCount: term === 'full' ? 9 : term === '1' ? 5 : 4,
+      payDate, notes,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedBy: session.email
     };
