@@ -14,11 +14,104 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     .export-btn-group { display:flex; gap:0.5rem; flex-wrap:wrap; }
-    .filter-section { background:var(--card-bg); border-radius:var(--radius); padding:1.25rem; border:1px solid var(--border); margin-bottom:1rem; }
-    .summary-box { background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247)); color: white; border-radius: var(--radius); padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-    .summary-box .big-num { font-size: 2.5rem; font-weight: 900; }
-    .summary-box .sub { font-size: 0.8rem; opacity: 0.7; }
+    .filter-section {
+      background:var(--card-bg); border-radius:var(--radius);
+      padding:1.25rem; border:1px solid var(--border); margin-bottom:1rem;
+    }
+    .summary-box {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247));
+      color: white; border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      display: flex; justify-content: space-between;
+      align-items: center; flex-wrap: wrap; gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .summary-box .big-num { font-size: 2.2rem; font-weight: 900; }
+    .summary-box .sub { font-size: 0.78rem; opacity: 0.75; }
     .table-footer-total { background: var(--accent); font-weight: 800; color: var(--primary); }
+
+    /* ── Period tabs ── */
+    .report-period-tabs {
+      display: flex; gap: 0.4rem; margin-bottom: 1rem;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; flex-wrap: nowrap;
+      padding-bottom: 2px;
+    }
+    .report-period-tabs::-webkit-scrollbar { display: none; }
+    .period-tab {
+      white-space: nowrap; flex-shrink: 0;
+      padding: 0.5rem 1rem; border-radius: 8px;
+      border: 2px solid var(--border, #e2e8f0);
+      background: var(--surface, #f8fafc);
+      font-family: Cairo, sans-serif; font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; transition: all 0.15s ease; color: var(--text, #1e293b);
+    }
+    .period-tab:hover  { border-color: var(--primary); color: var(--primary); }
+    .period-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    /* ════════════════════════════════
+       MOBILE FIXES — Reports
+    ════════════════════════════════ */
+    @media (max-width: 768px) {
+
+      /* فلتر الـ grid يبقى عمود واحد */
+      .filter-section > div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+      }
+
+      /* الـ custom filter (من/إلى) يبقى عمودين */
+      #customFilter {
+        grid-template-columns: 1fr 1fr !important;
+        grid-column: span 1 !important;
+      }
+
+      /* summary box على موبايل */
+      .summary-box {
+        padding: 1rem;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem 1rem;
+      }
+      .summary-box .big-num { font-size: 1.6rem; }
+      .summary-box .sub     { font-size: 0.72rem; }
+
+      /* export buttons تاخد كل العرض */
+      .export-btn-group {
+        grid-column: 1 / -1;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+      .export-btn-group .btn { flex: 1 1 auto; min-width: 70px; text-align: center; font-size: 0.75rem; padding: 0.4rem 0.5rem; }
+
+      /* الـ payroll month picker */
+      #payrollMonthPicker { max-width: 100% !important; width: 100%; }
+
+      /* الـ table تتسكرول */
+      .table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
+      table.data-table { min-width: 600px; font-size: 0.76rem; }
+      table.data-table th,
+      table.data-table td { padding: 0.45rem 0.55rem; white-space: nowrap; }
+
+      /* إخفاء أعمدة أقل أهمية على موبايل الصغير */
+      .col-daily { display: none; }
+
+      /* الـ inputs */
+      input, select, .form-input, .form-select {
+        font-size: 16px !important;
+      }
+
+      /* period tabs أصغر على موبايل */
+      .period-tab { padding: 0.45rem 0.75rem; font-size: 0.8rem; }
+
+      /* card header */
+      .card-header { flex-wrap: wrap; gap: 0.4rem; }
+    }
+
+    @media (max-width: 400px) {
+      .summary-box { grid-template-columns: 1fr; }
+      .summary-box .big-num { font-size: 1.4rem; }
+      #customFilter { grid-template-columns: 1fr !important; }
+    }
   </style>
 </head>
 <body>
@@ -61,14 +154,27 @@
 
       <!-- Summary Box -->
       <div class="summary-box animate-in" id="summaryBox">
-        <div><div class="sub">إجمالي التحصيل</div><div class="big-num" id="summaryTotal">ج.م 0</div><div class="sub" id="summaryPeriod">التقرير اليومي</div></div>
-        <div><div style="font-size:2rem;font-weight:900" id="summaryCount">0</div><div class="sub">عملية</div></div>
-        <div><div style="font-size:2rem;font-weight:900" id="summaryStudents">0</div><div class="sub">طالب</div></div>
-        <div class="export-btn-group no-print"><button class="btn btn-secondary btn-sm" id="exportExcelBtn" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> Excel</button><button class="btn btn-secondary btn-sm" onclick="exportPDF()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> PDF</button><button class="btn btn-secondary btn-sm" onclick="window.print()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> طباعة</button><button class="btn btn-secondary btn-sm" id="revenueReviewBtn" onclick="handleRevenueReview()" style="background:rgba(255,215,0,0.25);color:#FFD700;border:1px solid rgba(255,215,0,0.6);font-weight:800" title="مراجعة الإيرادات الكاملة بالمراحل">📊 مراجعة الإيرادات</button>
-          <!-- زرار كشف الرواتب -->
-          <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap">
-            <input type="month" id="payrollMonthPicker" style="padding:0.3rem 0.5rem;border-radius:6px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);color:white;font-family:Cairo,sans-serif;font-size:0.78rem;max-width:140px" title="اختر الشهر"/>
-            <button class="btn btn-secondary btn-sm" onclick="exportPayrollExcelFromReports()" style="background:rgba(46,125,50,0.5);color:#fff;border:1px solid rgba(46,125,50,0.8);font-weight:800;white-space:nowrap" title="تصدير كشف الرواتب Excel"> كشف الرواتب</button>
+        <div>
+          <div class="sub">إجمالي التحصيل</div>
+          <div class="big-num" id="summaryTotal">ج.م 0</div>
+          <div class="sub" id="summaryPeriod">التقرير اليومي</div>
+        </div>
+        <div>
+          <div style="font-size:2rem;font-weight:900" id="summaryCount">0</div>
+          <div class="sub">عملية</div>
+        </div>
+        <div>
+          <div style="font-size:2rem;font-weight:900" id="summaryStudents">0</div>
+          <div class="sub">طالب</div>
+        </div>
+        <div class="export-btn-group no-print">
+          <button class="btn btn-secondary btn-sm" id="exportExcelBtn" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)">📊 Excel</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportPDF()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)">📄 PDF</button>
+          <button class="btn btn-secondary btn-sm" onclick="window.print()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)">🖨️ طباعة</button>
+          <button class="btn btn-secondary btn-sm" id="revenueReviewBtn" onclick="handleRevenueReview()" style="background:rgba(255,215,0,0.25);color:#FFD700;border:1px solid rgba(255,215,0,0.6);font-weight:800" title="مراجعة الإيرادات الكاملة بالمراحل">📊 مراجعة الإيرادات</button>
+          <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;width:100%">
+            <input type="month" id="payrollMonthPicker" style="padding:0.3rem 0.5rem;border-radius:6px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);color:white;font-family:Cairo,sans-serif;font-size:0.78rem;flex:1;min-width:120px" title="اختر الشهر"/>
+            <button class="btn btn-secondary btn-sm" onclick="exportPayrollExcelFromReports()" style="background:rgba(46,125,50,0.5);color:#fff;border:1px solid rgba(46,125,50,0.8);font-weight:800;white-space:nowrap" title="تصدير كشف الرواتب Excel">📋 كشف الرواتب</button>
           </div>
         </div>
       </div>
