@@ -3,115 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- PWA -->
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#1a3a6b" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="المحاسبة" />
-  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-<title>التقارير - نظام المحاسبة</title>
+  <title>التقارير - نظام المحاسبة</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
     .export-btn-group { display:flex; gap:0.5rem; flex-wrap:wrap; }
-    .filter-section {
-      background:var(--card-bg); border-radius:var(--radius);
-      padding:1.25rem; border:1px solid var(--border); margin-bottom:1rem;
-    }
-    .summary-box {
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247));
-      color: white; border-radius: var(--radius);
-      padding: 1.25rem 1.5rem;
-      display: flex; justify-content: space-between;
-      align-items: center; flex-wrap: wrap; gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
-    .summary-box .big-num { font-size: 2.2rem; font-weight: 900; }
-    .summary-box .sub { font-size: 0.78rem; opacity: 0.75; }
+    .filter-section { background:var(--card-bg); border-radius:var(--radius); padding:1.25rem; border:1px solid var(--border); margin-bottom:1rem; }
+    .summary-box { background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247)); color: white; border-radius: var(--radius); padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .summary-box .big-num { font-size: 2.5rem; font-weight: 900; }
+    .summary-box .sub { font-size: 0.8rem; opacity: 0.7; }
     .table-footer-total { background: var(--accent); font-weight: 800; color: var(--primary); }
-
-    /* ── Period tabs ── */
-    .report-period-tabs {
-      display: flex; gap: 0.4rem; margin-bottom: 1rem;
-      overflow-x: auto; -webkit-overflow-scrolling: touch;
-      scrollbar-width: none; flex-wrap: nowrap;
-      padding-bottom: 2px;
-    }
-    .report-period-tabs::-webkit-scrollbar { display: none; }
-    .period-tab {
-      white-space: nowrap; flex-shrink: 0;
-      padding: 0.5rem 1rem; border-radius: 8px;
-      border: 2px solid var(--border, #e2e8f0);
-      background: var(--surface, #f8fafc);
-      font-family: Cairo, sans-serif; font-size: 0.85rem; font-weight: 700;
-      cursor: pointer; transition: all 0.15s ease; color: var(--text, #1e293b);
-    }
-    .period-tab:hover  { border-color: var(--primary); color: var(--primary); }
-    .period-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
-
-    /* ════════════════════════════════
-       MOBILE FIXES — Reports
-    ════════════════════════════════ */
-    @media (max-width: 768px) {
-
-      /* فلتر الـ grid يبقى عمود واحد */
-      .filter-section > div[style*="grid-template-columns"] {
-        grid-template-columns: 1fr !important;
-      }
-
-      /* الـ custom filter (من/إلى) يبقى عمودين */
-      #customFilter {
-        grid-template-columns: 1fr 1fr !important;
-        grid-column: span 1 !important;
-      }
-
-      /* summary box على موبايل */
-      .summary-box {
-        padding: 1rem;
-        display: grid !important;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem 1rem;
-      }
-      .summary-box .big-num { font-size: 1.6rem; }
-      .summary-box .sub     { font-size: 0.72rem; }
-
-      /* export buttons تاخد كل العرض */
-      .export-btn-group {
-        grid-column: 1 / -1;
-        flex-wrap: wrap;
-        gap: 0.4rem;
-      }
-      .export-btn-group .btn { flex: 1 1 auto; min-width: 70px; text-align: center; font-size: 0.75rem; padding: 0.4rem 0.5rem; }
-
-      /* الـ payroll month picker */
-      #payrollMonthPicker { max-width: 100% !important; width: 100%; }
-
-      /* الـ table تتسكرول */
-      .table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
-      table.data-table { min-width: 600px; font-size: 0.76rem; }
-      table.data-table th,
-      table.data-table td { padding: 0.45rem 0.55rem; white-space: nowrap; }
-
-      /* إخفاء أعمدة أقل أهمية على موبايل الصغير */
-      .col-daily { display: none; }
-
-      /* الـ inputs */
-      input, select, .form-input, .form-select {
-        font-size: 16px !important;
-      }
-
-      /* period tabs أصغر على موبايل */
-      .period-tab { padding: 0.45rem 0.75rem; font-size: 0.8rem; }
-
-      /* card header */
-      .card-header { flex-wrap: wrap; gap: 0.4rem; }
-    }
-
-    @media (max-width: 400px) {
-      .summary-box { grid-template-columns: 1fr; }
-      .summary-box .big-num { font-size: 1.4rem; }
-      #customFilter { grid-template-columns: 1fr !important; }
-    }
   </style>
 </head>
 <body>
@@ -154,27 +54,14 @@
 
       <!-- Summary Box -->
       <div class="summary-box animate-in" id="summaryBox">
-        <div>
-          <div class="sub">إجمالي التحصيل</div>
-          <div class="big-num" id="summaryTotal">ج.م 0</div>
-          <div class="sub" id="summaryPeriod">التقرير اليومي</div>
-        </div>
-        <div>
-          <div style="font-size:2rem;font-weight:900" id="summaryCount">0</div>
-          <div class="sub">عملية</div>
-        </div>
-        <div>
-          <div style="font-size:2rem;font-weight:900" id="summaryStudents">0</div>
-          <div class="sub">طالب</div>
-        </div>
-        <div class="export-btn-group no-print">
-          <button class="btn btn-secondary btn-sm" id="exportExcelBtn" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)">📊 Excel</button>
-          <button class="btn btn-secondary btn-sm" onclick="exportPDF()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)">📄 PDF</button>
-          <button class="btn btn-secondary btn-sm" onclick="window.print()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)">🖨️ طباعة</button>
-          <button class="btn btn-secondary btn-sm" id="revenueReviewBtn" onclick="handleRevenueReview()" style="background:rgba(255,215,0,0.25);color:#FFD700;border:1px solid rgba(255,215,0,0.6);font-weight:800" title="مراجعة الإيرادات الكاملة بالمراحل">📊 مراجعة الإيرادات</button>
-          <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;width:100%">
-            <input type="month" id="payrollMonthPicker" style="padding:0.3rem 0.5rem;border-radius:6px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);color:white;font-family:Cairo,sans-serif;font-size:0.78rem;flex:1;min-width:120px" title="اختر الشهر"/>
-            <button class="btn btn-secondary btn-sm" onclick="exportPayrollExcelFromReports()" style="background:rgba(46,125,50,0.5);color:#fff;border:1px solid rgba(46,125,50,0.8);font-weight:800;white-space:nowrap" title="تصدير كشف الرواتب Excel">📋 كشف الرواتب</button>
+        <div><div class="sub">إجمالي التحصيل</div><div class="big-num" id="summaryTotal">ج.م 0</div><div class="sub" id="summaryPeriod">التقرير اليومي</div></div>
+        <div><div style="font-size:2rem;font-weight:900" id="summaryCount">0</div><div class="sub">عملية</div></div>
+        <div><div style="font-size:2rem;font-weight:900" id="summaryStudents">0</div><div class="sub">طالب</div></div>
+        <div class="export-btn-group no-print"><button class="btn btn-secondary btn-sm" id="exportExcelBtn" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> Excel</button><button class="btn btn-secondary btn-sm" onclick="exportPDF()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> PDF</button><button class="btn btn-secondary btn-sm" onclick="window.print()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> طباعة</button><button class="btn btn-secondary btn-sm" id="revenueReviewBtn" onclick="handleRevenueReview()" style="background:rgba(255,215,0,0.25);color:#FFD700;border:1px solid rgba(255,215,0,0.6);font-weight:800" title="مراجعة الإيرادات الكاملة بالمراحل">📊 مراجعة الإيرادات</button>
+          <!-- زرار كشف الرواتب -->
+          <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap">
+            <input type="month" id="payrollMonthPicker" style="padding:0.3rem 0.5rem;border-radius:6px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);color:white;font-family:Cairo,sans-serif;font-size:0.78rem;max-width:140px" title="اختر الشهر"/>
+            <button class="btn btn-secondary btn-sm" onclick="exportPayrollExcelFromReports()" style="background:rgba(46,125,50,0.5);color:#fff;border:1px solid rgba(46,125,50,0.8);font-weight:800;white-space:nowrap" title="تصدير كشف الرواتب Excel"> كشف الرواتب</button>
           </div>
         </div>
       </div>
@@ -452,6 +339,13 @@
       expensesData.sort((a,b) => a.date.localeCompare(b.date));
     } catch(e) { expensesData = []; }
 
+    // جلب بيانات العهدة
+    let custPrev = 0, custNew = 0;
+    try {
+      const cd = await db.collection('custodians').doc(schoolId).get();
+      if (cd.exists) { custPrev = cd.data().prevAmount || 0; custNew = cd.data().newAmount || 0; }
+    } catch(e) {}
+
     if (typeof ExcelJS === 'undefined') {
       const s = document.createElement('script');
       s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
@@ -634,7 +528,7 @@
 
       ws.addRow([]);
       sectionRow(ws, '③', 'الموقف المالي اليومي', SEC, MCOL);
-      const mf = ws.addRow(['إجمالي الإيرادات', '', revTotal, 'إجمالي المصروفات', '', expTotal, 'صافي اليوم', '', '', revTotal - expTotal, '', '']);
+      const mf = ws.addRow(['إجمالي الإيرادات', '', revTotal, 'إجمالي المصروفات', '', expTotal, 'صافي اليوم', '', '', revTotal, '', '']);
       mf.height = 30;
       ws.mergeCells(`A${mf.number}:B${mf.number}`);
       ws.mergeCells(`D${mf.number}:E${mf.number}`);
@@ -653,12 +547,39 @@
         mf.getCell(ci).border = medBorder();
         numFmt(mf.getCell(ci));
       });
-      const net = revTotal - expTotal;
-      mf.getCell(10).fill = hFill(net>=0 ? 'FF1B5E20' : 'FFC00000');
+      mf.getCell(10).fill = hFill('FF1B5E20');
       mf.getCell(10).font = {name:'Arial',bold:true,size:14,color:{argb:WHT}};
       mf.getCell(10).alignment = cAlign();
       mf.getCell(10).border = medBorder();
       numFmt(mf.getCell(10));
+
+      // صف العهدة — المصروفات تتخصم من العهدة مش من الإيراد
+      const custTotal = custPrev + custNew;
+      const custRemain = custTotal - expTotal;
+      const cr = ws.addRow(['إجمالي العهدة', '', custTotal, 'المصروفات من العهدة', '', expTotal, 'المتبقي من العهدة', '', '', custRemain, '', '']);
+      cr.height = 28;
+      ws.mergeCells(`A${cr.number}:B${cr.number}`);
+      ws.mergeCells(`D${cr.number}:E${cr.number}`);
+      ws.mergeCells(`G${cr.number}:I${cr.number}`);
+      ws.mergeCells(`J${cr.number}:${MCOL}${cr.number}`);
+      [[1,ACC,BLK],[4,ACC,BLK],[7,ACC,BLK]].forEach(([ci,bg,fc]) => {
+        cr.getCell(ci).fill = hFill(bg);
+        cr.getCell(ci).font = {name:'Arial',bold:true,size:11,color:{argb:fc}};
+        cr.getCell(ci).alignment = cAlign();
+        cr.getCell(ci).border = medBorder();
+      });
+      [[3,'FF1565C0',WHT],[6,SEC,WHT]].forEach(([ci,bg,fc]) => {
+        cr.getCell(ci).fill = hFill(bg);
+        cr.getCell(ci).font = {name:'Arial',bold:true,size:12,color:{argb:fc}};
+        cr.getCell(ci).alignment = cAlign();
+        cr.getCell(ci).border = medBorder();
+        numFmt(cr.getCell(ci));
+      });
+      cr.getCell(10).fill = hFill(custRemain >= 0 ? 'FF1565C0' : 'FFC00000');
+      cr.getCell(10).font = {name:'Arial',bold:true,size:14,color:{argb:WHT}};
+      cr.getCell(10).alignment = cAlign();
+      cr.getCell(10).border = medBorder();
+      numFmt(cr.getCell(10));
 
       ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:3, activeCell:'A4' }];
 
@@ -796,7 +717,7 @@
         ['المديونية السابقة','','','الإيراد الأسبوعي','','','المصروفات','','خصومات','','صافي الأسبوع','','المديونية الفعلية','',''],
         SEC, [['A','C'],['D','F'],['G','H'],['I','J'],['K','L'],['M','O']]);
 
-      const wkNetRevenue = wkTotal - expGrandTotal;
+      const wkNetRevenue = wkTotal;  // صافي الأسبوع = الإيراد فقط بدون خصم المصروفات
       const mfRow = ws.addRow([0,'','', wkTotal,'','', expGrandTotal,'', 0,'', wkNetRevenue,'', 0,'','']);
       mfRow.height = 30;
       ws.mergeCells(`A${mfRow.number}:C${mfRow.number}`);
@@ -812,11 +733,35 @@
         mfRow.getCell(ci).border = medBorder();
         numFmt(mfRow.getCell(ci));
       });
-      mfRow.getCell(11).fill = hFill(wkNetRevenue >= 0 ? 'FF1B5E20' : 'FFC00000');
+      mfRow.getCell(11).fill = hFill('FF1B5E20');
       mfRow.getCell(11).font = {name:'Arial',bold:true,size:14,color:{argb:WHT}};
       mfRow.getCell(11).alignment = cAlign();
       mfRow.getCell(11).border = medBorder();
       numFmt(mfRow.getCell(11));
+
+      // صف العهدة الأسبوعية
+      const wkCustTotal = custPrev + custNew;
+      const wkCustRemain = wkCustTotal - expGrandTotal;
+      const wkCr = ws.addRow(['','','', wkCustTotal,'','المصروفات من العهدة', expGrandTotal,'', '','', wkCustRemain,'المتبقي من العهدة', '','','']);
+      wkCr.height = 26;
+      ws.mergeCells(`A${wkCr.number}:C${wkCr.number}`);
+      ws.mergeCells(`D${wkCr.number}:E${wkCr.number}`);
+      ws.mergeCells(`K${wkCr.number}:L${wkCr.number}`);
+      ws.mergeCells(`M${wkCr.number}:O${wkCr.number}`);
+      [[4,'FF1565C0',WHT],[7,SEC,WHT]].forEach(([ci,bg,fc]) => {
+        wkCr.getCell(ci).fill = hFill(bg);
+        wkCr.getCell(ci).font = {name:'Arial',bold:true,size:12,color:{argb:fc}};
+        wkCr.getCell(ci).alignment = cAlign();
+        wkCr.getCell(ci).border = medBorder();
+        numFmt(wkCr.getCell(ci));
+      });
+      wkCr.getCell(6).fill = hFill(ACC); wkCr.getCell(6).font = {name:'Arial',bold:true,size:10,color:{argb:BLK}}; wkCr.getCell(6).alignment = cAlign(); wkCr.getCell(6).border = medBorder();
+      wkCr.getCell(11).fill = hFill(wkCustRemain >= 0 ? 'FF1565C0' : 'FFC00000');
+      wkCr.getCell(11).font = {name:'Arial',bold:true,size:14,color:{argb:WHT}};
+      wkCr.getCell(11).alignment = cAlign();
+      wkCr.getCell(11).border = medBorder();
+      numFmt(wkCr.getCell(11));
+      wkCr.getCell(12).fill = hFill(ACC); wkCr.getCell(12).font = {name:'Arial',bold:true,size:10,color:{argb:BLK}}; wkCr.getCell(12).alignment = cAlign(); wkCr.getCell(12).border = medBorder();
 
       ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:4, activeCell:'A5' }];
 
@@ -930,7 +875,7 @@
       const summaryItems = [
         ['إجمالي الإيرادات الشهرية', monthRevTotal, SEC, WHT],
         ['إجمالي المصروفات الشهرية', monthExpTotal, SEC, WHT],
-        ['صافي الإيراد الشهري', monthRevTotal - monthExpTotal, monthRevTotal-monthExpTotal >= 0 ? 'FF1B5E20' : RED, WHT],
+        ['صافي الإيراد الشهري', monthRevTotal, 'FF1B5E20', WHT],
         ['عدد العمليات', currentData.length, ACC, BLK],
         ['عدد الطلاب', new Set(currentData.map(d=>d.studentName)).size, ACC, BLK],
       ];
@@ -948,6 +893,29 @@
         sr.getCell(10).alignment = cAlign();
         sr.getCell(10).border = medBorder();
         if (typeof val === 'number') numFmt(sr.getCell(10));
+      });
+
+      // صف العهدة الشهرية
+      const moCustTotal = custPrev + custNew;
+      const moCustRemain = moCustTotal - monthExpTotal;
+      const moLabels = [
+        ['إجمالي العهدة', moCustTotal, 'FF1565C0', WHT],
+        ['المتبقي من العهدة', moCustRemain, moCustRemain >= 0 ? 'FF1565C0' : 'FFC00000', WHT],
+      ];
+      moLabels.forEach(([lbl, val, bg, fc]) => {
+        const sr = ws.addRow([lbl,'','','','','','','','',val,'','']);
+        sr.height = 26;
+        ws.mergeCells(`A${sr.number}:I${sr.number}`);
+        ws.mergeCells(`J${sr.number}:L${sr.number}`);
+        sr.getCell(1).fill = hFill(ACC);
+        sr.getCell(1).font = {name:'Arial',bold:true,size:12,color:{argb:BLK}};
+        sr.getCell(1).alignment = rAlign();
+        sr.getCell(1).border = medBorder();
+        sr.getCell(10).fill = hFill(bg);
+        sr.getCell(10).font = {name:'Arial',bold:true,size:14,color:{argb:fc}};
+        sr.getCell(10).alignment = cAlign();
+        sr.getCell(10).border = medBorder();
+        numFmt(sr.getCell(10));
       });
 
       ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:4, activeCell:'A5' }];
@@ -1033,15 +1001,22 @@
         buildTable(['#','التاريخ','الطالب','الصف','مصروفات','فايل','يونيفورم','باص','أبليكيشن','إيرادات أخرى','الإجمالي','المديونية','الدفع','الإيصال','ملاحظات'], rows, foot));
 
       let expTotal = 0;
+      let pdfCustPrev = 0, pdfCustNew = 0;
       try {
         const snap = await db.collection('expenses').where('schoolId','==',schoolId).where('date','==',from).get();
         snap.forEach(d => expTotal+=d.data().amount||0);
+        const cd = await db.collection('custodians').doc(schoolId).get();
+        if (cd.exists) { pdfCustPrev = cd.data().prevAmount||0; pdfCustNew = cd.data().newAmount||0; }
       } catch(e) {}
+      const pdfCustRemain = (pdfCustPrev + pdfCustNew) - expTotal;
       sectionsHtml += buildSection('② الموقف المالي اليومي',
         buildTable(['البيان','القيمة'],[
           ['إجمالي الإيرادات', formatCurrency(revTotal)],
           ['إجمالي المصروفات', formatCurrency(expTotal)],
-          ['صافي اليوم', formatCurrency(revTotal - expTotal)],
+          ['صافي اليوم', formatCurrency(revTotal)],
+          ['إجمالي العهدة', formatCurrency(pdfCustPrev + pdfCustNew)],
+          ['المصروفات من العهدة', formatCurrency(expTotal)],
+          ['المتبقي من العهدة', formatCurrency(pdfCustRemain)],
         ], null));
 
     } else if (currentPeriod === 'weekly') {
@@ -1105,12 +1080,21 @@
           gRows3, ['الإجمالي','','-',formatCurrency(tc3),'-','']));
 
       let mExpTotal=0;
-      try { const eSnap=await db.collection('expenses').where('schoolId','==',schoolId).where('date','>=',from).where('date','<=',to).get(); eSnap.forEach(d=>mExpTotal+=d.data().amount||0); } catch(e){}
+      let pdfMoCustPrev=0, pdfMoCustNew=0;
+      try {
+        const eSnap=await db.collection('expenses').where('schoolId','==',schoolId).where('date','>=',from).where('date','<=',to).get(); eSnap.forEach(d=>mExpTotal+=d.data().amount||0);
+        const cd=await db.collection('custodians').doc(schoolId).get();
+        if(cd.exists){ pdfMoCustPrev=cd.data().prevAmount||0; pdfMoCustNew=cd.data().newAmount||0; }
+      } catch(e){}
+      const pdfMoCustRemain = (pdfMoCustPrev + pdfMoCustNew) - mExpTotal;
       sectionsHtml += buildSection('③ الملخص المالي الشهري',
         buildTable(['البيان','القيمة'],[
           ['إجمالي الإيرادات الشهرية',formatCurrency(mRev)],
           ['إجمالي المصروفات الشهرية',formatCurrency(mExpTotal)],
-          ['صافي الإيراد الشهري',formatCurrency(mRev-mExpTotal)],
+          ['صافي الإيراد الشهري',formatCurrency(mRev)],
+          ['إجمالي العهدة',formatCurrency(pdfMoCustPrev + pdfMoCustNew)],
+          ['المصروفات من العهدة',formatCurrency(mExpTotal)],
+          ['المتبقي من العهدة',formatCurrency(pdfMoCustRemain)],
           ['عدد العمليات',String(currentData.length)],
           ['عدد الطلاب',String(new Set(currentData.map(d=>d.studentName)).size)],
         ], null));
