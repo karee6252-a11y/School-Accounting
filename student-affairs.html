@@ -119,6 +119,10 @@
           <span id="pendingBadge" style="background:var(--primary);color:#fff;border-radius:20px;padding:1px 8px;font-size:0.7rem;margin-right:4px">0</span>
         </button>
         <button class="shu2on-tab" id="tabImportBtn" onclick="switchTab('import')">📥 استيراد من Excel</button>
+        <button class="shu2on-tab" id="tabActiveBtn" onclick="switchTab('active')">
+          الطلاب المسجلون
+          <span id="activeBadge" style="background:#2e7d32;color:#fff;border-radius:20px;padding:1px 8px;font-size:0.7rem;margin-right:4px">0</span>
+        </button>
       </div>
 
       <!-- ══ TAB 1: تسجيل طالب جديد ══ -->
@@ -375,6 +379,71 @@
         </div>
       </div>
 
+      <!-- ══ TAB 4: الطلاب المسجلون (active) ══ -->
+      <div class="tab-pane" id="tab-active">
+
+        <!-- إحصائيات -->
+        <div class="stats-row" style="margin-bottom:1rem">
+          <div class="stat-card">
+            <div class="stat-num" id="statActiveTotal">0</div>
+            <div class="stat-label">إجمالي المسجلين</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statActiveMale">0</div>
+            <div class="stat-label">ذكور</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statActiveFemale">0</div>
+            <div class="stat-label">إناث</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statActiveGrades">0</div>
+            <div class="stat-label">صفوف مختلفة</div>
+          </div>
+        </div>
+
+        <!-- فلاتر -->
+        <div class="filter-row" style="margin-bottom:1rem">
+          <input type="text" class="form-input" id="searchActiveInput" placeholder="🔍 بحث بالاسم أو الأب أو التليفون..."
+            oninput="filterActiveStudents()" style="max-width:280px" />
+          <select class="form-input" id="filterActiveGrade" onchange="filterActiveStudents()" style="max-width:160px">
+            <option value="">كل الصفوف</option>
+            <optgroup label="ما قبل المدرسة">
+              <option value="Pre-KG">Pre-KG</option>
+              <option value="KG1">KG 1</option>
+              <option value="KG2">KG 2</option>
+            </optgroup>
+            <optgroup label="الابتدائية">
+              <option value="Grade 1">Grade 1</option>
+              <option value="Grade 2">Grade 2</option>
+              <option value="Grade 3">Grade 3</option>
+              <option value="Grade 4">Grade 4</option>
+              <option value="Grade 5">Grade 5</option>
+              <option value="Grade 6">Grade 6</option>
+            </optgroup>
+            <optgroup label="الإعدادية">
+              <option value="Prep 1">Prep 1</option>
+              <option value="Prep 2">Prep 2</option>
+              <option value="Prep 3">Prep 3</option>
+            </optgroup>
+          </select>
+          <select class="form-input" id="filterActiveGender" onchange="filterActiveStudents()" style="max-width:130px">
+            <option value="">كل النوع</option>
+            <option value="ذكر">ذكور</option>
+            <option value="أنثى">إناث</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="loadActiveStudents()" style="width:auto;padding:0.45rem 1rem">↻ تحديث</button>
+        </div>
+
+        <!-- قائمة الطلاب المسجلين -->
+        <div id="activeList">
+          <div class="empty-msg">
+            <div class="empty-icon">🎓</div>
+            جاري التحميل...
+          </div>
+        </div>
+      </div>
+
       <!-- ══ TAB 3: استيراد من Excel ══ -->
       <div class="tab-pane" id="tab-import">
         <div class="card">
@@ -490,6 +559,8 @@
     if (regBtn) regBtn.style.display = 'none';
     const importBtn = document.getElementById('tabImportBtn');
     if (importBtn) importBtn.style.display = 'none';
+    const activeBtn = document.getElementById('tabActiveBtn');
+    if (activeBtn) activeBtn.style.display = 'none';
     document.getElementById('tab-register').classList.remove('active');
     document.getElementById('tab-pending').classList.add('active');
     document.querySelectorAll('.shu2on-tab').forEach((t,i) => t.classList.toggle('active', i===1));
@@ -501,11 +572,12 @@
   // ══════════════════════════════════════════════
   function switchTab(name) {
     document.querySelectorAll('.shu2on-tab').forEach((t, i) => {
-      t.classList.toggle('active', ['register','pending','import'][i] === name);
+      t.classList.toggle('active', ['register','pending','import','active'][i] === name);
     });
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     if (name === 'pending') loadPendingStudents();
+    if (name === 'active')  loadActiveStudents();
   }
 
   // ══════════════════════════════════════════════
@@ -861,6 +933,130 @@
       alert('خطأ في الحذف: ' + err.message);
     }
   }
+
+  // ══════════════════════════════════════════════
+  // الطلاب المسجلون (active)
+  // ══════════════════════════════════════════════
+  let allActiveStudents = [];
+
+  async function loadActiveStudents() {
+    const container = document.getElementById('activeList');
+    container.innerHTML = '<div class="empty-msg"><div class="empty-icon">⏳</div>جاري التحميل...</div>';
+    try {
+      const snap = await db.collection('studentAffairs')
+        .where('schoolId', '==', schoolId)
+        .where('status', '==', 'active')
+        .get();
+      allActiveStudents = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.updatedAt?.seconds || b.createdAt?.seconds || 0)
+                      - (a.updatedAt?.seconds || a.createdAt?.seconds || 0));
+      updateActiveStats();
+      renderActiveStudents(allActiveStudents);
+      document.getElementById('activeBadge').textContent = allActiveStudents.length;
+    } catch(err) {
+      console.error(err);
+      container.innerHTML = `<div class="alert alert-error" style="margin:1rem">خطأ في التحميل: ${err.message}</div>`;
+    }
+  }
+
+  function updateActiveStats() {
+    document.getElementById('statActiveTotal').textContent  = allActiveStudents.length;
+    document.getElementById('statActiveMale').textContent   = allActiveStudents.filter(s => s.gender === 'ذكر').length;
+    document.getElementById('statActiveFemale').textContent = allActiveStudents.filter(s => s.gender === 'أنثى').length;
+    document.getElementById('statActiveGrades').textContent = new Set(allActiveStudents.map(s => s.grade)).size;
+    document.getElementById('activeBadge').textContent      = allActiveStudents.length;
+  }
+
+  function renderActiveStudents(list) {
+    const container = document.getElementById('activeList');
+    if (!list.length) {
+      container.innerHTML = '<div class="empty-msg"><div class="empty-icon">📭</div>لا يوجد طلاب مسجلون حتى الآن</div>';
+      return;
+    }
+    container.innerHTML = list.map(s => `
+      <div class="student-pending-card" style="border-right:4px solid #2e7d32">
+        <div class="student-avatar" style="background:#e8f5e9;color:#2e7d32">${s.studentName?.charAt(0) || '؟'}</div>
+        <div class="student-info">
+          <div class="student-name">${escHtml(s.studentName)}</div>
+          <div class="student-meta">
+            ${escHtml(s.studentNameEn || '')}
+            ${s.fatherName ? ' · ' + escHtml(s.fatherName) : ''}
+            ${s.fatherPhone ? ' · ' + escHtml(s.fatherPhone) : ''}
+          </div>
+          <div class="student-badges">
+            <span class="grade-badge">${escHtml(s.grade)}</span>
+            ${s.gender ? `<span class="grade-badge ${s.gender === 'ذكر' ? 'gender-badge-m' : 'gender-badge-f'}">${escHtml(s.gender)}</span>` : ''}
+            ${s.nationality ? `<span class="grade-badge" style="background:#f3e5f5;color:#6a1b9a;border-color:#ce93d8">${escHtml(s.nationality)}</span>` : ''}
+            ${s.birthDate ? `<span class="grade-badge" style="background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7">${calcAgeFromDate(s.birthDate)}</span>` : ''}
+            ${s.classroom ? `<span class="grade-badge" style="background:#fff8e1;color:#f57f17;border-color:#ffe082">فصل: ${escHtml(s.classroom)}</span>` : ''}
+            <span class="grade-badge" style="background:#e8f5e9;color:#1b5e20;border-color:#a5d6a7;font-size:0.68rem">✅ مسجل ودافع</span>
+          </div>
+          <div style="font-size:0.72rem;color:var(--text-light);margin-top:0.25rem">
+            ${s.updatedAt?.toDate ? 'آخر تحديث: ' + s.updatedAt.toDate().toLocaleDateString('ar-EG') :
+              s.createdAt?.toDate ? 'تسجيل: '     + s.createdAt.toDate().toLocaleDateString('ar-EG') : ''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end">
+          <button onclick="goToEditStudent('${encodeURIComponent(s.studentName)}')"
+            style="padding:0.35rem 0.85rem;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;
+                   font-family:Cairo,sans-serif;background:#1565c0;color:#fff;border:none;white-space:nowrap">
+            ✏️ تعديل
+          </button>
+          <button onclick="goToCollection2('${s.id}')"
+            style="padding:0.35rem 0.85rem;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;
+                   font-family:Cairo,sans-serif;background:var(--primary);color:#fff;border:none;white-space:nowrap">
+            💰 تحصيل
+          </button>
+        </div>
+      </div>`).join('');
+  }
+
+  function filterActiveStudents() {
+    const search = document.getElementById('searchActiveInput').value.trim().toLowerCase();
+    const grade  = document.getElementById('filterActiveGrade').value;
+    const gender = document.getElementById('filterActiveGender').value;
+    let filtered = allActiveStudents;
+    if (search) filtered = filtered.filter(s =>
+      (s.studentName || '').toLowerCase().includes(search) ||
+      (s.fatherName  || '').toLowerCase().includes(search) ||
+      (s.fatherPhone || '').includes(search)
+    );
+    if (grade)  filtered = filtered.filter(s => s.grade  === grade);
+    if (gender) filtered = filtered.filter(s => s.gender === gender);
+    renderActiveStudents(filtered);
+  }
+
+  function goToEditStudent(encodedName) {
+    window.location.href = 'edit-student.html?student=' + encodedName;
+  }
+
+  function goToCollection2(studentId) {
+    const student = allActiveStudents.find(s => s.id === studentId);
+    if (!student) return;
+    sessionStorage.setItem('shu2on_prefill', JSON.stringify({
+      studentName:    student.studentName,
+      studentNameEn:  student.studentNameEn || '',
+      grade:          student.grade,
+      classroom:      student.classroom || '',
+      fatherName:     student.fatherName,
+      fatherNameEn:   student.fatherNameEn || '',
+      fatherPhone:    student.fatherPhone,
+      studentDocId:   student.id,
+    }));
+    window.location.href = 'collection.html';
+  }
+
+  // تحميل عداد الـ active عند فتح الصفحة
+  (async function loadActiveBadge() {
+    try {
+      const snap = await db.collection('studentAffairs')
+        .where('schoolId', '==', schoolId)
+        .where('status', '==', 'active')
+        .get();
+      document.getElementById('activeBadge').textContent = snap.size;
+    } catch(e) { console.warn(e); }
+  })();
 
   // ══════════════════════════════════════════════
   // IMPORT FROM EXCEL
