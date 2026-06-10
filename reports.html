@@ -553,9 +553,26 @@
       mf.getCell(10).border = medBorder();
       numFmt(mf.getCell(10));
 
-      // صف العهدة — المصروفات تتخصم من العهدة مش من الإيراد
+      // صفوف العهدة — المصروفات تتخصم من الرصيد المتبقي (العهدة السابقة) مش من إجمالي العهدة
+      // صف العهدة السابقة
+      const crPrev = ws.addRow(['العهدة السابقة', '', custPrev, '', '', '', '', '', '', '', '', '']);
+      crPrev.height = 24;
+      ws.mergeCells(`A${crPrev.number}:B${crPrev.number}`);
+      ws.mergeCells(`D${crPrev.number}:${MCOL}${crPrev.number}`);
+      crPrev.getCell(1).fill = hFill(ACC); crPrev.getCell(1).font = {name:'Arial',bold:true,size:11,color:{argb:BLK}}; crPrev.getCell(1).alignment = cAlign(); crPrev.getCell(1).border = medBorder();
+      crPrev.getCell(3).fill = hFill('FF1565C0'); crPrev.getCell(3).font = {name:'Arial',bold:true,size:12,color:{argb:WHT}}; crPrev.getCell(3).alignment = cAlign(); crPrev.getCell(3).border = medBorder(); numFmt(crPrev.getCell(3));
+
+      // صف العهدة الجديدة
+      const crNew = ws.addRow(['العهدة الجديدة', '', custNew, '', '', '', '', '', '', '', '', '']);
+      crNew.height = 24;
+      ws.mergeCells(`A${crNew.number}:B${crNew.number}`);
+      ws.mergeCells(`D${crNew.number}:${MCOL}${crNew.number}`);
+      crNew.getCell(1).fill = hFill(ACC); crNew.getCell(1).font = {name:'Arial',bold:true,size:11,color:{argb:BLK}}; crNew.getCell(1).alignment = cAlign(); crNew.getCell(1).border = medBorder();
+      crNew.getCell(3).fill = hFill('FF2E7D32'); crNew.getCell(3).font = {name:'Arial',bold:true,size:12,color:{argb:WHT}}; crNew.getCell(3).alignment = cAlign(); crNew.getCell(3).border = medBorder(); numFmt(crNew.getCell(3));
+
+      // صف الإجمالي والمتبقي — المصروفات تتخصم من العهدة السابقة فقط
       const custTotal = custPrev + custNew;
-      const custRemain = custTotal - expTotal;
+      const custRemain = custPrev - expTotal;
       const cr = ws.addRow(['إجمالي العهدة', '', custTotal, 'المصروفات من العهدة', '', expTotal, 'المتبقي من العهدة', '', '', custRemain, '', '']);
       cr.height = 28;
       ws.mergeCells(`A${cr.number}:B${cr.number}`);
@@ -739,9 +756,24 @@
       mfRow.getCell(11).border = medBorder();
       numFmt(mfRow.getCell(11));
 
-      // صف العهدة الأسبوعية
+      // صفوف العهدة الأسبوعية — العهدة السابقة والجديدة منفصلين
+      const wkCrPrevRow = ws.addRow(['العهدة السابقة','','', custPrev,'','','','','','','','','','','']);
+      wkCrPrevRow.height = 24;
+      ws.mergeCells(`A${wkCrPrevRow.number}:C${wkCrPrevRow.number}`);
+      ws.mergeCells(`E${wkCrPrevRow.number}:O${wkCrPrevRow.number}`);
+      wkCrPrevRow.getCell(1).fill = hFill(ACC); wkCrPrevRow.getCell(1).font = {name:'Arial',bold:true,size:11,color:{argb:BLK}}; wkCrPrevRow.getCell(1).alignment = cAlign(); wkCrPrevRow.getCell(1).border = medBorder();
+      wkCrPrevRow.getCell(4).fill = hFill('FF1565C0'); wkCrPrevRow.getCell(4).font = {name:'Arial',bold:true,size:12,color:{argb:WHT}}; wkCrPrevRow.getCell(4).alignment = cAlign(); wkCrPrevRow.getCell(4).border = medBorder(); numFmt(wkCrPrevRow.getCell(4));
+
+      const wkCrNewRow = ws.addRow(['العهدة الجديدة','','', custNew,'','','','','','','','','','','']);
+      wkCrNewRow.height = 24;
+      ws.mergeCells(`A${wkCrNewRow.number}:C${wkCrNewRow.number}`);
+      ws.mergeCells(`E${wkCrNewRow.number}:O${wkCrNewRow.number}`);
+      wkCrNewRow.getCell(1).fill = hFill(ACC); wkCrNewRow.getCell(1).font = {name:'Arial',bold:true,size:11,color:{argb:BLK}}; wkCrNewRow.getCell(1).alignment = cAlign(); wkCrNewRow.getCell(1).border = medBorder();
+      wkCrNewRow.getCell(4).fill = hFill('FF2E7D32'); wkCrNewRow.getCell(4).font = {name:'Arial',bold:true,size:12,color:{argb:WHT}}; wkCrNewRow.getCell(4).alignment = cAlign(); wkCrNewRow.getCell(4).border = medBorder(); numFmt(wkCrNewRow.getCell(4));
+
+      // المصروفات تتخصم من العهدة السابقة فقط (الرصيد المتبقي)
       const wkCustTotal = custPrev + custNew;
-      const wkCustRemain = wkCustTotal - expGrandTotal;
+      const wkCustRemain = custPrev - expGrandTotal;
       const wkCr = ws.addRow(['','','', wkCustTotal,'','المصروفات من العهدة', expGrandTotal,'', '','', wkCustRemain,'المتبقي من العهدة', '','','']);
       wkCr.height = 26;
       ws.mergeCells(`A${wkCr.number}:C${wkCr.number}`);
@@ -895,10 +927,13 @@
         if (typeof val === 'number') numFmt(sr.getCell(10));
       });
 
-      // صف العهدة الشهرية
+      // صفوف العهدة الشهرية — العهدة السابقة والجديدة منفصلين
+      // المصروفات تتخصم من العهدة السابقة فقط (الرصيد المتبقي)
       const moCustTotal = custPrev + custNew;
-      const moCustRemain = moCustTotal - monthExpTotal;
+      const moCustRemain = custPrev - monthExpTotal;
       const moLabels = [
+        ['العهدة السابقة', custPrev, 'FF1565C0', WHT],
+        ['العهدة الجديدة', custNew, 'FF2E7D32', WHT],
         ['إجمالي العهدة', moCustTotal, 'FF1565C0', WHT],
         ['المتبقي من العهدة', moCustRemain, moCustRemain >= 0 ? 'FF1565C0' : 'FFC00000', WHT],
       ];
