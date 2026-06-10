@@ -3,14 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- PWA -->
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#1a3a6b" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="المحاسبة" />
-  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-<title>تعديل بيانات الطلاب</title>
+  <title>تعديل بيانات الطلاب</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
     /* ── حالات الصفحة ── */
@@ -328,10 +321,11 @@
   /* ════════════════════════════════════════
      الحالة العامة
   ════════════════════════════════════════ */
-  let currentStudentTx    = [];   // كل معاملات الطالب المختار
-  let currentStudentDebts = [];   // كل مديونياته
-  let currentStudentName  = '';   // الاسم الكنوني (قبل تعديل)
-  let currentStudentGrade = '';
+  let currentStudentTx      = [];   // كل معاملات الطالب المختار
+  let currentStudentDebts   = [];   // كل مديونياته
+  let currentStudentName    = '';   // الاسم الكنوني (قبل تعديل)
+  let currentStudentGrade   = '';
+  let currentStudentAffairs = null; // بيانات شئون الطلاب
 
   /* ════════════════════════════════════════
      Helpers
@@ -491,7 +485,7 @@
     const name = decodeURIComponent(encodedName);
     showLoading('جاري تحميل بيانات الطالب...');
     try {
-      const [txSnap, debtSnap] = await Promise.all([
+      const [txSnap, debtSnap, affairsSnap] = await Promise.all([
         db.collection('transactions')
           .where('schoolId','==', schoolId)
           .where('studentName','==', name)
@@ -500,13 +494,21 @@
         db.collection('debts')
           .where('schoolId','==', schoolId)
           .where('studentName','==', name)
+          .get(),
+        db.collection('studentAffairs')
+          .where('schoolId','==', schoolId)
+          .where('studentName','==', name)
+          .limit(1)
           .get()
       ]);
 
-      currentStudentTx    = txSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      currentStudentDebts = debtSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      currentStudentName  = name;
-      currentStudentGrade = currentStudentTx[0]?.grade || '';
+      currentStudentTx      = txSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      currentStudentDebts   = debtSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      currentStudentName    = name;
+      currentStudentGrade   = currentStudentTx[0]?.grade || '';
+      currentStudentAffairs = affairsSnap.empty
+        ? null
+        : { id: affairsSnap.docs[0].id, ...affairsSnap.docs[0].data() };
 
       showProfile();
     } catch(e) {
@@ -556,92 +558,290 @@
   /* ════════════════════════════════════════
      بانل 1: البيانات الأساسية
   ════════════════════════════════════════ */
+  /* ── helpers لبناء options ── */
+  function selOpts(list, val) {
+    return list.map(v => `<option value="${v}" ${v===val?'selected':''}>${v}</option>`).join('');
+  }
+  function gradeOpts(val) {
+    return `
+      <optgroup label="ما قبل المدرسة">
+        <option value="Pre-KG" ${val==='Pre-KG'?'selected':''}>Pre-KG</option>
+        <option value="KG1"    ${val==='KG1'?'selected':''}>KG 1</option>
+        <option value="KG2"    ${val==='KG2'?'selected':''}>KG 2</option>
+      </optgroup>
+      <optgroup label="الابتدائية">
+        <option value="Grade 1" ${val==='Grade 1'?'selected':''}>Grade 1</option>
+        <option value="Grade 2" ${val==='Grade 2'?'selected':''}>Grade 2</option>
+        <option value="Grade 3" ${val==='Grade 3'?'selected':''}>Grade 3</option>
+        <option value="Grade 4" ${val==='Grade 4'?'selected':''}>Grade 4</option>
+        <option value="Grade 5" ${val==='Grade 5'?'selected':''}>Grade 5</option>
+        <option value="Grade 6" ${val==='Grade 6'?'selected':''}>Grade 6</option>
+      </optgroup>
+      <optgroup label="الإعدادية">
+        <option value="Prep 1" ${val==='Prep 1'?'selected':''}>Prep 1</option>
+        <option value="Prep 2" ${val==='Prep 2'?'selected':''}>Prep 2</option>
+        <option value="Prep 3" ${val==='Prep 3'?'selected':''}>Prep 3</option>
+      </optgroup>`;
+  }
+
   function buildInfoPanel() {
-    const s = currentStudentTx[0] || {};
-    const allGrades = getAllGrades();
+    const tx = currentStudentTx[0] || {};
+    const a  = currentStudentAffairs || {};
 
-    const gradeOptions = allGrades.map(g =>
-      `<option value="${g}" ${g === (s.grade||'') ? 'selected' : ''}>${g}</option>`
-    ).join('');
+    // دمج: لو فيه سجل في studentAffairs خده، غيره خد من transactions
+    const name       = a.studentName    || tx.studentName || currentStudentName;
+    const nameEn     = a.studentNameEn  || tx.studentNameEn || '';
+    const nid        = a.studentNid     || '';
+    const gender     = a.gender         || tx.gender || '';
+    const nat        = a.nationality    || tx.nationality || '';
+    const religion   = a.religion       || '';
+    const birth      = a.birthDate      || '';
+    const grade      = a.grade          || tx.grade || '';
+    const classroom  = a.classroom      || tx.classroom || '';
+    const secondLang = a.secondLang     || '';
+    const fatherName   = a.fatherName   || tx.fatherName || '';
+    const fatherNameEn = a.fatherNameEn || '';
+    const fatherNid    = a.fatherNid    || '';
+    const fatherPhone  = a.fatherPhone  || tx.fatherPhone || '';
+    const fatherJob    = a.fatherJob    || '';
+    const address      = a.address      || tx.address || '';
+    const motherName   = a.motherName   || '';
+    const motherNameEn = a.motherNameEn || '';
+    const motherNid    = a.motherNid    || '';
+    const motherPhone  = a.motherPhone  || '';
+    const motherJob    = a.motherJob    || '';
 
-    const stageOptions = [
-      {id:'pre_kg', name:'Pre-KG'},
-      {id:'kg', name:'KG'},
-      {id:'grade', name:'Grade'},
-      {id:'prep', name:'Prep'},
-      {id:'international', name:'American Section'},
-      {id:'semi_international', name:'Semi-International'},
-    ].map(st =>
-      `<option value="${st.id}" ${st.id === (s.stage||'') ? 'selected' : ''}>${st.name}</option>`
-    ).join('');
+    const noAffairs = !currentStudentAffairs;
 
     document.getElementById('infoFields').innerHTML = `
-      <div class="field-group" style="grid-column:1/-1">
-        <label class="field-label">اسم الطالب <span>*</span></label>
-        <input id="infoName" type="text" class="form-input form-input-ar"
-          value="${s.studentName || currentStudentName}" placeholder="الاسم كاملاً" />
+      ${noAffairs ? `<div style="grid-column:1/-1;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:.7rem 1rem;font-size:.82rem;color:#795548;font-weight:700">
+        ⚠️ هذا الطالب ليس له سجل في شئون الطلاب — ستُنشأ بياناته عند الحفظ
+      </div>` : ''}
+
+      <!-- ══ بيانات الطالب ══ -->
+      <div style="grid-column:1/-1" class="section-title" style="margin-bottom:.5rem">بيانات الطالب</div>
+
+      <div class="field-group" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="field-group">
+          <label class="field-label">اسم الطالب (عربي) <span>*</span></label>
+          <input id="infoName" type="text" class="form-input form-input-ar" value="${name}" placeholder="الاسم رباعياً بالعربي" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">اسم الطالب (إنجليزي)</label>
+          <input id="infoNameEn" type="text" class="form-input" value="${nameEn}" placeholder="Full Name in English" style="direction:ltr;text-align:left" />
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">الرقم القومي للطالب</label>
+        <input id="infoNid" type="text" class="form-input" value="${nid}" placeholder="14 رقم" maxlength="14" style="direction:ltr;text-align:left" />
       </div>
       <div class="field-group">
-        <label class="field-label">الصف</label>
-        <select id="infoGrade" class="form-select" onchange="autoFillStage()">
-          <option value="">اختر الصف</option>
-          ${gradeOptions}
+        <label class="field-label">النوع <span>*</span></label>
+        <select id="infoGender" class="form-input">
+          <option value="">-- اختر --</option>
+          ${selOpts(['ذكر','أنثى'], gender)}
         </select>
       </div>
       <div class="field-group">
-        <label class="field-label">المرحلة</label>
-        <select id="infoStage" class="form-select">
-          <option value="">اختر المرحلة</option>
-          ${stageOptions}
+        <label class="field-label">الجنسية</label>
+        <select id="infoNationality" class="form-input">
+          <option value="">-- اختر --</option>
+          ${selOpts(['مصرية','سعودية','إماراتية','كويتية','أردنية','سورية','لبنانية','فلسطينية','يمنية','سودانية','ليبية','تونسية','جزائرية','مغربية','عراقية','أخرى'], nat)}
         </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">الديانة</label>
+        <select id="infoReligion" class="form-input">
+          <option value="">-- اختر --</option>
+          ${selOpts(['مسلم','مسيحي','أخرى'], religion)}
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">تاريخ الميلاد</label>
+        <input id="infoBirth" type="date" class="form-input" value="${birth}" onchange="calcInfoAge()" />
+        <div id="infoAgeDisplay" style="font-size:.78rem;color:var(--text-light);margin-top:.25rem;font-weight:600"></div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">الصف <span>*</span></label>
+        <select id="infoGrade" class="form-input" onchange="autoFillStage()">
+          <option value="">-- اختر الصف --</option>
+          ${gradeOpts(grade)}
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">اللغة الثانية</label>
+        <select id="infoSecondLang" class="form-input">
+          <option value="">-- اختر --</option>
+          ${selOpts(['فرنسي','ألماني'], secondLang)}
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">الفصل</label>
+        <input id="infoClassroom" type="text" class="form-input" value="${classroom}" placeholder="مثال: 3B" />
+      </div>
+
+      <!-- ══ بيانات الأب ══ -->
+      <div style="grid-column:1/-1" class="section-title">بيانات الأب</div>
+
+      <div class="field-group">
+        <label class="field-label">اسم الأب (عربي) <span>*</span></label>
+        <input id="infoFatherName" type="text" class="form-input form-input-ar" value="${fatherName}" placeholder="الاسم كاملاً بالعربي" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">اسم الأب (إنجليزي)</label>
+        <input id="infoFatherNameEn" type="text" class="form-input" value="${fatherNameEn}" placeholder="Full Name in English" style="direction:ltr;text-align:left" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">الرقم القومي للأب</label>
+        <input id="infoFatherNid" type="text" class="form-input" value="${fatherNid}" placeholder="14 رقم" maxlength="14" style="direction:ltr;text-align:left" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">تليفون الأب</label>
+        <input id="infoFatherPhone" type="tel" class="form-input" value="${fatherPhone}" placeholder="01XXXXXXXXX" maxlength="11" style="direction:ltr;text-align:left" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">وظيفة الأب</label>
+        <input id="infoFatherJob" type="text" class="form-input form-input-ar" value="${fatherJob}" placeholder="مثال: مهندس، طبيب..." />
+      </div>
+      <div class="field-group">
+        <label class="field-label">العنوان</label>
+        <input id="infoAddress" type="text" class="form-input form-input-ar" value="${address}" placeholder="العنوان بالتفصيل" />
+      </div>
+
+      <!-- ══ بيانات الأم ══ -->
+      <div style="grid-column:1/-1" class="section-title">بيانات الأم</div>
+
+      <div class="field-group">
+        <label class="field-label">اسم الأم (عربي) <span>*</span></label>
+        <input id="infoMotherName" type="text" class="form-input form-input-ar" value="${motherName}" placeholder="الاسم كاملاً بالعربي" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">اسم الأم (إنجليزي)</label>
+        <input id="infoMotherNameEn" type="text" class="form-input" value="${motherNameEn}" placeholder="Full Name in English" style="direction:ltr;text-align:left" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">الرقم القومي للأم</label>
+        <input id="infoMotherNid" type="text" class="form-input" value="${motherNid}" placeholder="14 رقم" maxlength="14" style="direction:ltr;text-align:left" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">تليفون الأم</label>
+        <input id="infoMotherPhone" type="tel" class="form-input" value="${motherPhone}" placeholder="01XXXXXXXXX" maxlength="11" style="direction:ltr;text-align:left" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">وظيفة الأم</label>
+        <input id="infoMotherJob" type="text" class="form-input form-input-ar" value="${motherJob}" placeholder="مثال: ربة منزل، معلمة..." />
       </div>
     `;
+
     document.getElementById('infoStudentCount').textContent = currentStudentTx.length + ' معاملة';
+
+    // احسب العمر لو فيه تاريخ ميلاد
+    if (birth) calcInfoAge();
+  }
+
+  function calcInfoAge() {
+    const val = document.getElementById('infoBirth')?.value;
+    if (!val) return;
+    const birth = new Date(val);
+    const ref   = new Date(2026, 9, 1);
+    let yrs = ref.getFullYear() - birth.getFullYear();
+    let mos = ref.getMonth()    - birth.getMonth();
+    if (mos < 0) { yrs--; mos += 12; }
+    const el = document.getElementById('infoAgeDisplay');
+    if (el) el.textContent = `العمر: ${yrs} سنة و ${mos} شهر (في أكتوبر 2026)`;
   }
 
   function autoFillStage() {
-    const grade = document.getElementById('infoGrade').value;
+    const grade = document.getElementById('infoGrade')?.value;
     const stage = stageForGrade(grade);
-    if (stage) document.getElementById('infoStage').value = stage;
+    // infoStage ممكن مش موجود بعد كده — ignore
   }
 
   async function saveBasicInfo() {
-    const newName  = document.getElementById('infoName').value.trim();
-    const newGrade = document.getElementById('infoGrade').value;
-    const newStage = document.getElementById('infoStage').value;
+    const newName       = document.getElementById('infoName')?.value.trim()        || '';
+    const newNameEn     = document.getElementById('infoNameEn')?.value.trim()      || '';
+    const newNid        = document.getElementById('infoNid')?.value.trim()         || '';
+    const newGender     = document.getElementById('infoGender')?.value             || '';
+    const newNat        = document.getElementById('infoNationality')?.value        || '';
+    const newReligion   = document.getElementById('infoReligion')?.value           || '';
+    const newBirth      = document.getElementById('infoBirth')?.value              || '';
+    const newGrade      = document.getElementById('infoGrade')?.value              || '';
+    const newSecondLang = document.getElementById('infoSecondLang')?.value         || '';
+    const newClassroom  = document.getElementById('infoClassroom')?.value.trim()   || '';
+    const newFatherName   = document.getElementById('infoFatherName')?.value.trim()   || '';
+    const newFatherNameEn = document.getElementById('infoFatherNameEn')?.value.trim() || '';
+    const newFatherNid    = document.getElementById('infoFatherNid')?.value.trim()    || '';
+    const newFatherPhone  = document.getElementById('infoFatherPhone')?.value.trim()  || '';
+    const newFatherJob    = document.getElementById('infoFatherJob')?.value.trim()    || '';
+    const newAddress      = document.getElementById('infoAddress')?.value.trim()      || '';
+    const newMotherName   = document.getElementById('infoMotherName')?.value.trim()   || '';
+    const newMotherNameEn = document.getElementById('infoMotherNameEn')?.value.trim() || '';
+    const newMotherNid    = document.getElementById('infoMotherNid')?.value.trim()    || '';
+    const newMotherPhone  = document.getElementById('infoMotherPhone')?.value.trim()  || '';
+    const newMotherJob    = document.getElementById('infoMotherJob')?.value.trim()    || '';
 
-    if (!newName) {
-      showInfoAlert('الاسم مطلوب');
-      return;
+    if (!newName) { showInfoAlert('اسم الطالب مطلوب'); return; }
+
+    // حساب العمر
+    let ageYears = 0, ageMonths = 0;
+    if (newBirth) {
+      const birth = new Date(newBirth);
+      const ref   = new Date(2026, 9, 1);
+      ageYears  = ref.getFullYear() - birth.getFullYear();
+      ageMonths = ref.getMonth()    - birth.getMonth();
+      if (ageMonths < 0) { ageYears--; ageMonths += 12; }
     }
 
-    const stageName = getStageName(newStage);
-    showLoading('جاري حفظ التعديلات...');
+    const newStage    = stageForGrade(newGrade);
+    const newStageName = getStageName(newStage);
 
+    showLoading('جاري حفظ البيانات...');
     try {
       const batch = db.batch();
 
-      // تحديث كل المعاملات
+      // ── 1. studentAffairs: update أو create ──
+      const affairsData = {
+        schoolId, studentName: newName, studentNameEn: newNameEn,
+        studentNid: newNid, gender: newGender, nationality: newNat,
+        religion: newReligion, birthDate: newBirth, ageYears, ageMonths,
+        grade: newGrade, secondLang: newSecondLang, classroom: newClassroom,
+        fatherName: newFatherName, fatherNameEn: newFatherNameEn,
+        fatherNid: newFatherNid, fatherPhone: newFatherPhone, fatherJob: newFatherJob,
+        address: newAddress,
+        motherName: newMotherName, motherNameEn: newMotherNameEn,
+        motherNid: newMotherNid, motherPhone: newMotherPhone, motherJob: newMotherJob,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+
+      if (currentStudentAffairs) {
+        batch.update(db.collection('studentAffairs').doc(currentStudentAffairs.id), affairsData);
+      } else {
+        affairsData.status = 'active';
+        affairsData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        batch.set(db.collection('studentAffairs').doc(), affairsData);
+      }
+
+      // ── 2. transactions: اسم + صف + مرحلة ──
       currentStudentTx.forEach(tx => {
         const ref = db.collection('transactions').doc(tx.id);
         const upd = {};
-        if (newName  !== tx.studentName)  upd.studentName = newName;
-        if (newGrade !== tx.grade)         upd.grade       = newGrade;
-        if (newStage !== tx.stage)         upd.stage       = newStage;
-        if (newStage !== tx.stage)         upd.stageName   = stageName;
-        if (Object.keys(upd).length > 0) {
+        if (newName  !== tx.studentName) upd.studentName = newName;
+        if (newGrade !== tx.grade)       upd.grade       = newGrade;
+        if (newStage !== tx.stage)     { upd.stage = newStage; upd.stageName = newStageName; }
+        if (Object.keys(upd).length) {
           upd.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
           batch.update(ref, upd);
         }
       });
 
-      // تحديث المديونيات أيضاً
+      // ── 3. debts: اسم + صف ──
       currentStudentDebts.forEach(d => {
         const ref = db.collection('debts').doc(d.id);
         const upd = {};
         if (newName  !== d.studentName) upd.studentName = newName;
-        if (newGrade !== d.grade)        upd.grade       = newGrade;
-        if (Object.keys(upd).length > 0) {
+        if (newGrade !== d.grade)       upd.grade       = newGrade;
+        if (Object.keys(upd).length) {
           upd.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
           batch.update(ref, upd);
         }
@@ -649,9 +849,10 @@
 
       await batch.commit();
 
-      // تحديث الذاكرة
+      // ── تحديث الذاكرة ──
+      currentStudentAffairs = { ...(currentStudentAffairs || {}), ...affairsData };
       currentStudentTx    = currentStudentTx.map(tx => ({
-        ...tx, studentName: newName, grade: newGrade, stage: newStage, stageName
+        ...tx, studentName: newName, grade: newGrade, stage: newStage, stageName: newStageName
       }));
       currentStudentDebts = currentStudentDebts.map(d => ({
         ...d, studentName: newName, grade: newGrade
@@ -659,16 +860,17 @@
       currentStudentName  = newName;
       currentStudentGrade = newGrade;
 
-      // تحديث الهيدر
+      // ── تحديث الهيدر ──
       document.getElementById('profileAvatar').textContent = avatarLetter(newName);
       document.getElementById('profileName').textContent   = newName;
       document.getElementById('profileMeta').textContent   =
-        `${stageName}  •  ${newGrade}  •  ${currentStudentTx.length} معاملة`;
+        `${newStageName || newGrade}  •  ${newGrade}  •  ${currentStudentTx.length} معاملة`;
 
-      showToast('✅ تم حفظ البيانات الأساسية بنجاح');
+      showToast('✅ تم حفظ بيانات الطالب بنجاح');
       hideInfoAlert();
     } catch(e) {
       showInfoAlert('خطأ في الحفظ: ' + e.message);
+      console.error(e);
     } finally {
       hideLoading();
     }
