@@ -332,6 +332,10 @@
             <div class="stat-num" id="statGrades" style="color:var(--success)">0</div>
             <div class="stat-label">صفوف مختلفة</div>
           </div>
+          <div class="stat-card" id="statClassroomCard" style="display:none">
+            <div class="stat-num" id="statClassroom" style="color:#e65100">0</div>
+            <div class="stat-label" id="statClassroomLabel">الفصل</div>
+          </div>
         </div>
 
         <!-- فلتر -->
@@ -359,6 +363,9 @@
               <option value="Prep 2">Prep 2</option>
               <option value="Prep 3">Prep 3</option>
             </optgroup>
+          </select>
+          <select class="form-input" id="filterClassroom" onchange="filterStudents()" style="max-width:140px">
+            <option value="">كل الفصول</option>
           </select>
           <select class="form-input" id="filterGender" onchange="filterStudents()" style="max-width:130px">
             <option value="">كل النوع</option>
@@ -808,6 +815,14 @@
     document.getElementById('statFemale').textContent = allStudents.filter(s => s.gender === 'أنثى').length;
     document.getElementById('statGrades').textContent = new Set(allStudents.map(s => s.grade)).size;
     document.getElementById('pendingBadge').textContent = allStudents.length;
+
+    // ملء فلتر الفصول بالفصول الموجودة فعلاً
+    const classrooms = [...new Set(allStudents.map(s => (s.classroom || '').trim()).filter(Boolean))].sort();
+    const sel = document.getElementById('filterClassroom');
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">كل الفصول</option>' +
+      classrooms.map(c => `<option value="${c}">${c}</option>`).join('');
+    if (prev && classrooms.includes(prev)) sel.value = prev;
   }
 
   // ══════════════════════════════════════════════
@@ -874,9 +889,10 @@
   // فلترة
   // ══════════════════════════════════════════════
   function filterStudents() {
-    const search = document.getElementById('searchInput').value.trim().toLowerCase();
-    const grade  = document.getElementById('filterGrade').value;
-    const gender = document.getElementById('filterGender').value;
+    const search    = document.getElementById('searchInput').value.trim().toLowerCase();
+    const grade     = document.getElementById('filterGrade').value;
+    const gender    = document.getElementById('filterGender').value;
+    const classroom = document.getElementById('filterClassroom').value;
 
     let filtered = allStudents;
     if (search) filtered = filtered.filter(s =>
@@ -884,8 +900,19 @@
       (s.fatherName  || '').toLowerCase().includes(search) ||
       (s.fatherPhone || '').includes(search)
     );
-    if (grade)  filtered = filtered.filter(s => s.grade  === grade);
-    if (gender) filtered = filtered.filter(s => s.gender === gender);
+    if (grade)     filtered = filtered.filter(s => s.grade     === grade);
+    if (gender)    filtered = filtered.filter(s => s.gender    === gender);
+    if (classroom) filtered = filtered.filter(s => (s.classroom || '').trim() === classroom);
+
+    // stat card الفصل
+    const card  = document.getElementById('statClassroomCard');
+    if (classroom) {
+      card.style.display = '';
+      document.getElementById('statClassroom').textContent     = filtered.length;
+      document.getElementById('statClassroomLabel').textContent = 'فصل ' + classroom;
+    } else {
+      card.style.display = 'none';
+    }
 
     renderStudents(filtered);
   }
