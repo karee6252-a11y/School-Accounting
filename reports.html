@@ -346,6 +346,14 @@
       if (cd.exists) { custPrev = cd.data().prevAmount || 0; custNew = cd.data().newAmount || 0; }
     } catch(e) {}
 
+    // جلب كل المصروفات لحساب الرصيد المتبقي الصح (زي ما بيعمل expenses.html)
+    let allExpensesTotal = 0;
+    try {
+      const allExpSnap = await db.collection('expenses').where('schoolId','==',schoolId).get();
+      allExpSnap.forEach(doc => { allExpensesTotal += doc.data().amount || 0; });
+    } catch(e) {}
+    const custRemaining = custPrev + custNew - allExpensesTotal;
+
     if (typeof ExcelJS === 'undefined') {
       const s = document.createElement('script');
       s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
@@ -553,10 +561,9 @@
       mf.getCell(10).border = medBorder();
       numFmt(mf.getCell(10));
 
-      // صف العهدة: العهدة الجديدة | العهدة السابقة | إجمالي المصروفات | الرصيد المتبقي = (prev+new) - expTotal
-      const custRemain = (custPrev + custNew) - expTotal;
-      // الترتيب: A-B=لبل العهدة الجديدة | C=قيمتها | D-E=لبل العهدة السابقة | F=قيمتها | G-H=لبل إجمالي المصروفات | I=قيمتها | J-M=الرصيد المتبقي
-      const cr = ws.addRow(['العهدة الجديدة', '', custNew, 'العهدة السابقة', '', custPrev, 'إجمالي المصروفات', '', expTotal, custRemain, '', '']);
+      // صف العهدة: العهدة الجديدة | العهدة السابقة | إجمالي المصروفات اليوم | الرصيد المتبقي = custRemaining - expTotal
+      const custFinal = custRemaining - expTotal;
+      const cr = ws.addRow(['العهدة الجديدة', '', custNew, 'العهدة السابقة', '', custPrev, 'إجمالي المصروفات', '', expTotal, custFinal, '', '']);
       cr.height = 30;
       ws.mergeCells(`A${cr.number}:B${cr.number}`);
       ws.mergeCells(`D${cr.number}:E${cr.number}`);
@@ -579,7 +586,7 @@
         numFmt(cr.getCell(ci));
       });
       // الرصيد المتبقي (عمود 10) — أخضر لو موجب، أحمر لو سالب
-      cr.getCell(10).fill = hFill(custRemain >= 0 ? 'FF1B5E20' : 'FFC00000');
+      cr.getCell(10).fill = hFill(custFinal >= 0 ? 'FF1B5E20' : 'FFC00000');
       cr.getCell(10).font = {name:'Arial',bold:true,size:14,color:{argb:WHT}};
       cr.getCell(10).alignment = cAlign();
       cr.getCell(10).border = medBorder();
