@@ -535,62 +535,48 @@
       numFmt(et.getCell(7)); et.height = 22;
 
       ws.addRow([]);
-      sectionRow(ws, '③', 'الموقف المالي اليومي', SEC, MCOL);
-      const mf = ws.addRow(['إجمالي الإيرادات', '', revTotal, 'إجمالي المصروفات', '', expTotal, 'صافي اليوم', '', '', revTotal, '', '']);
-      mf.height = 30;
-      ws.mergeCells(`A${mf.number}:B${mf.number}`);
-      ws.mergeCells(`D${mf.number}:E${mf.number}`);
-      ws.mergeCells(`G${mf.number}:I${mf.number}`);
-      ws.mergeCells(`J${mf.number}:${MCOL}${mf.number}`);
-      [[1,ACC,BLK],[4,ACC,BLK],[7,ACC,BLK]].forEach(([ci,bg,fc]) => {
-        mf.getCell(ci).fill = hFill(bg);
-        mf.getCell(ci).font = {name:'Arial',bold:true,size:11,color:{argb:fc}};
-        mf.getCell(ci).alignment = cAlign();
-        mf.getCell(ci).border = medBorder();
-      });
-      [[3,SEC,WHT],[6,SEC,WHT]].forEach(([ci,bg,fc]) => {
-        mf.getCell(ci).fill = hFill(bg);
-        mf.getCell(ci).font = {name:'Arial',bold:true,size:12,color:{argb:fc}};
-        mf.getCell(ci).alignment = cAlign();
-        mf.getCell(ci).border = medBorder();
-        numFmt(mf.getCell(ci));
-      });
-      mf.getCell(10).fill = hFill('FF1B5E20');
-      mf.getCell(10).font = {name:'Arial',bold:true,size:14,color:{argb:WHT}};
-      mf.getCell(10).alignment = cAlign();
-      mf.getCell(10).border = medBorder();
-      numFmt(mf.getCell(10));
+      sectionRow(ws, '③', 'العهدة والرصيد', SEC, MCOL);
 
-      // صف العهدة: العهدة الجديدة | العهدة السابقة | إجمالي المصروفات اليوم | الرصيد المتبقي = custRemaining - expTotal
-      const custFinal = custRemaining - expTotal;
-      const cr = ws.addRow(['العهدة الجديدة', '', custNew, 'العهدة السابقة', '', custPrev, 'إجمالي المصروفات', '', expTotal, custFinal, '', '']);
-      cr.height = 30;
-      ws.mergeCells(`A${cr.number}:B${cr.number}`);
-      ws.mergeCells(`D${cr.number}:E${cr.number}`);
-      ws.mergeCells(`G${cr.number}:H${cr.number}`);
-      ws.mergeCells(`J${cr.number}:${MCOL}${cr.number}`);
+      // صف التسميات — 4 خلايا متساوية
+      const custGross = custPrev + custNew;
+      const custFinal = custGross - allExpensesTotal;
+      const lblRow = ws.addRow(['العهدة السابقة', '', '', 'العهدة الجديدة', '', '', 'إجمالي العهدة', '', '', 'الرصيد المتبقي', '', '']);
+      lblRow.height = 22;
+      ws.mergeCells(`A${lblRow.number}:C${lblRow.number}`);
+      ws.mergeCells(`D${lblRow.number}:F${lblRow.number}`);
+      ws.mergeCells(`G${lblRow.number}:I${lblRow.number}`);
+      ws.mergeCells(`J${lblRow.number}:${MCOL}${lblRow.number}`);
+      [
+        [1,'FF1565C0',WHT],
+        [4,'FF2E7D32',WHT],
+        [7,'FF6A1B9A',WHT],
+        [10,PRI,WHT]
+      ].forEach(([ci,bg,fc]) => {
+        lblRow.getCell(ci).fill = hFill(bg);
+        lblRow.getCell(ci).font = {name:'Arial',bold:true,size:10,color:{argb:fc}};
+        lblRow.getCell(ci).alignment = cAlign();
+        lblRow.getCell(ci).border = medBorder();
+      });
 
-      // التسميات (عمود 1، 4، 7)
-      [[1,'FF1565C0',WHT],[4,'FF1565C0',WHT],[7,SEC,WHT]].forEach(([ci,bg,fc]) => {
-        cr.getCell(ci).fill = hFill(bg);
-        cr.getCell(ci).font = {name:'Arial',bold:true,size:11,color:{argb:fc}};
-        cr.getCell(ci).alignment = cAlign();
-        cr.getCell(ci).border = medBorder();
+      // صف القيم
+      const valRow = ws.addRow([custPrev, '', '', custNew, '', '', custGross, '', '', custFinal, '', '']);
+      valRow.height = 32;
+      ws.mergeCells(`A${valRow.number}:C${valRow.number}`);
+      ws.mergeCells(`D${valRow.number}:F${valRow.number}`);
+      ws.mergeCells(`G${valRow.number}:I${valRow.number}`);
+      ws.mergeCells(`J${valRow.number}:${MCOL}${valRow.number}`);
+      [
+        [1,'FF0D47A1',WHT],
+        [4,'FF1B5E20',WHT],
+        [7,'FF4A148C',WHT],
+        [10, custFinal >= 0 ? 'FF1B5E20' : 'FFC00000', WHT]
+      ].forEach(([ci,bg,fc]) => {
+        valRow.getCell(ci).fill = hFill(bg);
+        valRow.getCell(ci).font = {name:'Arial',bold:true,size:14,color:{argb:fc}};
+        valRow.getCell(ci).alignment = cAlign();
+        valRow.getCell(ci).border = medBorder();
+        numFmt(valRow.getCell(ci));
       });
-      // القيم (عمود 3، 6، 9)
-      [[3,'FF0D47A1',WHT],[6,'FF0D47A1',WHT],[9,SEC,WHT]].forEach(([ci,bg,fc]) => {
-        cr.getCell(ci).fill = hFill(bg);
-        cr.getCell(ci).font = {name:'Arial',bold:true,size:13,color:{argb:fc}};
-        cr.getCell(ci).alignment = cAlign();
-        cr.getCell(ci).border = medBorder();
-        numFmt(cr.getCell(ci));
-      });
-      // الرصيد المتبقي (عمود 10) — أخضر لو موجب، أحمر لو سالب
-      cr.getCell(10).fill = hFill(custFinal >= 0 ? 'FF1B5E20' : 'FFC00000');
-      cr.getCell(10).font = {name:'Arial',bold:true,size:14,color:{argb:WHT}};
-      cr.getCell(10).alignment = cAlign();
-      cr.getCell(10).border = medBorder();
-      numFmt(cr.getCell(10));
 
       ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:3, activeCell:'A4' }];
 
