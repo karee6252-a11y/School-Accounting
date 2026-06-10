@@ -3,20 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- PWA -->
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#1a3a6b" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="المحاسبة" />
-  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-<title>بند المصروفات - نظام المحاسبة</title>
+  <title>بند المصروفات - نظام المحاسبة</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
     /*  Custodian Cards  */
     .custodian-summary {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 1rem;
       margin-bottom: 1.5rem;
     }
@@ -39,9 +32,10 @@
       border-radius: inherit;
       pointer-events: none;
     }
-    .custodian-card.prev { background: linear-gradient(135deg, #1565c0, #0d47a1); }
-    .custodian-card.new  { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
-    .custodian-card.total{ background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247)); }
+    .custodian-card.prev  { background: linear-gradient(135deg, #1565c0, #0d47a1); }
+    .custodian-card.new   { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
+    .custodian-card.gross { background: linear-gradient(135deg, #6a1b9a, #4a148c); }
+    .custodian-card.total { background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247)); }
     .custodian-card .cust-label { font-size: 0.8rem; opacity: 0.8; font-weight: 600; }
     .custodian-card .cust-value { font-size: 1.8rem; font-weight: 900; line-height: 1; }
     .custodian-card .cust-sub   { font-size: 0.75rem; opacity: 0.7; }
@@ -244,7 +238,7 @@
 
     /*  Responsive  */
     @media (max-width: 768px) {
-      .custodian-summary { grid-template-columns: 1fr; }
+      .custodian-summary { grid-template-columns: 1fr 1fr; }
       .summary-meta { gap: 1rem; }
     }
     @media (max-width: 480px) {
@@ -277,6 +271,12 @@
           <div class="cust-label">العهدة الجديدة</div>
           <div class="cust-value" id="custNew">—</div>
           <div class="cust-sub">المبلغ المستلم جديداً</div>
+        </div>
+        <div class="custodian-card gross">
+          <div class="cust-icon">🏦</div>
+          <div class="cust-label">إجمالي العهدة</div>
+          <div class="cust-value" id="custGross">—</div>
+          <div class="cust-sub">السابقة + الجديدة</div>
         </div>
         <div class="custodian-card total">
           <div class="cust-icon"></div>
@@ -811,10 +811,12 @@
   function updateCustodianCards() {
     // الرصيد المتبقي يحسب على كل المصروفات المسجلة (مش الفترة المفلترة بس)
     const totalExpenses = allExpensesTotal;
-    const remaining     = prevCustodian + newCustodian - totalExpenses;
+    const gross         = prevCustodian + newCustodian;
+    const remaining     = gross - totalExpenses;
 
     document.getElementById('custPrev').textContent  = formatCurrency(prevCustodian);
     document.getElementById('custNew').textContent   = formatCurrency(newCustodian);
+    document.getElementById('custGross').textContent = formatCurrency(gross);
     document.getElementById('custTotal').textContent = formatCurrency(remaining);
 
     // لون الرصيد المتبقي حسب الحالة
