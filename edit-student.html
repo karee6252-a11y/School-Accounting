@@ -302,7 +302,7 @@
 <script src="layout.js"></script>
 <script>
   renderLayout('edit-student', 'تعديل بيانات الطلاب');
-  const session  = guardAccountingPage();
+  const session  = SESSION.get();
 
   // ── حماية: لو الـ session مش موجودة أو schoolId فاضي → وقف هنا
   if (!session || !session.schoolId) {
@@ -558,7 +558,7 @@
   /* ════════════════════════════════════════
      بانل 1: البيانات الأساسية
   ════════════════════════════════════════ */
-  /* ── helpers لبناء options ── */
+  /* ── helpers ── */
   function selOpts(list, val) {
     return list.map(v => `<option value="${v}" ${v===val?'selected':''}>${v}</option>`).join('');
   }
@@ -588,12 +588,11 @@
     const tx = currentStudentTx[0] || {};
     const a  = currentStudentAffairs || {};
 
-    // دمج: لو فيه سجل في studentAffairs خده، غيره خد من transactions
     const name       = a.studentName    || tx.studentName || currentStudentName;
-    const nameEn     = a.studentNameEn  || tx.studentNameEn || '';
+    const nameEn     = a.studentNameEn  || '';
     const nid        = a.studentNid     || '';
     const gender     = a.gender         || tx.gender || '';
-    const nat        = a.nationality    || tx.nationality || '';
+    const nat        = a.nationality    || '';
     const religion   = a.religion       || '';
     const birth      = a.birthDate      || '';
     const grade      = a.grade          || tx.grade || '';
@@ -604,7 +603,7 @@
     const fatherNid    = a.fatherNid    || '';
     const fatherPhone  = a.fatherPhone  || tx.fatherPhone || '';
     const fatherJob    = a.fatherJob    || '';
-    const address      = a.address      || tx.address || '';
+    const address      = a.address      || '';
     const motherName   = a.motherName   || '';
     const motherNameEn = a.motherNameEn || '';
     const motherNid    = a.motherNid    || '';
@@ -618,8 +617,7 @@
         ⚠️ هذا الطالب ليس له سجل في شئون الطلاب — ستُنشأ بياناته عند الحفظ
       </div>` : ''}
 
-      <!-- ══ بيانات الطالب ══ -->
-      <div style="grid-column:1/-1" class="section-title" style="margin-bottom:.5rem">بيانات الطالب</div>
+      <div style="grid-column:1/-1;font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--primary);border-bottom:2px solid var(--primary-light);padding-bottom:.4rem;margin-bottom:.25rem">بيانات الطالب</div>
 
       <div class="field-group" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:1rem">
         <div class="field-group">
@@ -637,7 +635,7 @@
         <input id="infoNid" type="text" class="form-input" value="${nid}" placeholder="14 رقم" maxlength="14" style="direction:ltr;text-align:left" />
       </div>
       <div class="field-group">
-        <label class="field-label">النوع <span>*</span></label>
+        <label class="field-label">النوع</label>
         <select id="infoGender" class="form-input">
           <option value="">-- اختر --</option>
           ${selOpts(['ذكر','أنثى'], gender)}
@@ -664,7 +662,7 @@
       </div>
       <div class="field-group">
         <label class="field-label">الصف <span>*</span></label>
-        <select id="infoGrade" class="form-input" onchange="autoFillStage()">
+        <select id="infoGrade" class="form-input">
           <option value="">-- اختر الصف --</option>
           ${gradeOpts(grade)}
         </select>
@@ -681,11 +679,10 @@
         <input id="infoClassroom" type="text" class="form-input" value="${classroom}" placeholder="مثال: 3B" />
       </div>
 
-      <!-- ══ بيانات الأب ══ -->
-      <div style="grid-column:1/-1" class="section-title">بيانات الأب</div>
+      <div style="grid-column:1/-1;font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--primary);border-bottom:2px solid var(--primary-light);padding-bottom:.4rem;margin-bottom:.25rem;margin-top:.5rem">بيانات الأب</div>
 
       <div class="field-group">
-        <label class="field-label">اسم الأب (عربي) <span>*</span></label>
+        <label class="field-label">اسم الأب (عربي)</label>
         <input id="infoFatherName" type="text" class="form-input form-input-ar" value="${fatherName}" placeholder="الاسم كاملاً بالعربي" />
       </div>
       <div class="field-group">
@@ -709,11 +706,10 @@
         <input id="infoAddress" type="text" class="form-input form-input-ar" value="${address}" placeholder="العنوان بالتفصيل" />
       </div>
 
-      <!-- ══ بيانات الأم ══ -->
-      <div style="grid-column:1/-1" class="section-title">بيانات الأم</div>
+      <div style="grid-column:1/-1;font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--primary);border-bottom:2px solid var(--primary-light);padding-bottom:.4rem;margin-bottom:.25rem;margin-top:.5rem">بيانات الأم</div>
 
       <div class="field-group">
-        <label class="field-label">اسم الأم (عربي) <span>*</span></label>
+        <label class="field-label">اسم الأم (عربي)</label>
         <input id="infoMotherName" type="text" class="form-input form-input-ar" value="${motherName}" placeholder="الاسم كاملاً بالعربي" />
       </div>
       <div class="field-group">
@@ -735,8 +731,6 @@
     `;
 
     document.getElementById('infoStudentCount').textContent = currentStudentTx.length + ' معاملة';
-
-    // احسب العمر لو فيه تاريخ ميلاد
     if (birth) calcInfoAge();
   }
 
@@ -752,11 +746,7 @@
     if (el) el.textContent = `العمر: ${yrs} سنة و ${mos} شهر (في أكتوبر 2026)`;
   }
 
-  function autoFillStage() {
-    const grade = document.getElementById('infoGrade')?.value;
-    const stage = stageForGrade(grade);
-    // infoStage ممكن مش موجود بعد كده — ignore
-  }
+  function autoFillStage() {}
 
   async function saveBasicInfo() {
     const newName       = document.getElementById('infoName')?.value.trim()        || '';
@@ -783,7 +773,6 @@
 
     if (!newName) { showInfoAlert('اسم الطالب مطلوب'); return; }
 
-    // حساب العمر
     let ageYears = 0, ageMonths = 0;
     if (newBirth) {
       const birth = new Date(newBirth);
@@ -793,14 +782,13 @@
       if (ageMonths < 0) { ageYears--; ageMonths += 12; }
     }
 
-    const newStage    = stageForGrade(newGrade);
+    const newStage     = stageForGrade(newGrade);
     const newStageName = getStageName(newStage);
 
     showLoading('جاري حفظ البيانات...');
     try {
       const batch = db.batch();
 
-      // ── 1. studentAffairs: update أو create ──
       const affairsData = {
         schoolId, studentName: newName, studentNameEn: newNameEn,
         studentNid: newNid, gender: newGender, nationality: newNat,
@@ -822,45 +810,31 @@
         batch.set(db.collection('studentAffairs').doc(), affairsData);
       }
 
-      // ── 2. transactions: اسم + صف + مرحلة ──
       currentStudentTx.forEach(tx => {
         const ref = db.collection('transactions').doc(tx.id);
         const upd = {};
         if (newName  !== tx.studentName) upd.studentName = newName;
         if (newGrade !== tx.grade)       upd.grade       = newGrade;
         if (newStage !== tx.stage)     { upd.stage = newStage; upd.stageName = newStageName; }
-        if (Object.keys(upd).length) {
-          upd.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-          batch.update(ref, upd);
-        }
+        if (Object.keys(upd).length) { upd.updatedAt = firebase.firestore.FieldValue.serverTimestamp(); batch.update(ref, upd); }
       });
 
-      // ── 3. debts: اسم + صف ──
       currentStudentDebts.forEach(d => {
         const ref = db.collection('debts').doc(d.id);
         const upd = {};
         if (newName  !== d.studentName) upd.studentName = newName;
         if (newGrade !== d.grade)       upd.grade       = newGrade;
-        if (Object.keys(upd).length) {
-          upd.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-          batch.update(ref, upd);
-        }
+        if (Object.keys(upd).length) { upd.updatedAt = firebase.firestore.FieldValue.serverTimestamp(); batch.update(ref, upd); }
       });
 
       await batch.commit();
 
-      // ── تحديث الذاكرة ──
       currentStudentAffairs = { ...(currentStudentAffairs || {}), ...affairsData };
-      currentStudentTx    = currentStudentTx.map(tx => ({
-        ...tx, studentName: newName, grade: newGrade, stage: newStage, stageName: newStageName
-      }));
-      currentStudentDebts = currentStudentDebts.map(d => ({
-        ...d, studentName: newName, grade: newGrade
-      }));
+      currentStudentTx    = currentStudentTx.map(tx => ({ ...tx, studentName: newName, grade: newGrade, stage: newStage, stageName: newStageName }));
+      currentStudentDebts = currentStudentDebts.map(d  => ({ ...d,  studentName: newName, grade: newGrade }));
       currentStudentName  = newName;
       currentStudentGrade = newGrade;
 
-      // ── تحديث الهيدر ──
       document.getElementById('profileAvatar').textContent = avatarLetter(newName);
       document.getElementById('profileName').textContent   = newName;
       document.getElementById('profileMeta').textContent   =
