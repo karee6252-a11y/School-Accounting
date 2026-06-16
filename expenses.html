@@ -9,7 +9,7 @@
     /*  Custodian Cards  */
     .custodian-summary {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 1rem;
       margin-bottom: 1.5rem;
     }
@@ -36,10 +36,27 @@
     .custodian-card.new   { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
     .custodian-card.gross { background: linear-gradient(135deg, #6a1b9a, #4a148c); }
     .custodian-card.total { background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247)); }
+    .custodian-card.vault { background: linear-gradient(135deg, #e65100, #bf360c); }
     .custodian-card .cust-label { font-size: 0.8rem; opacity: 0.8; font-weight: 600; }
     .custodian-card .cust-value { font-size: 1.8rem; font-weight: 900; line-height: 1; }
     .custodian-card .cust-sub   { font-size: 0.75rem; opacity: 0.7; }
     .custodian-card .cust-icon  { font-size: 2rem; position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.25; }
+    .cust-edit-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: rgba(255,255,255,0.18);
+      border: none;
+      border-radius: 4px;
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 2;
+    }
+    .custodian-card:hover .cust-edit-btn { opacity: 1; }
 
     /*  Period Tabs  */
     .report-period-tabs {
@@ -237,6 +254,9 @@
     }
 
     /*  Responsive  */
+    @media (max-width: 1100px) {
+      .custodian-summary { grid-template-columns: repeat(3, 1fr); }
+    }
     @media (max-width: 768px) {
       .custodian-summary { grid-template-columns: 1fr 1fr; }
       .summary-meta { gap: 1rem; }
@@ -261,12 +281,14 @@
       <!-- Custodian Summary Cards -->
       <div class="custodian-summary animate-in" id="custodianSummary">
         <div class="custodian-card prev">
+          <button class="cust-edit-btn" onclick="openCustodianModal()" title="تعديل">✏ تعديل</button>
           <div class="cust-icon"></div>
           <div class="cust-label">العهدة السابقة</div>
           <div class="cust-value" id="custPrev">—</div>
           <div class="cust-sub">الرصيد المرحّل</div>
         </div>
         <div class="custodian-card new">
+          <button class="cust-edit-btn" onclick="openCustodianModal()" title="تعديل">✏ تعديل</button>
           <div class="cust-icon"></div>
           <div class="cust-label">العهدة الجديدة</div>
           <div class="cust-value" id="custNew">—</div>
@@ -283,6 +305,13 @@
           <div class="cust-label">الرصيد المتبقي</div>
           <div class="cust-value" id="custTotal">—</div>
           <div class="cust-sub">السابقة + الجديدة - المصروفات</div>
+        </div>
+        <div class="custodian-card vault">
+          <button class="cust-edit-btn" onclick="openCustodianModal()" title="تعديل">✏ تعديل</button>
+          <div class="cust-icon">🗄️</div>
+          <div class="cust-label">رصيد الخزنة أول اليوم</div>
+          <div class="cust-value" id="custVault">—</div>
+          <div class="cust-sub">الرصيد في بداية اليوم</div>
         </div>
       </div>
 
@@ -482,9 +511,9 @@
      CUSTODIAN MODAL
      ============================== -->
 <div class="modal-overlay hidden" id="custodianModal">
-  <div class="modal-box" style="max-width:400px">
+  <div class="modal-box" style="max-width:440px">
     <div class="modal-header">
-      <span class="modal-title"> إعداد العهدة</span>
+      <span class="modal-title"> إعداد العهدة وأرصدة الكروت</span>
       <button class="modal-close" onclick="closeCustodianModal()"></button>
     </div>
     <div class="modal-body">
@@ -499,6 +528,10 @@
       <div class="form-group">
         <label class="form-label">العهدة الجديدة (جنيه)</label>
         <input type="number" class="form-input" id="newCustodianInput" placeholder="0.00" min="0" step="0.01" />
+      </div>
+      <div class="form-group" style="margin-top:0.5rem;padding-top:0.75rem;border-top:1px solid var(--border)">
+        <label class="form-label" style="color:var(--primary);font-weight:800">🗄️ رصيد الخزنة في بداية اليوم (جنيه)</label>
+        <input type="number" class="form-input" id="vaultBalanceInput" placeholder="0.00" min="0" step="0.01" />
       </div>
     </div>
     <div class="modal-footer">
@@ -550,6 +583,7 @@
   window.currentData   = [];
   window.prevCustodian = 0;
   window.newCustodian  = 0;
+  window.vaultBalance  = 0;
   window.allExpensesTotal = 0;
 
   //  Populate selects 
@@ -645,15 +679,18 @@
     try {
       const doc = await db.collection('custodians').doc(schoolId).get();
       if (doc.exists) {
-        prevCustodian = doc.data().prevAmount || 0;
-        newCustodian  = doc.data().newAmount  || 0;
+        prevCustodian = doc.data().prevAmount    || 0;
+        newCustodian  = doc.data().newAmount     || 0;
+        vaultBalance  = doc.data().vaultBalance  || 0;
       } else {
         prevCustodian = 0;
         newCustodian  = 0;
+        vaultBalance  = 0;
       }
     } catch (e) {
       prevCustodian = 0;
       newCustodian  = 0;
+      vaultBalance  = 0;
     }
   }
 
@@ -818,6 +855,7 @@
     document.getElementById('custNew').textContent   = formatCurrency(newCustodian);
     document.getElementById('custGross').textContent = formatCurrency(gross);
     document.getElementById('custTotal').textContent = formatCurrency(remaining);
+    document.getElementById('custVault').textContent = formatCurrency(vaultBalance);
 
     // لون الرصيد المتبقي حسب الحالة
     const totalCard = document.querySelector('.custodian-card.total');
@@ -923,8 +961,9 @@
 
   //  Custodian Modal 
   function openCustodianModal() {
-    document.getElementById('prevCustodianInput').value = prevCustodian;
-    document.getElementById('newCustodianInput').value  = newCustodian;
+    document.getElementById('prevCustodianInput').value  = prevCustodian;
+    document.getElementById('newCustodianInput').value   = newCustodian;
+    document.getElementById('vaultBalanceInput').value   = vaultBalance;
     document.getElementById('custodianModal').classList.remove('hidden');
   }
   function closeCustodianModal() {
@@ -932,18 +971,21 @@
   }
 
   async function savePrevCustodian() {
-    const val    = parseFloat(document.getElementById('prevCustodianInput').value) || 0;
-    const valNew = parseFloat(document.getElementById('newCustodianInput').value)  || 0;
+    const val      = parseFloat(document.getElementById('prevCustodianInput').value)  || 0;
+    const valNew   = parseFloat(document.getElementById('newCustodianInput').value)   || 0;
+    const valVault = parseFloat(document.getElementById('vaultBalanceInput').value)   || 0;
     try {
       await db.collection('custodians').doc(schoolId).set({
         schoolId,
-        prevAmount: val,
-        newAmount:  valNew,
+        prevAmount:   val,
+        newAmount:    valNew,
+        vaultBalance: valVault,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedBy: session.email
       });
       prevCustodian = val;
       newCustodian  = valNew;
+      vaultBalance  = valVault;
       updateCustodianCards();
       closeCustodianModal();
     } catch (err) {
