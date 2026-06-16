@@ -418,7 +418,11 @@ document.addEventListener('DOMContentLoaded', () => {
  currentSession = session;
  currentSchoolId = session.schoolId;
 
- renderHRLayout(session);
+ if (SESSION.isAdmin()) {
+    renderLayout('hr', 'الموارد البشرية');
+  } else {
+    renderHRLayout(session);
+  }
  loadEmployees();
  populateFilterJobs();
 
