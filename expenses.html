@@ -301,10 +301,11 @@
           <div class="cust-sub">السابقة + الجديدة</div>
         </div>
         <div class="custodian-card total">
+          <button class="cust-edit-btn" onclick="openCustodianModal()" title="تعديل">✏ تعديل</button>
           <div class="cust-icon"></div>
           <div class="cust-label">الرصيد المتبقي</div>
           <div class="cust-value" id="custTotal">—</div>
-          <div class="cust-sub">السابقة + الجديدة - المصروفات</div>
+          <div class="cust-sub" id="custTotalSub">السابقة + الجديدة - المصروفات</div>
         </div>
         <div class="custodian-card vault">
           <button class="cust-edit-btn" onclick="openCustodianModal()" title="تعديل">✏ تعديل</button>
@@ -533,6 +534,11 @@
         <label class="form-label" style="color:var(--primary);font-weight:800">🗄️ رصيد الخزنة في بداية اليوم (جنيه)</label>
         <input type="number" class="form-input" id="vaultBalanceInput" placeholder="0.00" min="0" step="0.01" />
       </div>
+      <div class="form-group" style="margin-top:0.5rem;padding-top:0.75rem;border-top:1px solid var(--border)">
+        <label class="form-label" style="color:#e65100;font-weight:800"> تعديل الرصيد المتبقي يدوياً (جنيه)</label>
+        <input type="number" class="form-input" id="manualRemainingInput" placeholder="اتركه فارغ للحساب التلقائي" min="0" step="0.01" />
+        <div style="font-size:0.75rem;color:var(--text-light);margin-top:4px">⚠ لو دخلت قيمة هنا هتتعرض بدل الحساب التلقائي. امسحه لرجوع للحساب التلقائي.</div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeCustodianModal()">إلغاء</button>
@@ -585,6 +591,7 @@
   window.newCustodian  = 0;
   window.vaultBalance  = 0;
   window.allExpensesTotal = 0;
+  window.manualRemaining = null; // null = حساب تلقائي
 
   //  Populate selects 
   function populateCategories() {
@@ -682,15 +689,18 @@
         prevCustodian = doc.data().prevAmount    || 0;
         newCustodian  = doc.data().newAmount     || 0;
         vaultBalance  = doc.data().vaultBalance  || 0;
+        manualRemaining = doc.data().manualRemaining ?? null;
       } else {
         prevCustodian = 0;
         newCustodian  = 0;
         vaultBalance  = 0;
+        manualRemaining = null;
       }
     } catch (e) {
       prevCustodian = 0;
       newCustodian  = 0;
       vaultBalance  = 0;
+      manualRemaining = null;
     }
   }
 
@@ -849,13 +859,24 @@
     // الرصيد المتبقي يحسب على كل المصروفات المسجلة (مش الفترة المفلترة بس)
     const totalExpenses = allExpensesTotal;
     const gross         = prevCustodian + newCustodian;
-    const remaining     = gross - totalExpenses;
+    const autoRemaining = gross - totalExpenses;
+    const remaining     = (manualRemaining !== null && manualRemaining !== undefined)
+                          ? manualRemaining
+                          : autoRemaining;
 
     document.getElementById('custPrev').textContent  = formatCurrency(prevCustodian);
     document.getElementById('custNew').textContent   = formatCurrency(newCustodian);
     document.getElementById('custGross').textContent = formatCurrency(gross);
     document.getElementById('custTotal').textContent = formatCurrency(remaining);
     document.getElementById('custVault').textContent = formatCurrency(vaultBalance);
+
+    // sub label يوضح المصدر
+    const subEl = document.getElementById('custTotalSub');
+    if (subEl) {
+      subEl.textContent = (manualRemaining !== null && manualRemaining !== undefined)
+        ? '✏ رصيد معدّل يدوياً'
+        : 'السابقة + الجديدة - المصروفات';
+    }
 
     // لون الرصيد المتبقي حسب الحالة
     const totalCard = document.querySelector('.custodian-card.total');
@@ -964,6 +985,7 @@
     document.getElementById('prevCustodianInput').value  = prevCustodian;
     document.getElementById('newCustodianInput').value   = newCustodian;
     document.getElementById('vaultBalanceInput').value   = vaultBalance;
+    document.getElementById('manualRemainingInput').value = (manualRemaining !== null && manualRemaining !== undefined) ? manualRemaining : '';
     document.getElementById('custodianModal').classList.remove('hidden');
   }
   function closeCustodianModal() {
@@ -974,18 +996,23 @@
     const val      = parseFloat(document.getElementById('prevCustodianInput').value)  || 0;
     const valNew   = parseFloat(document.getElementById('newCustodianInput').value)   || 0;
     const valVault = parseFloat(document.getElementById('vaultBalanceInput').value)   || 0;
+    const manualRawStr = document.getElementById('manualRemainingInput').value.trim();
+    const manualRaw = manualRawStr === '' ? null : parseFloat(manualRawStr);
+
     try {
       await db.collection('custodians').doc(schoolId).set({
         schoolId,
-        prevAmount:   val,
-        newAmount:    valNew,
-        vaultBalance: valVault,
+        prevAmount:      val,
+        newAmount:       valNew,
+        vaultBalance:    valVault,
+        manualRemaining: manualRaw,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedBy: session.email
       });
-      prevCustodian = val;
-      newCustodian  = valNew;
-      vaultBalance  = valVault;
+      prevCustodian   = val;
+      newCustodian    = valNew;
+      vaultBalance    = valVault;
+      manualRemaining = manualRaw;
       updateCustodianCards();
       closeCustodianModal();
     } catch (err) {
