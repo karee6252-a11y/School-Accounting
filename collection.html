@@ -331,6 +331,9 @@
         return stageData.fees?.[tier]?.[item] || null;
       }
       // باقي البنود (باص، يونيفورم، امتحانات، رحلات)
+      if (item === 'يونيفورم' && stageData.uniformByGrade) {
+        return stageData.uniformByGrade(grade);
+      }
       return stageData.otherPrices?.[item] ?? null;
     }
     return STAGES[stage]?.prices?.[item] || null;
