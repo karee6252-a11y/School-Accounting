@@ -434,13 +434,13 @@
       });
 
       // باقي البنود (بدون مصروفات دراسية)
-      const otherItems = ['باص', 'يونيفورم', 'فايل', 'أبليكيشن', 'رحلات', 'امتحانات'];
+      const otherItems = ['باص', 'يونيفورم', 'فايل', 'أبليكيشن', 'رحلات', 'امتحانات', 'سمر كورس'];
       otherItems.forEach(item => {
         const price = getStagePrice(stage, item, grade);
         const isSelected = !!selectedItems[item];
         const isVariable = selectedItems[item]?.variable || false;
         const customPrice = selectedItems[item]?.customPrice || '';
-        const forceVariable = (item === 'رحلات');
+        const forceVariable = (item === 'رحلات' || item === 'سمر كورس');
         const cardEl = document.createElement('div');
         cardEl.className = 'payment-item-card ' + (isSelected ? 'selected' : '');
         cardEl.onclick = () => togglePaymentItem(item, price || 0);

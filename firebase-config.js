@@ -303,7 +303,8 @@ const CARDIFF_STAGES = {
       "باص": 9000,
       "يونيفورم": 4500,
       "امتحانات": 1200,
-      "رحلات": 0
+      "رحلات": 0,
+      "سمر كورس": 4000
     }
   },
   "semi_international": {
@@ -336,7 +337,8 @@ const CARDIFF_STAGES = {
       "باص": 8000,
       "يونيفورم": 4500,
       "امتحانات": 1000,
-      "رحلات": 0
+      "رحلات": 0,
+      "سمر كورس": 4000
     },
     uniformByGrade: (grade) => {
       return (grade && grade.startsWith("Prep")) ? 4800 : 4500;
