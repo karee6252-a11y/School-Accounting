@@ -736,7 +736,7 @@
       // الـ studentDocId بيكون اتحفظ في الـ transaction كـ shu2onStudentId
       if (transaction.shu2onStudentId) {
         db.collection('studentAffairs').doc(transaction.shu2onStudentId).update({
-          status: 'collected',
+          status: 'active',
           collectedBy: session.email,
           collectedAt: firebase.firestore.FieldValue.serverTimestamp(),
           transactionId: docRef.id
