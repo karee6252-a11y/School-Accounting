@@ -466,7 +466,8 @@
       <div class="form-grid form-grid-2">
         <div class="form-group">
           <label class="form-label">اسم المستلم <span class="required">*</span></label>
-          <input type="text" class="form-input form-input-ar" id="recipientName" placeholder="الاسم كاملاً" />
+          <input type="text" class="form-input form-input-ar" id="recipientName" placeholder="الاسم كاملاً" list="expRecipientSuggestions" oninput="onRecipientNameInput()" autocomplete="off" />
+          <datalist id="expRecipientSuggestions"></datalist>
         </div>
         <div class="form-group">
           <label class="form-label">التاريخ <span class="required">*</span></label>
@@ -477,7 +478,7 @@
       <div class="form-grid form-grid-2">
         <div class="form-group">
           <label class="form-label">المبلغ (جنيه) <span class="required">*</span></label>
-          <input type="number" class="form-input" id="expenseAmount" placeholder="0.00" min="0" step="0.01" />
+          <input type="number" class="form-input" id="expenseAmount" placeholder="0.00" min="0" step="0.01" oninput="updateRefundRemaining()" />
         </div>
         <div class="form-group">
           <label class="form-label">المقابل <span class="required">*</span></label>
@@ -491,6 +492,14 @@
       <div class="form-group" id="customLabelGroup" style="display:none">
         <label class="form-label">البيان <span class="required">*</span></label>
         <input type="text" class="form-input form-input-ar" id="expenseCustomLabel" placeholder="اكتب البيان هنا..." />
+      </div>
+
+      <!-- لوحة التحقق من الطالب — تظهر فقط عند اختيار "استرداد" -->
+      <div class="form-group" id="refundStudentPanel" style="display:none">
+        <label class="form-label">ربط الاسترداد بدفعة الطالب <span class="required">*</span></label>
+        <div id="refundStatusMsg" style="font-size:0.85rem;color:var(--text-light);margin-bottom:6px">اكتب اسم الطالب كما هو مسجل بالضبط في التحصيل اليومي...</div>
+        <div id="refundTxnList" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto"></div>
+        <div id="refundRemainingBox" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-weight:800"></div>
       </div>
 
       <div class="form-group">
@@ -623,6 +632,152 @@
     } else {
       grp.style.display = 'none';
       if (grp.querySelector('input')) grp.querySelector('input').value = '';
+    }
+
+    // لوحة ربط الاسترداد بدفعة الطالب — تظهر فقط عند "استرداد"
+    const refundPanel = document.getElementById('refundStudentPanel');
+    if (val === 'refund') {
+      refundPanel.style.display = 'block';
+      loadStudentNamesForExpenses();
+      onRecipientNameInput(); // شغّل المطابقة على أي اسم مكتوب بالفعل
+    } else {
+      refundPanel.style.display = 'none';
+      resetRefundState();
+    }
+  }
+
+  //  ربط الاسترداد باسم الطالب 
+  window.studentNamesSet   = null; // Set بأسماء الطلاب — نفس مصدر التحصيل اليومي
+  window.refundTxnOptions  = [];   // الدفعات المطابقة لاسم الطالب المكتوب
+  window.selectedRefundTxn = null; // الدفعة المختارة لخصم الاسترداد منها
+
+  function resetRefundState() {
+    window.refundTxnOptions  = [];
+    window.selectedRefundTxn = null;
+    const list = document.getElementById('refundTxnList');
+    if (list) list.innerHTML = '';
+    const box = document.getElementById('refundRemainingBox');
+    if (box) box.style.display = 'none';
+    const msg = document.getElementById('refundStatusMsg');
+    if (msg) msg.textContent = 'اكتب اسم الطالب كما هو مسجل بالضبط في التحصيل اليومي...';
+  }
+
+  // نفس مصدر ونفس الكاش المستخدم في صفحة التحصيل اليومي (student_names_${schoolId})
+  // عشان نضمن مطابقة الأسماء مع الشيتات والتحصيل اليومي بالظبط
+  async function loadStudentNamesForExpenses() {
+    if (window.studentNamesSet) return; // اتحمّلت قبل كده في نفس الجلسة
+    const NAMES_KEY = `student_names_${schoolId}`;
+    const NAMES_TTL = 30 * 60 * 1000;
+    try {
+      const raw = sessionStorage.getItem(NAMES_KEY);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        if (Date.now() - obj.ts < NAMES_TTL) {
+          window.studentNamesSet = new Set(obj.names);
+          document.getElementById('expRecipientSuggestions').innerHTML =
+            obj.names.map(n => `<option value="${n}">`).join('');
+          return;
+        }
+      }
+      const snap = await db.collection('transactions')
+        .where('schoolId', '==', schoolId)
+        .where('date', '>=', ACADEMIC_YEAR_START)
+        .get();
+      const names = new Set();
+      snap.forEach(doc => { if (doc.data().studentName) names.add(doc.data().studentName); });
+      const namesArr = [...names].sort();
+      sessionStorage.setItem(NAMES_KEY, JSON.stringify({ names: namesArr, ts: Date.now() }));
+      window.studentNamesSet = new Set(namesArr);
+      document.getElementById('expRecipientSuggestions').innerHTML =
+        namesArr.map(n => `<option value="${n}">`).join('');
+    } catch (e) {
+      window.studentNamesSet = new Set();
+    }
+  }
+
+  let refundNameDebounce = null;
+  function onRecipientNameInput() {
+    const category = document.getElementById('expenseCategory').value;
+    if (category !== 'refund') return; // المطابقة تخص الاسترداد بس
+    clearTimeout(refundNameDebounce);
+    refundNameDebounce = setTimeout(runRefundNameMatch, 350);
+  }
+
+  async function runRefundNameMatch() {
+    const name = document.getElementById('recipientName').value.trim();
+    const msg  = document.getElementById('refundStatusMsg');
+    const list = document.getElementById('refundTxnList');
+    window.selectedRefundTxn = null;
+    list.innerHTML = '';
+    document.getElementById('refundRemainingBox').style.display = 'none';
+
+    if (!name) { msg.textContent = 'اكتب اسم الطالب كما هو مسجل بالضبط في التحصيل اليومي...'; return; }
+
+    if (!window.studentNamesSet || !window.studentNamesSet.has(name)) {
+      msg.innerHTML = ' لا يوجد طالب بهذا الاسم حرفيًا في سجلات التحصيل اليومي — تأكد من تطابق الاسم تمامًا (اختر من قائمة الاقتراحات).';
+      msg.style.color = '#c0392b';
+      return;
+    }
+
+    msg.style.color = 'var(--text-light)';
+    msg.textContent = 'جاري البحث عن دفعات هذا الطالب...';
+    try {
+      const snap = await db.collection('transactions')
+        .where('schoolId', '==', schoolId)
+        .where('studentName', '==', name)
+        .get();
+
+      const txns = [];
+      snap.forEach(doc => txns.push({ id: doc.id, ...doc.data() }));
+      txns.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      window.refundTxnOptions = txns;
+
+      if (txns.length === 0) {
+        msg.innerHTML = ' الاسم مطابق لكن لا توجد دفعات مسجلة لهذا الطالب.';
+        msg.style.color = '#c0392b';
+        return;
+      }
+
+      msg.textContent = ` تم إيجاد ${txns.length} دفعة — اختر الدفعة المطلوب خصم الاسترداد منها:`;
+      list.innerHTML = txns.map((t, idx) => `
+        <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+          <input type="radio" name="refundTxnRadio" value="${idx}" onchange="selectRefundTxn(${idx})" />
+          <span style="flex:1">
+            <strong>${formatCurrency ? formatCurrency(t.amount||0) : (t.amount||0)}</strong>
+            — ${t.paymentItem || ''} — ${t.date || ''}${t.receiptNumber ? ' — إيصال #' + t.receiptNumber : ''}
+          </span>
+        </label>
+      `).join('');
+    } catch (e) {
+      msg.textContent = 'خطأ في البحث: ' + e.message;
+      msg.style.color = '#c0392b';
+    }
+  }
+
+  function selectRefundTxn(idx) {
+    window.selectedRefundTxn = window.refundTxnOptions[idx] || null;
+    updateRefundRemaining();
+  }
+
+  function updateRefundRemaining() {
+    const category = document.getElementById('expenseCategory').value;
+    const box = document.getElementById('refundRemainingBox');
+    if (category !== 'refund' || !window.selectedRefundTxn) { box.style.display = 'none'; return; }
+
+    const refundAmount = parseFloat(document.getElementById('expenseAmount').value) || 0;
+    const paid = window.selectedRefundTxn.amount || 0;
+    const remaining = paid - refundAmount;
+
+    box.style.display = 'block';
+    if (refundAmount <= 0) {
+      box.style.background = '#fff8e1'; box.style.color = '#8a6d00';
+      box.textContent = 'ادخل مبلغ الاسترداد لحساب المتبقي.';
+    } else if (remaining < 0) {
+      box.style.background = '#fdecea'; box.style.color = '#c0392b';
+      box.textContent = `⚠ مبلغ الاسترداد أكبر من المبلغ المدفوع في هذه الدفعة (${formatCurrency ? formatCurrency(paid) : paid}).`;
+    } else {
+      box.style.background = '#e8f5e9'; box.style.color = '#1b5e20';
+      box.textContent = `المبلغ المدفوع: ${formatCurrency ? formatCurrency(paid) : paid} — بعد الاسترداد يتبقى: ${formatCurrency ? formatCurrency(remaining) : remaining} (هيتحدث في التحصيل والتقارير تلقائيًا)`;
     }
   }
 
@@ -796,7 +951,7 @@
       tr.innerHTML = `
         <td class="text-sm text-muted">${i + 1}</td>
         <td class="text-sm">${d.date}</td>
-        <td><strong>${d.recipientName}</strong></td>
+        <td><strong>${d.recipientName}</strong>${d.linkedTransactionId ? `<div class="text-sm text-muted">تم الخصم من دفعة الطالب — متبقي ${formatCurrency(d.remainingAfterRefund || 0)}</div>` : ''}</td>
         <td><span class="badge badge-expense">${getCatLabel(d.category)}</span></td>
         <td class="text-bold text-primary">${formatCurrency(d.amount)}</td>
         <td class="text-sm text-muted">${d.notes || '—'}</td>
@@ -902,6 +1057,7 @@
     document.getElementById('expenseCustomLabel').value = '';
     document.getElementById('customLabelGroup').style.display = 'none';
     document.getElementById('expenseNotes').value     = '';
+    resetRefundState();
   }
 
   function showAddAlert(msg, type='error') {
@@ -928,6 +1084,21 @@
     const cat = EXPENSE_CATEGORIES.find(c => c.value === category);
     if (cat?.customLabel && !customLabel) return showAddAlert('من فضلك اكتب البيان');
 
+    // تحقق خاص بالاسترداد — لازم دفعة مختارة والمبلغ متسّق معاها
+    let refundTxn = null;
+    if (category === 'refund') {
+      if (!window.studentNamesSet || !window.studentNamesSet.has(recipientName)) {
+        return showAddAlert('اسم المستلم لازم يطابق اسم طالب موجود بالظبط في التحصيل اليومي');
+      }
+      if (!window.selectedRefundTxn) {
+        return showAddAlert('من فضلك اختر الدفعة المطلوب خصم الاسترداد منها من القائمة');
+      }
+      refundTxn = window.selectedRefundTxn;
+      if (amount > (refundTxn.amount || 0)) {
+        return showAddAlert('مبلغ الاسترداد أكبر من المبلغ المدفوع في الدفعة المختارة');
+      }
+    }
+
     const btn     = document.getElementById('saveExpenseBtn');
     const btnText = document.getElementById('saveBtnText');
     const loader  = document.getElementById('saveBtnLoader');
@@ -953,12 +1124,66 @@
         week:  getWeekNumber(new Date(date))
       };
 
-      await db.collection('expenses').add(expense);
-      showAddAlert('تم حفظ المصروف بنجاح! ', 'success');
+      let newExpenseId = null;
+
+      if (refundTxn) {
+        // خصم الاسترداد من الدفعة الأصلية في التحصيل — بشكل ذري (Firestore transaction)
+        const txnRef = db.collection('transactions').doc(refundTxn.id);
+        const result = await db.runTransaction(async (t) => {
+          const freshSnap = await t.get(txnRef);
+          if (!freshSnap.exists) throw new Error('الدفعة الأصلية لم تعد موجودة');
+          const freshData    = freshSnap.data();
+          const currentAmount= freshData.amount || 0;
+          if (amount > currentAmount) throw new Error('مبلغ الاسترداد أكبر من المبلغ المدفوع الحالي في هذه الدفعة (ممكن حد استرد منها قبلك)');
+          const newAmount = currentAmount - amount;
+          const totalDue  = freshData.totalDue || 0;
+          const newDebt   = Math.max(0, totalDue - newAmount);
+          t.update(txnRef, {
+            amount:  newAmount,
+            debt:    newDebt,
+            hasDebt: newDebt > 0,
+            refunds: firebase.firestore.FieldValue.arrayUnion({
+              amount, date, notes: expense.customLabel || notes || 'استرداد',
+              refundedBy: session.email, refundedAt: new Date().toISOString()
+            })
+          });
+          return { originalAmount: currentAmount, newAmount, newDebt };
+        });
+
+        expense.linkedTransactionId = refundTxn.id;
+        expense.linkedStudentName   = recipientName;
+        expense.originalAmount      = result.originalAmount;
+        expense.remainingAfterRefund= result.newAmount;
+
+        // تحديث سجل الدين المرتبط (لو موجود) عشان يفضل متسق مع الدفعة
+        try {
+          const debtSnap = await db.collection('debts')
+            .where('schoolId', '==', schoolId)
+            .where('transactionId', '==', refundTxn.id)
+            .get();
+          if (!debtSnap.empty) {
+            await debtSnap.docs[0].ref.update({
+              paid: result.newAmount,
+              remaining: result.newDebt,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        } catch (e) { /* تحديث الدين ثانوي — متبتعملش fail على الحفظ الأساسي */ }
+
+        // امسح كاش الأسماء عشان يترفريش لو الاسم اتغير من مكان تاني لاحقًا
+        sessionStorage.removeItem(`student_names_${schoolId}`);
+      }
+
+      const ref = await db.collection('expenses').add(expense);
+      newExpenseId = ref.id;
+
+      showAddAlert(refundTxn
+        ? `تم حفظ الاسترداد وخصمه من دفعة الطالب بنجاح! المتبقي: ${formatCurrency(expense.remainingAfterRefund)}`
+        : 'تم حفظ المصروف بنجاح! ', 'success');
       setTimeout(() => {
         closeAddModal();
         loadReport();
-      }, 800);
+      }, 1200);
 
     } catch (err) {
       showAddAlert('خطأ في الحفظ: ' + err.message);
