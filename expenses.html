@@ -836,26 +836,90 @@
     return c ? `${c.icon} ${c.label}` : val;
   }
 
+  //  يوم الشغل (Work Day) 
+  // يوم الشغل بيبدأ 7 الصبح ويخلص 7 الصبح اللي بعده (مش نص الليل زي اليوم التقويمي العادي)
+  // فأي وقت قبل 7 الصبح بيتحسب لسه على يوم الشغل بتاع "امبارح"
+  function getWorkDayKey(dateObj) {
+    const dt = new Date(dateObj);
+    const cutover = new Date(dt);
+    cutover.setHours(7, 0, 0, 0);
+    if (dt < cutover) cutover.setDate(cutover.getDate() - 1);
+    const y = cutover.getFullYear();
+    const m = String(cutover.getMonth() + 1).padStart(2, '0');
+    const day = String(cutover.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
   //  Load prev custodian from Firestore 
   async function loadPrevCustodian() {
+    const ref = db.collection('custodians').doc(schoolId);
+    const currentWorkDay = getWorkDayKey(new Date());
     try {
-      const doc = await db.collection('custodians').doc(schoolId).get();
+      const doc = await ref.get();
       if (doc.exists) {
-        prevCustodian = doc.data().prevAmount    || 0;
-        newCustodian  = doc.data().newAmount     || 0;
-        vaultBalance  = doc.data().vaultBalance  || 0;
-        manualRemaining = doc.data().manualRemaining ?? null;
+        const data = doc.data();
+        prevCustodian   = data.prevAmount    || 0;
+        newCustodian    = data.newAmount     || 0;
+        vaultBalance    = data.vaultBalance  || 0;
+        manualRemaining = data.manualRemaining ?? null;
+        const lastWorkDay = data.lastWorkDay || null;
+
+        if (lastWorkDay && lastWorkDay !== currentWorkDay) {
+          // فات ميعاد الـ 7 الصبح من آخر مرة اتسجل فيها حاجة — قفل يوم الشغل اللي فات ورحّل المتبقي للخزنة
+          await closeWorkDayAndRollover(ref, lastWorkDay, currentWorkDay);
+        } else if (!lastWorkDay) {
+          await ref.set({ lastWorkDay: currentWorkDay }, { merge: true });
+        }
       } else {
-        prevCustodian = 0;
-        newCustodian  = 0;
-        vaultBalance  = 0;
-        manualRemaining = null;
+        prevCustodian = 0; newCustodian = 0; vaultBalance = 0; manualRemaining = null;
+        await ref.set({ schoolId, lastWorkDay: currentWorkDay }, { merge: true });
       }
     } catch (e) {
-      prevCustodian = 0;
-      newCustodian  = 0;
-      vaultBalance  = 0;
+      prevCustodian = 0; newCustodian = 0; vaultBalance = 0; manualRemaining = null;
+    }
+  }
+
+  // قفل يوم شغل قديم: بيحسب المتبقي منه، يرحّله فوق رصيد الخزنة، ويصفّر العهدة استعداداً ليوم شغل جديد
+  async function closeWorkDayAndRollover(ref, oldWorkDay, newWorkDay) {
+    try {
+      const snap = await db.collection('expenses')
+        .where('schoolId', '==', schoolId)
+        .where('workDayKey', '==', oldWorkDay)
+        .get();
+      let oldExpensesTotal = 0;
+      snap.forEach(d => { oldExpensesTotal += d.data().amount || 0; });
+
+      const oldGross     = prevCustodian + newCustodian;
+      const oldRemaining = (manualRemaining !== null && manualRemaining !== undefined)
+                            ? manualRemaining
+                            : (oldGross - oldExpensesTotal);
+      const newVaultBalance = (vaultBalance || 0) + oldRemaining;
+
+      await ref.set({
+        schoolId,
+        prevAmount: 0,
+        newAmount: 0,
+        vaultBalance: newVaultBalance,
+        manualRemaining: null,
+        lastWorkDay: newWorkDay,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy: 'system-auto-rollover-7am'
+      }, { merge: true });
+
+      // سجل تاريخي لقفل كل يوم شغل — للمراجعة لاحقاً لو احتجت تتأكد من رقم معين
+      await db.collection('custodianClosures').add({
+        schoolId, workDay: oldWorkDay,
+        prevCustodian, newCustodian, expensesTotal: oldExpensesTotal,
+        remaining: oldRemaining,
+        rolledIntoVaultAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      prevCustodian   = 0;
+      newCustodian    = 0;
+      vaultBalance    = newVaultBalance;
       manualRemaining = null;
+    } catch (e) {
+      console.error('فشل ترحيل نهاية يوم الشغل:', e);
     }
   }
 
@@ -903,9 +967,13 @@
       renderTable();
       renderBreakdown();
 
-      // جلب إجمالي كل المصروفات بدون date filter للعهدة
+      // إجمالي مصروفات يوم الشغل الحالي بس (من 7 الصبح) — مش كل المصروفات من الأول للعهدة
       try {
-        const allSnap = await db.collection('expenses').where('schoolId', '==', schoolId).get();
+        const currentWorkDay = getWorkDayKey(new Date());
+        const allSnap = await db.collection('expenses')
+          .where('schoolId', '==', schoolId)
+          .where('workDayKey', '==', currentWorkDay)
+          .get();
         allExpensesTotal = 0;
         allSnap.forEach(d => { allExpensesTotal += d.data().amount || 0; });
       } catch(e) {
@@ -1030,7 +1098,7 @@
     if (subEl) {
       subEl.textContent = (manualRemaining !== null && manualRemaining !== undefined)
         ? '✏ رصيد معدّل يدوياً'
-        : 'السابقة + الجديدة - المصروفات';
+        : 'السابقة + الجديدة - مصروفات يوم الشغل الحالي (من 7 الصبح)';
     }
 
     // لون الرصيد المتبقي حسب الحالة
@@ -1119,6 +1187,7 @@
         notes,
         createdBy: session.email,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        workDayKey: getWorkDayKey(new Date()), // يوم الشغل (7 صباحا ل 7 صباحا) — علشان تصفير العهدة كل يوم
         year:  new Date(date).getFullYear(),
         month: new Date(date).getMonth() + 1,
         week:  getWeekNumber(new Date(date))
