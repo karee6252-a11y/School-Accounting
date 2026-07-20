@@ -559,6 +559,81 @@
   const schoolId = session?.schoolId;
   let allStudents = [];
 
+  // ══════════════════════════════════════════════
+  // ربط "شئون الطلاب" بمنصة Bristol LMS
+  // ══════════════════════════════════════════════
+  // بعد تسجيل أي طالب هنا (لمدرسة Bristol فقط)، بنعمل حساب طالب + حساب ولي
+  // أمر على المنصة أوتوماتيك، وبعدين بنفتح واتساب على رقم الأب المسجل
+  // ومعانا رسالة جاهزة فيها بيانات الحسابين. لو حصل أي خطأ في الربط، تسجيل
+  // الطالب هنا (في الفايرستور) بيفضل ناجح — بس هيظهر تنبيه واضح إن الحساب
+  // على المنصة محتاج يتضاف يدوي.
+  const LMS_INTEGRATION = {
+    // غيّر ده لرابط سيرفر المنصة الحقيقي بعد رفعها (مثال: https://api.bristol-lms.com/api)
+    apiBase: 'http://localhost:4000/api',
+    // لازم يطابق STUDENT_AFFAIRS_API_KEY في ملف .env بتاع سيرفر المنصة
+    apiKey: '',
+    // هذا الربط خاص بمدرسة Bristol فقط حالياً
+    enabledSchoolId: 'bristol',
+  };
+
+  function formatEgyptPhoneForWhatsapp(phone) {
+    const digits = String(phone || '').replace(/\D/g, '');
+    if (!digits) return '';
+    return digits.startsWith('0') ? '20' + digits.slice(1) : digits;
+  }
+
+  function buildLmsCredentialsMessage({ studentName, student, parent }) {
+    return [
+      `أهلاً بيكم في Bristol Language School 🎓`,
+      ``,
+      `تم إنشاء حساب الطالب/ة "${studentName}" على منصة التعليم الإلكتروني.`,
+      ``,
+      `👤 حساب الطالب:`,
+      `اسم المستخدم: ${student.username}`,
+      `كلمة المرور: ${student.password}`,
+      `كود الطالب: ${student.studentCode}`,
+      ``,
+      `👨‍👩‍👧 حساب ولي الأمر:`,
+      `اسم المستخدم: ${parent.username}`,
+      `كلمة المرور: ${parent.password}`,
+      ``,
+      `يمكنكم تسجيل الدخول من خلال بوابة المنصة. برجاء عدم مشاركة كلمة المرور مع أي شخص آخر.`,
+    ].join('\n');
+  }
+
+  /**
+   * ينشئ حساب على منصة Bristol LMS ويفتح واتساب على رقم الأب برسالة جاهزة
+   * فيها بيانات الحسابين. بيرجع true/false على حسب نجاح الربط مع المنصة —
+   * تسجيل الطالب في شئون الطلاب لا يعتمد على النتيجة دي.
+   */
+  async function createLmsAccountAndNotify({ studentName, grade, classroom, fatherName, fatherPhone }) {
+    try {
+      const res = await fetch(`${LMS_INTEGRATION.apiBase}/integrations/student-affairs/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(LMS_INTEGRATION.apiKey ? { 'x-api-key': LMS_INTEGRATION.apiKey } : {}),
+        },
+        body: JSON.stringify({ studentName, grade, classroom, fatherName, fatherPhone }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'فشل إنشاء الحساب على المنصة');
+
+      const waPhone = formatEgyptPhoneForWhatsapp(fatherPhone);
+      const message = buildLmsCredentialsMessage({ studentName, student: data.student, parent: data.parent });
+      if (waPhone) {
+        window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
+      }
+      return true;
+    } catch (err) {
+      console.error('LMS integration error:', err);
+      alert(
+        `⚠️ تم تسجيل الطالب بنجاح هنا، لكن حصل خطأ في إنشاء حسابه على منصة Bristol LMS:\n${err.message}\n\nمن فضلك أنشئ الحساب يدوياً من لوحة تحكم المنصة.`
+      );
+      return false;
+    }
+  }
+
   // ══ إخفاء تاب التسجيل والاستيراد للمحاسب ══
   const _isAccountant = Object.values(SCHOOLS).some(sc => sc.users.includes(session?.email));
   if (_isAccountant && !SESSION.isAdmin()) {
@@ -733,6 +808,13 @@
       setTimeout(() => successEl.classList.add('hidden'), 4000);
 
       loadPendingCount();
+
+      // ── ربط المنصة: بس لمدرسة Bristol حالياً ──
+      if (schoolId === LMS_INTEGRATION.enabledSchoolId) {
+        txt.textContent = 'جاري إنشاء حساب المنصة...';
+        await createLmsAccountAndNotify({ studentName, grade, classroom, fatherName, fatherPhone });
+      }
+
       resetForm();
     } catch (err) {
       showErr('خطأ في الحفظ: ' + err.message);
