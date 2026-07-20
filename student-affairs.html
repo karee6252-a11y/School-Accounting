@@ -199,7 +199,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label">الصف <span class="required">*</span></label>
-                <select class="form-input" id="grade">
+                <select class="form-input" id="grade" onchange="populateClassroomOptions()">
                   <option value="">-- اختر الصف --</option>
                   <optgroup label="ما قبل المدرسة">
                     <option value="Pre-KG">Pre-KG</option>
@@ -235,7 +235,7 @@
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">الفصل <span style="font-size:0.75rem;color:var(--text-light);font-weight:600">(اختياري)</span></label>
+                <label class="form-label">الفصل <span style="font-size:0.75rem;color:var(--text-light);font-weight:600" id="classroomHint">(اختياري)</span></label>
                 <input type="text" class="form-input" id="classroom" placeholder="مثال: 3B ، أو الفصل الثالث" />
               </div>
             </div>
@@ -602,9 +602,14 @@
   }
 
   /**
-   * ينشئ حساب على منصة Bristol LMS ويفتح واتساب على رقم الأب برسالة جاهزة
-   * فيها بيانات الحسابين. بيرجع true/false على حسب نجاح الربط مع المنصة —
-   * تسجيل الطالب في شئون الطلاب لا يعتمد على النتيجة دي.
+   * ينشئ حساب على منصة Bristol LMS (نفس الحساب اللي بيتعمل بالظبط لو سجّلت
+   * الطالب يدوياً من صفحة "تسجيل سريع" في لوحة تحكم المنصة — نفس السيرفس
+   * ونفس صيغة الإيميل username@student.bristol.edu.eg)، وبعدين يفتح واتساب
+   * على رقم الأب برسالة جاهزة فيها بيانات الحسابين.
+   *
+   * بيرجع { ok, student, parent } لو نجح — عشان الداتا دي تتسجل وتتخزن مع
+   * سجل الطالب في شئون الطلاب (بند lmsAccount)، أو { ok:false, error } لو فشل
+   * الربط مع المنصة. تسجيل الطالب في شئون الطلاب لا يعتمد على النتيجة دي.
    */
   async function createLmsAccountAndNotify({ studentName, grade, classroom, fatherName, fatherPhone }) {
     try {
@@ -624,14 +629,85 @@
       if (waPhone) {
         window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
       }
-      return true;
+      return { ok: true, student: data.student, parent: data.parent };
     } catch (err) {
       console.error('LMS integration error:', err);
       alert(
         `⚠️ تم تسجيل الطالب بنجاح هنا، لكن حصل خطأ في إنشاء حسابه على منصة Bristol LMS:\n${err.message}\n\nمن فضلك أنشئ الحساب يدوياً من لوحة تحكم المنصة.`
       );
-      return false;
+      return { ok: false, error: err.message };
     }
+  }
+
+  /**
+   * يعيد فتح واتساب لطالب عنده حساب منصة متسجل خلاص (بدون إنشاء حساب جديد) —
+   * مفيد لو ولي الأمر ضاع منه الماسدج أو الموظف قفل التاب بالغلط.
+   */
+  async function resendLmsWhatsapp(studentId) {
+    const student = allStudents.find(s => s.id === studentId) || allActiveStudents.find(s => s.id === studentId);
+    if (!student?.lmsAccount) return;
+    const waPhone = formatEgyptPhoneForWhatsapp(student.fatherPhone);
+    if (!waPhone) return alert('رقم تليفون الأب غير موجود أو غير صحيح');
+    const message = buildLmsCredentialsMessage({
+      studentName: student.studentName,
+      student: { username: student.lmsAccount.studentUsername, password: student.lmsAccount.studentPassword, studentCode: student.lmsAccount.studentCode },
+      parent: { username: student.lmsAccount.parentUsername, password: student.lmsAccount.parentPassword },
+    });
+    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
+  }
+
+  // ══════════════════════════════════════════════
+  // فصول Bristol من المنصة نفسها — عشان "الفصل" هنا يبقى دايماً
+  // من نفس القائمة اللي المنصة بتستخدمها، بدون نسخة تانية ممكن تتفرق بمرور الوقت
+  // ══════════════════════════════════════════════
+  let bristolClassLevels = null; // { id, label, sections:[{id,label}] }[] — يتحمّل مرة واحدة
+
+  async function loadBristolClassLevelsIfNeeded() {
+    if (schoolId !== LMS_INTEGRATION.enabledSchoolId) return;
+    try {
+      const res = await fetch(`${LMS_INTEGRATION.apiBase}/integrations/student-affairs/class-levels`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      bristolClassLevels = data.levels || [];
+      convertClassroomFieldToDropdown();
+    } catch (err) {
+      console.warn('تعذر تحميل قائمة فصول المنصة — سيبقى حقل الفصل نصياً:', err);
+    }
+  }
+
+  /** يطابق قيمة الصف هنا ("KG1", "Grade 3"...) مع صف المنصة المقابل. */
+  function findBristolLevel(gradeValue) {
+    if (!bristolClassLevels || !gradeValue) return null;
+    const norm = String(gradeValue).trim().toLowerCase().replace(/[\s-]+/g, '');
+    return bristolClassLevels.find(l => l.label.toLowerCase().replace(/[\s-]+/g, '') === norm) || null;
+  }
+
+  /** يحوّل حقل "الفصل" من نص حر إلى قائمة اختيار — مرة واحدة فقط. */
+  function convertClassroomFieldToDropdown() {
+    const old = document.getElementById('classroom');
+    if (!old || old.tagName === 'SELECT') return;
+    const select = document.createElement('select');
+    select.id = 'classroom';
+    select.className = old.className;
+    old.replaceWith(select);
+    const hint = document.getElementById('classroomHint');
+    if (hint) hint.textContent = '(نفس فصول المنصة)';
+    populateClassroomOptions();
+  }
+
+  /** يعيد بناء اختيارات "الفصل" حسب الصف المختار حالياً (Bristol فقط). */
+  function populateClassroomOptions() {
+    const select = document.getElementById('classroom');
+    if (!select || select.tagName !== 'SELECT') return;
+    const level = findBristolLevel(document.getElementById('grade').value);
+    if (!level) {
+      select.innerHTML = '<option value="">-- اختر الصف أولاً --</option>';
+      select.disabled = true;
+      return;
+    }
+    select.disabled = false;
+    select.innerHTML = '<option value="">-- اختر الفصل --</option>' +
+      level.sections.map(s => `<option value="${s.label}">${s.label}</option>`).join('');
   }
 
   // ══ إخفاء تاب التسجيل والاستيراد للمحاسب ══
@@ -768,7 +844,7 @@
       let ageMonths = AGE_REF_DATE.getMonth()    - birth.getMonth();
       if (ageMonths < 0) { ageYears--; ageMonths += 12; }
 
-      await db.collection('studentAffairs').add({
+      const docRef = await db.collection('studentAffairs').add({
         schoolId,
         // الطالب
         studentName,
@@ -810,9 +886,30 @@
       loadPendingCount();
 
       // ── ربط المنصة: بس لمدرسة Bristol حالياً ──
+      // بعد نجاح إنشاء الحساب، بنسجّل بيانات حساب المنصة (نفس الإيميل
+      // واليوزرنيم اللي المنصة نفسها بتولّده) جوة سجل الطالب في شئون
+      // الطلاب، عشان تكون الداتا موثّقة هنا مش بس متبعتة على واتساب.
       if (schoolId === LMS_INTEGRATION.enabledSchoolId) {
         txt.textContent = 'جاري إنشاء حساب المنصة...';
-        await createLmsAccountAndNotify({ studentName, grade, classroom, fatherName, fatherPhone });
+        const lmsResult = await createLmsAccountAndNotify({ studentName, grade, classroom, fatherName, fatherPhone });
+        if (lmsResult.ok) {
+          await docRef.update({
+            lmsAccountCreated: true,
+            lmsAccount: {
+              schoolSlug: 'bristol',
+              studentUsername: lmsResult.student.username,
+              studentEmail: lmsResult.student.email,
+              studentPassword: lmsResult.student.password,
+              studentCode: lmsResult.student.studentCode,
+              parentUsername: lmsResult.parent.username,
+              parentEmail: lmsResult.parent.email,
+              parentPassword: lmsResult.parent.password,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            },
+          });
+        } else {
+          await docRef.update({ lmsAccountCreated: false, lmsAccountError: lmsResult.error || '' });
+        }
       }
 
       resetForm();
@@ -839,6 +936,7 @@
     });
     document.getElementById('birthDate').value = '';
     document.getElementById('ageDisplay').textContent = '';
+    populateClassroomOptions(); // يرجّع اختيار الفصل لحالته الافتراضية (Bristol فقط)
   }
 
   // ══════════════════════════════════════════════
@@ -939,6 +1037,7 @@
             سجّله: ${escHtml(s.registeredBy || '—')} ·
             ${s.createdAt?.toDate ? s.createdAt.toDate().toLocaleDateString('ar-EG') : ''}
           </div>
+          ${lmsAccountStatusHtml(s)}
         </div>
         <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end">
           ${canCollect
@@ -949,6 +1048,13 @@
                 ⏳ في انتظار المحاسب
                </span>`
           }
+          ${s.lmsAccountCreated && s.schoolId === LMS_INTEGRATION.enabledSchoolId
+            ? `<button class="btn-resend-wa" data-id="${s.id}"
+                style="font-size:0.72rem;color:#2e7d32;background:none;border:1px solid #2e7d32;border-radius:8px;padding:0.25rem 0.6rem;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;white-space:nowrap">
+                📲 إعادة إرسال واتساب
+               </button>`
+            : ''
+          }
           <button class="btn-delete-student" data-id="${s.id}" data-name="${escHtml(s.studentName)}"
             style="font-size:0.72rem;color:var(--danger);background:none;border:none;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700">
             🗑 حذف
@@ -957,8 +1063,29 @@
       </div>`).join('');
   }
 
-  // ── event delegation للحذف ──
+  /**
+   * سطر صغير تحت كل بطاقة يوضّح حالة حساب المنصة: اتعمل ومعاه الإيميل، فشل
+   * وبيوضح السبب، أو لسه مفيش حساب (لمدرسة تانية غير Bristol).
+   */
+  function lmsAccountStatusHtml(s) {
+    if (s.schoolId !== LMS_INTEGRATION.enabledSchoolId) return '';
+    if (s.lmsAccountCreated && s.lmsAccount) {
+      return `<div style="font-size:0.72rem;color:#2e7d32;margin-top:0.3rem;font-weight:700">
+        ✅ حساب المنصة: ${escHtml(s.lmsAccount.studentEmail)}
+      </div>`;
+    }
+    if (s.lmsAccountCreated === false) {
+      return `<div style="font-size:0.72rem;color:var(--danger);margin-top:0.3rem;font-weight:700">
+        ⚠️ فشل إنشاء حساب المنصة${s.lmsAccountError ? ' — ' + escHtml(s.lmsAccountError) : ''}
+      </div>`;
+    }
+    return '';
+  }
+
+  // ── event delegation للحذف + إعادة إرسال واتساب ──
   document.getElementById('pendingList').addEventListener('click', function(e) {
+    const resendBtn = e.target.closest('.btn-resend-wa');
+    if (resendBtn) return resendLmsWhatsapp(resendBtn.dataset.id);
     const btn = e.target.closest('.btn-delete-student');
     if (!btn) return;
     deleteStudent(btn.dataset.id, btn.dataset.name);
@@ -1105,6 +1232,7 @@
             ${s.updatedAt?.toDate ? 'آخر تحديث: ' + s.updatedAt.toDate().toLocaleDateString('ar-EG') :
               s.createdAt?.toDate ? 'تسجيل: '     + s.createdAt.toDate().toLocaleDateString('ar-EG') : ''}
           </div>
+          ${lmsAccountStatusHtml(s)}
         </div>
         <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end">
           <button onclick="goToEditStudent('${encodeURIComponent(s.studentName)}')"
@@ -1117,9 +1245,22 @@
                    font-family:Cairo,sans-serif;background:var(--primary);color:#fff;border:none;white-space:nowrap">
             💰 تحصيل
           </button>
+          ${s.lmsAccountCreated && s.schoolId === LMS_INTEGRATION.enabledSchoolId
+            ? `<button class="btn-resend-wa" data-id="${s.id}"
+                style="font-size:0.72rem;color:#2e7d32;background:none;border:1px solid #2e7d32;border-radius:8px;padding:0.25rem 0.6rem;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;white-space:nowrap">
+                📲 إعادة إرسال واتساب
+               </button>`
+            : ''
+          }
         </div>
       </div>`).join('');
   }
+
+  // ── إعادة إرسال واتساب من تاب الطلاب المسجلين ──
+  document.getElementById('activeList').addEventListener('click', function(e) {
+    const resendBtn = e.target.closest('.btn-resend-wa');
+    if (resendBtn) resendLmsWhatsapp(resendBtn.dataset.id);
+  });
 
   function filterActiveStudents() {
     const search = document.getElementById('searchActiveInput').value.trim().toLowerCase();
@@ -1530,6 +1671,7 @@
   // تحميل أولي
   // ══════════════════════════════════════════════
   loadPendingCount();
+  loadBristolClassLevelsIfNeeded();
 </script>
 </body>
 </html>
