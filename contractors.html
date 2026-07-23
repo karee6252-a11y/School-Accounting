@@ -1110,7 +1110,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">إجمالي الدفعة (ج.م)</label>
-        <input type="number" class="form-input" id="ecAmount" placeholder="0.00" readonly style="font-size:1.2rem;font-weight:800;background:var(--accent);color:var(--primary)" />
+        <input type="number" class="form-input" id="ecAmount" placeholder="0.00" step="0.01" oninput="onEditCustodyAmountInput()" style="font-size:1.2rem;font-weight:800;background:var(--accent);color:var(--primary)" />
       </div>
     </div>
     <div class="modal-footer">
@@ -1397,6 +1397,14 @@ function calcEditCustodyTotal() {
   document.getElementById('ecAmount').value = (prev + newC).toFixed(2);
 }
 
+function onEditCustodyAmountInput() {
+  // لو المستخدم عدّل إجمالي الدفعة مباشرة، اضبط "العهدة الجديدة" عشان
+  // سابقة + جديدة يفضلوا متطابقين مع الإجمالي المكتوب
+  const prev   = parseFloat(document.getElementById('ecPrev').value)   || 0;
+  const amount = parseFloat(document.getElementById('ecAmount').value) || 0;
+  document.getElementById('ecNew').value = (amount - prev).toFixed(2);
+}
+
 function openEditCustody(id) {
   const entry = custodyEntries.find(e => e.id === id);
   if (!entry) return;
@@ -1411,9 +1419,9 @@ function openEditCustody(id) {
 
 async function saveEditCustodyEntry() {
   const id     = document.getElementById('ecId').value;
-  const prev   = parseFloat(document.getElementById('ecPrev').value) || 0;
-  const newC   = parseFloat(document.getElementById('ecNew').value)  || 0;
-  const amount = prev + newC;
+  const prev   = parseFloat(document.getElementById('ecPrev').value)   || 0;
+  const amount = parseFloat(document.getElementById('ecAmount').value) || 0;
+  const newC   = amount - prev; // العهدة الجديدة = الإجمالي المكتوب − السابقة
   const date   = document.getElementById('ecDate').value;
   if (amount <= 0) return showAlert('editCustodyAlert','ادخل مبلغ العهدة السابقة أو الجديدة');
   if (!date)       return showAlert('editCustodyAlert','التاريخ مطلوب');
