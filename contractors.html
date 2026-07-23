@@ -208,10 +208,21 @@
     }
     .custody-main .c-sub { font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:0.2rem; }
     .custody-stat { text-align:center; }
-    .custody-stat .cs-lbl { font-size:0.68rem; color:rgba(255,255,255,0.55); font-weight:600; margin-bottom:0.25rem; }
+    .custody-stat .cs-lbl { font-size:0.68rem; color:rgba(255,255,255,0.55); font-weight:600; margin-bottom:0.25rem; display:flex; align-items:center; justify-content:center; gap:0.3rem; }
     .custody-stat .cs-val { font-size:1.1rem; font-weight:800; color:rgba(255,255,255,0.9); }
     .custody-stat.danger .cs-val { color:#ff6b6b; }
     .custody-stat.success .cs-val { color:#69db7c; }
+    .cw-edit-btn {
+      background:none; border:none; cursor:pointer; padding:0; font-size:0.75rem;
+      opacity:0.55; line-height:1; transition:opacity 0.2s;
+    }
+    .cw-edit-btn:hover { opacity:1; }
+    .cw-edit-btn.is-manual { opacity:0.95; }
+    .cw-manual-badge {
+      margin-top:0.3rem; font-size:0.62rem; font-weight:700; color:#ffd43b;
+      background:rgba(255,212,59,0.12); border:1px solid rgba(255,212,59,0.35);
+      border-radius:20px; padding:0.1rem 0.5rem; display:inline-block;
+    }
     .custody-progress {
       margin-top:1rem; height:6px; background:rgba(255,255,255,0.12);
       border-radius:3px; overflow:hidden;
@@ -289,8 +300,12 @@
             <div class="c-sub" id="cwBalanceSub">جاري التحميل...</div>
           </div>
           <div class="custody-stat">
-            <div class="cs-lbl">إجمالي العهدة</div>
+            <div class="cs-lbl">
+              إجمالي العهدة
+              <button class="cw-edit-btn" id="cwEditTotalBtn" onclick="openEditCustodyTotal()" title="تعديل إجمالي العهدة">✏️</button>
+            </div>
             <div class="cs-val" id="cwTotal">—</div>
+            <div class="cw-manual-badge hidden" id="cwManualBadge">قيمة معدّلة يدويًا</div>
           </div>
           <div class="custody-stat danger">
             <div class="cs-lbl">المصروف (مشتريات + مقاولات)</div>
@@ -1120,6 +1135,33 @@
   </div>
 </div>
 
+<!-- ===== MODAL: EDIT CUSTODY TOTAL (OVERRIDE) ===== -->
+<div class="modal-overlay hidden" id="editCustodyTotalModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title"> تعديل إجمالي العهدة</span>
+      <button class="btn-close" onclick="closeModal('editCustodyTotalModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert hidden" id="editCustodyTotalAlert"></div>
+      <div class="alert" style="background:#e3f2fd;border:1px solid #90caf9;color:#0277bd;font-size:0.78rem;font-weight:600;padding:0.6rem 0.85rem;border-radius:var(--radius-sm);margin-bottom:1rem">
+        هتحط رقم ثابت يحل محل مجموع دفعات العهدة في العرض. مجموع الدفعات الفعلي (<span id="ectComputed">—</span>) هيفضل زي ما هو من غير تغيير.
+      </div>
+      <div class="form-group">
+        <label class="form-label">إجمالي العهدة الجديد (ج.م) <span class="required">*</span></label>
+        <input type="number" class="form-input" id="ectValue" placeholder="0.00" min="0" step="0.01" style="font-size:1.2rem;font-weight:800;background:var(--accent);color:var(--primary)" />
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-secondary" id="ectResetBtn" onclick="resetCustodyTotalOverride()">رجوع للحساب التلقائي</button>
+      <div style="display:flex;gap:0.5rem">
+        <button class="btn btn-secondary" onclick="closeModal('editCustodyTotalModal')">إلغاء</button>
+        <button class="btn btn-primary" onclick="saveCustodyTotalOverride()"> حفظ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL: CUSTODY LOG ===== -->
 <div class="modal-overlay hidden" id="custodyLogModal">
   <div class="modal" style="max-width:560px;max-height:85vh;overflow-y:auto">
@@ -1143,6 +1185,7 @@
           <div class="s-lbl">المتبقي</div>
         </div>
       </div>
+      <div class="alert hidden" id="clogManualNote" style="background:#fff8e1;border:1px solid #ffe082;color:#e65100;font-weight:700;font-size:0.78rem;padding:0.55rem 0.85rem;border-radius:var(--radius-sm);margin-bottom:1rem"></div>
       <!-- سجل الدفعات -->
       <div style="font-size:0.82rem;font-weight:800;color:var(--primary);margin-bottom:0.65rem"> دفعات العهدة المُضافة</div>
       <div id="custodyLogList">
@@ -1181,6 +1224,7 @@ let allContracts  = [];
 let filteredPurch = [];
 let filteredContr = [];
 let custodyEntries = [];   // دفعات العهدة المستقلة
+let custodyManualTotal = null; // تعديل يدوي على إجمالي العهدة (null = يتحسب تلقائي من الدفعات)
 
 // ─── INIT ────────────────────────────────────────────────────────
 async function init() {
@@ -1188,7 +1232,7 @@ async function init() {
   document.getElementById('cDate').value = localDateStr();
   document.getElementById('cwDate').value = localDateStr();
   setDefaultReportDates();
-  await Promise.all([ loadCustodyEntries(), loadSuppliers(), loadPurchases(), loadContracts() ]);
+  await Promise.all([ loadCustodyEntries(), loadCustodySettings(), loadSuppliers(), loadPurchases(), loadContracts() ]);
   await migratePurchases();   // ترقية الفواتير القديمة مرة واحدة
   populateSupplierSelects();
   updateSummaryCards();
@@ -1249,6 +1293,16 @@ function setDefaultReportDates() {
 }
 
 // ─── CUSTODY (العهدة المستقلة) ────────────────────────────────────
+async function loadCustodySettings() {
+  try {
+    const doc = await db.collection('custody_settings').doc(schoolId).get();
+    custodyManualTotal = (doc.exists && doc.data().manualTotal != null) ? doc.data().manualTotal : null;
+  } catch(e) {
+    console.error('loadCustodySettings:', e);
+    custodyManualTotal = null;
+  }
+}
+
 async function loadCustodyEntries() {
   try {
     const snap = await db.collection('custody_entries')
@@ -1266,12 +1320,22 @@ async function loadCustodyEntries() {
   }
 }
 
-function renderCustodyWidget() {
-  // إجمالي العهدة = مجموع كل الدفعات المضافة
-  const cwTotal  = custodyEntries.reduce((s,e) => s+(e.amount||0), 0);
+// إجمالي العهدة الفعلي: قيمة معدّلة يدويًا (لو موجودة) أو مجموع كل الدفعات
+function getCustodyTotal() {
+  const computed = custodyEntries.reduce((s,e) => s+(e.amount||0), 0);
+  return { total: (custodyManualTotal != null ? custodyManualTotal : computed), computed, isManual: custodyManualTotal != null };
+}
 
-  // لو مفيش عهدة مضافة، اعرض صفر بدون حسابات
-  if (cwTotal === 0) {
+function renderCustodyWidget() {
+  const { total: cwTotal, isManual } = getCustodyTotal();
+
+  const editBtn = document.getElementById('cwEditTotalBtn');
+  if (editBtn) editBtn.classList.toggle('is-manual', isManual);
+  const badge = document.getElementById('cwManualBadge');
+  if (badge) badge.classList.toggle('hidden', !isManual);
+
+  // لو مفيش عهدة مضافة ولا قيمة معدّلة يدويًا، اعرض صفر بدون حسابات
+  if (cwTotal === 0 && !isManual) {
     document.getElementById('cwTotal').textContent   = formatCurrency(0);
     document.getElementById('cwSpent').textContent   = formatCurrency(0);
     document.getElementById('cwCount').textContent   = '0 دفعة';
@@ -1291,7 +1355,7 @@ function renderCustodyWidget() {
   const cwSpent  = _pPaid + _cPaid;
 
   const cwBalance = cwTotal - cwSpent;
-  const pct = Math.max(0, Math.min(100, Math.round(cwBalance/cwTotal*100)));
+  const pct = cwTotal > 0 ? Math.max(0, Math.min(100, Math.round(cwBalance/cwTotal*100))) : 0;
 
   document.getElementById('cwTotal').textContent   = formatCurrency(cwTotal);
   document.getElementById('cwSpent').textContent   = formatCurrency(cwSpent);
@@ -1354,7 +1418,7 @@ function openCustodyLog() {
 }
 
 function renderCustodyLog() {
-  const cwTotal   = custodyEntries.reduce((s,e) => s+(e.amount||0), 0);
+  const { total: cwTotal, computed: cwComputed, isManual } = getCustodyTotal();
   const _pTotal2 = allPurchases.reduce((s,p) => s+(p.total||0), 0);
   const _pDebt2  = allPurchases.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0);
   const cwSpent  = (_pTotal2 - _pDebt2) + allContracts.reduce((s,c) => s+(c.paid||0), 0);
@@ -1365,6 +1429,12 @@ function renderCustodyLog() {
   const balEl = document.getElementById('clogBalance');
   balEl.textContent = formatCurrency(cwBalance);
   balEl.style.color = cwBalance < 0 ? '#c0392b' : '#2e7d32';
+
+  const clogNote = document.getElementById('clogManualNote');
+  if (clogNote) {
+    clogNote.classList.toggle('hidden', !isManual);
+    if (isManual) clogNote.textContent = `⚠️ إجمالي العهدة معدَّل يدويًا (${formatCurrency(cwTotal)}) — مجموع الدفعات الفعلي: ${formatCurrency(cwComputed)}`;
+  }
 
   const list = document.getElementById('custodyLogList');
   if (custodyEntries.length === 0) {
@@ -1449,6 +1519,48 @@ async function deleteCustodyEntry(id) {
     if (!logModal.classList.contains('hidden')) renderCustodyLog();
     toast('تم الحذف ✓');
   } catch(e) { alert('خطأ: '+e.message); }
+}
+
+// ─── CUSTODY TOTAL OVERRIDE (تعديل مباشر على إجمالي العهدة في الكارت) ──
+function openEditCustodyTotal() {
+  const { total, computed, isManual } = getCustodyTotal();
+  document.getElementById('ectComputed').textContent = formatCurrency(computed);
+  document.getElementById('ectValue').value = total.toFixed(2);
+  document.getElementById('ectResetBtn').classList.toggle('hidden', !isManual);
+  document.getElementById('editCustodyTotalAlert').classList.add('hidden');
+  openModal('editCustodyTotalModal');
+}
+
+async function saveCustodyTotalOverride() {
+  const value = parseFloat(document.getElementById('ectValue').value);
+  if (isNaN(value) || value < 0) return showAlert('editCustodyTotalAlert','ادخل قيمة صحيحة');
+  try {
+    await db.collection('custody_settings').doc(schoolId).set({
+      manualTotal: value,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    custodyManualTotal = value;
+    closeModal('editCustodyTotalModal');
+    renderCustodyWidget();
+    const logModal = document.getElementById('custodyLogModal');
+    if (!logModal.classList.contains('hidden')) renderCustodyLog();
+    toast('تم تعديل إجمالي العهدة ✓');
+  } catch(e) { showAlert('editCustodyTotalAlert','خطأ: '+e.message); }
+}
+
+async function resetCustodyTotalOverride() {
+  try {
+    await db.collection('custody_settings').doc(schoolId).set({
+      manualTotal: null,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    custodyManualTotal = null;
+    closeModal('editCustodyTotalModal');
+    renderCustodyWidget();
+    const logModal = document.getElementById('custodyLogModal');
+    if (!logModal.classList.contains('hidden')) renderCustodyLog();
+    toast('تم الرجوع للحساب التلقائي ✓');
+  } catch(e) { showAlert('editCustodyTotalAlert','خطأ: '+e.message); }
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────
