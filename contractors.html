@@ -1084,6 +1084,42 @@
   </div>
 </div>
 
+<!-- ===== MODAL: EDIT CUSTODY ENTRY ===== -->
+<div class="modal-overlay hidden" id="editCustodyModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title"> تعديل دفعة عهدة</span>
+      <button class="btn-close" onclick="closeModal('editCustodyModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert hidden" id="editCustodyAlert"></div>
+      <input type="hidden" id="ecId" />
+      <div class="form-group">
+        <label class="form-label">التاريخ <span class="required">*</span></label>
+        <input type="date" class="form-input" id="ecDate" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+        <div class="form-group">
+          <label class="form-label">العهدة السابقة (ج.م)</label>
+          <input type="number" class="form-input" id="ecPrev" placeholder="0.00" min="0" step="0.01" oninput="calcEditCustodyTotal()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">العهدة الجديدة (ج.م) <span class="required">*</span></label>
+          <input type="number" class="form-input" id="ecNew" placeholder="0.00" min="0" step="0.01" oninput="calcEditCustodyTotal()" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">إجمالي الدفعة (ج.م)</label>
+        <input type="number" class="form-input" id="ecAmount" placeholder="0.00" readonly style="font-size:1.2rem;font-weight:800;background:var(--accent);color:var(--primary)" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('editCustodyModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveEditCustodyEntry()"> حفظ التعديل</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL: CUSTODY LOG ===== -->
 <div class="modal-overlay hidden" id="custodyLogModal">
   <div class="modal" style="max-width:560px;max-height:85vh;overflow-y:auto">
@@ -1348,10 +1384,51 @@ function renderCustodyLog() {
       </div>
       <div style="display:flex;align-items:center;gap:0.75rem">
         <div class="clog-date">${e.date||'—'}</div>
+        <button class="clog-del" onclick="openEditCustody('${e.id}')" title="تعديل" style="color:var(--primary)">✏️</button>
         <button class="clog-del" onclick="deleteCustodyEntry('${e.id}')" title="حذف">🗑</button>
       </div>
     </div>
   `).join('');
+}
+
+function calcEditCustodyTotal() {
+  const prev = parseFloat(document.getElementById('ecPrev').value) || 0;
+  const newC = parseFloat(document.getElementById('ecNew').value)  || 0;
+  document.getElementById('ecAmount').value = (prev + newC).toFixed(2);
+}
+
+function openEditCustody(id) {
+  const entry = custodyEntries.find(e => e.id === id);
+  if (!entry) return;
+  document.getElementById('ecId').value     = entry.id;
+  document.getElementById('ecDate').value   = entry.date || '';
+  document.getElementById('ecPrev').value   = entry.custodyPrev || 0;
+  document.getElementById('ecNew').value    = entry.custodyNew  || 0;
+  document.getElementById('ecAmount').value = (entry.amount || 0).toFixed(2);
+  document.getElementById('editCustodyAlert').classList.add('hidden');
+  openModal('editCustodyModal');
+}
+
+async function saveEditCustodyEntry() {
+  const id     = document.getElementById('ecId').value;
+  const prev   = parseFloat(document.getElementById('ecPrev').value) || 0;
+  const newC   = parseFloat(document.getElementById('ecNew').value)  || 0;
+  const amount = prev + newC;
+  const date   = document.getElementById('ecDate').value;
+  if (amount <= 0) return showAlert('editCustodyAlert','ادخل مبلغ العهدة السابقة أو الجديدة');
+  if (!date)       return showAlert('editCustodyAlert','التاريخ مطلوب');
+
+  try {
+    await db.collection('custody_entries').doc(id).update({
+      amount, custodyPrev: prev, custodyNew: newC, date
+    });
+    closeModal('editCustodyModal');
+    await loadCustodyEntries();
+    renderCustodyWidget();
+    const logModal = document.getElementById('custodyLogModal');
+    if (!logModal.classList.contains('hidden')) renderCustodyLog();
+    toast('تم تعديل العهدة ✓');
+  } catch(e) { showAlert('editCustodyAlert','خطأ: '+e.message); }
 }
 
 async function deleteCustodyEntry(id) {
