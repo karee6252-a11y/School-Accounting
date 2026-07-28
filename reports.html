@@ -57,7 +57,7 @@
         <div><div class="sub">إجمالي التحصيل</div><div class="big-num" id="summaryTotal">ج.م 0</div><div class="sub" id="summaryPeriod">التقرير اليومي</div></div>
         <div><div style="font-size:2rem;font-weight:900" id="summaryCount">0</div><div class="sub">عملية</div></div>
         <div><div style="font-size:2rem;font-weight:900" id="summaryStudents">0</div><div class="sub">طالب</div></div>
-        <div class="export-btn-group no-print"><button class="btn btn-secondary btn-sm" id="exportExcelBtn" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> Excel</button><button class="btn btn-secondary btn-sm" onclick="exportPDF()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> PDF</button><button class="btn btn-secondary btn-sm" onclick="window.print()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> طباعة</button><button class="btn btn-secondary btn-sm" id="revenueReviewBtn" onclick="handleRevenueReview()" style="background:rgba(255,215,0,0.25);color:#FFD700;border:1px solid rgba(255,215,0,0.6);font-weight:800" title="مراجعة الإيرادات الكاملة بالمراحل">📊 مراجعة الإيرادات</button>
+        <div class="export-btn-group no-print"><button class="btn btn-secondary btn-sm" id="exportExcelBtn" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> Excel</button><button class="btn btn-secondary btn-sm" onclick="exportPDF()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> PDF</button><button class="btn btn-secondary btn-sm" onclick="window.print()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> طباعة</button><button class="btn btn-secondary btn-sm" onclick="exportCustomNamesSheet()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)" title="كشف بأسماء الأشخاص يتغير حسب بند الدفع المختار"> كشف مخصص بالأسامي</button><button class="btn btn-secondary btn-sm" id="revenueReviewBtn" onclick="handleRevenueReview()" style="background:rgba(255,215,0,0.25);color:#FFD700;border:1px solid rgba(255,215,0,0.6);font-weight:800" title="مراجعة الإيرادات الكاملة بالمراحل">📊 مراجعة الإيرادات</button>
           <!-- زرار كشف الرواتب -->
           <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap">
             <input type="month" id="payrollMonthPicker" style="padding:0.3rem 0.5rem;border-radius:6px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);color:white;font-family:Cairo,sans-serif;font-size:0.78rem;max-width:140px" title="اختر الشهر"/>
@@ -320,6 +320,156 @@
     }
 
     return out;
+  }
+
+  async function exportCustomNamesSheet() {
+    if (currentData.length === 0) { alert('لا توجد بيانات للتصدير'); return; }
+
+    const school = SESSION.getSchool();
+    const { from, to } = getDateRange();
+    const filterItem = document.getElementById('filterItem').value;
+
+    if (typeof ExcelJS === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      document.head.appendChild(s);
+      s.onload = () => exportCustomNamesSheet();
+      return;
+    }
+
+    const schoolName = school?.name || 'المدرسة';
+    const YEAR = ACADEMIC_YEAR;
+
+    const rawPrimary = (school?.primaryColor || '#1E2D5A').replace('#','');
+    const rawSecond  = (school?.secondaryColor|| '#4A6FA5').replace('#','');
+    const rawAccent  = (school?.accentColor   || '#D6E4F0').replace('#','');
+
+    const PRI  = 'FF' + rawPrimary;
+    const SEC  = 'FF' + rawSecond;
+    const ACC  = 'FF' + rawAccent;
+    const WHT  = 'FFFFFFFF';
+    const BLK  = 'FF000000';
+    const TOTBG= 'FF' + rawPrimary;
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'School Accounting System — ' + schoolName;
+    wb.views = [{ x:0, y:0, width:10000, height:20000, firstSheet:0, activeTab:0, visibility:'visible', rightToLeft:true }];
+
+    function hFill(argb) { return { type:'pattern', pattern:'solid', fgColor:{ argb } }; }
+    function hBorder(style='medium', c='FF888888') {
+      const s = { style, color:{ argb: c } };
+      return { top:s, bottom:s, left:s, right:s };
+    }
+    function cAlign(wrap=false) { return { horizontal:'center', vertical:'middle', wrapText:wrap, readingOrder:2, textRotation:0 }; }
+    function rAlign() { return { horizontal:'right', vertical:'middle', readingOrder:2, textRotation:0 }; }
+
+    function styleRow(row, bg, fontArgb=BLK, bold=false, sz=10, wrap=false) {
+      row.eachCell({ includeEmpty:true }, cell => {
+        if (bg) cell.fill = hFill(bg);
+        cell.font = { name:'Arial', bold, size:sz, color:{ argb: fontArgb } };
+        cell.alignment = cAlign(wrap);
+        cell.border = hBorder('medium','FF888888');
+      });
+    }
+
+    function titleRow(ws, text, bg, fontArgb=WHT, sz=13, mergeEnd='') {
+      const r = ws.addRow([text]);
+      if (mergeEnd) ws.mergeCells(`A${r.number}:${mergeEnd}${r.number}`);
+      styleRow(r, bg, fontArgb, true, sz, true);
+      r.height = 28;
+      return r;
+    }
+
+    function hdrRow(ws, vals, bg) {
+      const r = ws.addRow(vals);
+      styleRow(r, bg, WHT, true, 10);
+      r.height = 24;
+      return r;
+    }
+
+    function dataRow(ws, vals, altBg=false) {
+      const r = ws.addRow(vals);
+      r.eachCell({ includeEmpty:true }, cell => {
+        cell.fill = hFill(altBg ? ACC : WHT);
+        cell.font = { name:'Arial', bold:false, size:10, color:{ argb: BLK } };
+        cell.alignment = cAlign();
+        cell.border = hBorder('medium','FF999999');
+      });
+      r.height = 20;
+      return r;
+    }
+
+    function totalRow(ws, vals, bg=TOTBG) {
+      const r = ws.addRow(vals);
+      r.eachCell({ includeEmpty:true }, cell => {
+        if (bg) cell.fill = hFill(bg);
+        cell.font = { name:'Arial', bold:true, size:11, color:{ argb: WHT } };
+        cell.alignment = cAlign();
+        cell.border = hBorder('thick','FF444444');
+      });
+      r.height = 24;
+      return r;
+    }
+
+    function numFmt(cell) { cell.numFmt = '#,##0;(#,##0);"-"'; }
+
+    const ws = wb.addWorksheet('كشف بالأسامي');
+    ws.views = [{ state:'normal', rightToLeft:true }];
+    ws.columns = [
+      {width:5},{width:28},{width:13},{width:12},{width:18},
+      {width:14},{width:14},{width:13},{width:22}
+    ];
+    const MCOL = 'I';
+
+    titleRow(ws, `كشف مخصص بالأسامي — ${schoolName}`, PRI, WHT, 14, MCOL);
+
+    const itemLabel = filterItem ? (filterItem === '__other__' ? 'إيرادات أخرى' : filterItem) : 'كل البنود';
+    const infoR = ws.addRow([`بند الدفع : ${itemLabel}          الفترة : من ${from}   إلى   ${to}          العام الدراسي : ${YEAR}`]);
+    ws.mergeCells(`A${infoR.number}:${MCOL}${infoR.number}`);
+    styleRow(infoR, SEC, WHT, true, 11); infoR.height = 22;
+
+    hdrRow(ws, ['م','الاسم','المرحلة','الصف','بند الدفع','المبلغ','طريقة الدفع','رقم الإيصال','ملاحظات'], SEC);
+
+    let total = 0;
+    currentData.forEach((d, i) => {
+      // المبلغ يتغير حسب بند الدفع المختار بالظبط زي منطق الجدول على الصفحة
+      let displayAmount = d.amount || 0;
+      if (filterItem) {
+        const m = mapAmounts(d);
+        const key = filterItem === 'مصروفات دراسية' || filterItem === 'مصروفات' ? 'fees'
+                  : filterItem === 'يونيفورم'  ? 'uni'
+                  : filterItem === 'باص'        ? 'bus'
+                  : filterItem === 'أبليكيشن'  ? 'app'
+                  : filterItem === 'فايل'       ? 'file'
+                  : filterItem === '__other__'  ? 'other'
+                  : 'other';
+        displayAmount = m[key] || 0;
+      }
+      total += displayAmount;
+      const displayItem = filterItem ? itemLabel : d.paymentItem;
+      const r = dataRow(ws,
+        [i+1, d.studentName, d.stageName || d.stage, d.grade, displayItem,
+         displayAmount, d.paymentTypeName || d.paymentType, d.receiptNumber || '', d.notes || ''],
+        i%2===1);
+      numFmt(r.getCell(6));
+    });
+
+    const tr = totalRow(ws, ['الإجمالي','','','','', total, '', '', '']);
+    ws.mergeCells(`A${tr.number}:E${tr.number}`);
+    ws.mergeCells(`G${tr.number}:I${tr.number}`);
+    numFmt(tr.getCell(6));
+
+    ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:4, activeCell:'A5' }];
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type:'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `كشف_مخصص_بالاسامي_${from}_${to}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
   }
 
   async function exportExcel() {
