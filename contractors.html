@@ -1203,6 +1203,7 @@
 <script src="firebase-config.js"></script>
 <script src="layout.js"></script>
 <script>
+if (!guardContractorsPage()) { throw new Error('redirecting'); }
 renderLayout('contractors', 'بند المقاولات');
 const session  = SESSION.get();
 const schoolId = session.schoolId;

@@ -41,6 +41,9 @@ const SCHOOLS = {
       "shu2on2@bristol-school.com",
       "shu2on3@bristol-school.com",
       "shu2on4@bristol-school.com"
+    ],
+    contractorsUsers: [
+      "contractors@bristol-school.com"
     ]
   },
   cardiff: {
@@ -64,6 +67,9 @@ const SCHOOLS = {
       "shu2on2@cardiff-school.com",
       "shu2on3@cardiff-school.com",
       "shu2on4@cardiff-school.com"
+    ],
+    contractorsUsers: [
+      "contractors@cardiff-school.com"
     ]
   },
   stanford1: {
@@ -87,6 +93,9 @@ const SCHOOLS = {
       "shu2on2@stanford1-school.com",
       "shu2on3@stanford1-school.com",
       "shu2on4@stanford1-school.com"
+    ],
+    contractorsUsers: [
+      "contractors@stanford1-school.com"
     ]
   },
   stanford2: {
@@ -110,6 +119,9 @@ const SCHOOLS = {
       "shu2on2@stanford2-school.com",
       "shu2on3@stanford2-school.com",
       "shu2on4@stanford2-school.com"
+    ],
+    contractorsUsers: [
+      "contractors@stanford2-school.com"
     ]
   }
 };
@@ -139,10 +151,14 @@ const HR_PAGES = ['hr.html'];
 // صفحات شئون الطلاب — المحاسب والـ HR ممنوع يدخلوا عليها مباشرة
 const SHU2ON_PAGES = ['student-affairs.html'];
 
+// صفحة المقاولات — حساب المقاولات مسموحله بيها بس، وممنوع يدخل أي صفحة تانية
+const CONTRACTORS_PAGES = ['contractors.html'];
+
 /**
  * استدعِ الدالة دي في أول كل صفحة محاسبة
  * لو الـ session بتاعها HR → يتحول لصفحة الـ HR
  * لو الـ session بتاعها shu2on → يتحول لصفحة شئون الطلاب
+ * لو الـ session بتاعها contractors → يتحول لصفحة المقاولات فقط
  */
 function guardAccountingPage() {
   const session = SESSION.get();
@@ -155,6 +171,10 @@ function guardAccountingPage() {
     window.location.href = 'student-affairs.html';
     return null;
   }
+  if (session.role === 'contractors') {
+    window.location.href = 'contractors.html';
+    return null;
+  }
   auth.onAuthStateChanged(user => {
     if (!user) { SESSION.clear(); window.location.href = 'index.html'; }
     else {
@@ -162,6 +182,7 @@ function guardAccountingPage() {
       if (!s) { window.location.href = 'index.html'; return; }
       if (s.role === 'hr') window.location.href = 'hr.html';
       if (s.role === 'shu2on') window.location.href = 'student-affairs.html';
+      if (s.role === 'contractors') window.location.href = 'contractors.html';
     }
   });
   return session;
@@ -192,6 +213,28 @@ function guardShu2onPage() {
   const isKnownAccountant = Object.values(SCHOOLS).some(sc => sc.users.includes(session.email));
   const isKnownAdmin      = ADMINS.includes(session.email);
   if (session.role !== 'shu2on' && !isKnownAdmin && !isKnownAccountant) {
+    window.location.href = 'index.html';
+    return null;
+  }
+  const school = SESSION.getSchool();
+  if (school) applySchoolTheme(school);
+  auth.onAuthStateChanged(user => {
+    if (!user) { SESSION.clear(); window.location.href = 'index.html'; }
+  });
+  return session;
+}
+
+/**
+ * استدعِ الدالة دي في صفحة contractors.html
+ * بس حساب المقاولات + المحاسب + الأدمن يدخلوا — أي حد تاني يتحول لـ index
+ */
+function guardContractorsPage() {
+  const session = SESSION.get();
+  if (!session) { window.location.href = 'index.html'; return null; }
+  // سمح لـ: contractors + admin + محاسب
+  const isKnownAccountant = Object.values(SCHOOLS).some(sc => sc.users.includes(session.email));
+  const isKnownAdmin      = ADMINS.includes(session.email);
+  if (session.role !== 'contractors' && !isKnownAdmin && !isKnownAccountant) {
     window.location.href = 'index.html';
     return null;
   }
@@ -402,12 +445,13 @@ const SESSION = {
       const s = JSON.parse(raw);
       if (!s || !s.uid || !s.email || !s.role) return null;
 
-      const isKnownAdmin      = ADMINS.includes(s.email);
-      const isKnownAccountant = Object.values(SCHOOLS).some(sc => sc.users.includes(s.email));
-      const isKnownHR         = Object.values(SCHOOLS).some(sc => sc.hrUsers?.includes(s.email));
-      const isKnownShu2on     = Object.values(SCHOOLS).some(sc => sc.shu2onUsers?.includes(s.email));
+      const isKnownAdmin       = ADMINS.includes(s.email);
+      const isKnownAccountant  = Object.values(SCHOOLS).some(sc => sc.users.includes(s.email));
+      const isKnownHR          = Object.values(SCHOOLS).some(sc => sc.hrUsers?.includes(s.email));
+      const isKnownShu2on      = Object.values(SCHOOLS).some(sc => sc.shu2onUsers?.includes(s.email));
+      const isKnownContractors = Object.values(SCHOOLS).some(sc => sc.contractorsUsers?.includes(s.email));
 
-      if (!isKnownAdmin && !isKnownAccountant && !isKnownHR && !isKnownShu2on) {
+      if (!isKnownAdmin && !isKnownAccountant && !isKnownHR && !isKnownShu2on && !isKnownContractors) {
         sessionStorage.removeItem('school_session');
         return null;
       }
@@ -422,7 +466,8 @@ const SESSION = {
         const allowedSchool = Object.values(SCHOOLS).find(sc =>
           sc.users.includes(s.email) ||
           sc.hrUsers?.includes(s.email) ||
-          sc.shu2onUsers?.includes(s.email)
+          sc.shu2onUsers?.includes(s.email) ||
+          sc.contractorsUsers?.includes(s.email)
         );
         if (!allowedSchool || allowedSchool.id !== s.schoolId) {
           sessionStorage.removeItem('school_session');
@@ -455,6 +500,10 @@ const SESSION = {
   isShu2on: () => {
     const s = SESSION.get();
     return s && s.role === 'shu2on';
+  },
+  isContractors: () => {
+    const s = SESSION.get();
+    return s && s.role === 'contractors';
   },
   getSchool: () => {
     const s = SESSION.get();

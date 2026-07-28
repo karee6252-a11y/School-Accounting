@@ -359,6 +359,18 @@
         return;
       }
 
+      // ── الموردون والمقاولون ──
+      if (selectedSchool.contractorsUsers?.includes(email)) {
+        SESSION.set({
+          uid: user.uid, email, role: 'contractors',
+          schoolId: selectedSchool.id,
+          schoolName: selectedSchool.name,
+          name: email.split('@')[0]
+        });
+        window.location.href = 'contractors.html';
+        return;
+      }
+
       // ── ACCOUNTANT ──
       if (!selectedSchool.users.includes(email)) {
         showAlert('هذا الحساب غير مصرح له بالدخول على هذه المدرسة');
@@ -600,6 +612,7 @@
     if (session.role === 'admin')        window.location.href = 'admin.html';
     else if (session.role === 'hr')      window.location.href = 'hr.html';
     else if (session.role === 'shu2on')  window.location.href = 'student-affairs.html';
+    else if (session.role === 'contractors') window.location.href = 'contractors.html';
     else                                 window.location.href = 'dashboard.html';
   }
 </script>

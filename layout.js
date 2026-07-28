@@ -46,6 +46,7 @@ function renderLayout(activePage, pageTitle) {
   const isAdmin = SESSION.isAdmin();
   const isHR = SESSION.isHR();
   const isShu2on = SESSION.isShu2on();
+  const isContractors = SESSION.isContractors();
   const userName = session.name || session.email.split('@')[0];
 
   // ── القائمة الكاملة (للمحاسب والأدمن) ──
@@ -70,6 +71,9 @@ function renderLayout(activePage, pageTitle) {
   if (isShu2on) {
     // شئون الطلاب يشوف صفحتها + تعديل بيانات الطلاب
     navItems = allNavItems.filter(i => ['student-affairs', 'edit-student'].includes(i.id));
+  } else if (isContractors) {
+    // حساب المقاولات يشوف بند المقاولات بس
+    navItems = allNavItems.filter(i => i.id === 'contractors');
   } else if (isHR) {
     // HR مش بيظهرله السايد بار العادي — بيتحول لـ hr.html
     navItems = [];
@@ -123,7 +127,7 @@ function renderLayout(activePage, pageTitle) {
           </div>
           <div class="user-details-mini">
             <div class="user-name-mini">${userName}</div>
-            <div class="user-role-mini">${isAdmin ? 'مدير النظام' : isShu2on ? 'شئون الطلاب' : isHR ? 'موارد بشرية' : 'محاسب'}</div>
+            <div class="user-role-mini">${isAdmin ? 'مدير النظام' : isShu2on ? 'شئون الطلاب' : isContractors ? 'الموردون والمقاولون' : isHR ? 'موارد بشرية' : 'محاسب'}</div>
           </div>
         </div>
         <button class="btn btn-outline w-full btn-sm" onclick="logout()" style="justify-content:center">
