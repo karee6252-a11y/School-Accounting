@@ -854,7 +854,7 @@
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #ccc;padding-top:9px;margin-top:11px;">
           <span style="border:1.5px solid #000;border-radius:20px;padding:3px 14px;font-size:13px;font-weight:800;color:#000;direction:ltr;">${receiptNumber}</span>
-          <span style="font-size:12px;color:#555;font-weight:700;">السنة الدراسية 2025 / 2026</span>
+          <span style="font-size:12px;color:#555;font-weight:700;">السنة الدراسية 2026 / 2027</span>
         </div>
       </div>
       <div style="padding:18px 22px;">
@@ -902,7 +902,7 @@
     const debtHTML=debt>0?`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#f5f5f5;border:2px solid #000;border-radius:8px;color:#000;font-weight:800;font-size:12px;margin-bottom:10px;"><span>&#9888; مديونية متبقية</span><span>${formatCurrency(debt)}</span></div>`:'';
     const rHTML=buildReceiptHTML(studentName,grade,stageName,tierHTML,itemRows,receiptNumber,date,paymentTypeName,amount,totalDue,debtHTML,school);
     const win=window.open('','_blank');
-    win.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"><style>@page{size:A4 landscape;margin:8mm}*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:194mm;overflow:hidden}body{font-family:Cairo,sans-serif;direction:rtl;background:white;}#printWrap{width:100%;transform:scale(0.8);transform-origin:top center;margin:0 auto;}@media print{body{padding:0;}}</style></head><body><div id="printWrap">${rHTML}</div><script>setTimeout(function(){window.print();setTimeout(function(){window.close();},500);},600);<\/script></body></html>`);
+    win.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"><style>@page{size:A5 landscape;margin:8mm}*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:132mm;overflow:hidden}body{font-family:Cairo,sans-serif;direction:rtl;background:white;}#printWrap{width:100%;transform:scale(0.55);transform-origin:top center;margin:0 auto;}@media print{body{padding:0;}}</style></head><body><div id="printWrap">${rHTML}</div><script>setTimeout(function(){window.print();setTimeout(function(){window.close();},500);},600);<\/script></body></html>`);
     win.document.close();
   }
 
