@@ -264,7 +264,7 @@ function ensureMohasbaPWA(session) {
       return;
     }
     const s = document.createElement('script');
-    s.src = 'pwa.js?v=5';
+    s.src = 'pwa.js?v=6';
     s.dataset.mohasbaPwa = '1';
     s.onload = () => window.MohasbaPWA?.initAfterAuth(session || SESSION.get());
     s.onerror = () => console.warn('[PWA] فشل تحميل pwa.js');
