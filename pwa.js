@@ -448,22 +448,31 @@ const MohasbaPWA = {
         background: rgba(10, 22, 48, 0.72);
         backdrop-filter: blur(6px);
         display: flex; align-items: flex-end; justify-content: center;
-        padding: 0; direction: rtl;
+        padding:
+          env(safe-area-inset-top, 0px)
+          max(0.75rem, env(safe-area-inset-right, 0px))
+          env(safe-area-inset-bottom, 0px)
+          max(0.75rem, env(safe-area-inset-left, 0px));
+        direction: rtl;
         font-family: 'Cairo', Tahoma, sans-serif;
+        box-sizing: border-box;
       }
       @media (min-width: 560px) {
         .pwa-onboard-overlay { align-items: center; padding: 1.25rem; }
       }
       .pwa-onboard-modal {
         width: 100%; max-width: 420px;
+        max-height: min(92dvh, 92vh);
         background: #fff;
         border-radius: 22px 22px 0 0;
         box-shadow: 0 -10px 40px rgba(0,0,0,0.25);
         overflow: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
         animation: pwaSlideUp 0.35s ease;
       }
       @media (min-width: 560px) {
-        .pwa-onboard-modal { border-radius: 20px; }
+        .pwa-onboard-modal { border-radius: 20px; max-height: 90vh; }
       }
       @keyframes pwaSlideUp {
         from { transform: translateY(24px); opacity: 0; }

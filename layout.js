@@ -192,18 +192,53 @@ function renderLayout(activePage, pageTitle) {
   document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
   document.getElementById('topbarContainer').innerHTML = topbarHTML;
 
-  const toggleBtn = document.getElementById('sidebarToggle');
-  if (toggleBtn) {
-    toggleBtn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+  // خلفية إغلاق السايدبار على الموبايل
+  if (!document.getElementById('sidebarBackdrop')) {
+    const backdrop = document.createElement('div');
+    backdrop.id = 'sidebarBackdrop';
+    backdrop.className = 'sidebar-backdrop';
+    backdrop.addEventListener('click', closeSidebar);
+    document.body.appendChild(backdrop);
   }
 
+  markPwaStandalone();
+  syncMobileChrome();
+
+  // إغلاق القائمة عند اختيار صفحة على الموبايل
+  document.querySelectorAll('.sidebar .nav-item[href]').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 900) closeSidebar();
+    });
+  });
+
   const footer = document.createElement('div');
-  footer.style.cssText = 'text-align:center;padding:0.5rem;font-size:0.68rem;color:var(--text-light);opacity:0.6;border-top:1px solid var(--border);margin-top:auto;';
+  footer.style.cssText = 'text-align:center;padding:0.55rem 0.75rem calc(0.55rem + env(safe-area-inset-bottom, 0px));font-size:0.68rem;color:var(--text-light);opacity:0.6;border-top:1px solid var(--border);margin-top:auto;';
   footer.textContent = 'Designed by Eng. Kareem Ali Mousa';
   document.querySelector('.main-content')?.appendChild(footer);
 
   // PWA: تثبيت إجباري + إشعارات الأدمن
   ensureMohasbaPWA(session);
+}
+
+function markPwaStandalone() {
+  const standalone =
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+    || navigator.standalone === true
+    || (window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches)
+    || /(?:\?|&)source=pwa(?:&|$)/.test(location.search || '');
+  document.body.classList.toggle('pwa-standalone', !!standalone);
+}
+
+function isMobileLayout() {
+  return window.innerWidth <= 900;
+}
+
+function syncMobileChrome() {
+  const toggleBtn = document.getElementById('sidebarToggle');
+  if (toggleBtn) {
+    toggleBtn.style.display = isMobileLayout() ? 'flex' : 'none';
+  }
+  if (!isMobileLayout()) closeSidebar();
 }
 
 function ensureMohasbaPWA(session) {
@@ -220,7 +255,7 @@ function ensureMohasbaPWA(session) {
       return;
     }
     const s = document.createElement('script');
-    s.src = 'pwa.js?v=1';
+    s.src = 'pwa.js?v=2';
     s.dataset.mohasbaPwa = '1';
     s.onload = () => window.MohasbaPWA?.initAfterAuth(session || SESSION.get());
     document.head.appendChild(s);
@@ -229,7 +264,18 @@ function ensureMohasbaPWA(session) {
 }
 
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  const open = !sidebar.classList.contains('open');
+  sidebar.classList.toggle('open', open);
+  document.getElementById('sidebarBackdrop')?.classList.toggle('show', open);
+  document.body.classList.toggle('sidebar-open', open);
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar')?.classList.remove('open');
+  document.getElementById('sidebarBackdrop')?.classList.remove('show');
+  document.body.classList.remove('sidebar-open');
 }
 
 function showSchoolSwitcher() {
@@ -245,9 +291,11 @@ let _resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(_resizeTimer);
   _resizeTimer = setTimeout(() => {
-    const toggleBtn = document.getElementById('sidebarToggle');
-    if (toggleBtn) {
-      toggleBtn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
-    }
+    syncMobileChrome();
+    markPwaStandalone();
   }, 150);
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeSidebar();
 });
