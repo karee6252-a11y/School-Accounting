@@ -658,15 +658,24 @@ async function notifyAdmins(info = {}) {
     const snap = await db.collection('adminPushSubs').get();
     const subscriptions = [];
     snap.forEach((doc) => {
-      const sub = doc.data()?.subscription;
-      if (sub && sub.endpoint) subscriptions.push(sub);
+      const d = doc.data() || {};
+      const sub = d.subscription;
+      if (!sub || !sub.endpoint) return;
+      // فلتر حسب المدرسة: الاشتراك لازم يكون للمدرسة دي أو لكل المدارس
+      const ids = Array.isArray(d.schoolIds) ? d.schoolIds : (d.schoolId ? [d.schoolId] : ['*']);
+      const matchSchool = !schoolId
+        || ids.includes('*')
+        || ids.includes('all')
+        || ids.includes(schoolId);
+      if (!matchSchool) return;
+      subscriptions.push(sub);
     });
     if (!subscriptions.length) return;
 
     await fetch('/api/notify-admins', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, body, url, subscriptions }),
+      body: JSON.stringify({ title, body, url, schoolId, subscriptions }),
     });
   } catch (e) {
     console.warn('[notify] push send failed', e);

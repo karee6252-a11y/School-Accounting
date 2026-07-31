@@ -366,17 +366,30 @@ const MohasbaPWA = {
     }
 
     const key = btoa(sub.endpoint).replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);
+    // الأدمن العام: كل المدارس. غير كده: المدرسة الحالية فقط
+    const schoolIds = (session.role === 'admin' && typeof SCHOOLS !== 'undefined')
+      ? Object.keys(SCHOOLS)
+      : [session.schoolId].filter(Boolean);
+
     await db.collection('adminPushSubs').doc(key).set({
       email: session.email,
       uid: session.uid || (auth.currentUser && auth.currentUser.uid) || '',
       subscription: sub.toJSON(),
+      schoolId: session.schoolId || null,
+      schoolIds: schoolIds.length ? schoolIds : ['*'],
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       userAgent: navigator.userAgent.slice(0, 180),
     }, { merge: true });
 
+    const schoolLabel = (typeof SESSION !== 'undefined' && SESSION.getSchool)
+      ? (SESSION.getSchool()?.name || 'كل المدارس')
+      : 'School System';
+
     try {
       await reg.showNotification('تم تفعيل الإشعارات', {
-        body: 'هتوصلك تنبيهات التحصيل الجديدة فوراً',
+        body: session.role === 'admin'
+          ? 'هتوصلك تنبيهات كل المدارس، كل إشعار باسم مدرسته'
+          : ('هتوصلك تنبيهات ' + schoolLabel),
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-96.png',
         tag: 'mohasba-notif-test',
@@ -386,24 +399,41 @@ const MohasbaPWA = {
     return true;
   },
 
+  stopAdminAlertListener() {
+    if (this._alertUnsub) {
+      try { this._alertUnsub(); } catch (_) {}
+      this._alertUnsub = null;
+    }
+  },
+
   startAdminAlertListener(session) {
     if (!session || session.role !== 'admin') return;
     if (typeof db === 'undefined') return;
-    if (this._alertUnsub) return;
+
+    // أعد الربط لو غيّر المدرسة
+    const schoolId = session.schoolId || '';
+    if (this._alertUnsub && this._listenSchoolId === schoolId) return;
+    this.stopAdminAlertListener();
+    this._listenSchoolId = schoolId;
 
     const bootAt = Date.now();
+    // بدون orderBy+where لتفادي composite index — فلترة على العميل
     this._alertUnsub = db.collection('adminAlerts')
       .orderBy('createdAt', 'desc')
-      .limit(25)
+      .limit(40)
       .onSnapshot((snap) => {
+        const currentSchool = (typeof SESSION !== 'undefined' && SESSION.get)
+          ? (SESSION.get()?.schoolId || schoolId)
+          : schoolId;
         snap.docChanges().forEach((change) => {
           if (change.type !== 'added') return;
           const id = change.doc.id;
           if (this._seenAlertIds.has(id)) return;
           this._seenAlertIds.add(id);
           const d = change.doc.data() || {};
+          // إشعار حي داخل التطبيق للمدرسة المفتوحة حالياً فقط
+          if (currentSchool && d.schoolId && d.schoolId !== currentSchool) return;
           const created = d.createdAt?.toMillis ? d.createdAt.toMillis() : 0;
-          // تجاهل القديم القديمة عند أول تحميل
           if (created && created < bootAt - 2000) return;
           this.showLocalNotification(d.title || 'إشعار جديد', d.body || '', d.url || '/admin.html');
         });

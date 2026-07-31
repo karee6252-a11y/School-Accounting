@@ -255,7 +255,7 @@ function ensureMohasbaPWA(session) {
       return;
     }
     const s = document.createElement('script');
-    s.src = 'pwa.js?v=2';
+    s.src = 'pwa.js?v=3';
     s.dataset.mohasbaPwa = '1';
     s.onload = () => window.MohasbaPWA?.initAfterAuth(session || SESSION.get());
     document.head.appendChild(s);
