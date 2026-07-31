@@ -3,7 +3,7 @@
 //  الإصدار: يُحدَّث تلقائياً عند تغيير أي ملف
 // ============================================================
 
-const CACHE_NAME = 'mohasba-v11';
+const CACHE_NAME = 'mohasba-v12';
 
 // الملفات اللي هتتحفظ في الـ cache لأول مرة (App Shell)
 const APP_SHELL = [
@@ -147,15 +147,30 @@ self.addEventListener('fetch', event => {
 //  استراتيجية: Cache First
 //  مناسبة للـ assets الثابتة (fonts, CDN)
 // ============================================================
+async function matchCache(request, cacheName) {
+  // تجاهل ?v= عشان /pwa.js?v=7 يلاقي /pwa.js المتخزّن
+  const exact = await caches.match(request, cacheName ? { cacheName } : undefined);
+  if (exact) return exact;
+  return caches.match(request, {
+    ignoreSearch: true,
+    ...(cacheName ? { cacheName } : {}),
+  });
+}
+
 async function cacheFirst(request, cacheName = CACHE_NAME) {
-  const cached = await caches.match(request);
+  const cached = await matchCache(request, cacheName);
   if (cached) return cached;
 
   try {
     const response = await fetch(request);
     if (response.ok) {
       const cache = await caches.open(cacheName);
-      cache.put(request, response.clone());
+      // خزّن بالنسخة بدون query عشان المطابقة تبقى أسهل
+      const url = new URL(request.url);
+      url.search = '';
+      cache.put(url.origin + url.pathname, response.clone()).catch(() => {
+        cache.put(request, response.clone());
+      });
     }
     return response;
   } catch {
@@ -171,14 +186,20 @@ async function networkFirstWithFallback(request) {
   try {
     const response = await fetch(request);
     if (response.ok) {
-      // حدّث الـ cache بأحدث نسخة
+      // حدّث الـ cache بأحدث نسخة (بالمسار بدون query أيضاً)
       const cache = await caches.open(CACHE_NAME);
-      cache.put(request, response.clone());
+      const url = new URL(request.url);
+      url.search = '';
+      try {
+        await cache.put(url.origin + url.pathname, response.clone());
+      } catch (_) {
+        await cache.put(request, response.clone());
+      }
     }
     return response;
   } catch {
-    // الشبكة مش شغالة — رجّع من الـ cache
-    const cached = await caches.match(request);
+    // الشبكة مش شغالة — رجّع من الـ cache (مع تجاهل ?v=)
+    const cached = await matchCache(request);
     if (cached) return cached;
 
     return new Response(

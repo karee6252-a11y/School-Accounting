@@ -3,7 +3,8 @@
 //  بنفس أسلوب منصة LMS
 // ============================================================
 
-const MohasbaPWA = {
+// لازم على window — const/let مش بيتشافوا من layout.js كـ window.MohasbaPWA
+window.MohasbaPWA = {
   _deferredInstall: null,
   _onboardingRunning: false,
   _alertUnsub: null,
@@ -758,11 +759,14 @@ const MohasbaPWA = {
   },
 };
 
+// alias للتوافق مع الكود القديم
+var MohasbaPWA = window.MohasbaPWA;
+
 // تشغيل تلقائي خفيف على صفحة الدخول
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    if (!document.querySelector('.app-layout')) MohasbaPWA.init();
+    if (!document.querySelector('.app-layout')) window.MohasbaPWA.init();
   });
 } else if (!document.querySelector('.app-layout')) {
-  MohasbaPWA.init();
+  window.MohasbaPWA.init();
 }

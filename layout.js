@@ -250,57 +250,85 @@ function syncMobileChrome() {
   if (!isMobileLayout()) closeSidebar();
 }
 
-function ensureMohasbaPWA(session) {
-  const boot = () => {
-    if (window.MohasbaPWA) {
-      MohasbaPWA.initAfterAuth(session || SESSION.get());
-      return;
-    }
-    const existing = document.querySelector('script[data-mohasba-pwa]');
-    if (existing) {
-      existing.addEventListener('load', () => {
-        window.MohasbaPWA?.initAfterAuth(session || SESSION.get());
-      });
-      return;
-    }
+function loadMohasbaPWAScript() {
+  if (window.MohasbaPWA) return Promise.resolve(window.MohasbaPWA);
+
+  const existing = document.querySelector('script[data-mohasba-pwa]');
+  if (existing) {
+    return new Promise((resolve, reject) => {
+      if (window.MohasbaPWA) return resolve(window.MohasbaPWA);
+      const ok = () => window.MohasbaPWA ? resolve(window.MohasbaPWA) : reject(new Error('pwa loaded without MohasbaPWA'));
+      existing.addEventListener('load', ok, { once: true });
+      existing.addEventListener('error', () => reject(new Error('pwa script error')), { once: true });
+      // لو السكربت اتحمل بالفعل قبل ما نعلّق الـ listener
+      setTimeout(() => {
+        if (window.MohasbaPWA) resolve(window.MohasbaPWA);
+      }, 50);
+    });
+  }
+
+  return new Promise((resolve, reject) => {
     const s = document.createElement('script');
-    s.src = 'pwa.js?v=6';
+    // مسار مطلق عشان الـ PWA/Service Worker يلاقيه دايماً
+    s.src = '/pwa.js?v=7';
+    s.async = true;
     s.dataset.mohasbaPwa = '1';
-    s.onload = () => window.MohasbaPWA?.initAfterAuth(session || SESSION.get());
-    s.onerror = () => console.warn('[PWA] فشل تحميل pwa.js');
+    s.onload = () => {
+      if (window.MohasbaPWA) resolve(window.MohasbaPWA);
+      else reject(new Error('pwa.js loaded but MohasbaPWA missing'));
+    };
+    s.onerror = () => reject(new Error('failed to fetch /pwa.js'));
     document.head.appendChild(s);
-  };
-  boot();
+  });
+}
+
+function ensureMohasbaPWA(session) {
+  return loadMohasbaPWAScript()
+    .then((pwa) => {
+      pwa.initAfterAuth(session || SESSION.get());
+      return pwa;
+    })
+    .catch((err) => {
+      console.warn('[PWA] فشل تحميل pwa.js:', err);
+      return null;
+    });
 }
 
 /** يفتح مركز تفعيل إشعارات الأدمن — متاح من التوب بار والسايدبار */
-function openAdminNotifications() {
+async function openAdminNotifications() {
   const session = SESSION.get();
   if (!session || !SESSION.isAdmin()) {
     alert('الإشعارات متاحة لحساب الأدمن فقط');
     return;
   }
 
-  const run = () => {
-    if (window.MohasbaPWA?.openNotificationCenter) {
-      MohasbaPWA.openNotificationCenter(session);
-      return;
+  try {
+    let pwa = window.MohasbaPWA;
+    if (!pwa?.openNotificationCenter) {
+      pwa = await loadMohasbaPWAScript();
     }
-    alert('جاري تحميل نظام الإشعارات... حاول مرة أخرى بعد ثانية');
-    ensureMohasbaPWA(session);
-    setTimeout(() => {
-      if (window.MohasbaPWA?.openNotificationCenter) {
-        MohasbaPWA.openNotificationCenter(session);
-      } else {
-        alert('تعذّر تحميل نظام الإشعارات. اعمل Refresh للصفحة.');
-      }
-    }, 800);
-  };
-
-  if (window.MohasbaPWA) run();
-  else {
-    ensureMohasbaPWA(session);
-    setTimeout(run, 500);
+    if (!pwa?.openNotificationCenter) {
+      throw new Error('missing openNotificationCenter');
+    }
+    pwa.initAfterAuth(session);
+    await pwa.openNotificationCenter(session);
+  } catch (err) {
+    console.warn('[PWA] openAdminNotifications:', err);
+    // محاولة أخيرة بمسار بديل بدون كاش قديم
+    try {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = '/pwa.js?v=7&t=' + Date.now();
+        s.dataset.mohasbaPwa = '1';
+        s.onload = () => (window.MohasbaPWA ? resolve() : reject());
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      window.MohasbaPWA.initAfterAuth(session);
+      await window.MohasbaPWA.openNotificationCenter(session);
+    } catch {
+      alert('تعذّر فتح نظام الإشعارات. تأكد من الاتصال بالإنترنت ثم أعد فتح التطبيق من الأيقونة.');
+    }
   }
 }
 
