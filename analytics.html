@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#1a3a6b" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <title>تحليل البيانات - نظام المحاسبة</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=2.0" />
   <style>
     .an-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:0.85rem; margin-bottom:1.25rem; }
     .an-kpi { background:var(--card-bg); border-radius:var(--radius); padding:1rem 1.1rem; box-shadow:var(--shadow); border:1px solid var(--border); }
@@ -66,18 +66,19 @@
 
       <div class="d-flex align-center gap-1 no-print" style="justify-content:space-between;flex-wrap:wrap;margin-bottom:1rem">
         <div>
-          <div style="font-size:0.8rem;color:var(--text-light);font-weight:700">السنة الدراسية <span id="ayLabel"></span></div>
-          <div style="font-size:0.75rem;color:var(--text-light)">البيانات الفعلية من التحصيل والمصروفات + الإدخال اليدوي للتحليل</div>
+          <div style="font-size:0.8rem;color:var(--text-light);font-weight:700">تحليل سنوي تراكمي: <span id="ayLabel" style="color:var(--primary)">جاري التحميل...</span></div>
+          <div style="font-size:0.75rem;color:var(--text-light)">من أول عملية على النظام حتى اليوم — يتحدّث تلقائيًا مع أي تغيير</div>
+          <div id="liveStatus" style="font-size:0.7rem;color:var(--success);font-weight:700;margin-top:0.2rem">● متصل — تحديث لحظي</div>
         </div>
         <div class="d-flex gap-1">
-          <button class="btn btn-secondary btn-sm" onclick="loadAll(true)">تحديث البيانات</button>
+          <button class="btn btn-secondary btn-sm" onclick="forceRefresh()">تحديث الآن</button>
           <button class="btn btn-primary btn-sm" onclick="window.print()">طباعة التحليل</button>
         </div>
       </div>
 
       <div class="an-print-only" style="margin-bottom:1rem">
         <h2 style="margin:0">تحليل البيانات — <span id="printSchool"></span></h2>
-        <div style="font-size:0.85rem;color:#666">السنة الدراسية <span id="printAy"></span> — طُبع في <span id="printDate"></span></div>
+        <div style="font-size:0.85rem;color:#666">الفترة: <span id="printAy"></span> — طُبع في <span id="printDate"></span></div>
       </div>
 
       <div class="an-kpis" id="kpiRow">
@@ -162,7 +163,7 @@
           <div class="an-chart-wrap"><canvas id="chartManualBars"></canvas></div>
         </div>
         <div class="an-chart-card" style="grid-column:1 / -1">
-          <h3>مسار السنة الدراسية — إيراد فعلي / مصروف فعلي / إيراد يدوي / مصروف يدوي</h3>
+          <h3>المسار التراكمي — إيراد فعلي / مصروف فعلي / إيراد يدوي / مصروف يدوي</h3>
           <div class="an-chart-wrap tall"><canvas id="chartYearLine"></canvas></div>
         </div>
         <div class="an-chart-card">
@@ -218,8 +219,6 @@ const session  = SESSION.get();
 const schoolId = session.schoolId;
 const school   = SESSION.getSchool();
 
-document.getElementById('ayLabel').textContent = ACADEMIC_YEAR;
-document.getElementById('printAy').textContent = ACADEMIC_YEAR;
 document.getElementById('printSchool').textContent = school?.name || '';
 document.getElementById('printDate').textContent = new Date().toLocaleString('ar-EG');
 document.getElementById('manualDate').value = localDateStr();
@@ -233,32 +232,80 @@ let allTx = [];
 let allExp = [];
 let allDebts = [];
 let manualEntries = [];
-let selectedItem = null; // null = all
-let selectedMonthYm = null; // null = all year
+let selectedItem = null;
+let selectedMonthYm = null;
 let charts = {};
+let PERIOD_MONTHS = [];
+let dataStartYm = null;
+let dataEndYm = null;
+let unsubscribers = [];
+let lastSeenDay = localDateStr();
+let renderTimer = null;
 
-const AY_MONTHS = buildAcademicMonths();
+function todayStr() { return localDateStr(); }
 
-function buildAcademicMonths() {
-  const startY = parseInt(ACADEMIC_YEAR_START.slice(0, 4), 10);
+function buildPeriodMonths(startYm, endYm) {
+  const nowYm = todayStr().slice(0, 7);
+  let from = startYm || nowYm;
+  let to = endYm || nowYm;
+  if (from > to) from = to;
   const labels = [];
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(startY, 6 + i, 1); // يوليو
-    const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  let [y, m] = from.split('-').map(Number);
+  const [ey, em] = to.split('-').map(Number);
+  while (y < ey || (y === ey && m <= em)) {
+    const d = new Date(y, m - 1, 1);
+    const ym = y + '-' + String(m).padStart(2, '0');
     labels.push({
       ym,
-      year: d.getFullYear(),
-      month: d.getMonth() + 1,
+      year: y,
+      month: m,
       label: d.toLocaleDateString('ar-EG', { month: 'long' }),
-      short: d.toLocaleDateString('ar-EG', { month: 'short' })
+      short: d.toLocaleDateString('ar-EG', { month: 'short', year: '2-digit' })
     });
+    m += 1;
+    if (m > 12) { m = 1; y += 1; }
   }
-  return labels;
+  return labels.length ? labels : [{
+    ym: nowYm,
+    year: Number(nowYm.slice(0, 4)),
+    month: Number(nowYm.slice(5, 7)),
+    label: new Date().toLocaleDateString('ar-EG', { month: 'long' }),
+    short: new Date().toLocaleDateString('ar-EG', { month: 'short' })
+  }];
 }
 
-function academicYearEnd() {
-  const startY = parseInt(ACADEMIC_YEAR_START.slice(0, 4), 10);
-  return `${startY + 1}-06-30`;
+function refreshPeriodMonths() {
+  const today = todayStr();
+  const endYm = today.slice(0, 7);
+  let startYm = endYm;
+  const consider = (dateStr) => {
+    if (!dateStr || String(dateStr).length < 7) return;
+    if (String(dateStr) > today) return;
+    const ym = String(dateStr).slice(0, 7);
+    if (ym < startYm) startYm = ym;
+  };
+  allTx.forEach(t => consider(t.date));
+  allExp.forEach(e => consider(e.date));
+  manualEntries.forEach(e => consider(e.date || e.yearMonth));
+
+  dataStartYm = startYm;
+  dataEndYm = endYm;
+  PERIOD_MONTHS = buildPeriodMonths(startYm, endYm);
+
+  const startLabel = formatDate(startYm + '-01');
+  const endLabel = formatDate(today);
+  document.getElementById('ayLabel').textContent = startLabel + '  ←  ' + endLabel;
+  document.getElementById('printAy').textContent = startLabel + ' حتى ' + endLabel;
+}
+
+function isInAnalysisRange(dateStr) {
+  if (!dateStr) return false;
+  return String(dateStr) <= todayStr();
+}
+
+function ensureMonthBucket(s, ym) {
+  if (!ym) return;
+  if (!s.byMonth[ym]) s.byMonth[ym] = { actualRev: 0, manualRev: 0, manualExp: 0 };
 }
 
 /** توزيع مبلغ التحصيل على البنود بنسبة netPrice (نفس منطق التقارير) */
@@ -331,41 +378,39 @@ function showManualAlert(msg, type) {
   setTimeout(() => el.classList.add('hidden'), 4000);
 }
 
-// ── تجميع البيانات ──
+function emptyItemStat(name) {
+  const s = {
+    name,
+    actualRev: 0, actualDue: 0, txCount: 0,
+    manualRev: 0, manualExp: 0, manualCount: 0,
+    byMonth: {},
+    payTypes: {},
+    txs: []
+  };
+  PERIOD_MONTHS.forEach(m => { s.byMonth[m.ym] = { actualRev: 0, manualRev: 0, manualExp: 0 }; });
+  return s;
+}
+
+// ── تجميع البيانات (من أول عملية حتى اليوم) ──
 function buildItemStats(filterYm) {
   const items = getAnalysisItems();
   const map = {};
-  items.forEach(name => {
-    map[name] = {
-      name,
-      actualRev: 0, actualDue: 0, txCount: 0,
-      manualRev: 0, manualExp: 0, manualCount: 0,
-      byMonth: {},
-      payTypes: {},
-      txs: []
-    };
-    AY_MONTHS.forEach(m => { map[name].byMonth[m.ym] = { actualRev: 0, manualRev: 0, manualExp: 0 }; });
-  });
+  items.forEach(name => { map[name] = emptyItemStat(name); });
 
   allTx.forEach(tx => {
-    if (tx.isDebtSettlement) return; // التسوية تُحسب كإيراد منفصل تحت بندها إن رغبت — تُستبعد من المستحقات الجديدة
+    if (tx.isDebtSettlement) return;
+    if (!isInAnalysisRange(tx.date)) return;
     const ym = dateToYm(tx.date);
     if (filterYm && ym !== filterYm) return;
-    if (ym < AY_MONTHS[0].ym || ym > AY_MONTHS[11].ym) return;
 
     allocateTxAmounts(tx).forEach(row => {
-      if (!map[row.item]) {
-        map[row.item] = {
-          name: row.item, actualRev: 0, actualDue: 0, txCount: 0,
-          manualRev: 0, manualExp: 0, manualCount: 0, byMonth: {}, payTypes: {}, txs: []
-        };
-        AY_MONTHS.forEach(m => { map[row.item].byMonth[m.ym] = { actualRev: 0, manualRev: 0, manualExp: 0 }; });
-      }
+      if (!map[row.item]) map[row.item] = emptyItemStat(row.item);
       const s = map[row.item];
       s.actualRev += row.amount;
       s.actualDue += row.due;
       s.txCount += 1;
-      if (s.byMonth[ym]) s.byMonth[ym].actualRev += row.amount;
+      ensureMonthBucket(s, ym);
+      s.byMonth[ym].actualRev += row.amount;
       const pt = tx.paymentTypeName || tx.paymentType || 'أخرى';
       s.payTypes[pt] = (s.payTypes[pt] || 0) + row.amount;
       s.txs.push({
@@ -376,29 +421,23 @@ function buildItemStats(filterYm) {
         grade: tx.grade,
         paymentType: pt,
         receiptNumber: tx.receiptNumber,
-        isSettlement: !!tx.isDebtSettlement
+        isSettlement: false
       });
     });
   });
 
-  // تسويات المديونية تُضاف كإيراد فعلي تحت بندها
   allTx.filter(tx => tx.isDebtSettlement).forEach(tx => {
+    if (!isInAnalysisRange(tx.date)) return;
     const ym = dateToYm(tx.date);
     if (filterYm && ym !== filterYm) return;
-    if (ym < AY_MONTHS[0].ym || ym > AY_MONTHS[11].ym) return;
     const item = String(tx.paymentItem || 'تسوية مديونية').split('+')[0].trim() || 'تسوية مديونية';
-    if (!map[item]) {
-      map[item] = {
-        name: item, actualRev: 0, actualDue: 0, txCount: 0,
-        manualRev: 0, manualExp: 0, manualCount: 0, byMonth: {}, payTypes: {}, txs: []
-      };
-      AY_MONTHS.forEach(m => { map[item].byMonth[m.ym] = { actualRev: 0, manualRev: 0, manualExp: 0 }; });
-    }
+    if (!map[item]) map[item] = emptyItemStat(item);
     const s = map[item];
     const amt = Number(tx.amount) || 0;
     s.actualRev += amt;
     s.txCount += 1;
-    if (s.byMonth[ym]) s.byMonth[ym].actualRev += amt;
+    ensureMonthBucket(s, ym);
+    s.byMonth[ym].actualRev += amt;
     const pt = tx.paymentTypeName || tx.paymentType || 'أخرى';
     s.payTypes[pt] = (s.payTypes[pt] || 0) + amt;
     s.txs.push({
@@ -409,26 +448,20 @@ function buildItemStats(filterYm) {
 
   manualEntries.forEach(e => {
     const ym = e.yearMonth || dateToYm(e.date);
+    if (!isInAnalysisRange(e.date || (ym ? ym + '-01' : ''))) return;
     if (filterYm && ym !== filterYm) return;
     const item = e.paymentItem;
     if (!item) return;
-    if (!map[item]) {
-      map[item] = {
-        name: item, actualRev: 0, actualDue: 0, txCount: 0,
-        manualRev: 0, manualExp: 0, manualCount: 0, byMonth: {}, payTypes: {}, txs: []
-      };
-      AY_MONTHS.forEach(m => { map[item].byMonth[m.ym] = { actualRev: 0, manualRev: 0, manualExp: 0 }; });
-    }
+    if (!map[item]) map[item] = emptyItemStat(item);
     const s = map[item];
     const rev = Number(e.revenue) || 0;
     const exp = Number(e.expense) || 0;
     s.manualRev += rev;
     s.manualExp += exp;
     s.manualCount += 1;
-    if (s.byMonth[ym]) {
-      s.byMonth[ym].manualRev += rev;
-      s.byMonth[ym].manualExp += exp;
-    }
+    ensureMonthBucket(s, ym);
+    s.byMonth[ym].manualRev += rev;
+    s.byMonth[ym].manualExp += exp;
   });
 
   Object.values(map).forEach(s => {
@@ -443,9 +476,9 @@ function buildItemStats(filterYm) {
 
 function totalSystemExpenses(filterYm) {
   return round2(allExp.reduce((s, e) => {
+    if (!isInAnalysisRange(e.date)) return s;
     const ym = dateToYm(e.date);
     if (filterYm && ym !== filterYm) return s;
-    if (ym < AY_MONTHS[0].ym || ym > AY_MONTHS[11].ym) return s;
     return s + (Number(e.amount) || 0);
   }, 0));
 }
@@ -459,43 +492,93 @@ function remainingDebts() {
   return { rem: round2(rem), cnt };
 }
 
-// ── تحميل من Firestore ──
-async function loadAll(force) {
-  try {
-    const end = academicYearEnd();
-    const [txSnap, expSnap, debtSnap, manSnap] = await Promise.all([
-      db.collection('transactions')
-        .where('schoolId', '==', schoolId)
-        .where('date', '>=', ACADEMIC_YEAR_START)
-        .where('date', '<=', end)
-        .get(),
-      db.collection('expenses')
-        .where('schoolId', '==', schoolId)
-        .where('date', '>=', ACADEMIC_YEAR_START)
-        .where('date', '<=', end)
-        .get(),
-      db.collection('debts').where('schoolId', '==', schoolId).get(),
-      db.collection('analyticsEntries')
-        .where('schoolId', '==', schoolId)
-        .where('academicYear', '==', ACADEMIC_YEAR)
-        .get()
-    ]);
-
-    allTx = txSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    allExp = expSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    allDebts = debtSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    manualEntries = manSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
-
+function scheduleRender() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    refreshPeriodMonths();
+    // لو الشهر المختار اتمسح من الفترة (نادر) رجّع للكل
+    if (selectedMonthYm && !PERIOD_MONTHS.some(m => m.ym === selectedMonthYm)) {
+      selectedMonthYm = null;
+    }
     fillManualItemSelect();
     fillMonthSelects();
     renderAll();
-    if (force) showManualAlert('تم تحديث البيانات من النظام', 'success');
-  } catch (err) {
-    console.error(err);
-    document.getElementById('itemsGrid').innerHTML =
-      `<div class="an-empty" style="color:var(--danger)">تعذر تحميل البيانات: ${escapeHtml(err.message)}</div>`;
+  }, 80);
+}
+
+function stopLiveSync() {
+  unsubscribers.forEach(u => { try { u(); } catch (_) {} });
+  unsubscribers = [];
+}
+
+/** تحميل لحظي: من أول عملية حتى اليوم — أي إضافة/تعديل/حذف يحدّث التحليل */
+function startLiveSync() {
+  stopLiveSync();
+  const liveEl = document.getElementById('liveStatus');
+  if (liveEl) {
+    liveEl.textContent = '⏳ جاري الاتصال...';
+    liveEl.style.color = 'var(--text-light)';
   }
+
+  const onErr = (label) => (err) => {
+    console.error(label, err);
+    if (liveEl) {
+      liveEl.textContent = '⚠ انقطع التحديث اللحظي — استخدم «تحديث الآن»';
+      liveEl.style.color = 'var(--danger)';
+    }
+  };
+
+  unsubscribers.push(
+    db.collection('transactions').where('schoolId', '==', schoolId)
+      .onSnapshot(snap => {
+        const today = todayStr();
+        allTx = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .filter(t => t.date && String(t.date) <= today);
+        scheduleRender();
+      }, onErr('transactions'))
+  );
+
+  unsubscribers.push(
+    db.collection('expenses').where('schoolId', '==', schoolId)
+      .onSnapshot(snap => {
+        const today = todayStr();
+        allExp = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .filter(e => e.date && String(e.date) <= today);
+        scheduleRender();
+      }, onErr('expenses'))
+  );
+
+  unsubscribers.push(
+    db.collection('debts').where('schoolId', '==', schoolId)
+      .onSnapshot(snap => {
+        allDebts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        scheduleRender();
+      }, onErr('debts'))
+  );
+
+  unsubscribers.push(
+    db.collection('analyticsEntries').where('schoolId', '==', schoolId)
+      .onSnapshot(snap => {
+        const today = todayStr();
+        manualEntries = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .filter(e => {
+            const d = e.date || (e.yearMonth ? e.yearMonth + '-01' : '');
+            return !d || String(d) <= today;
+          })
+          .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+        scheduleRender();
+        if (liveEl) {
+          liveEl.textContent = '● متصل — تحديث لحظي من أول عملية حتى اليوم';
+          liveEl.style.color = 'var(--success)';
+        }
+      }, onErr('analyticsEntries'))
+  );
+}
+
+function forceRefresh() {
+  document.getElementById('manualDate').value = todayStr();
+  startLiveSync();
+  showManualAlert('تم إعادة مزامنة البيانات', 'success');
 }
 
 function fillManualItemSelect() {
@@ -507,17 +590,18 @@ function fillManualItemSelect() {
 }
 
 function fillMonthSelects() {
+  if (!PERIOD_MONTHS.length) refreshPeriodMonths();
   const sel = document.getElementById('manualMonth');
-  const nowYm = localDateStr().slice(0, 7);
-  sel.innerHTML = AY_MONTHS.map(m =>
+  const nowYm = todayStr().slice(0, 7);
+  sel.innerHTML = PERIOD_MONTHS.map(m =>
     `<option value="${m.ym}">${escapeHtml(m.label)} ${m.year}</option>`
   ).join('');
-  if (AY_MONTHS.some(m => m.ym === nowYm)) sel.value = nowYm;
-  else sel.value = AY_MONTHS[0].ym;
+  if (PERIOD_MONTHS.some(m => m.ym === nowYm)) sel.value = nowYm;
+  else if (PERIOD_MONTHS.length) sel.value = PERIOD_MONTHS[PERIOD_MONTHS.length - 1].ym;
 
   const bar = document.getElementById('monthFilterBar');
-  bar.innerHTML = `<button class="an-month-chip ${!selectedMonthYm ? 'active' : ''}" onclick="setMonthFilter(null)">كل السنة</button>` +
-    AY_MONTHS.map(m =>
+  bar.innerHTML = `<button class="an-month-chip ${!selectedMonthYm ? 'active' : ''}" onclick="setMonthFilter(null)">كل الفترة</button>` +
+    PERIOD_MONTHS.map(m =>
       `<button class="an-month-chip ${selectedMonthYm === m.ym ? 'active' : ''}" onclick="setMonthFilter('${m.ym}')">${escapeHtml(m.short)}</button>`
     ).join('');
 }
@@ -563,9 +647,10 @@ function renderAll() {
   document.getElementById('kpiNet').textContent = formatCurrency(actualRev - sysExp);
   document.getElementById('kpiTxCount').textContent = txCount + ' توزيع بند';
   document.getElementById('kpiExpCount').textContent = allExp.filter(e => {
+    if (!isInAnalysisRange(e.date)) return false;
     const ym = dateToYm(e.date);
     if (selectedMonthYm && ym !== selectedMonthYm) return false;
-    return ym >= AY_MONTHS[0].ym && ym <= AY_MONTHS[11].ym;
+    return true;
   }).length + ' مصروف';
   document.getElementById('kpiDebt').textContent = formatCurrency(debts.rem);
   document.getElementById('kpiDebtCount').textContent = debts.cnt + ' سجل مفتوح';
@@ -608,7 +693,7 @@ function renderItemDetail(stats) {
     return;
   }
 
-  const monthRows = AY_MONTHS.map(m => {
+  const monthRows = PERIOD_MONTHS.map(m => {
     const bm = s.byMonth[m.ym] || { actualRev: 0, manualRev: 0, manualExp: 0 };
     return `<tr>
       <td>${escapeHtml(m.label)} ${m.year}</td>
@@ -634,7 +719,7 @@ function renderItemDetail(stats) {
   body.innerHTML = `
     <div class="an-detail-head">
       <strong style="font-size:1.05rem">${escapeHtml(selectedItem)}</strong>
-      <span class="an-badge">${selectedMonthYm ? ('شهر ' + selectedMonthYm) : 'كل السنة ' + ACADEMIC_YEAR}</span>
+      <span class="an-badge">${selectedMonthYm ? ('شهر ' + selectedMonthYm) : ('من ' + (dataStartYm || '—') + ' حتى اليوم')}</span>
     </div>
     <div class="an-kpis" style="margin-bottom:1rem">
       <div class="an-kpi rev"><div class="lbl">إيراد فعلي</div><div class="val" style="font-size:1.05rem">${formatCurrency(s.actualRev)}</div></div>
@@ -674,7 +759,7 @@ function renderManualTable() {
     const rev = Number(e.revenue) || 0;
     const exp = Number(e.expense) || 0;
     const ym = e.yearMonth || dateToYm(e.date);
-    const mLabel = AY_MONTHS.find(m => m.ym === ym);
+    const mLabel = PERIOD_MONTHS.find(m => m.ym === ym);
     return `<tr>
       <td class="text-sm text-muted">${i + 1}</td>
       <td>${escapeHtml(e.date || '')}</td>
@@ -739,14 +824,14 @@ function renderCharts(stats, sysExp) {
     }
   });
 
-  // Year line — aggregate months
-  const monthActual = AY_MONTHS.map(m => 0);
-  const monthManRev = AY_MONTHS.map(m => 0);
-  const monthManExp = AY_MONTHS.map(m => 0);
-  const monthSysExp = AY_MONTHS.map(m => 0);
+  // خط زمني — من أول شهر فيه بيانات حتى الشهر الحالي
+  const monthActual = PERIOD_MONTHS.map(() => 0);
+  const monthManRev = PERIOD_MONTHS.map(() => 0);
+  const monthManExp = PERIOD_MONTHS.map(() => 0);
+  const monthSysExp = PERIOD_MONTHS.map(() => 0);
 
   Object.values(stats).forEach(s => {
-    AY_MONTHS.forEach((m, idx) => {
+    PERIOD_MONTHS.forEach((m, idx) => {
       const bm = s.byMonth[m.ym];
       if (!bm) return;
       monthActual[idx] += bm.actualRev;
@@ -755,8 +840,9 @@ function renderCharts(stats, sysExp) {
     });
   });
   allExp.forEach(e => {
+    if (!isInAnalysisRange(e.date)) return;
     const ym = dateToYm(e.date);
-    const idx = AY_MONTHS.findIndex(m => m.ym === ym);
+    const idx = PERIOD_MONTHS.findIndex(m => m.ym === ym);
     if (idx >= 0) monthSysExp[idx] += Number(e.amount) || 0;
   });
 
@@ -764,7 +850,7 @@ function renderCharts(stats, sysExp) {
   charts.year = new Chart(document.getElementById('chartYearLine'), {
     type: 'line',
     data: {
-      labels: AY_MONTHS.map(m => m.short),
+      labels: PERIOD_MONTHS.map(m => m.short),
       datasets: [
         { label: 'إيراد فعلي', data: monthActual.map(round2), borderColor: '#2e7d32', backgroundColor: '#2e7d3322', tension: 0.3, fill: true },
         { label: 'مصروف فعلي', data: monthSysExp.map(round2), borderColor: '#c62828', backgroundColor: '#c6282822', tension: 0.3, fill: true },
@@ -777,7 +863,7 @@ function renderCharts(stats, sysExp) {
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { labels: { font: { family: 'Cairo' } } } },
       scales: {
-        x: { ticks: { font: { family: 'Cairo' } } },
+        x: { ticks: { font: { family: 'Cairo', size: 10 }, maxRotation: 45 } },
         y: { beginAtZero: true, ticks: { font: { family: 'Cairo', size: 10 } } }
       }
     }
@@ -865,8 +951,8 @@ async function saveManualEntry() {
     document.getElementById('manualRevenue').value = '';
     document.getElementById('manualExpense').value = '';
     document.getElementById('manualNotes').value = '';
-    showManualAlert('تم الحفظ — جاري تحديث التحليل', 'success');
-    await loadAll(false);
+    showManualAlert('تم الحفظ — التحليل يتحدّث تلقائيًا', 'success');
+    // onSnapshot هيعيد الرسم — لا حاجة لإعادة تحميل يدوي
   } catch (err) {
     console.error(err);
     showManualAlert('خطأ في الحفظ: ' + err.message);
@@ -879,7 +965,6 @@ async function deleteManual(id) {
   if (!confirm('حذف هذا الإدخال اليدوي؟')) return;
   try {
     await db.collection('analyticsEntries').doc(id).delete();
-    await loadAll(false);
   } catch (err) {
     alert('خطأ: ' + err.message);
   }
@@ -890,7 +975,18 @@ function printItemDetail() {
   window.print();
 }
 
-loadAll(false);
+// كل يوم جديد: وسّع الفترة حتى اليوم وأعد المزامنة
+setInterval(() => {
+  const day = todayStr();
+  if (day !== lastSeenDay) {
+    lastSeenDay = day;
+    document.getElementById('manualDate').value = day;
+    startLiveSync();
+  }
+}, 60000);
+
+window.addEventListener('beforeunload', stopLiveSync);
+startLiveSync();
 </script>
 </body>
 </html>
