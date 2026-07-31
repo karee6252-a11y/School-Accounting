@@ -3,7 +3,7 @@
 //  الإصدار: يُحدَّث تلقائياً عند تغيير أي ملف
 // ============================================================
 
-const CACHE_NAME = 'mohasba-v5';
+const CACHE_NAME = 'mohasba-v6';
 
 // الملفات اللي هتتحفظ في الـ cache لأول مرة (App Shell)
 const APP_SHELL = [
@@ -12,6 +12,7 @@ const APP_SHELL = [
   '/styles.css',
   '/layout.js',
   '/firebase-config.js',
+  '/pwa.js',
   '/manifest.json',
 
   // صفحات التطبيق
@@ -36,6 +37,8 @@ const APP_SHELL = [
   // أيقونات
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/icons/icon-192-maskable.png',
+  '/icons/icon-512-maskable.png',
   '/icons/apple-touch-icon.png',
 ];
 
@@ -228,6 +231,47 @@ async function networkFirstWithFallback(request) {
     );
   }
 }
+
+// ============================================================
+//  Web Push — إشعارات الأدمن
+// ============================================================
+self.addEventListener('push', event => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (_) {
+    data = { title: 'المحاسبة', body: event.data ? event.data.text() : '' };
+  }
+  const title = data.title || 'نظام المحاسبة';
+  const options = {
+    body: data.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-96.png',
+    vibrate: [100, 50, 100],
+    data: { url: data.url || '/admin.html' },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const raw = (event.notification.data && event.notification.data.url) || '/admin.html';
+  const target = new URL(raw, self.registration.scope).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (list) => {
+      for (const client of list) {
+        if ('focus' in client) {
+          await client.focus();
+          if ('navigate' in client) {
+            try { await client.navigate(target); return; } catch (_) { /* fall through */ }
+          }
+          return;
+        }
+      }
+      if (self.clients.openWindow) await self.clients.openWindow(target);
+    })
+  );
+});
 
 // ============================================================
 //  رسائل من الصفحة للـ Service Worker

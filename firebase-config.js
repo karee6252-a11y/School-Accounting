@@ -604,3 +604,56 @@ function logout() {
     window.location.href = 'index.html';
   });
 }
+
+/**
+ * تنبيه الأدمن بعد تسجيل تحصيل — Firestore + Web Push API
+ */
+async function notifyAdminsOfPayment(info) {
+  const schoolName = info.schoolName || '';
+  const studentName = info.studentName || '';
+  const amount = info.amount || 0;
+  const paymentItem = info.paymentItem || '';
+  const createdBy = info.createdBy || '';
+  const schoolId = info.schoolId || '';
+  const amountTxt = formatCurrency(amount);
+  const title = `تحصيل جديد — ${schoolName}`;
+  const body = `${studentName}: ${amountTxt} (${paymentItem}) — ${createdBy}`;
+  const url = '/admin.html';
+
+  try {
+    await db.collection('adminAlerts').add({
+      type: 'collection',
+      title,
+      body,
+      url,
+      schoolId,
+      schoolName,
+      studentName,
+      amount,
+      paymentItem,
+      createdBy,
+      read: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (e) {
+    console.warn('[notify] alert write failed', e);
+  }
+
+  try {
+    const snap = await db.collection('adminPushSubs').get();
+    const subscriptions = [];
+    snap.forEach((doc) => {
+      const sub = doc.data()?.subscription;
+      if (sub && sub.endpoint) subscriptions.push(sub);
+    });
+    if (!subscriptions.length) return;
+
+    await fetch('/api/notify-admins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, body, url, subscriptions }),
+    });
+  } catch (e) {
+    console.warn('[notify] push send failed', e);
+  }
+}

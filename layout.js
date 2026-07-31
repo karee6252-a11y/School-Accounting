@@ -201,6 +201,31 @@ function renderLayout(activePage, pageTitle) {
   footer.style.cssText = 'text-align:center;padding:0.5rem;font-size:0.68rem;color:var(--text-light);opacity:0.6;border-top:1px solid var(--border);margin-top:auto;';
   footer.textContent = 'Designed by Eng. Kareem Ali Mousa';
   document.querySelector('.main-content')?.appendChild(footer);
+
+  // PWA: تثبيت إجباري + إشعارات الأدمن
+  ensureMohasbaPWA(session);
+}
+
+function ensureMohasbaPWA(session) {
+  const boot = () => {
+    if (window.MohasbaPWA) {
+      MohasbaPWA.initAfterAuth(session || SESSION.get());
+      return;
+    }
+    const existing = document.querySelector('script[data-mohasba-pwa]');
+    if (existing) {
+      existing.addEventListener('load', () => {
+        window.MohasbaPWA?.initAfterAuth(session || SESSION.get());
+      });
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = 'pwa.js?v=1';
+    s.dataset.mohasbaPwa = '1';
+    s.onload = () => window.MohasbaPWA?.initAfterAuth(session || SESSION.get());
+    document.head.appendChild(s);
+  };
+  boot();
 }
 
 function toggleSidebar() {

@@ -271,6 +271,35 @@ service cloud.firestore {
       allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
     }
 
+    // ═══════════════════════════════════════════
+    // إشعارات الأدمن (Web Push + تنبيهات حية)
+    // ═══════════════════════════════════════════
+    match /adminAlerts/{docId} {
+      allow read: if isAuth() && isAdmin();
+      allow create: if isAuth() && (
+        isAdmin() ||
+        canWriteToSchool(request.resource.data.schoolId)
+      );
+      allow update, delete: if isAuth() && isAdmin();
+    }
+
+    // اشتراكات Push الخاصة بالأدمن — القراءة للمحاسب أيضاً لإرسال التنبيه
+    match /adminPushSubs/{docId} {
+      allow read: if isAuth() && (
+        isAdmin() ||
+        email() in [
+          'acc1.bristol@bristol-school.com', 'acc2.bristol@bristol-school.com',
+          'acc1.cardiff@cardiff-school.com', 'acc2.cardiff@cardiff-school.com',
+          'acc1.stanford1@stanford-school.com', 'acc2.stanford1@stanford-school.com',
+          'acc1.stanford2@stanford-school.com', 'acc2.stanford2@stanford-school.com'
+        ]
+      );
+      allow create, update: if isAuth() && isAdmin()
+        && request.resource.data.email == email();
+      allow delete: if isAuth() && isAdmin()
+        && resource.data.email == email();
+    }
+
   } // end match /databases
 } // end service
 

@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="المحاسبة" />
-  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 <title>التحصيل اليومي - نظام المحاسبة</title>
   <link rel="stylesheet" href="styles.css?v=2.0" />
   <style>
@@ -763,6 +763,18 @@
 
       showAlert('تم حفظ التحصيل بنجاح!'+(debt>0?` - مديونية: ${formatCurrency(debt)}`:''), 'success');
       loadTodayTransactions();
+
+      // إشعار فوري للأدمن (Firestore + Web Push)
+      if (typeof notifyAdminsOfPayment === 'function') {
+        notifyAdminsOfPayment({
+          schoolId,
+          schoolName: school.name,
+          studentName,
+          amount,
+          paymentItem,
+          createdBy: session.email
+        }).catch(() => {});
+      }
 
       if (_shu2onStudentId) {
         db.collection('studentAffairs').doc(_shu2onStudentId).update({
