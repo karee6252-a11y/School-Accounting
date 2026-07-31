@@ -148,6 +148,10 @@ function renderLayout(activePage, pageTitle) {
             <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M19.07 4.93A10 10 0 0 1 4.93 19.07M19.07 4.93l-3.18 3.18M4.93 19.07l3.18-3.18"/></svg></span>
             <span>إدارة النظام</span>
           </a>
+          <div class="nav-item" onclick="openAdminNotifications()" style="cursor:pointer">
+            <span class="nav-icon">🔔</span>
+            <span>تفعيل الإشعارات</span>
+          </div>
           <div class="nav-item" onclick="showSchoolSwitcher()" style="cursor:pointer">
             <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
             <span>تغيير المدرسة</span>
@@ -176,6 +180,10 @@ function renderLayout(activePage, pageTitle) {
     </aside>
   `;
 
+  const notifBtnHtml = isAdmin
+    ? `<button type="button" class="btn btn-sm btn-primary" id="adminNotifBtn" onclick="openAdminNotifications()" style="white-space:nowrap;font-weight:800;min-height:36px;flex-shrink:0">🔔 تفعيل الإشعارات</button>`
+    : '';
+
   const topbarHTML = `
     <div class="topbar">
       <div class="d-flex align-center gap-1">
@@ -183,8 +191,9 @@ function renderLayout(activePage, pageTitle) {
         <h1 class="topbar-title">${safePageTitle}</h1>
       </div>
       <div class="topbar-actions">
+        ${notifBtnHtml}
         <div class="badge badge-primary">${escapeHtml(school?.name || '')}</div>
-        <div style="font-size:0.8rem;color:var(--text-light)">${new Date().toLocaleDateString('ar-EG', {weekday:'long', year:'numeric', month:'long', day:'numeric'})}</div>
+        <div class="topbar-date" style="font-size:0.8rem;color:var(--text-light)">${new Date().toLocaleDateString('ar-EG', {weekday:'long', year:'numeric', month:'long', day:'numeric'})}</div>
       </div>
     </div>
   `;
@@ -255,12 +264,44 @@ function ensureMohasbaPWA(session) {
       return;
     }
     const s = document.createElement('script');
-    s.src = 'pwa.js?v=4';
+    s.src = 'pwa.js?v=5';
     s.dataset.mohasbaPwa = '1';
     s.onload = () => window.MohasbaPWA?.initAfterAuth(session || SESSION.get());
+    s.onerror = () => console.warn('[PWA] فشل تحميل pwa.js');
     document.head.appendChild(s);
   };
   boot();
+}
+
+/** يفتح مركز تفعيل إشعارات الأدمن — متاح من التوب بار والسايدبار */
+function openAdminNotifications() {
+  const session = SESSION.get();
+  if (!session || !SESSION.isAdmin()) {
+    alert('الإشعارات متاحة لحساب الأدمن فقط');
+    return;
+  }
+
+  const run = () => {
+    if (window.MohasbaPWA?.openNotificationCenter) {
+      MohasbaPWA.openNotificationCenter(session);
+      return;
+    }
+    alert('جاري تحميل نظام الإشعارات... حاول مرة أخرى بعد ثانية');
+    ensureMohasbaPWA(session);
+    setTimeout(() => {
+      if (window.MohasbaPWA?.openNotificationCenter) {
+        MohasbaPWA.openNotificationCenter(session);
+      } else {
+        alert('تعذّر تحميل نظام الإشعارات. اعمل Refresh للصفحة.');
+      }
+    }, 800);
+  };
+
+  if (window.MohasbaPWA) run();
+  else {
+    ensureMohasbaPWA(session);
+    setTimeout(run, 500);
+  }
 }
 
 function toggleSidebar() {

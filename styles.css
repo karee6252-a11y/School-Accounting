@@ -1131,8 +1131,15 @@ body {
     flex-shrink: 0;
   }
   .topbar-actions .badge { font-size: 0.68rem; padding: 0.2rem 0.45rem; }
-  .topbar-actions > div:last-child {
+  .topbar-actions .topbar-date {
     display: none; /* إخفاء التاريخ الطويل على الموبايل */
+  }
+  #adminNotifBtn {
+    display: inline-flex !important;
+    align-items: center;
+    font-size: 0.78rem;
+    padding: 0.4rem 0.65rem;
+    z-index: 60;
   }
 
   #sidebarToggle {

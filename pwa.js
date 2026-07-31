@@ -101,13 +101,9 @@ const MohasbaPWA = {
       }
 
       // الأدمن: اطلب تفعيل الإشعارات على الموبايل والكمبيوتر
-      if (s && s.role === 'admin') {
-        // على iOS الإشعارات تحتاج التطبيق من الأيقونة
-        if (this.isIOS() && !this.isStandalone()) {
-          // بعد ما يثبّت ويفتح من الأيقونة هيظهر تلقائي؛ الزر موجود في التوب بار
-          return;
-        }
-        await new Promise((r) => setTimeout(r, 400));
+      if (this._isAdminSession(s)) {
+        if (this.isIOS() && !this.isStandalone()) return;
+        await new Promise((r) => setTimeout(r, 500));
         await this.maybeShowNotificationPrompt(s, true);
       }
     } finally {
@@ -118,25 +114,42 @@ const MohasbaPWA = {
   /** زر دائم للأدمن — موبايل وكمبيوتر */
   mountAdminNotifButton(session) {
     const s = session || (typeof SESSION !== 'undefined' ? SESSION.get() : null);
-    if (!s || s.role !== 'admin') return;
-    if (document.getElementById('adminNotifBtn')) return;
+    const isAdmin = s && (
+      s.role === 'admin'
+      || (typeof SESSION !== 'undefined' && SESSION.isAdmin && SESSION.isAdmin())
+      || (typeof ADMINS !== 'undefined' && ADMINS.includes(s.email))
+    );
+    if (!isAdmin) return;
 
-    const host = document.querySelector('.topbar-actions') || document.querySelector('.topbar');
-    if (!host) {
-      setTimeout(() => this.mountAdminNotifButton(s), 400);
-      return;
+    // الزر بيتبني من layout.js — هنا نحدّث حالته فقط
+    let btn = document.getElementById('adminNotifBtn');
+    if (!btn) {
+      const host = document.querySelector('.topbar-actions') || document.querySelector('.topbar');
+      if (!host) {
+        setTimeout(() => this.mountAdminNotifButton(s), 400);
+        return;
+      }
+      btn = document.createElement('button');
+      btn.id = 'adminNotifBtn';
+      btn.type = 'button';
+      btn.className = 'btn btn-sm btn-primary';
+      btn.style.cssText = 'white-space:nowrap;font-weight:800;min-height:36px;flex-shrink:0';
+      btn.textContent = '🔔 تفعيل الإشعارات';
+      btn.onclick = () => (typeof openAdminNotifications === 'function'
+        ? openAdminNotifications()
+        : this.openNotificationCenter(s));
+      host.prepend(btn);
     }
-
-    const btn = document.createElement('button');
-    btn.id = 'adminNotifBtn';
-    btn.type = 'button';
-    btn.className = 'btn btn-sm btn-primary';
-    btn.style.cssText = 'white-space:nowrap;font-weight:800;min-height:36px;';
-    btn.innerHTML = '🔔 الإشعارات';
-    btn.title = 'تفعيل / مراجعة إشعارات الأدمن';
-    btn.addEventListener('click', () => this.openNotificationCenter(s));
-    host.prepend(btn);
     this.refreshNotifButtonState();
+  },
+
+  _isAdminSession(session) {
+    const s = session || (typeof SESSION !== 'undefined' ? SESSION.get() : null);
+    if (!s) return false;
+    if (s.role === 'admin') return true;
+    if (typeof SESSION !== 'undefined' && SESSION.isAdmin && SESSION.isAdmin()) return true;
+    if (typeof ADMINS !== 'undefined' && ADMINS.includes(s.email)) return true;
+    return false;
   },
 
   refreshNotifButtonState() {
@@ -157,7 +170,7 @@ const MohasbaPWA = {
 
   async openNotificationCenter(session) {
     const s = session || (typeof SESSION !== 'undefined' ? SESSION.get() : null);
-    if (!s || s.role !== 'admin') return;
+    if (!this._isAdminSession(s)) return;
     this.injectStyles();
 
     if (!('Notification' in window)) {
@@ -344,7 +357,7 @@ const MohasbaPWA = {
   },
 
   async maybeShowNotificationPrompt(session, force = false) {
-    if (!session || session.role !== 'admin') return;
+    if (!this._isAdminSession(session)) return;
     if (!('Notification' in window)) return;
     if (document.getElementById('pwa-notif-overlay')) return;
 
