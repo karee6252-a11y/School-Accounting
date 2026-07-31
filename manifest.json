@@ -1,7 +1,7 @@
 {
-  "name": "نظام المحاسبة المدرسي",
-  "short_name": "المحاسبة",
-  "description": "نظام إدارة مالية متكامل للمدارس",
+  "name": "School System",
+  "short_name": "School System",
+  "description": "School System — نظام إدارة المدارس",
   "start_url": "/index.html?source=pwa",
   "display": "standalone",
   "orientation": "portrait-primary",

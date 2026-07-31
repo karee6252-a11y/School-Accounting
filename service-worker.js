@@ -3,7 +3,7 @@
 //  الإصدار: يُحدَّث تلقائياً عند تغيير أي ملف
 // ============================================================
 
-const CACHE_NAME = 'mohasba-v7';
+const CACHE_NAME = 'mohasba-v8';
 
 // الملفات اللي هتتحفظ في الـ cache لأول مرة (App Shell)
 const APP_SHELL = [
@@ -240,9 +240,9 @@ self.addEventListener('push', event => {
   try {
     data = event.data ? event.data.json() : {};
   } catch (_) {
-    data = { title: 'المحاسبة', body: event.data ? event.data.text() : '' };
+    data = { title: 'School System', body: event.data ? event.data.text() : '' };
   }
-  const title = data.title || 'نظام المحاسبة';
+  const title = data.title || 'School System';
   const options = {
     body: data.body || '',
     icon: '/icons/icon-192.png',

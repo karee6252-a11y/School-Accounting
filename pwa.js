@@ -167,8 +167,8 @@ const MohasbaPWA = {
       overlay.innerHTML = `
         <div class="pwa-onboard-modal">
           <div class="pwa-onboard-head">
-            <img class="pwa-icon-img" src="/icons/icon-192.png" alt="المحاسبة" />
-            <h3>ثبّت تطبيق المحاسبة للمتابعة</h3>
+            <img class="pwa-icon-img" src="/icons/icon-192.png" alt="School System" />
+            <h3>ثبّت School System للمتابعة</h3>
             <p>${isIOS ? 'مطلوب على الآيفون — Safari' : 'مطلوب على أندرويد — Chrome'}</p>
             ${deviceBadge}
           </div>
