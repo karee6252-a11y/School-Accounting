@@ -181,7 +181,7 @@ function renderLayout(activePage, pageTitle) {
   `;
 
   const notifBtnHtml = isAdmin
-    ? `<button type="button" class="btn btn-sm btn-primary" id="adminNotifBtn" onclick="openAdminNotifications()" style="white-space:nowrap;font-weight:800;min-height:36px;flex-shrink:0">🔔 تفعيل الإشعارات</button>`
+    ? `<button type="button" class="btn btn-sm btn-primary" id="adminNotifBtn" onclick="openAdminNotifications()" style="white-space:nowrap;font-weight:800;min-height:36px;flex-shrink:0"><span aria-hidden="true">🔔</span> <span class="notif-label-full">تفعيل الإشعارات</span><span class="notif-label-short">إشعارات</span></button>`
     : '';
 
   const topbarHTML = `

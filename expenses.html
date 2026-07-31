@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
   <title>بند المصروفات - نظام المحاسبة</title>
-  <link rel="stylesheet" href="styles.css?v=2.2" />
+  <link rel="stylesheet" href="styles.css?v=2.3" />
   <style>
     /*  Custodian Cards  */
     .custodian-summary {
@@ -258,11 +258,14 @@
       .custodian-summary { grid-template-columns: repeat(3, 1fr); }
     }
     @media (max-width: 768px) {
-      .custodian-summary { grid-template-columns: 1fr 1fr; }
-      .summary-meta { gap: 1rem; }
+      .custodian-summary { grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+      .summary-meta { gap: 0.75rem; flex-wrap: wrap; }
+      .custodian-card { padding: 0.75rem; }
+      .cust-value { font-size: 1.05rem; word-break: break-word; }
+      .cust-label { font-size: 0.72rem; }
     }
     @media (max-width: 480px) {
-      .custodian-summary { grid-template-columns: 1fr 1fr; }
+      .custodian-summary { grid-template-columns: 1fr 1fr; gap: 0.45rem; }
     }
 
     /*  Badge colors per category  */

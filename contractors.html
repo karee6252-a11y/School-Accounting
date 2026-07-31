@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="School System" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 <title>بند المقاولات - نظام المحاسبة</title>
-  <link rel="stylesheet" href="styles.css?v=2.2" />
+  <link rel="stylesheet" href="styles.css?v=2.3" />
   <style>
     /* ===== TABS ===== */
     .main-tabs {
@@ -247,12 +247,11 @@
 
     @media (max-width:768px) {
       .custody-numbers { grid-template-columns:1fr 1fr; }
-      .custody-main .c-val { font-size:1.8rem; }
-    }
-
-    @media (max-width:768px) {
+      .custody-main .c-val { font-size:1.5rem; }
       .sum-grid { grid-template-columns:1fr 1fr; }
       .supplier-grid { grid-template-columns:1fr; }
+      .main-content { max-width: 100% !important; }
+      .custody-main { padding: 0.85rem; }
     }
 
     /* ===== FIX: layout + table scroll ===== */
