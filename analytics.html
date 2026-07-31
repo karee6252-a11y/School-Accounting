@@ -65,6 +65,25 @@
       .an-kpis { grid-template-columns:1fr; }
       .an-items { grid-template-columns:1fr; }
     }
+
+    .an-mode-bar { display:flex; gap:0.4rem; flex-wrap:wrap; align-items:center; }
+    .an-mode-btn {
+      border:1.5px solid var(--border); background:var(--card-bg); color:var(--text-mid);
+      border-radius:10px; padding:0.45rem 0.85rem; font-family:inherit; font-size:0.8rem;
+      font-weight:800; cursor:pointer;
+    }
+    .an-mode-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .an-mode-btn.tadkheel.active { background:#6a1b9a; border-color:#6a1b9a; }
+    .an-tadkheel-banner {
+      display:none; margin-bottom:1rem; padding:0.9rem 1rem; border-radius:12px;
+      background:linear-gradient(135deg,#f3e5f5,#ede7f6); border:1px solid #ce93d8;
+    }
+    body.an-mode-tadkheel .an-tadkheel-banner { display:block; }
+    body.an-mode-tadkheel .an-live-only { display:none !important; }
+    .an-tadkheel-banner h3 { margin:0 0 0.35rem; font-size:0.95rem; color:#4a148c; }
+    .an-tadkheel-banner p { margin:0; font-size:0.78rem; color:#5e35b1; line-height:1.55; }
+    .an-tadkheel-controls { display:flex; flex-wrap:wrap; gap:0.55rem; align-items:end; margin-top:0.75rem; }
+    .an-tadkheel-controls .form-group { margin:0; min-width:140px; }
   </style>
 </head>
 <body>
@@ -76,13 +95,33 @@
       <div class="d-flex align-center gap-1 no-print" style="justify-content:space-between;flex-wrap:wrap;margin-bottom:1rem">
         <div>
           <div style="font-size:0.8rem;color:var(--text-light);font-weight:700">تحليل سنوي تراكمي: <span id="ayLabel" style="color:var(--primary)">جاري التحميل...</span></div>
-          <div style="font-size:0.75rem;color:var(--text-light)">من أول عملية على النظام حتى اليوم — يتحدّث تلقائيًا مع أي تغيير</div>
+          <div id="modeHint" style="font-size:0.75rem;color:var(--text-light)">من أول عملية على النظام حتى اليوم — يتحدّث تلقائيًا مع أي تغيير</div>
           <div id="liveStatus" style="font-size:0.7rem;color:var(--success);font-weight:700;margin-top:0.2rem">● متصل — تحديث لحظي</div>
         </div>
-        <div class="d-flex gap-1" style="flex-wrap:wrap">
-          <button class="btn btn-secondary btn-sm" onclick="forceRefresh()">تحديث الآن</button>
+        <div class="d-flex gap-1" style="flex-wrap:wrap;align-items:center">
+          <div class="an-mode-bar">
+            <button type="button" class="an-mode-btn active" id="modeLiveBtn" onclick="setAnalysisMode('live')">مباشر</button>
+            <button type="button" class="an-mode-btn tadkheel" id="modeTadkheelBtn" onclick="setAnalysisMode('tadkheel')">تدخيل</button>
+          </div>
+          <button class="btn btn-secondary btn-sm an-live-only" onclick="forceRefresh()">تحديث الآن</button>
           <button class="btn btn-primary btn-sm" id="exportAnalyticsExcelBtn" onclick="exportAnalyticsExcel()">تصدير Excel احترافي</button>
           <button class="btn btn-secondary btn-sm" onclick="window.print()">طباعة التحليل</button>
+        </div>
+      </div>
+
+      <div class="an-tadkheel-banner no-print" id="tadkheelBanner">
+        <h3>وضع التدخيل — سنة قديمة بالكامل يدويًا</h3>
+        <p>
+          بيانات النظام الحيّة متوقفة هنا. امسح بيانات السنة لو حابب تبدأ من صفر،
+          وبعدين أدخل كل بنود الإيراد والمصروف يدويًا — التحليل والرسوم هتشتغل على المدخلات دي فقط.
+        </p>
+        <div class="an-tadkheel-controls">
+          <div class="form-group">
+            <label class="form-label">السنة الدراسية</label>
+            <select class="form-input" id="tadkheelYearSelect" onchange="onTadkheelYearChange()"></select>
+          </div>
+          <button type="button" class="btn btn-danger btn-sm" onclick="clearTadkheelYear()">مسح كل بيانات التدخيل لهذه السنة</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="setAnalysisMode('live')">رجوع للتحليل المباشر</button>
         </div>
       </div>
 
@@ -92,12 +131,12 @@
       </div>
 
       <div class="an-kpis" id="kpiRow">
-        <div class="an-kpi rev"><div class="lbl">إيراد فعلي (تحصيل)</div><div class="val" id="kpiActualRev">—</div><div class="sub" id="kpiTxCount">0 عملية</div></div>
-        <div class="an-kpi exp"><div class="lbl">مصروف فعلي (النظام)</div><div class="val" id="kpiActualExp">—</div><div class="sub" id="kpiExpCount">0 مصروف</div></div>
-        <div class="an-kpi rev"><div class="lbl">إيراد يدوي مُدخل</div><div class="val" id="kpiManualRev">—</div><div class="sub">للتحليل</div></div>
-        <div class="an-kpi exp"><div class="lbl">مصروف يدوي مُدخل</div><div class="val" id="kpiManualExp">—</div><div class="sub">للتحليل</div></div>
-        <div class="an-kpi net"><div class="lbl">صافي (فعلي)</div><div class="val" id="kpiNet">—</div><div class="sub" id="kpiRate">—</div></div>
-        <div class="an-kpi"><div class="lbl">مديونيات متبقية</div><div class="val" id="kpiDebt" style="color:#c62828">—</div><div class="sub" id="kpiDebtCount">0 سجل</div></div>
+        <div class="an-kpi rev an-live-only"><div class="lbl">إيراد فعلي (تحصيل)</div><div class="val" id="kpiActualRev">—</div><div class="sub" id="kpiTxCount">0 عملية</div></div>
+        <div class="an-kpi exp an-live-only"><div class="lbl">مصروف فعلي (النظام)</div><div class="val" id="kpiActualExp">—</div><div class="sub" id="kpiExpCount">0 مصروف</div></div>
+        <div class="an-kpi rev"><div class="lbl" id="kpiManualRevLbl">إيراد يدوي مُدخل</div><div class="val" id="kpiManualRev">—</div><div class="sub" id="kpiManualRevSub">للتحليل</div></div>
+        <div class="an-kpi exp"><div class="lbl" id="kpiManualExpLbl">مصروف يدوي مُدخل</div><div class="val" id="kpiManualExp">—</div><div class="sub" id="kpiManualExpSub">للتحليل</div></div>
+        <div class="an-kpi net"><div class="lbl" id="kpiNetLbl">صافي (فعلي)</div><div class="val" id="kpiNet">—</div><div class="sub" id="kpiRate">—</div></div>
+        <div class="an-kpi an-live-only"><div class="lbl">مديونيات متبقية</div><div class="val" id="kpiDebt" style="color:#c62828">—</div><div class="sub" id="kpiDebtCount">0 سجل</div></div>
       </div>
 
       <div class="card" style="margin-bottom:1.25rem">
@@ -112,20 +151,24 @@
 
       <div class="an-form-grid">
         <div class="card no-print">
-          <div class="card-header"><span class="card-title">إدخال يدوي تحت البند</span></div>
+          <div class="card-header"><span class="card-title" id="manualFormTitle">إدخال يدوي تحت البند</span></div>
           <div class="card-body">
             <div id="manualAlert" class="alert alert-error hidden" style="margin-bottom:0.75rem"></div>
             <div class="form-group">
               <label class="form-label">البند</label>
               <select class="form-input" id="manualItem"></select>
             </div>
+            <div class="form-group" id="customItemWrap" style="display:none">
+              <label class="form-label">بند مخصص (اختياري)</label>
+              <input type="text" class="form-input" id="manualCustomItem" placeholder="اكتب بند جديد لو مش موجود في القائمة" />
+            </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
               <div class="form-group">
-                <label class="form-label">إيراد يدوي (ج.م)</label>
+                <label class="form-label">إيراد (ج.م)</label>
                 <input type="number" min="0" step="0.01" class="form-input" id="manualRevenue" placeholder="0" />
               </div>
               <div class="form-group">
-                <label class="form-label">مصروف يدوي (ج.م)</label>
+                <label class="form-label">مصروف (ج.م)</label>
                 <input type="number" min="0" step="0.01" class="form-input" id="manualExpense" placeholder="0" />
               </div>
             </div>
@@ -144,7 +187,7 @@
               <input type="text" class="form-input" id="manualNotes" placeholder="اختياري" />
             </div>
             <button class="btn btn-primary w-full" id="manualSaveBtn" onclick="saveManualEntry()">حفظ وعرض التحليل</button>
-            <p style="font-size:0.72rem;color:var(--text-light);margin-top:0.6rem;line-height:1.5">
+            <p style="font-size:0.72rem;color:var(--text-light);margin-top:0.6rem;line-height:1.5" id="manualFormHint">
               الإدخال اليدوي للتحليل والمقارنة — لا يغيّر التحصيل أو المصروفات المسجّلة في النظام.
             </p>
           </div>
@@ -188,7 +231,7 @@
 
       <div class="card">
         <div class="card-header">
-          <span class="card-title">سجل الإدخال اليدوي</span>
+          <span class="card-title" id="manualTableTitle">سجل الإدخال اليدوي</span>
         </div>
         <div class="table-wrapper">
           <table class="data-table">
@@ -253,7 +296,141 @@ let unsubscribers = [];
 let lastSeenDay = localDateStr();
 let renderTimer = null;
 
+/** live = تحليل النظام الحالي | tadkheel = سنة قديمة بإدخال يدوي كامل */
+let analysisMode = 'live';
+let tadkheelYear = ACADEMIC_YEAR;
+
 function todayStr() { return localDateStr(); }
+
+function isTadkheelMode() { return analysisMode === 'tadkheel'; }
+
+function listAcademicYears(count = 12) {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  let startY = m >= 7 ? y : y - 1;
+  const years = [];
+  for (let i = 0; i < count; i++) {
+    const a = startY - i;
+    years.push(a + '/' + (a + 1));
+  }
+  return years;
+}
+
+function monthsForAcademicYear(label) {
+  const startY = Number(String(label || '').split('/')[0]);
+  if (!startY) return buildPeriodMonths(todayStr().slice(0, 7), todayStr().slice(0, 7));
+  return buildPeriodMonths(startY + '-07', (startY + 1) + '-06');
+}
+
+function fillTadkheelYearSelect() {
+  const sel = document.getElementById('tadkheelYearSelect');
+  if (!sel) return;
+  const years = listAcademicYears();
+  if (!years.includes(tadkheelYear)) tadkheelYear = years[0];
+  sel.innerHTML = years.map(y =>
+    `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`
+  ).join('');
+  sel.value = tadkheelYear;
+}
+
+function getActiveManualEntries() {
+  if (isTadkheelMode()) {
+    return manualEntries.filter(e =>
+      e.entryMode === 'tadkheel' && String(e.analysisYear || e.academicYear || '') === String(tadkheelYear)
+    );
+  }
+  // الوضع المباشر: متخلطش مع بيانات التدخيل القديمة
+  return manualEntries.filter(e => e.entryMode !== 'tadkheel');
+}
+
+function setAnalysisMode(mode) {
+  analysisMode = mode === 'tadkheel' ? 'tadkheel' : 'live';
+  document.body.classList.toggle('an-mode-tadkheel', isTadkheelMode());
+  document.getElementById('modeLiveBtn')?.classList.toggle('active', !isTadkheelMode());
+  document.getElementById('modeTadkheelBtn')?.classList.toggle('active', isTadkheelMode());
+
+  const hint = document.getElementById('modeHint');
+  const liveEl = document.getElementById('liveStatus');
+  const customWrap = document.getElementById('customItemWrap');
+  const formTitle = document.getElementById('manualFormTitle');
+  const formHint = document.getElementById('manualFormHint');
+  const tableTitle = document.getElementById('manualTableTitle');
+
+  if (isTadkheelMode()) {
+    fillTadkheelYearSelect();
+    if (hint) hint.textContent = 'وضع التدخيل: التحليل على البيانات اليدوية فقط لسنة ' + tadkheelYear;
+    if (liveEl) {
+      liveEl.textContent = '✎ تدخيل — بدون بيانات النظام الحية';
+      liveEl.style.color = '#6a1b9a';
+    }
+    if (customWrap) customWrap.style.display = '';
+    if (formTitle) formTitle.textContent = 'تدخيل بنود السنة — إيراد ومصروف';
+    if (formHint) formHint.textContent = 'كل إدخال هنا جزء من سنة التدخيل المختارة فقط، ومش بيأثر على التحصيل أو المصروفات الحية.';
+    if (tableTitle) tableTitle.textContent = 'سجل تدخيل السنة ' + tadkheelYear;
+    document.getElementById('kpiManualRevLbl').textContent = 'إجمالي الإيراد المدخل';
+    document.getElementById('kpiManualExpLbl').textContent = 'إجمالي المصروف المدخل';
+    document.getElementById('kpiNetLbl').textContent = 'صافي التدخيل';
+    document.getElementById('kpiManualRevSub').textContent = 'سنة ' + tadkheelYear;
+    document.getElementById('kpiManualExpSub').textContent = 'سنة ' + tadkheelYear;
+  } else {
+    if (hint) hint.textContent = 'من أول عملية على النظام حتى اليوم — يتحدّث تلقائيًا مع أي تغيير';
+    if (liveEl) {
+      liveEl.textContent = '● متصل — تحديث لحظي من أول عملية حتى اليوم';
+      liveEl.style.color = 'var(--success)';
+    }
+    if (customWrap) customWrap.style.display = 'none';
+    if (formTitle) formTitle.textContent = 'إدخال يدوي تحت البند';
+    if (formHint) formHint.textContent = 'الإدخال اليدوي للتحليل والمقارنة — لا يغيّر التحصيل أو المصروفات المسجّلة في النظام.';
+    if (tableTitle) tableTitle.textContent = 'سجل الإدخال اليدوي';
+    document.getElementById('kpiManualRevLbl').textContent = 'إيراد يدوي مُدخل';
+    document.getElementById('kpiManualExpLbl').textContent = 'مصروف يدوي مُدخل';
+    document.getElementById('kpiNetLbl').textContent = 'صافي (فعلي)';
+    document.getElementById('kpiManualRevSub').textContent = 'للتحليل';
+    document.getElementById('kpiManualExpSub').textContent = 'للتحليل';
+  }
+
+  selectedMonthYm = null;
+  scheduleRender();
+}
+
+function onTadkheelYearChange() {
+  const sel = document.getElementById('tadkheelYearSelect');
+  tadkheelYear = sel?.value || tadkheelYear;
+  selectedMonthYm = null;
+  if (isTadkheelMode()) {
+    document.getElementById('modeHint').textContent = 'وضع التدخيل: التحليل على البيانات اليدوية فقط لسنة ' + tadkheelYear;
+    document.getElementById('manualTableTitle').textContent = 'سجل تدخيل السنة ' + tadkheelYear;
+    document.getElementById('kpiManualRevSub').textContent = 'سنة ' + tadkheelYear;
+    document.getElementById('kpiManualExpSub').textContent = 'سنة ' + tadkheelYear;
+  }
+  scheduleRender();
+}
+
+async function clearTadkheelYear() {
+  if (!isTadkheelMode()) return;
+  const entries = getActiveManualEntries();
+  if (!entries.length) {
+    showManualAlert('مفيش بيانات تدخيل للسنة دي', 'success');
+    return;
+  }
+  if (!confirm('هتتمسح كل بيانات التدخيل لسنة ' + tadkheelYear + ' (' + entries.length + ' سجل). متأكد؟')) return;
+  try {
+    const batchSize = 400;
+    for (let i = 0; i < entries.length; i += batchSize) {
+      const batch = db.batch();
+      entries.slice(i, i + batchSize).forEach(e => batch.delete(db.collection('analyticsEntries').doc(e.id)));
+      await batch.commit();
+    }
+    showManualAlert('اتمسحت بيانات التدخيل — ابدأ الإدخال من جديد', 'success');
+    if (typeof notifyAdminActivity === 'function') {
+      notifyAdminActivity('مسح تدخيل تحليلي', tadkheelYear, { type: 'analytics_clear', url: '/analytics.html' });
+    }
+  } catch (err) {
+    console.error(err);
+    showManualAlert('فشل المسح: ' + err.message);
+  }
+}
 
 function buildPeriodMonths(startYm, endYm) {
   const nowYm = todayStr().slice(0, 7);
@@ -286,6 +463,15 @@ function buildPeriodMonths(startYm, endYm) {
 }
 
 function refreshPeriodMonths() {
+  if (isTadkheelMode()) {
+    PERIOD_MONTHS = monthsForAcademicYear(tadkheelYear);
+    dataStartYm = PERIOD_MONTHS[0]?.ym || null;
+    dataEndYm = PERIOD_MONTHS[PERIOD_MONTHS.length - 1]?.ym || null;
+    document.getElementById('ayLabel').textContent = 'تدخيل سنة ' + tadkheelYear;
+    document.getElementById('printAy').textContent = 'تدخيل — ' + tadkheelYear;
+    return;
+  }
+
   const today = todayStr();
   const endYm = today.slice(0, 7);
   let startYm = endYm;
@@ -297,7 +483,7 @@ function refreshPeriodMonths() {
   };
   allTx.forEach(t => consider(t.date));
   allExp.forEach(e => consider(e.date));
-  manualEntries.forEach(e => consider(e.date || e.yearMonth));
+  getActiveManualEntries().forEach(e => consider(e.date || e.yearMonth));
 
   dataStartYm = startYm;
   dataEndYm = endYm;
@@ -311,6 +497,10 @@ function refreshPeriodMonths() {
 
 function isInAnalysisRange(dateStr) {
   if (!dateStr) return false;
+  if (isTadkheelMode()) {
+    const ym = String(dateStr).slice(0, 7);
+    return PERIOD_MONTHS.some(m => m.ym === ym);
+  }
   return String(dateStr) <= todayStr();
 }
 
@@ -373,8 +563,10 @@ function getAnalysisItems() {
     ['مصروفات - قسط 3', 'سمر كورس'].forEach(i => { if (!base.includes(i)) base.push(i); });
   }
   const fromData = new Set();
-  allTx.forEach(tx => allocateTxAmounts(tx).forEach(r => fromData.add(r.item)));
-  manualEntries.forEach(e => { if (e.paymentItem) fromData.add(e.paymentItem); });
+  if (!isTadkheelMode()) {
+    allTx.forEach(tx => allocateTxAmounts(tx).forEach(r => fromData.add(r.item)));
+  }
+  getActiveManualEntries().forEach(e => { if (e.paymentItem) fromData.add(e.paymentItem); });
   fromData.forEach(i => { if (i && !base.includes(i)) base.push(i); });
   return base;
 }
@@ -402,62 +594,70 @@ function emptyItemStat(name) {
   return s;
 }
 
-// ── تجميع البيانات (من أول عملية حتى اليوم) ──
+// ── تجميع البيانات (مباشر = نظام حي | تدخيل = يدوي فقط) ──
 function buildItemStats(filterYm) {
+  const activeManual = getActiveManualEntries();
   const items = getAnalysisItems();
+  // في التدخيل: ضم بنود اللي اتدخلت حتى لو مش في القائمة الأساسية
+  activeManual.forEach(e => {
+    if (e.paymentItem && !items.includes(e.paymentItem)) items.push(e.paymentItem);
+  });
   const map = {};
   items.forEach(name => { map[name] = emptyItemStat(name); });
 
-  allTx.forEach(tx => {
-    if (tx.isDebtSettlement) return;
-    if (!isInAnalysisRange(tx.date)) return;
-    const ym = dateToYm(tx.date);
-    if (filterYm && ym !== filterYm) return;
+  // وضع التدخيل: نتجاهل التحصيل/المصروف/المديونيات الحية تمامًا
+  if (!isTadkheelMode()) {
+    allTx.forEach(tx => {
+      if (tx.isDebtSettlement) return;
+      if (!isInAnalysisRange(tx.date)) return;
+      const ym = dateToYm(tx.date);
+      if (filterYm && ym !== filterYm) return;
 
-    allocateTxAmounts(tx).forEach(row => {
-      if (!map[row.item]) map[row.item] = emptyItemStat(row.item);
-      const s = map[row.item];
-      s.actualRev += row.amount;
-      s.actualDue += row.due;
-      s.txCount += 1;
-      ensureMonthBucket(s, ym);
-      s.byMonth[ym].actualRev += row.amount;
-      const pt = tx.paymentTypeName || tx.paymentType || 'أخرى';
-      s.payTypes[pt] = (s.payTypes[pt] || 0) + row.amount;
-      s.txs.push({
-        id: tx.id,
-        date: tx.date,
-        studentName: tx.studentName,
-        amount: row.amount,
-        grade: tx.grade,
-        paymentType: pt,
-        receiptNumber: tx.receiptNumber,
-        isSettlement: false
+      allocateTxAmounts(tx).forEach(row => {
+        if (!map[row.item]) map[row.item] = emptyItemStat(row.item);
+        const s = map[row.item];
+        s.actualRev += row.amount;
+        s.actualDue += row.due;
+        s.txCount += 1;
+        ensureMonthBucket(s, ym);
+        s.byMonth[ym].actualRev += row.amount;
+        const pt = tx.paymentTypeName || tx.paymentType || 'أخرى';
+        s.payTypes[pt] = (s.payTypes[pt] || 0) + row.amount;
+        s.txs.push({
+          id: tx.id,
+          date: tx.date,
+          studentName: tx.studentName,
+          amount: row.amount,
+          grade: tx.grade,
+          paymentType: pt,
+          receiptNumber: tx.receiptNumber,
+          isSettlement: false
+        });
       });
     });
-  });
 
-  allTx.filter(tx => tx.isDebtSettlement).forEach(tx => {
-    if (!isInAnalysisRange(tx.date)) return;
-    const ym = dateToYm(tx.date);
-    if (filterYm && ym !== filterYm) return;
-    const item = String(tx.paymentItem || 'تسوية مديونية').split('+')[0].trim() || 'تسوية مديونية';
-    if (!map[item]) map[item] = emptyItemStat(item);
-    const s = map[item];
-    const amt = Number(tx.amount) || 0;
-    s.actualRev += amt;
-    s.txCount += 1;
-    ensureMonthBucket(s, ym);
-    s.byMonth[ym].actualRev += amt;
-    const pt = tx.paymentTypeName || tx.paymentType || 'أخرى';
-    s.payTypes[pt] = (s.payTypes[pt] || 0) + amt;
-    s.txs.push({
-      id: tx.id, date: tx.date, studentName: tx.studentName, amount: amt,
-      grade: tx.grade, paymentType: pt, receiptNumber: tx.receiptNumber, isSettlement: true
+    allTx.filter(tx => tx.isDebtSettlement).forEach(tx => {
+      if (!isInAnalysisRange(tx.date)) return;
+      const ym = dateToYm(tx.date);
+      if (filterYm && ym !== filterYm) return;
+      const item = String(tx.paymentItem || 'تسوية مديونية').split('+')[0].trim() || 'تسوية مديونية';
+      if (!map[item]) map[item] = emptyItemStat(item);
+      const s = map[item];
+      const amt = Number(tx.amount) || 0;
+      s.actualRev += amt;
+      s.txCount += 1;
+      ensureMonthBucket(s, ym);
+      s.byMonth[ym].actualRev += amt;
+      const pt = tx.paymentTypeName || tx.paymentType || 'أخرى';
+      s.payTypes[pt] = (s.payTypes[pt] || 0) + amt;
+      s.txs.push({
+        id: tx.id, date: tx.date, studentName: tx.studentName, amount: amt,
+        grade: tx.grade, paymentType: pt, receiptNumber: tx.receiptNumber, isSettlement: true
+      });
     });
-  });
+  }
 
-  manualEntries.forEach(e => {
+  activeManual.forEach(e => {
     const ym = e.yearMonth || dateToYm(e.date);
     if (!isInAnalysisRange(e.date || (ym ? ym + '-01' : ''))) return;
     if (filterYm && ym !== filterYm) return;
@@ -486,6 +686,7 @@ function buildItemStats(filterYm) {
 }
 
 function totalSystemExpenses(filterYm) {
+  if (isTadkheelMode()) return 0;
   return round2(allExp.reduce((s, e) => {
     if (!isInAnalysisRange(e.date)) return s;
     const ym = dateToYm(e.date);
@@ -495,6 +696,7 @@ function totalSystemExpenses(filterYm) {
 }
 
 function remainingDebts() {
+  if (isTadkheelMode()) return { rem: 0, cnt: 0 };
   let rem = 0, cnt = 0;
   allDebts.forEach(d => {
     const r = Number(d.remaining) || 0;
@@ -573,12 +775,14 @@ function startLiveSync() {
         const today = todayStr();
         manualEntries = snap.docs.map(d => ({ id: d.id, ...d.data() }))
           .filter(e => {
+            // بيانات التدخيل لسنين قديمة تفضل ظاهرة حتى لو تاريخها قديم جدًا
+            if (e.entryMode === 'tadkheel') return true;
             const d = e.date || (e.yearMonth ? e.yearMonth + '-01' : '');
             return !d || String(d) <= today;
           })
           .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
         scheduleRender();
-        if (liveEl) {
+        if (liveEl && !isTadkheelMode()) {
           liveEl.textContent = '● متصل — تحديث لحظي من أول عملية حتى اليوم';
           liveEl.style.color = 'var(--success)';
         }
@@ -604,11 +808,21 @@ function fillMonthSelects() {
   if (!PERIOD_MONTHS.length) refreshPeriodMonths();
   const sel = document.getElementById('manualMonth');
   const nowYm = todayStr().slice(0, 7);
+  const prevYm = sel.value;
   sel.innerHTML = PERIOD_MONTHS.map(m =>
     `<option value="${m.ym}">${escapeHtml(m.label)} ${m.year}</option>`
   ).join('');
-  if (PERIOD_MONTHS.some(m => m.ym === nowYm)) sel.value = nowYm;
-  else if (PERIOD_MONTHS.length) sel.value = PERIOD_MONTHS[PERIOD_MONTHS.length - 1].ym;
+  if (prevYm && PERIOD_MONTHS.some(m => m.ym === prevYm)) sel.value = prevYm;
+  else if (!isTadkheelMode() && PERIOD_MONTHS.some(m => m.ym === nowYm)) sel.value = nowYm;
+  else if (PERIOD_MONTHS.length) sel.value = PERIOD_MONTHS[0].ym;
+
+  // في التدخيل: اربط التاريخ بشهر الإدخال
+  if (isTadkheelMode() && sel.value) {
+    const dateEl = document.getElementById('manualDate');
+    if (dateEl && String(dateEl.value || '').slice(0, 7) !== sel.value) {
+      dateEl.value = sel.value + '-01';
+    }
+  }
 
   const bar = document.getElementById('monthFilterBar');
   bar.innerHTML = `<button class="an-month-chip ${!selectedMonthYm ? 'active' : ''}" onclick="setMonthFilter(null)">كل الفترة</button>` +
@@ -655,7 +869,15 @@ function renderAll() {
   document.getElementById('kpiActualExp').textContent = formatCurrency(sysExp);
   document.getElementById('kpiManualRev').textContent = formatCurrency(manualRev);
   document.getElementById('kpiManualExp').textContent = formatCurrency(manualExp);
-  document.getElementById('kpiNet').textContent = formatCurrency(actualRev - sysExp);
+  if (isTadkheelMode()) {
+    document.getElementById('kpiNet').textContent = formatCurrency(manualRev - manualExp);
+    document.getElementById('kpiRate').textContent =
+      getActiveManualEntries().length + ' إدخال • سنة ' + tadkheelYear;
+  } else {
+    document.getElementById('kpiNet').textContent = formatCurrency(actualRev - sysExp);
+    const rate = actualRev + debts.rem > 0 ? Math.round(actualRev / (actualRev + debts.rem) * 100) : 0;
+    document.getElementById('kpiRate').textContent = 'نسبة التحصيل التقريبية: ' + rate + '%';
+  }
   document.getElementById('kpiTxCount').textContent = txCount + ' توزيع بند';
   document.getElementById('kpiExpCount').textContent = allExp.filter(e => {
     if (!isInAnalysisRange(e.date)) return false;
@@ -665,19 +887,21 @@ function renderAll() {
   }).length + ' مصروف';
   document.getElementById('kpiDebt').textContent = formatCurrency(debts.rem);
   document.getElementById('kpiDebtCount').textContent = debts.cnt + ' سجل مفتوح';
-  const rate = actualRev + debts.rem > 0 ? Math.round(actualRev / (actualRev + debts.rem) * 100) : 0;
-  document.getElementById('kpiRate').textContent = 'نسبة التحصيل التقريبية: ' + rate + '%';
 
   document.getElementById('selectedItemBadge').textContent = selectedItem || 'كل البنود';
 
   // بطاقات البنود
   const grid = document.getElementById('itemsGrid');
   grid.innerHTML = items.map((name, idx) => {
-    const s = stats[name] || { actualRev: 0, txCount: 0, manualCount: 0 };
+    const s = stats[name] || { actualRev: 0, manualRev: 0, txCount: 0, manualCount: 0 };
+    const mainAmt = isTadkheelMode() ? s.manualRev : s.actualRev;
+    const cntTxt = isTadkheelMode()
+      ? ((s.manualCount || 0) + ' إدخال • مصروف ' + formatCurrency(s.manualExp || 0))
+      : (s.txCount + ' عملية' + (s.manualCount ? ' • يدوي: ' + s.manualCount : ''));
     return `<div class="an-item ${selectedItem === name ? 'active' : ''}" data-item-idx="${idx}">
       <div class="name">${escapeHtml(name)}</div>
-      <div class="amt">${formatCurrency(s.actualRev)}</div>
-      <div class="cnt">${s.txCount} عملية${s.manualCount ? ' • يدوي: ' + s.manualCount : ''}</div>
+      <div class="amt">${formatCurrency(mainAmt)}</div>
+      <div class="cnt">${cntTxt}</div>
     </div>`;
   }).join('');
   grid.querySelectorAll('.an-item').forEach(el => {
@@ -758,12 +982,14 @@ function renderItemDetail(stats) {
 
 function renderManualTable() {
   const tbody = document.getElementById('manualTableBody');
-  let rows = manualEntries;
+  let rows = getActiveManualEntries();
   if (selectedItem) rows = rows.filter(e => e.paymentItem === selectedItem);
   if (selectedMonthYm) rows = rows.filter(e => (e.yearMonth || dateToYm(e.date)) === selectedMonthYm);
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="9"><div class="an-empty">لا توجد إدخالات يدوية بعد</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9"><div class="an-empty">' +
+      (isTadkheelMode() ? 'مفيش تدخيل للسنة دي بعد — ابدأ الإدخال من النموذج' : 'لا توجد إدخالات يدوية بعد') +
+      '</div></td></tr>';
     return;
   }
   tbody.innerHTML = rows.map((e, i) => {
@@ -795,15 +1021,21 @@ function renderCharts(stats, sysExp) {
     return s && (s.actualRev > 0 || s.manualRev > 0 || s.manualExp > 0);
   });
 
-  // Pie — actual revenue by item
+  // Pie — إيراد فعلي (مباشر) أو إيراد التدخيل
   destroyChart('pie');
   const pieCtx = document.getElementById('chartItemsPie');
+  const pieTitle = pieCtx?.closest('.an-chart-card')?.querySelector('h3');
+  if (pieTitle) {
+    pieTitle.textContent = isTadkheelMode()
+      ? 'توزيع الإيراد المدخل حسب البند'
+      : 'توزيع الإيراد الفعلي حسب البند';
+  }
   charts.pie = new Chart(pieCtx, {
     type: 'doughnut',
     data: {
       labels: items.map(i => i),
       datasets: [{
-        data: items.map(i => stats[i].actualRev),
+        data: items.map(i => isTadkheelMode() ? stats[i].manualRev : stats[i].actualRev),
         backgroundColor: items.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]),
         borderWidth: 1
       }]
@@ -858,16 +1090,28 @@ function renderCharts(stats, sysExp) {
   });
 
   destroyChart('year');
-  charts.year = new Chart(document.getElementById('chartYearLine'), {
-    type: 'line',
-    data: {
-      labels: PERIOD_MONTHS.map(m => m.short),
-      datasets: [
+  const yearTitle = document.getElementById('chartYearLine')?.closest('.an-chart-card')?.querySelector('h3');
+  if (yearTitle) {
+    yearTitle.textContent = isTadkheelMode()
+      ? 'المسار الشهري للتدخيل — إيراد / مصروف'
+      : 'المسار التراكمي — إيراد فعلي / مصروف فعلي / إيراد يدوي / مصروف يدوي';
+  }
+  const yearDatasets = isTadkheelMode()
+    ? [
+        { label: 'إيراد مدخل', data: monthManRev.map(round2), borderColor: '#2e7d32', backgroundColor: '#2e7d3322', tension: 0.3, fill: true },
+        { label: 'مصروف مدخل', data: monthManExp.map(round2), borderColor: '#c62828', backgroundColor: '#c6282822', tension: 0.3, fill: true }
+      ]
+    : [
         { label: 'إيراد فعلي', data: monthActual.map(round2), borderColor: '#2e7d32', backgroundColor: '#2e7d3322', tension: 0.3, fill: true },
         { label: 'مصروف فعلي', data: monthSysExp.map(round2), borderColor: '#c62828', backgroundColor: '#c6282822', tension: 0.3, fill: true },
         { label: 'إيراد يدوي', data: monthManRev.map(round2), borderColor: '#1565c0', borderDash: [6, 4], tension: 0.3, fill: false },
         { label: 'مصروف يدوي', data: monthManExp.map(round2), borderColor: '#ef6c00', borderDash: [6, 4], tension: 0.3, fill: false }
-      ]
+      ];
+  charts.year = new Chart(document.getElementById('chartYearLine'), {
+    type: 'line',
+    data: {
+      labels: PERIOD_MONTHS.map(m => m.short),
+      datasets: yearDatasets
     },
     options: {
       responsive: true, maintainAspectRatio: false,
@@ -931,24 +1175,33 @@ function renderCharts(stats, sysExp) {
 }
 
 async function saveManualEntry() {
-  const paymentItem = document.getElementById('manualItem').value;
+  const customItem = (document.getElementById('manualCustomItem')?.value || '').trim();
+  const paymentItem = customItem || document.getElementById('manualItem').value;
   const revenue = parseFloat(document.getElementById('manualRevenue').value) || 0;
   const expense = parseFloat(document.getElementById('manualExpense').value) || 0;
   const yearMonth = document.getElementById('manualMonth').value;
-  const date = document.getElementById('manualDate').value || localDateStr();
+  let date = document.getElementById('manualDate').value || localDateStr();
   const notes = document.getElementById('manualNotes').value.trim();
 
   if (!paymentItem) return showManualAlert('اختر البند');
   if (revenue <= 0 && expense <= 0) return showManualAlert('أدخل إيرادًا أو مصروفًا أكبر من صفر');
   if (!yearMonth) return showManualAlert('اختر الشهر');
 
+  // في التدخيل: خلي التاريخ داخل الشهر المختار لو بره السنة
+  if (isTadkheelMode()) {
+    const ymOfDate = String(date).slice(0, 7);
+    if (ymOfDate !== yearMonth) date = yearMonth + '-01';
+  }
+
   const btn = document.getElementById('manualSaveBtn');
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
   try {
-    await db.collection('analyticsEntries').add({
+    const payload = {
       schoolId,
       schoolName: school?.name || '',
-      academicYear: ACADEMIC_YEAR,
+      academicYear: isTadkheelMode() ? tadkheelYear : ACADEMIC_YEAR,
+      analysisYear: isTadkheelMode() ? tadkheelYear : ACADEMIC_YEAR,
+      entryMode: isTadkheelMode() ? 'tadkheel' : 'overlay',
       paymentItem,
       revenue: round2(revenue),
       expense: round2(expense),
@@ -957,20 +1210,25 @@ async function saveManualEntry() {
       notes,
       createdBy: session.email,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    };
+    await db.collection('analyticsEntries').add(payload);
     selectedItem = paymentItem;
     document.getElementById('manualRevenue').value = '';
     document.getElementById('manualExpense').value = '';
     document.getElementById('manualNotes').value = '';
-    showManualAlert('تم الحفظ — التحليل يتحدّث تلقائيًا', 'success');
+    if (document.getElementById('manualCustomItem')) document.getElementById('manualCustomItem').value = '';
+    showManualAlert(
+      isTadkheelMode() ? 'تم التدخيل — التحليل على بيانات السنة اليدوية' : 'تم الحفظ — التحليل يتحدّث تلقائيًا',
+      'success'
+    );
     if (typeof notifyAdminActivity === 'function') {
       notifyAdminActivity(
-        'إدخال تحليلي يدوي',
-        `${paymentItem}: إيراد ${formatCurrency(revenue)} / مصروف ${formatCurrency(expense)}`,
+        isTadkheelMode() ? 'تدخيل تحليلي لسنة قديمة' : 'إدخال تحليلي يدوي',
+        `${paymentItem}: إيراد ${formatCurrency(revenue)} / مصروف ${formatCurrency(expense)}` +
+          (isTadkheelMode() ? (' — ' + tadkheelYear) : ''),
         { type: 'analytics', url: '/analytics.html' }
       );
     }
-    // onSnapshot هيعيد الرسم — لا حاجة لإعادة تحميل يدوي
   } catch (err) {
     console.error(err);
     showManualAlert('خطأ في الحفظ: ' + err.message);
@@ -1738,6 +1996,7 @@ setInterval(() => {
 }, 60000);
 
 window.addEventListener('beforeunload', stopLiveSync);
+fillTadkheelYearSelect();
 startLiveSync();
 </script>
 </body>
