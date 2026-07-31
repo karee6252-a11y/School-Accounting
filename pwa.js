@@ -24,7 +24,8 @@ const MohasbaPWA = {
     this.injectStyles();
     this.registerSW();
     this.setupInstallCapture();
-    setTimeout(() => this.runMobileOnboarding(session), 400);
+    this.mountAdminNotifButton(session);
+    setTimeout(() => this.runMobileOnboarding(session), 500);
   },
 
   registerSW() {
@@ -86,26 +87,121 @@ const MohasbaPWA = {
 
   async runMobileOnboarding(session) {
     if (this._onboardingRunning) return;
-    if (!this.isMobileDevice()) {
-      if (session && session.role === 'admin') await this.maybeShowNotificationPrompt(session, true);
-      return;
-    }
-
     this._onboardingRunning = true;
     try {
-      if (!this.isStandalone()) {
-        if (!this._deferredInstall && this.isAndroid()) {
-          await new Promise((r) => setTimeout(r, 900));
-        }
-        await this.showInstallModal();
-      }
       const s = session || (typeof SESSION !== 'undefined' ? SESSION.get() : null);
-      if (s && s.role === 'admin' && this.isStandalone()) {
+
+      // موبايل: تثبيت PWA (منفصل عن الإشعارات)
+      if (this.isMobileDevice() && !this.isStandalone()) {
+        if (!this._deferredInstall && this.isAndroid()) {
+          await new Promise((r) => setTimeout(r, 700));
+        }
+        // لا ننتظر التثبيت للأبد — الإشعارات تظهر برضه على الكمبيوتر/كروم
+        this.showInstallModal();
+      }
+
+      // الأدمن: اطلب تفعيل الإشعارات على الموبايل والكمبيوتر
+      if (s && s.role === 'admin') {
+        // على iOS الإشعارات تحتاج التطبيق من الأيقونة
+        if (this.isIOS() && !this.isStandalone()) {
+          // بعد ما يثبّت ويفتح من الأيقونة هيظهر تلقائي؛ الزر موجود في التوب بار
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 400));
         await this.maybeShowNotificationPrompt(s, true);
       }
     } finally {
       this._onboardingRunning = false;
     }
+  },
+
+  /** زر دائم للأدمن — موبايل وكمبيوتر */
+  mountAdminNotifButton(session) {
+    const s = session || (typeof SESSION !== 'undefined' ? SESSION.get() : null);
+    if (!s || s.role !== 'admin') return;
+    if (document.getElementById('adminNotifBtn')) return;
+
+    const host = document.querySelector('.topbar-actions') || document.querySelector('.topbar');
+    if (!host) {
+      setTimeout(() => this.mountAdminNotifButton(s), 400);
+      return;
+    }
+
+    const btn = document.createElement('button');
+    btn.id = 'adminNotifBtn';
+    btn.type = 'button';
+    btn.className = 'btn btn-sm btn-primary';
+    btn.style.cssText = 'white-space:nowrap;font-weight:800;min-height:36px;';
+    btn.innerHTML = '🔔 الإشعارات';
+    btn.title = 'تفعيل / مراجعة إشعارات الأدمن';
+    btn.addEventListener('click', () => this.openNotificationCenter(s));
+    host.prepend(btn);
+    this.refreshNotifButtonState();
+  },
+
+  refreshNotifButtonState() {
+    const btn = document.getElementById('adminNotifBtn');
+    if (!btn || !('Notification' in window)) return;
+    if (Notification.permission === 'granted') {
+      btn.textContent = '🔔 مفعّلة';
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-secondary');
+    } else if (Notification.permission === 'denied') {
+      btn.textContent = '🔔 متوقفة';
+      btn.classList.add('btn-primary');
+    } else {
+      btn.textContent = '🔔 تفعيل الإشعارات';
+      btn.classList.add('btn-primary');
+    }
+  },
+
+  async openNotificationCenter(session) {
+    const s = session || (typeof SESSION !== 'undefined' ? SESSION.get() : null);
+    if (!s || s.role !== 'admin') return;
+    this.injectStyles();
+
+    if (!('Notification' in window)) {
+      alert('المتصفح ده مش بيدعم الإشعارات. جرّب Chrome على أندرويد أو الكمبيوتر، أو Safari من أيقونة التطبيق على الآيفون.');
+      return;
+    }
+
+    if (this.isIOS() && !this.isStandalone()) {
+      alert('على الآيفون: ثبّت التطبيق (إضافة للشاشة الرئيسية) وافتحه من الأيقونة، بعدين اضغط «تفعيل الإشعارات».');
+      if (!this.isStandalone()) this.showInstallModal();
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      const ok = await this.enablePush(s);
+      this.startAdminAlertListener(s);
+      this.refreshNotifButtonState();
+      this._toast(ok
+        ? 'الإشعارات مفعّلة ✓ — هتوصلك تنبيهات كل مدرسة باسمها'
+        : 'الصلاحية موجودة لكن فشل تسجيل الجهاز — حاول مرة أخرى');
+      return;
+    }
+
+    await this.maybeShowNotificationPrompt(s, true);
+  },
+
+  _toast(msg) {
+    let el = document.getElementById('pwa-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'pwa-toast';
+      el.style.cssText = [
+        'position:fixed', 'bottom:1.25rem', 'left:50%', 'transform:translateX(-50%)',
+        'background:#1a3a6b', 'color:#fff', 'padding:0.75rem 1.15rem', 'border-radius:12px',
+        'font-family:Cairo,sans-serif', 'font-size:0.85rem', 'font-weight:700',
+        'z-index:100001', 'box-shadow:0 8px 28px rgba(0,0,0,0.25)', 'max-width:90vw',
+        'text-align:center', 'direction:rtl'
+      ].join(';');
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.display = 'block';
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
   },
 
   showInstallModal() {
@@ -252,10 +348,18 @@ const MohasbaPWA = {
     if (!('Notification' in window)) return;
     if (document.getElementById('pwa-notif-overlay')) return;
 
+    // آيفون من المتصفح (مش من الأيقونة): منبّه فقط
+    if (this.isIOS() && !this.isStandalone()) {
+      if (force) this._toast('على الآيفون: افتح School System من أيقونة الشاشة الرئيسية لتفعيل الإشعارات');
+      return;
+    }
+
     if (Notification.permission === 'granted') {
       const ok = await this.enablePush(session);
       if (ok) {
         this.startAdminAlertListener(session);
+        this.refreshNotifButtonState();
+        if (force) this._toast('الإشعارات مفعّلة على هذا الجهاز ✓');
         return;
       }
     }
@@ -293,11 +397,11 @@ const MohasbaPWA = {
                <div class="pwa-onboard-actions">
                  <button type="button" class="pwa-btn-primary" id="pwa-notif-retry">حاول مرة أخرى</button>
                </div>`
-            : `<p class="pwa-lead">التفعيل إجباري لحساب الأدمن على الموبايل.</p>
-               <div class="pwa-onboard-note">يفضّل فتح التطبيق من أيقونة الشاشة الرئيسية ثم التفعيل.</div>
+            : `<p class="pwa-lead">التفعيل مطلوب لحساب الأدمن — على الموبايل والكمبيوتر — عشان يوصلك تنبيه فوري من أي مدرسة.</p>
+               <div class="pwa-onboard-note">اضغط «تفعيل الإشعارات» واسمح للمتصفح. لو الزر اختفى، هتلاقيه فوق بعنوان الصفحة: 🔔 الإشعارات</div>
                <div id="pwa-notif-error" class="pwa-install-tip" style="display:none"></div>
                <div class="pwa-onboard-actions">
-                 <button type="button" class="pwa-btn-primary" id="pwa-notif-enable">تفعيل الإشعارات</button>
+                 <button type="button" class="pwa-btn-primary" id="pwa-notif-enable">تفعيل الإشعارات الآن</button>
                </div>`}
         </div>
       </div>`;
@@ -311,6 +415,8 @@ const MohasbaPWA = {
       if (Notification.permission === 'granted') {
         await this.enablePush(session);
         this.startAdminAlertListener(session);
+        this.refreshNotifButtonState();
+        this._toast('الإشعارات مفعّلة ✓');
         close();
       } else {
         close();
@@ -326,9 +432,11 @@ const MohasbaPWA = {
         const ok = await this.enablePush(session);
         if (!ok) throw new Error('تعذّر الاشتراك في الإشعارات');
         this.startAdminAlertListener(session);
+        this.refreshNotifButtonState();
+        this._toast('تم تفعيل الإشعارات ✓');
         close();
       } catch (err) {
-        if (btn) { btn.disabled = false; btn.textContent = 'تفعيل الإشعارات'; }
+        if (btn) { btn.disabled = false; btn.textContent = 'تفعيل الإشعارات الآن'; }
         if (errEl) {
           errEl.style.display = 'block';
           errEl.style.color = '#B3261E';
