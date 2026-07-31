@@ -755,34 +755,80 @@ function notifyAdminActivity(action, details = '', opts = {}) {
   if (!session || _isActorAdmin(session)) return Promise.resolve();
 
   const school = SESSION.getSchool ? SESSION.getSchool() : null;
+  const schoolName = school?.name || '';
   const detailTxt = details ? String(details) : '';
-  const body = [detailTxt, session.email].filter(Boolean).join(' — ');
+  // العنوان: العملية + المدرسة | النص: المدرسة ثم البيان ثم المحاسب
+  const title = opts.title || `${action} — ${schoolName}`;
+  const body = opts.body || [schoolName, detailTxt, session.email].filter(Boolean).join(' — ');
 
   return notifyAdmins({
     type: opts.type || 'activity',
     action,
-    title: opts.title || `${action} — ${school?.name || ''}`,
-    body: opts.body || body,
+    title,
+    body,
     url: opts.url || '/admin.html',
     schoolId: session.schoolId,
-    schoolName: school?.name || '',
+    schoolName,
     createdBy: session.email,
     meta: opts.meta || { details: detailTxt },
   }).catch((e) => console.warn('[notify]', e));
 }
 
-/** توافق خلفي — تحصيل */
+/** تحصيل يومي جديد — اسم المدرسة + البيان (البند/الطالب/المبلغ) */
 async function notifyAdminsOfPayment(info) {
+  const schoolName = info.schoolName || '';
   const amountTxt = formatCurrency(info.amount || 0);
+  const bayan = info.paymentItem || info.notes || 'تحصيل';
+  const student = info.studentName || '';
   return notifyAdmins({
     type: 'collection',
     action: 'تحصيل جديد',
-    title: `تحصيل جديد — ${info.schoolName || ''}`,
-    body: `${info.studentName || ''}: ${amountTxt} (${info.paymentItem || ''}) — ${info.createdBy || ''}`,
+    title: `تحصيل جديد — ${schoolName}`,
+    body: [
+      schoolName,
+      student ? `الطالب: ${student}` : '',
+      `البيان: ${bayan}`,
+      amountTxt,
+      info.paymentTypeName || info.paymentType || '',
+      info.createdBy || ''
+    ].filter(Boolean).join(' — '),
     url: '/collection.html',
     schoolId: info.schoolId,
-    schoolName: info.schoolName,
+    schoolName,
     createdBy: info.createdBy,
+    meta: info,
+  });
+}
+
+/** مصروف جديد — اسم المدرسة + البيان + المستلم + المبلغ */
+async function notifyAdminsOfExpense(info) {
+  const session = (typeof SESSION !== 'undefined' && SESSION.get) ? SESSION.get() : null;
+  if (_isActorAdmin(session)) return;
+
+  const school = (typeof SESSION !== 'undefined' && SESSION.getSchool) ? SESSION.getSchool() : null;
+  const schoolName = info.schoolName || school?.name || '';
+  const schoolId = info.schoolId || session?.schoolId || '';
+  const amountTxt = formatCurrency(info.amount || 0);
+  const bayan = info.bayan || info.categoryLabel || info.customLabel || info.notes || 'مصروف';
+  const recipient = info.recipientName || '';
+  const action = info.action || 'مصروف جديد';
+
+  return notifyAdmins({
+    type: info.type || 'expense',
+    action,
+    title: `${action} — ${schoolName}`,
+    body: [
+      schoolName,
+      recipient ? `المستلم: ${recipient}` : '',
+      `البيان: ${bayan}`,
+      amountTxt,
+      info.notes && info.notes !== bayan ? `ملاحظات: ${info.notes}` : '',
+      info.createdBy || session?.email || ''
+    ].filter(Boolean).join(' — '),
+    url: info.url || '/expenses.html',
+    schoolId,
+    schoolName,
+    createdBy: info.createdBy || session?.email || '',
     meta: info,
   });
 }

@@ -1253,11 +1253,28 @@
       showAddAlert(refundTxn
         ? `تم حفظ الاسترداد وخصمه من دفعة الطالب بنجاح! المتبقي: ${formatCurrency(expense.remainingAfterRefund)}`
         : 'تم حفظ المصروف بنجاح! ', 'success');
-      if (typeof notifyAdminActivity === 'function') {
+      // إشعار الأدمن: اسم المدرسة + البيان + المستلم + المبلغ
+      const expenseNotify = {
+        schoolId,
+        schoolName: school?.name || SESSION.getSchool()?.name || '',
+        action: refundTxn ? 'استرداد مصروف' : 'مصروف جديد',
+        type: refundTxn ? 'expense_refund' : 'expense',
+        recipientName: expense.recipientName || '',
+        bayan: expense.customLabel || expense.categoryLabel || expense.notes || 'مصروف',
+        categoryLabel: expense.categoryLabel || '',
+        customLabel: expense.customLabel || '',
+        notes: expense.notes || '',
+        amount: expense.amount || 0,
+        createdBy: session.email,
+        url: '/expenses.html'
+      };
+      if (typeof notifyAdminsOfExpense === 'function') {
+        notifyAdminsOfExpense(expenseNotify).catch(() => {});
+      } else if (typeof notifyAdminActivity === 'function') {
         notifyAdminActivity(
-          refundTxn ? 'استرداد مصروف' : 'مصروف جديد',
-          `${expense.recipientName || ''} — ${formatCurrency(expense.amount || 0)} — ${expense.categoryLabel || ''}`,
-          { type: 'expense', url: '/expenses.html' }
+          expenseNotify.action,
+          `المستلم: ${expenseNotify.recipientName} — البيان: ${expenseNotify.bayan} — ${formatCurrency(expenseNotify.amount)}`,
+          { type: expenseNotify.type, url: '/expenses.html' }
         );
       }
       setTimeout(() => {
@@ -1280,7 +1297,11 @@
     try {
       await db.collection('expenses').doc(id).delete();
       if (typeof notifyAdminActivity === 'function') {
-        notifyAdminActivity('حذف مصروف', id, { type: 'expense_delete', url: '/expenses.html' });
+        notifyAdminActivity('حذف مصروف', `تم حذف مصروف رقم ${id}`, {
+          type: 'expense_delete',
+          url: '/expenses.html',
+          title: `حذف مصروف — ${school?.name || SESSION.getSchool()?.name || ''}`
+        });
       }
       loadReport();
     } catch (err) {

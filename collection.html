@@ -765,7 +765,7 @@
       showAlert('تم حفظ التحصيل بنجاح!'+(debt>0?` - مديونية: ${formatCurrency(debt)}`:''), 'success');
       loadTodayTransactions();
 
-      // إشعار فوري للأدمن (Firestore + Web Push)
+      // إشعار فوري للأدمن: اسم المدرسة + البيان (البند) + الطالب + المبلغ
       if (typeof notifyAdminsOfPayment === 'function') {
         notifyAdminsOfPayment({
           schoolId,
@@ -773,6 +773,9 @@
           studentName,
           amount,
           paymentItem,
+          paymentType,
+          paymentTypeName: PAYMENT_TYPES.find(p => p.value === paymentType)?.label || paymentType,
+          notes: (typeof notes !== 'undefined' ? notes : '') || '',
           createdBy: session.email
         }).catch(() => {});
       }
