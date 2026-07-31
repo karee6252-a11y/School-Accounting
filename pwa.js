@@ -528,7 +528,7 @@ const MohasbaPWA = {
   },
 
   startAdminAlertListener(session) {
-    if (!session || session.role !== 'admin') return;
+    if (!this._isAdminSession(session)) return;
     if (typeof db === 'undefined') return;
 
     // أعد الربط لو غيّر المدرسة
