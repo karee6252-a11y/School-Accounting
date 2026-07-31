@@ -70,9 +70,10 @@
           <div style="font-size:0.75rem;color:var(--text-light)">من أول عملية على النظام حتى اليوم — يتحدّث تلقائيًا مع أي تغيير</div>
           <div id="liveStatus" style="font-size:0.7rem;color:var(--success);font-weight:700;margin-top:0.2rem">● متصل — تحديث لحظي</div>
         </div>
-        <div class="d-flex gap-1">
+        <div class="d-flex gap-1" style="flex-wrap:wrap">
           <button class="btn btn-secondary btn-sm" onclick="forceRefresh()">تحديث الآن</button>
-          <button class="btn btn-primary btn-sm" onclick="window.print()">طباعة التحليل</button>
+          <button class="btn btn-primary btn-sm" id="exportAnalyticsExcelBtn" onclick="exportAnalyticsExcel()">تصدير Excel احترافي</button>
+          <button class="btn btn-secondary btn-sm" onclick="window.print()">طباعة التحليل</button>
         </div>
       </div>
 
@@ -973,6 +974,737 @@ async function deleteManual(id) {
 function printItemDetail() {
   if (!selectedItem) { alert('اختر بندًا أولاً'); return; }
   window.print();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  تصدير Excel احترافي — شيتات متعددة + رسوم + ألوان المدرسة
+// ═══════════════════════════════════════════════════════════
+function loadExcelJS() {
+  return new Promise((resolve, reject) => {
+    if (typeof ExcelJS !== 'undefined') return resolve();
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('فشل تحميل مكتبة Excel'));
+    document.head.appendChild(s);
+  });
+}
+
+async function fetchAsBuffer(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await res.arrayBuffer();
+  } catch {
+    return null;
+  }
+}
+
+function canvasToPngBuffer(canvas) {
+  if (!canvas) return null;
+  try {
+    const dataUrl = canvas.toDataURL('image/png');
+    const b64 = dataUrl.split(',')[1];
+    if (!b64) return null;
+    const bin = atob(b64);
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return buf;
+  } catch {
+    return null;
+  }
+}
+
+function waitFrames(ms = 350) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+async function exportAnalyticsExcel() {
+  const btn = document.getElementById('exportAnalyticsExcelBtn');
+  const prevTxt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري تجهيز الشيت...'; }
+
+  const savedMonth = selectedMonthYm;
+  const savedItem = selectedItem;
+
+  try {
+    await loadExcelJS();
+
+    // صدّر الفترة الكاملة دائمًا (كل التفاصيل)
+    selectedMonthYm = null;
+    selectedItem = null;
+    refreshPeriodMonths();
+    fillMonthSelects();
+    renderAll();
+    await waitFrames(450);
+
+    const stats = buildItemStats(null);
+    const items = getAnalysisItems();
+    const sysExp = totalSystemExpenses(null);
+    const debts = remainingDebts();
+
+    let actualRev = 0, manualRev = 0, manualExp = 0, txCount = 0, dueTotal = 0;
+    items.forEach(name => {
+      const s = stats[name];
+      if (!s) return;
+      actualRev += s.actualRev;
+      manualRev += s.manualRev;
+      manualExp += s.manualExp;
+      txCount += s.txCount;
+      dueTotal += s.actualDue;
+    });
+    actualRev = round2(actualRev);
+    manualRev = round2(manualRev);
+    manualExp = round2(manualExp);
+    dueTotal = round2(dueTotal);
+    const netActual = round2(actualRev - sysExp);
+    const collectRate = actualRev + debts.rem > 0
+      ? Math.round(actualRev / (actualRev + debts.rem) * 100)
+      : 0;
+
+    const schoolName = school?.name || 'المدرسة';
+    const schoolNameEn = school?.nameEn || schoolName;
+    const rawPrimary = (school?.primaryColor || '#1a3a6b').replace('#', '');
+    const rawSecond  = (school?.secondaryColor || '#4a6fa5').replace('#', '');
+    const rawAccent  = (school?.accentColor || '#e8ecf5').replace('#', '');
+    const PRI = 'FF' + rawPrimary;
+    const SEC = 'FF' + rawSecond;
+    const ACC = 'FF' + rawAccent;
+    const WHT = 'FFFFFFFF';
+    const BLK = 'FF1A1A1A';
+    const GRN = 'FF1B5E20';
+    const RED = 'FFB71C1C';
+    const GLD = 'FF8D6E00';
+    const LTGRN = 'FFE8F5E9';
+    const LTRED = 'FFFFEBEE';
+    const LTGRAY = 'FFF5F7FA';
+
+    const periodFrom = dataStartYm ? formatDate(dataStartYm + '-01') : '—';
+    const periodTo = formatDate(todayStr());
+    const exportedAt = new Date().toLocaleString('ar-EG');
+    const fileStamp = todayStr().replace(/-/g, '');
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'School Accounting — ' + schoolName;
+    wb.company = schoolNameEn;
+    wb.created = new Date();
+    wb.modified = new Date();
+    wb.views = [{ rightToLeft: true, activeTab: 0 }];
+
+    const hFill = (argb) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+    const thin = (c = 'FFB0B8C4') => {
+      const s = { style: 'thin', color: { argb: c } };
+      return { top: s, bottom: s, left: s, right: s };
+    };
+    const med = (c = 'FF666666') => {
+      const s = { style: 'medium', color: { argb: c } };
+      return { top: s, bottom: s, left: s, right: s };
+    };
+    const cAlign = (wrap = false) => ({
+      horizontal: 'center', vertical: 'middle', wrapText: wrap, readingOrder: 2
+    });
+    const rAlign = () => ({ horizontal: 'right', vertical: 'middle', readingOrder: 2 });
+    const numFmt = (cell) => { cell.numFmt = '#,##0.00;(#,##0.00);"-"'; };
+
+    function paintRow(row, bg, fontArgb = BLK, bold = false, sz = 10, wrap = false) {
+      row.eachCell({ includeEmpty: true }, cell => {
+        if (bg) cell.fill = hFill(bg);
+        cell.font = { name: 'Arial', bold, size: sz, color: { argb: fontArgb } };
+        cell.alignment = cAlign(wrap);
+        cell.border = thin();
+      });
+    }
+
+    function addTitle(ws, text, mergeEnd, bg = PRI, sz = 14) {
+      const r = ws.addRow([text]);
+      ws.mergeCells(`A${r.number}:${mergeEnd}${r.number}`);
+      paintRow(r, bg, WHT, true, sz, true);
+      r.height = 30;
+      r.getCell(1).alignment = cAlign(true);
+      return r;
+    }
+
+    function addSub(ws, text, mergeEnd, bg = SEC) {
+      const r = ws.addRow([text]);
+      ws.mergeCells(`A${r.number}:${mergeEnd}${r.number}`);
+      paintRow(r, bg, WHT, true, 11, true);
+      r.height = 22;
+      return r;
+    }
+
+    function addSection(ws, text, mergeEnd, bg = SEC) {
+      const r = ws.addRow([text]);
+      ws.mergeCells(`A${r.number}:${mergeEnd}${r.number}`);
+      paintRow(r, bg, WHT, true, 12, true);
+      r.getCell(1).alignment = rAlign();
+      r.height = 26;
+      return r;
+    }
+
+    function addHdr(ws, vals, bg = SEC) {
+      const r = ws.addRow(vals);
+      paintRow(r, bg, WHT, true, 10, true);
+      r.height = 24;
+      return r;
+    }
+
+    function addData(ws, vals, alt = false, bold = false) {
+      const r = ws.addRow(vals);
+      paintRow(r, alt ? ACC : WHT, BLK, bold, 10);
+      r.height = 20;
+      return r;
+    }
+
+    function addTotal(ws, vals, bg = PRI) {
+      const r = ws.addRow(vals);
+      paintRow(r, bg, WHT, true, 11);
+      r.height = 24;
+      r.eachCell({ includeEmpty: true }, cell => { cell.border = med('FF333333'); });
+      return r;
+    }
+
+    function blank(ws, n = 1) { for (let i = 0; i < n; i++) ws.addRow([]); }
+
+    function styleSheet(ws) {
+      ws.views = [{ state: 'normal', rightToLeft: true, showGridLines: false }];
+      ws.properties.defaultRowHeight = 18;
+    }
+
+    // ─── 1) الغلاف والملخص التنفيذي ───
+    const wsCover = wb.addWorksheet('01-الملخص التنفيذي', {
+      pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 },
+      headerFooter: {
+        oddFooter: '&R' + schoolName + ' — تحليل البيانات&Lصفحة &P من &N'
+      }
+    });
+    styleSheet(wsCover);
+    wsCover.columns = [
+      { width: 28 }, { width: 18 }, { width: 18 }, { width: 18 },
+      { width: 18 }, { width: 18 }, { width: 22 }
+    ];
+    const CEND = 'G';
+
+    addTitle(wsCover, `تحليل البيانات المالي — ${schoolName}`, CEND, PRI, 16);
+    addSub(wsCover, `${schoolNameEn}  |  العام الدراسي ${ACADEMIC_YEAR}  |  صُمّم بواسطة نظام المحاسبة المدرسي`, CEND, SEC);
+    addSub(wsCover, `الفترة التحليلية: من ${periodFrom}  حتى  ${periodTo}   •   تاريخ التصدير: ${exportedAt}`, CEND, 'FF2C3E50');
+
+    // شعار المدرسة إن وُجد
+    if (school?.logo) {
+      const logoBuf = await fetchAsBuffer(school.logo);
+      if (logoBuf) {
+        const ext = String(school.logo).toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+        const logoId = wb.addImage({ buffer: logoBuf, extension: ext });
+        wsCover.addImage(logoId, {
+          tl: { col: 6, row: 0 },
+          ext: { width: 72, height: 72 }
+        });
+      }
+    }
+
+    blank(wsCover);
+    addSection(wsCover, '①  المؤشرات الرئيسية (KPIs)', CEND, PRI);
+
+    const kpiHdr = addHdr(wsCover, ['المؤشر', 'القيمة', 'التفاصيل', '', '', '', ''], SEC);
+    wsCover.mergeCells(`C${kpiHdr.number}:G${kpiHdr.number}`);
+
+    const kpiRows = [
+      ['إجمالي الإيراد الفعلي (التحصيل)', actualRev, txCount + ' توزيع بند', GRN, LTGRN],
+      ['إجمالي المصروف الفعلي (النظام)', sysExp, allExp.filter(e => isInAnalysisRange(e.date)).length + ' مصروف', RED, LTRED],
+      ['صافي فعلي (إيراد − مصروف)', netActual, netActual >= 0 ? 'فائض' : 'عجز', netActual >= 0 ? GRN : RED, netActual >= 0 ? LTGRN : LTRED],
+      ['إيراد يدوي (للتحليل)', manualRev, 'إدخالات يدوية', 'FF1565C0', 'FFE3F2FD'],
+      ['مصروف يدوي (للتحليل)', manualExp, 'إدخالات يدوية', 'FFE65100', 'FFFFF3E0'],
+      ['صافي تحليلي (فعلي+يدوي)', round2(actualRev + manualRev - manualExp - sysExp), 'شامل اليدوي والمصروف', PRI, ACC],
+      ['المستحق من بنود التحصيل', dueTotal, 'من أسعار البنود', GLD, 'FFFFF8E1'],
+      ['مديونيات متبقية', debts.rem, debts.cnt + ' سجل مفتوح', RED, LTRED],
+      ['نسبة التحصيل التقريبية', collectRate / 100, actualRev + ' من ' + round2(actualRev + debts.rem), PRI, ACC],
+    ];
+
+    kpiRows.forEach((row, i) => {
+      const r = addData(wsCover, [row[0], row[1], row[2], '', '', '', ''], i % 2 === 1, true);
+      wsCover.mergeCells(`C${r.number}:G${r.number}`);
+      r.getCell(1).alignment = rAlign();
+      r.getCell(1).fill = hFill(row[4]);
+      r.getCell(2).font = { name: 'Arial', bold: true, size: 12, color: { argb: row[3] } };
+      if (row[0].includes('نسبة')) r.getCell(2).numFmt = '0"%"';
+      else numFmt(r.getCell(2));
+      r.height = 22;
+    });
+
+    blank(wsCover);
+    addSection(wsCover, '②  ملخص سريع حسب البند (أعلى البنود إيرادًا)', CEND, SEC);
+    addHdr(wsCover, ['م', 'البند', 'إيراد فعلي', 'مستحق', 'إيراد يدوي', 'مصروف يدوي', 'صافي البند'], SEC);
+
+    const ranked = items
+      .map(n => stats[n])
+      .filter(Boolean)
+      .sort((a, b) => b.actualRev - a.actualRev);
+
+    ranked.forEach((s, i) => {
+      const net = round2(s.actualRev + s.manualRev - s.manualExp);
+      const r = addData(wsCover, [
+        i + 1, s.name, s.actualRev, s.actualDue, s.manualRev, s.manualExp, net
+      ], i % 2 === 1);
+      [3, 4, 5, 6, 7].forEach(ci => numFmt(r.getCell(ci)));
+      r.getCell(3).font = { name: 'Arial', bold: true, size: 10, color: { argb: GRN } };
+      r.getCell(7).font = { name: 'Arial', bold: true, size: 10, color: { argb: net >= 0 ? GRN : RED } };
+    });
+
+    const tr = addTotal(wsCover, [
+      '', 'الإجمالي', actualRev, dueTotal, manualRev, manualExp,
+      round2(actualRev + manualRev - manualExp)
+    ]);
+    [3, 4, 5, 6, 7].forEach(ci => numFmt(tr.getCell(ci)));
+
+    blank(wsCover, 2);
+    const note = wsCover.addRow([
+      'ملاحظة: الإدخال اليدوي للتحليل والمقارنة فقط — لا يغيّر التحصيل أو المصروفات المسجّلة في النظام. الشيت مُقسّم: ملخص → بنود → شهري → تفاصيل → مصروفات → مديونيات → يدوي → رسوم بيانية.'
+    ]);
+    wsCover.mergeCells(`A${note.number}:${CEND}${note.number}`);
+    paintRow(note, LTGRAY, 'FF455A64', false, 9, true);
+    note.height = 36;
+
+    // ─── 2) ملخص البنود ───
+    const wsItems = wb.addWorksheet('02-ملخص البنود');
+    styleSheet(wsItems);
+    wsItems.columns = [
+      { width: 5 }, { width: 26 }, { width: 14 }, { width: 14 }, { width: 12 },
+      { width: 14 }, { width: 14 }, { width: 14 }, { width: 12 }, { width: 18 }
+    ];
+    const IEND = 'J';
+    addTitle(wsItems, `ملخص بنود الدفع — ${schoolName}`, IEND);
+    addSub(wsItems, `الفترة: ${periodFrom} ← ${periodTo}`, IEND);
+    addHdr(wsItems, [
+      'م', 'البند', 'إيراد فعلي', 'مستحق', 'عمليات', 'إيراد يدوي', 'مصروف يدوي', 'صافي', 'فرق (مستحق−محصّل)', 'حصة من الإيراد %'
+    ]);
+
+    ranked.forEach((s, i) => {
+      const net = round2(s.actualRev + s.manualRev - s.manualExp);
+      const gap = round2(s.actualDue - s.actualRev);
+      const share = actualRev > 0 ? s.actualRev / actualRev : 0;
+      const r = addData(wsItems, [
+        i + 1, s.name, s.actualRev, s.actualDue, s.txCount,
+        s.manualRev, s.manualExp, net, gap, share
+      ], i % 2 === 1);
+      [3, 4, 6, 7, 8, 9].forEach(ci => numFmt(r.getCell(ci)));
+      r.getCell(10).numFmt = '0.0%';
+      if (gap > 0) r.getCell(9).font = { name: 'Arial', bold: true, size: 10, color: { argb: RED } };
+    });
+    const it = addTotal(wsItems, [
+      '', 'الإجمالي', actualRev, dueTotal, txCount, manualRev, manualExp,
+      round2(actualRev + manualRev - manualExp), round2(dueTotal - actualRev), 1
+    ]);
+    [3, 4, 6, 7, 8, 9].forEach(ci => numFmt(it.getCell(ci)));
+    it.getCell(10).numFmt = '0%';
+
+    // ─── 3) التفصيل الشهري (مصفوفة) ───
+    const wsMonth = wb.addWorksheet('03-التفصيل الشهري');
+    styleSheet(wsMonth);
+    const monthCols = PERIOD_MONTHS.map(m => m.short);
+    wsMonth.columns = [
+      { width: 24 },
+      ...PERIOD_MONTHS.map(() => ({ width: 12 })),
+      { width: 14 }
+    ];
+    const colLetter = (n) => {
+      let s = '';
+      while (n > 0) {
+        const m = (n - 1) % 26;
+        s = String.fromCharCode(65 + m) + s;
+        n = Math.floor((n - 1) / 26);
+      }
+      return s;
+    };
+    const MEND = colLetter(PERIOD_MONTHS.length + 2);
+
+    addTitle(wsMonth, `إيراد فعلي شهري حسب البند — ${schoolName}`, MEND);
+    addSub(wsMonth, `من ${periodFrom} حتى ${periodTo}`, MEND);
+    addHdr(wsMonth, ['البند', ...monthCols, 'إجمالي البند'], PRI);
+
+    const monthTotals = PERIOD_MONTHS.map(() => 0);
+    items.forEach((name, idx) => {
+      const s = stats[name] || emptyItemStat(name);
+      const vals = PERIOD_MONTHS.map((m, i) => {
+        const v = round2((s.byMonth[m.ym] || {}).actualRev || 0);
+        monthTotals[i] += v;
+        return v;
+      });
+      const rowTotal = round2(vals.reduce((a, b) => a + b, 0));
+      if (rowTotal === 0 && s.manualRev === 0 && s.manualExp === 0) return;
+      const r = addData(wsMonth, [name, ...vals, rowTotal], idx % 2 === 1);
+      for (let c = 2; c <= PERIOD_MONTHS.length + 2; c++) numFmt(r.getCell(c));
+      r.getCell(1).alignment = rAlign();
+    });
+    const mt = addTotal(wsMonth, ['إجمالي الإيراد الفعلي', ...monthTotals.map(round2), actualRev]);
+    for (let c = 2; c <= PERIOD_MONTHS.length + 2; c++) numFmt(mt.getCell(c));
+
+    blank(wsMonth);
+    addSection(wsMonth, 'مصروف النظام الشهري', MEND, RED);
+    addHdr(wsMonth, ['البند', ...monthCols, 'الإجمالي'], 'FFB71C1C');
+    const monthSys = PERIOD_MONTHS.map(() => 0);
+    allExp.forEach(e => {
+      if (!isInAnalysisRange(e.date)) return;
+      const idx = PERIOD_MONTHS.findIndex(m => m.ym === dateToYm(e.date));
+      if (idx >= 0) monthSys[idx] += Number(e.amount) || 0;
+    });
+    const er = addData(wsMonth, ['مصروفات النظام', ...monthSys.map(round2), sysExp], false, true);
+    for (let c = 2; c <= PERIOD_MONTHS.length + 2; c++) {
+      numFmt(er.getCell(c));
+      er.getCell(c).font = { name: 'Arial', bold: true, size: 10, color: { argb: RED } };
+    }
+
+    blank(wsMonth);
+    addSection(wsMonth, 'صافي شهري (إيراد فعلي − مصروف نظام)', MEND, PRI);
+    addHdr(wsMonth, ['البند', ...monthCols, 'الإجمالي'], PRI);
+    const monthNet = monthTotals.map((v, i) => round2(v - monthSys[i]));
+    const nr = addData(wsMonth, ['الصافي', ...monthNet, netActual], false, true);
+    for (let c = 2; c <= PERIOD_MONTHS.length + 2; c++) {
+      numFmt(nr.getCell(c));
+      const v = c <= PERIOD_MONTHS.length + 1 ? monthNet[c - 2] : netActual;
+      nr.getCell(c).font = {
+        name: 'Arial', bold: true, size: 10,
+        color: { argb: v >= 0 ? GRN : RED }
+      };
+    }
+
+    // ─── 4) مسار شهري مجمّع ───
+    const wsTrend = wb.addWorksheet('04-المسار الشهري');
+    styleSheet(wsTrend);
+    wsTrend.columns = [
+      { width: 16 }, { width: 14 }, { width: 14 }, { width: 14 },
+      { width: 14 }, { width: 14 }, { width: 14 }, { width: 14 }
+    ];
+    addTitle(wsTrend, `المسار التراكمي الشهري — ${schoolName}`, 'H');
+    addSub(wsTrend, 'إيراد فعلي / مصروف فعلي / يدوي / صافي', 'H');
+    addHdr(wsTrend, [
+      'الشهر', 'إيراد فعلي', 'مصروف فعلي', 'صافي فعلي',
+      'إيراد يدوي', 'مصروف يدوي', 'صافي تحليلي', 'تحصيل تراكمي'
+    ]);
+
+    let running = 0;
+    const manRevM = PERIOD_MONTHS.map(() => 0);
+    const manExpM = PERIOD_MONTHS.map(() => 0);
+    Object.values(stats).forEach(s => {
+      PERIOD_MONTHS.forEach((m, i) => {
+        const bm = s.byMonth[m.ym];
+        if (!bm) return;
+        manRevM[i] += bm.manualRev || 0;
+        manExpM[i] += bm.manualExp || 0;
+      });
+    });
+
+    PERIOD_MONTHS.forEach((m, i) => {
+      const ar = round2(monthTotals[i]);
+      const se = round2(monthSys[i]);
+      const mr = round2(manRevM[i]);
+      const me = round2(manExpM[i]);
+      const na = round2(ar - se);
+      const analytical = round2(ar + mr - me - se);
+      running = round2(running + ar);
+      const r = addData(wsTrend, [
+        `${m.label} ${m.year}`, ar, se, na, mr, me, analytical, running
+      ], i % 2 === 1);
+      for (let c = 2; c <= 8; c++) numFmt(r.getCell(c));
+      r.getCell(4).font = { name: 'Arial', bold: true, size: 10, color: { argb: na >= 0 ? GRN : RED } };
+    });
+
+    // ─── 5) تفاصيل التحصيل ───
+    const wsTx = wb.addWorksheet('05-تفاصيل التحصيل');
+    styleSheet(wsTx);
+    wsTx.columns = [
+      { width: 5 }, { width: 12 }, { width: 26 }, { width: 12 }, { width: 22 },
+      { width: 12 }, { width: 14 }, { width: 12 }, { width: 14 }, { width: 10 }
+    ];
+    addTitle(wsTx, `سجل التحصيل التفصيلي حسب البند — ${schoolName}`, 'J');
+    addSub(wsTx, `كل العمليات من ${periodFrom} حتى ${periodTo}`, 'J');
+    addHdr(wsTx, [
+      'م', 'التاريخ', 'الطالب', 'الصف', 'البند', 'المبلغ', 'طريقة الدفع', 'الإيصال', 'الشهر', 'تسوية؟'
+    ]);
+
+    const allLines = [];
+    items.forEach(name => {
+      const s = stats[name];
+      if (!s) return;
+      s.txs.forEach(t => {
+        allLines.push({
+          date: t.date || '',
+          studentName: t.studentName || '',
+          grade: t.grade || '',
+          item: name,
+          amount: round2(t.amount),
+          paymentType: t.paymentType || '',
+          receiptNumber: t.receiptNumber || '',
+          ym: dateToYm(t.date),
+          isSettlement: !!t.isSettlement
+        });
+      });
+    });
+    allLines.sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(a.studentName).localeCompare(String(b.studentName)));
+
+    allLines.forEach((t, i) => {
+      const mLabel = PERIOD_MONTHS.find(m => m.ym === t.ym);
+      const r = addData(wsTx, [
+        i + 1, t.date, t.studentName, t.grade, t.item, t.amount,
+        t.paymentType, t.receiptNumber,
+        mLabel ? `${mLabel.label} ${mLabel.year}` : t.ym,
+        t.isSettlement ? 'نعم' : ''
+      ], i % 2 === 1);
+      numFmt(r.getCell(6));
+      r.getCell(6).font = { name: 'Arial', bold: true, size: 10, color: { argb: GRN } };
+      if (t.isSettlement) r.getCell(10).fill = hFill('FFFFF3E0');
+    });
+    const txTot = addTotal(wsTx, [
+      '', '', '', '', 'إجمالي الأسطر',
+      round2(allLines.reduce((s, t) => s + t.amount, 0)),
+      '', '', allLines.length + ' سجل', ''
+    ]);
+    numFmt(txTot.getCell(6));
+    if (allLines.length > 0) {
+      wsTx.autoFilter = {
+        from: { row: 3, column: 1 },
+        to: { row: 3 + allLines.length, column: 10 }
+      };
+    }
+
+    // ─── 6) المصروفات ───
+    const wsExp = wb.addWorksheet('06-المصروفات');
+    styleSheet(wsExp);
+    wsExp.columns = [
+      { width: 5 }, { width: 12 }, { width: 22 }, { width: 28 },
+      { width: 14 }, { width: 14 }, { width: 18 }, { width: 22 }
+    ];
+    addTitle(wsExp, `مصروفات النظام — ${schoolName}`, 'H');
+    addSub(wsExp, `الفترة: ${periodFrom} ← ${periodTo}`, 'H');
+    addHdr(wsExp, ['م', 'التاريخ', 'المستلم / البند', 'البيان', 'المبلغ', 'الشهر', 'أضافه', 'ملاحظات'], 'FFB71C1C');
+
+    const expList = allExp
+      .filter(e => isInAnalysisRange(e.date))
+      .slice()
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+
+    expList.forEach((e, i) => {
+      const ym = dateToYm(e.date);
+      const mLabel = PERIOD_MONTHS.find(m => m.ym === ym);
+      const r = addData(wsExp, [
+        i + 1,
+        e.date || '',
+        e.recipientName || e.recipient || '—',
+        e.categoryLabel || e.finalLabel || e.category || e.description || '—',
+        round2(e.amount),
+        mLabel ? `${mLabel.label} ${mLabel.year}` : ym,
+        e.createdBy || '',
+        e.notes || e.linkedStudentName || ''
+      ], i % 2 === 1);
+      numFmt(r.getCell(5));
+      r.getCell(5).font = { name: 'Arial', bold: true, size: 10, color: { argb: RED } };
+    });
+    const et = addTotal(wsExp, ['', '', '', 'إجمالي المصروفات', sysExp, '', expList.length + ' مصروف', ''], 'FFB71C1C');
+    numFmt(et.getCell(5));
+
+    // ─── 7) طرق الدفع ───
+    const wsPay = wb.addWorksheet('07-طرق الدفع');
+    styleSheet(wsPay);
+    wsPay.columns = [{ width: 6 }, { width: 28 }, { width: 16 }, { width: 14 }];
+    addTitle(wsPay, `توزيع الإيراد حسب طريقة الدفع — ${schoolName}`, 'D');
+    addHdr(wsPay, ['م', 'طريقة الدفع', 'المبلغ', 'النسبة']);
+    const payMap = {};
+    Object.values(stats).forEach(s => {
+      Object.entries(s.payTypes || {}).forEach(([k, v]) => { payMap[k] = (payMap[k] || 0) + v; });
+    });
+    const payEntries = Object.entries(payMap).sort((a, b) => b[1] - a[1]);
+    const paySum = payEntries.reduce((s, [, v]) => s + v, 0);
+    payEntries.forEach(([k, v], i) => {
+      const r = addData(wsPay, [i + 1, k, round2(v), paySum ? v / paySum : 0], i % 2 === 1);
+      numFmt(r.getCell(3));
+      r.getCell(4).numFmt = '0.0%';
+    });
+    const pt = addTotal(wsPay, ['', 'الإجمالي', round2(paySum), 1]);
+    numFmt(pt.getCell(3));
+    pt.getCell(4).numFmt = '0%';
+
+    // ─── 8) المديونيات ───
+    const wsDebt = wb.addWorksheet('08-المديونيات');
+    styleSheet(wsDebt);
+    wsDebt.columns = [
+      { width: 5 }, { width: 26 }, { width: 14 }, { width: 22 },
+      { width: 12 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 14 }
+    ];
+    addTitle(wsDebt, `المديونيات المفتوحة — ${schoolName}`, 'I');
+    addSub(wsDebt, `إجمالي المتبقي: ${debts.rem.toLocaleString('ar-EG')}  |  عدد السجلات: ${debts.cnt}`, 'I', 'FFB71C1C');
+    addHdr(wsDebt, [
+      'م', 'الطالب', 'الصف', 'البند', 'المستحق', 'المدفوع', 'المتبقي', 'التاريخ', 'العام الدراسي'
+    ], 'FFB71C1C');
+
+    const openDebts = allDebts
+      .filter(d => (Number(d.remaining) || 0) > 0)
+      .sort((a, b) => (Number(b.remaining) || 0) - (Number(a.remaining) || 0));
+
+    openDebts.forEach((d, i) => {
+      const r = addData(wsDebt, [
+        i + 1,
+        d.studentName || '',
+        d.grade || '',
+        d.paymentItem || '',
+        round2(d.totalDue),
+        round2(d.paid),
+        round2(d.remaining),
+        d.date || '',
+        d.academicYear || ''
+      ], i % 2 === 1);
+      [5, 6, 7].forEach(ci => numFmt(r.getCell(ci)));
+      r.getCell(7).font = { name: 'Arial', bold: true, size: 10, color: { argb: RED } };
+    });
+    const dt = addTotal(wsDebt, [
+      '', '', '', 'الإجمالي',
+      round2(openDebts.reduce((s, d) => s + (Number(d.totalDue) || 0), 0)),
+      round2(openDebts.reduce((s, d) => s + (Number(d.paid) || 0), 0)),
+      debts.rem, '', ''
+    ], 'FFB71C1C');
+    [5, 6, 7].forEach(ci => numFmt(dt.getCell(ci)));
+
+    // ─── 9) الإدخال اليدوي ───
+    const wsMan = wb.addWorksheet('09-الإدخال اليدوي');
+    styleSheet(wsMan);
+    wsMan.columns = [
+      { width: 5 }, { width: 12 }, { width: 16 }, { width: 22 },
+      { width: 14 }, { width: 14 }, { width: 14 }, { width: 28 }, { width: 18 }
+    ];
+    addTitle(wsMan, `سجل الإدخال اليدوي للتحليل — ${schoolName}`, 'I', 'FF1565C0');
+    addSub(wsMan, 'لا يؤثر على التحصيل أو المصروفات الفعلية في النظام', 'I', 'FF0D47A1');
+    addHdr(wsMan, [
+      'م', 'التاريخ', 'الشهر', 'البند', 'إيراد', 'مصروف', 'صافي', 'ملاحظات', 'أدخله'
+    ], 'FF1565C0');
+
+    const manSorted = manualEntries.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    manSorted.forEach((e, i) => {
+      const rev = round2(e.revenue);
+      const exp = round2(e.expense);
+      const ym = e.yearMonth || dateToYm(e.date);
+      const mLabel = PERIOD_MONTHS.find(m => m.ym === ym);
+      const r = addData(wsMan, [
+        i + 1, e.date || '', mLabel ? `${mLabel.label} ${mLabel.year}` : ym,
+        e.paymentItem || '', rev, exp, round2(rev - exp),
+        e.notes || '', e.createdBy || ''
+      ], i % 2 === 1);
+      [5, 6, 7].forEach(ci => numFmt(r.getCell(ci)));
+      r.getCell(5).font = { name: 'Arial', bold: true, size: 10, color: { argb: GRN } };
+      r.getCell(6).font = { name: 'Arial', bold: true, size: 10, color: { argb: RED } };
+    });
+    const manTot = addTotal(wsMan, [
+      '', '', '', 'الإجمالي', manualRev, manualExp, round2(manualRev - manualExp),
+      manSorted.length + ' إدخال', ''
+    ], 'FF1565C0');
+    [5, 6, 7].forEach(ci => numFmt(manTot.getCell(ci)));
+
+    // ─── 10) تحليل كل بند (شيت واحد بأقسام) ───
+    const wsPerItem = wb.addWorksheet('10-تحليل كل بند');
+    styleSheet(wsPerItem);
+    wsPerItem.columns = [
+      { width: 18 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 14 }
+    ];
+    addTitle(wsPerItem, `تحليل تفصيلي لكل بند — ${schoolName}`, 'E');
+    addSub(wsPerItem, `الفترة الكاملة ${periodFrom} ← ${periodTo}`, 'E');
+
+    ranked.filter(s => s.actualRev > 0 || s.manualRev > 0 || s.manualExp > 0 || s.txCount > 0)
+      .forEach((s, idx) => {
+        if (idx > 0) blank(wsPerItem);
+        addSection(wsPerItem, `${idx + 1}. ${s.name}`, 'E', idx % 2 === 0 ? PRI : SEC);
+        addHdr(wsPerItem, ['المؤشر', 'القيمة', '', '', ''], idx % 2 === 0 ? PRI : SEC);
+        const metrics = [
+          ['إيراد فعلي', s.actualRev],
+          ['مستحق البنود', s.actualDue],
+          ['عدد العمليات', s.txCount],
+          ['إيراد يدوي', s.manualRev],
+          ['مصروف يدوي', s.manualExp],
+          ['صافي تحليلي', round2(s.actualRev + s.manualRev - s.manualExp)],
+        ];
+        metrics.forEach((m, i) => {
+          const r = addData(wsPerItem, [m[0], m[1], '', '', ''], i % 2 === 1, true);
+          wsPerItem.mergeCells(`B${r.number}:E${r.number}`);
+          if (typeof m[1] === 'number' && m[0] !== 'عدد العمليات') numFmt(r.getCell(2));
+          r.getCell(1).alignment = rAlign();
+        });
+
+        blank(wsPerItem);
+        const mh = addHdr(wsPerItem, ['الشهر', 'إيراد فعلي', 'إيراد يدوي', 'مصروف يدوي', 'صافي'], SEC);
+        PERIOD_MONTHS.forEach((m, i) => {
+          const bm = s.byMonth[m.ym] || { actualRev: 0, manualRev: 0, manualExp: 0 };
+          if (!bm.actualRev && !bm.manualRev && !bm.manualExp) return;
+          const net = round2((bm.actualRev || 0) + (bm.manualRev || 0) - (bm.manualExp || 0));
+          const r = addData(wsPerItem, [
+            `${m.label} ${m.year}`,
+            round2(bm.actualRev), round2(bm.manualRev), round2(bm.manualExp), net
+          ], i % 2 === 1);
+          [2, 3, 4, 5].forEach(ci => numFmt(r.getCell(ci)));
+        });
+        void mh;
+      });
+
+    // ─── 11) الرسوم البيانية ───
+    const wsCharts = wb.addWorksheet('11-الرسوم البيانية');
+    styleSheet(wsCharts);
+    wsCharts.columns = [{ width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }];
+    addTitle(wsCharts, `الرسوم البيانية — ${schoolName}`, 'F', PRI, 15);
+    addSub(wsCharts, `لقطة من لوحات التحليل بتاريخ ${exportedAt}`, 'F');
+
+    const chartSpecs = [
+      { id: 'chartItemsPie', title: 'توزيع الإيراد الفعلي حسب البند', row: 4, col: 0 },
+      { id: 'chartManualBars', title: 'إيراد × مصروف يدوي حسب البند', row: 4, col: 3 },
+      { id: 'chartYearLine', title: 'المسار التراكمي الشهري', row: 22, col: 0 },
+      { id: 'chartCompare', title: 'مقارنة فعلي vs يدوي', row: 40, col: 0 },
+      { id: 'chartPayTypes', title: 'طرق الدفع', row: 40, col: 3 },
+    ];
+
+    for (const spec of chartSpecs) {
+      const canvas = document.getElementById(spec.id);
+      const buf = canvasToPngBuffer(canvas);
+      if (!buf) continue;
+      const imgId = wb.addImage({ buffer: buf, extension: 'png' });
+      const titleRow = wsCharts.getRow(spec.row);
+      const cell = titleRow.getCell(spec.col + 1);
+      cell.value = spec.title;
+      cell.font = { name: 'Arial', bold: true, size: 11, color: { argb: PRI } };
+      const wide = spec.id === 'chartYearLine';
+      wsCharts.addImage(imgId, {
+        tl: { col: spec.col, row: spec.row },
+        ext: { width: wide ? 720 : 360, height: wide ? 280 : 260 }
+      });
+    }
+
+    // تذييل حقوق
+    blank(wsCharts, 28);
+    const foot = wsCharts.addRow([`© ${schoolName} — نظام المحاسبة المدرسي — Designed by Eng. Kareem Ali Mousa`]);
+    wsCharts.mergeCells(`A${foot.number}:F${foot.number}`);
+    paintRow(foot, PRI, WHT, true, 9);
+    foot.height = 22;
+
+    // تجميد صفوف العناوين في الشيتات الجدولية
+    [wsItems, wsTx, wsExp, wsDebt, wsMan, wsPay, wsTrend].forEach(ws => {
+      ws.views = [{ state: 'normal', rightToLeft: true, showGridLines: false, ySplit: 3 }];
+    });
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    const a = document.createElement('a');
+    const safeSchool = schoolName.replace(/[\\/:*?"<>|]+/g, '-').trim();
+    a.href = URL.createObjectURL(blob);
+    a.download = `تحليل-بيانات-${safeSchool}-${fileStamp}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+
+    showManualAlert('تم تصدير شيت Excel الاحترافي بنجاح', 'success');
+  } catch (err) {
+    console.error(err);
+    alert('فشل التصدير: ' + (err.message || err));
+  } finally {
+    selectedMonthYm = savedMonth;
+    selectedItem = savedItem;
+    fillMonthSelects();
+    renderAll();
+    if (btn) { btn.disabled = false; btn.textContent = prevTxt || 'تصدير Excel احترافي'; }
+  }
 }
 
 // كل يوم جديد: وسّع الفترة حتى اليوم وأعد المزامنة
