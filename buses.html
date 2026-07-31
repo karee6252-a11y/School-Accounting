@@ -1,0 +1,2478 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#1a3a6b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="المحاسبة" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<title>بند الباصات - نظام المحاسبة</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .bus-section-wrapper {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 2px solid var(--primary);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .bus-panel {
+      background: var(--bg, #f5f7fa);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      padding: 1.25rem;
+    }
+    .bus-panel-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .bus-input-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .bus-input-group label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-mid, #555);
+      margin-bottom: 0.3rem;
+    }
+    .bus-input-group input {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: 'Cairo', sans-serif;
+      font-size: 0.875rem;
+      background: white;
+      transition: border-color 0.2s;
+    }
+    .bus-input-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--accent);
+    }
+    .bus-result-box {
+      background: var(--primary);
+      color: white;
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.75rem;
+    }
+    .bus-result-box .label { font-size: 0.8rem; opacity: 0.85; }
+    .bus-result-box .value { font-size: 1.3rem; font-weight: 900; }
+    .bus-save-btn {
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.6rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: 'Cairo', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .bus-save-btn:hover { opacity: 0.85; }
+    .bus-note {
+      font-size: 0.72rem;
+      color: var(--text-light, #999);
+      margin-top: 0.5rem;
+      text-align: center;
+      font-style: italic;
+    }
+
+    /* Summary bar at top */
+    .bus-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .bus-stat-card {
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      box-shadow: var(--shadow);
+    }
+    .bus-stat-card.cost   { background: linear-gradient(135deg, #c62828, #b71c1c); }
+    .bus-stat-card.rev    { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
+    .bus-stat-card.diff   { background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247)); }
+    .bus-stat-card .lbl   { font-size: 0.8rem; opacity: 0.8; font-weight: 600; }
+    .bus-stat-card .val   { font-size: 1.8rem; font-weight: 900; line-height: 1; }
+
+    /* Custodian cards - like expenses page */
+    .cust-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .cust-card {
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .cust-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.08);
+      border-radius: inherit;
+      pointer-events: none;
+    }
+    .cust-card.prev  { background: linear-gradient(135deg, #1565c0, #0d47a1); }
+    .cust-card.new   { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
+    .cust-card.rem   { background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247)); }
+    .cust-card .clbl { font-size: 0.8rem; opacity: 0.8; font-weight: 600; }
+    .cust-card .cval { font-size: 1.8rem; font-weight: 900; line-height: 1; }
+    .cust-card .csub { font-size: 0.72rem; opacity: 0.7; }
+    .cust-card .cico { font-size: 2rem; position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.22; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal-box {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+    }
+    .modal-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: var(--card-bg);
+      z-index: 1;
+    }
+    .modal-title { font-size: 1rem; font-weight: 800; color: var(--text-dark); }
+    .modal-close {
+      background: none; border: none; font-size: 1.2rem;
+      cursor: pointer; color: var(--text-light);
+      padding: 0.25rem 0.5rem; border-radius: 6px;
+    }
+    .modal-close:hover { background: var(--border); }
+    .modal-body   { padding: 1.5rem; }
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex; gap: 0.75rem; justify-content: flex-end;
+    }
+
+    @media (max-width: 768px) {
+      .bus-stats-grid   { grid-template-columns: 1fr; }
+      .cust-summary-grid { grid-template-columns: 1fr; }
+      .bus-input-row    { grid-template-columns: 1fr; }
+    }
+
+    /* ===== TABS ===== */
+    .page-tabs-bar {
+      display: flex; gap: 0;
+      border-bottom: 2px solid var(--primary);
+      margin-bottom: 1.5rem;
+    }
+    .page-tab-btn {
+      padding: 0.65rem 1.4rem;
+      font-family: 'Cairo', sans-serif;
+      font-size: 0.88rem; font-weight: 700;
+      border: none; background: transparent;
+      color: var(--text-mid, #666);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .page-tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: var(--accent, #eef3fb);
+      border-radius: 8px 8px 0 0;
+    }
+    .page-tab-pane { display: none; }
+    .page-tab-pane.active { display: block; }
+
+    /* ===== SUB / EXP SHARED ===== */
+    .sub-summary-grid {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .sub-stat-card {
+      border-radius: var(--radius); padding: 1.1rem 1.25rem;
+      color: white; display: flex; flex-direction: column;
+      gap: 0.3rem; box-shadow: var(--shadow);
+    }
+    .sub-stat-card.blue  { background: linear-gradient(135deg,#1565c0,#0d47a1); }
+    .sub-stat-card.green { background: linear-gradient(135deg,#2e7d32,#1b5e20); }
+    .sub-stat-card.red   { background: linear-gradient(135deg,#c62828,#b71c1c); }
+    .sub-stat-card.navy  { background: linear-gradient(135deg,#1a3a6b,#0d2247); }
+    .sub-stat-card .ss-lbl { font-size:0.78rem; opacity:0.82; font-weight:600; }
+    .sub-stat-card .ss-val { font-size:1.6rem; font-weight:900; line-height:1.1; }
+    .sub-stat-card .ss-sub { font-size:0.72rem; opacity:0.7; }
+
+    .sub-toolbar { display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-bottom:1rem; }
+    .sub-search-box {
+      flex:1; min-width:160px; max-width:260px;
+      padding:0.45rem 0.9rem;
+      border:1px solid var(--border); border-radius:var(--radius-sm);
+      font-family:'Cairo',sans-serif; font-size:0.875rem;
+    }
+    .sub-filter-sel {
+      padding:0.45rem 0.9rem;
+      border:1px solid var(--border); border-radius:var(--radius-sm);
+      font-family:'Cairo',sans-serif; font-size:0.875rem; background:white;
+    }
+
+    /* data table */
+    .sub-table-wrap { overflow-x:auto; }
+    .sub-table { width:100%; border-collapse:collapse; font-size:0.83rem; direction:rtl; }
+    .sub-table th {
+      background:var(--primary); color:white;
+      padding:0.6rem 0.8rem; text-align:center;
+      font-size:0.78rem; font-weight:700; white-space:nowrap;
+    }
+    .sub-table td {
+      padding:0.55rem 0.8rem; text-align:center;
+      border-bottom:1px solid var(--border); vertical-align:middle;
+    }
+    .sub-table tr:hover td { background:var(--accent,#eef3fb); }
+    .sub-table tr:nth-child(even) td { background:#fafbfd; }
+    .sub-table tr:nth-child(even):hover td { background:var(--accent,#eef3fb); }
+
+    .stbadge { display:inline-block; padding:2px 9px; border-radius:12px; font-size:0.72rem; font-weight:700; }
+    .stb-t1  { background:#fff3e0; color:#e65100; }
+    .stb-t2  { background:#e8f5e9; color:#1b5e20; }
+    .stb-paid    { background:#e8f5e9; color:#1b5e20; }
+    .stb-partial { background:#fff8e1; color:#f57f17; }
+    .stb-unpaid  { background:#fde8e8; color:#c62828; }
+
+    /* expense categories */
+    .exp3-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.5rem; }
+    .exp-cat-hdr {
+      background:linear-gradient(135deg,#375a8c,#1a3a6b); color:white;
+      padding:0.5rem 1rem; font-size:0.82rem; font-weight:800;
+      border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+      display:flex; justify-content:space-between;
+    }
+    .exp-item-row {
+      background:var(--bg,#f5f7fa); border:1px solid var(--border);
+      border-top:none; padding:0.75rem 1rem;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .exp-item-row:last-child { border-radius:0 0 var(--radius-sm) var(--radius-sm); margin-bottom:1rem; }
+    .ei-label { font-size:0.85rem; font-weight:700; color:var(--text-dark); }
+    .ei-date  { font-size:0.72rem; color:var(--text-light); margin-top:2px; }
+    .ei-amt   { font-size:0.95rem; font-weight:900; color:#c0392b; white-space:nowrap; }
+
+    /* sub/exp modal form helpers */
+    .mf-row   { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem; }
+    .mf-row3  { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem; margin-bottom:0.75rem; }
+    .mf-row1  { margin-bottom:0.75rem; }
+    .mfl { display:block; font-size:0.78rem; font-weight:700; color:var(--text-mid,#555); margin-bottom:0.3rem; }
+    .mfi {
+      width:100%; padding:0.5rem 0.75rem;
+      border:1px solid var(--border); border-radius:var(--radius-sm);
+      font-family:'Cairo',sans-serif; font-size:0.875rem; background:white;
+      transition:border-color 0.2s; box-sizing:border-box;
+    }
+    .mfi:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--accent); }
+    .mfi[readonly] { background:#f5f7fa; }
+    .term-info-pill {
+      background:var(--accent,#eef3fb); border:1px solid var(--primary-light,#c5d8f5);
+      border-radius:var(--radius-sm); padding:0.55rem 1rem;
+      font-size:0.8rem; color:var(--primary); font-weight:700;
+      margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem;
+    }
+    .custom-item-row { display:flex; gap:0.5rem; align-items:center; margin-bottom:0.5rem; }
+    .custom-item-row .mfi { flex:1; }
+    .remove-ci-btn { background:none; border:none; color:#c0392b; cursor:pointer; font-size:1rem; padding:0 4px; }
+
+    @media (max-width: 768px) {
+      .sub-summary-grid { grid-template-columns:1fr 1fr; }
+      .exp3-summary     { grid-template-columns:1fr; }
+      .mf-row, .mf-row3 { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div id="topbarContainer"></div>
+
+    <div class="page-content">
+
+      <!-- ===== Tabs Bar ===== -->
+      <div class="page-tabs-bar">
+        <button class="page-tab-btn active" onclick="switchPageTab('companies',this)"> شركات الباصات</button>
+        <button class="page-tab-btn" onclick="switchPageTab('subscriptions',this)"> تسجيل اشتراكات</button>
+        <button class="page-tab-btn" onclick="switchPageTab('busexpenses',this)"> تسجيل مصروفات</button>
+      </div>
+
+      <!-- ============================================================ -->
+      <!--  TAB: شركات الباصات (المحتوى الأصلي)                        -->
+      <!-- ============================================================ -->
+      <div class="page-tab-pane active" id="ptab-companies">
+
+      <!-- Custodian Summary (من بيانات المصروفات) -->
+      <div class="cust-summary-grid animate-in">
+        <div class="cust-card prev">
+          <div class="cico"></div>
+          <div class="clbl">العهدة السابقة</div>
+          <div class="cval" id="busCustPrev">—</div>
+          <div class="csub">الرصيد المرحّل</div>
+        </div>
+        <div class="cust-card new">
+          <div class="cico"></div>
+          <div class="clbl">العهدة الجديدة</div>
+          <div class="cval" id="busCustNew">—</div>
+          <div class="csub">المبلغ المستلم جديداً</div>
+        </div>
+        <div class="cust-card rem" id="busCustRemCard">
+          <div class="cico"></div>
+          <div class="clbl">الرصيد المتبقي</div>
+          <div class="cval" id="busCustRem">—</div>
+          <div class="csub">السابقة + الجديدة - المصروفات</div>
+        </div>
+      </div>
+
+      <!-- Stats Summary -->
+      <div class="bus-stats-grid animate-in" id="busStatsGrid">
+        <div class="bus-stat-card cost">
+          <div class="lbl"> إجمالي تكلفة الباصات</div>
+          <div class="val" id="statTotalCost">0 ج.م</div>
+        </div>
+        <div class="bus-stat-card rev">
+          <div class="lbl"> إجمالي اشتراكات الطلاب</div>
+          <div class="val" id="statTotalRev">0 ج.م</div>
+        </div>
+        <div class="bus-stat-card diff">
+          <div class="lbl" id="statDiffLabel"> الفارق</div>
+          <div class="val" id="statTotalDiff">0 ج.م</div>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="d-flex align-center gap-1 mb-2 animate-in" style="flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="openAddCompanyModal()">
+           إضافة شركة جديدة
+        </button>
+        <button class="btn btn-secondary" onclick="saveBusData()">
+           حفظ كل الشركات
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="openBusCalcModal()" style="background:#1a3a6b;color:white;border-color:#1a3a6b;font-weight:800;font-size:0.82rem;padding:0.45rem 1rem">
+           حسابات الباصات
+        </button>
+        <div style="flex:1"></div>
+        <button class="btn btn-outline btn-sm" onclick="exportBusExcel()"> Excel</button>
+        <button class="btn btn-outline btn-sm" onclick="exportBusPDF()"> PDF</button>
+      </div>
+
+      <!-- Companies List -->
+      <div class="card animate-in">
+        <div class="card-header">
+          <span class="card-title"> شركات الباصات</span>
+          <span class="badge badge-primary" id="companiesCount">0 شركات</span>
+        </div>
+        <div class="card-body" id="busCompaniesContainer">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+
+      <!-- Total summary box -->
+      <div id="busTotalSummary" style="display:none;margin-top:1rem;padding:1rem;background:var(--accent);border-radius:var(--radius-sm);border:2px solid var(--primary)" class="animate-in">
+        <div style="font-size:0.85rem;font-weight:800;color:var(--primary);margin-bottom:0.75rem;text-align:center"> ملخص إجمالي الباصات</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem">
+          <div style="text-align:center;padding:0.5rem;background:white;border-radius:var(--radius-sm)">
+            <div style="font-size:0.72rem;color:var(--text-light)">إجمالي التكلفة</div>
+            <div style="font-size:1.1rem;font-weight:900;color:#c0392b" id="busTotalCost">0 ج.م</div>
+          </div>
+          <div style="text-align:center;padding:0.5rem;background:white;border-radius:var(--radius-sm)">
+            <div style="font-size:0.72rem;color:var(--text-light)">إجمالي الاشتراكات</div>
+            <div style="font-size:1.1rem;font-weight:900;color:#2e7d32" id="busTotalRevenue">0 ج.م</div>
+          </div>
+          <div style="text-align:center;padding:0.5rem;background:white;border-radius:var(--radius-sm)">
+            <div style="font-size:0.72rem;color:var(--text-light)">الفارق (فائض/عجز)</div>
+            <div style="font-size:1.1rem;font-weight:900" id="busTotalDiff">0 ج.م</div>
+          </div>
+        </div>
+      </div>
+
+      </div><!-- /ptab-companies -->
+
+      <!-- ============================================================ -->
+      <!--  TAB: تسجيل اشتراكات                                        -->
+      <!-- ============================================================ -->
+      <div class="page-tab-pane" id="ptab-subscriptions">
+
+        <!-- Summary cards -->
+        <div class="sub-summary-grid animate-in">
+          <div class="sub-stat-card blue">
+            <div class="ss-lbl"> إجمالي المشتركين</div>
+            <div class="ss-val" id="sTotalStudents">0</div>
+            <div class="ss-sub">طالب مسجل</div>
+          </div>
+          <div class="sub-stat-card navy">
+            <div class="ss-lbl"> إجمالي الاشتراكات</div>
+            <div class="ss-val" id="sTotalFees">0 ج.م</div>
+            <div class="ss-sub">ترم أول + ترم ثاني</div>
+          </div>
+          <div class="sub-stat-card green">
+            <div class="ss-lbl"> إجمالي المحصّل</div>
+            <div class="ss-val" id="sTotalCollected">0 ج.م</div>
+            <div class="ss-sub">مدفوع فعلاً</div>
+          </div>
+          <div class="sub-stat-card red">
+            <div class="ss-lbl"> إجمالي المتبقي</div>
+            <div class="ss-val" id="sTotalRemaining">0 ج.م</div>
+            <div class="ss-sub">باقي للتحصيل</div>
+          </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="sub-toolbar animate-in">
+          <button class="btn btn-primary" onclick="openSubModal()"> إضافة اشتراك جديد</button>
+          <input type="text" class="sub-search-box" id="subSearch" placeholder=" ابحث باسم الطالب..." oninput="renderSubTable()" />
+          <select class="sub-filter-sel" id="subFilterTerm" onchange="renderSubTable()">
+            <option value="">الكل</option>
+            <option value="1">ترم أول</option>
+            <option value="2">ترم ثاني</option>
+            <option value="full">عام كامل</option>
+          </select>
+          <select class="sub-filter-sel" id="subFilterStatus" onchange="renderSubTable()">
+            <option value="">كل الحالات</option>
+            <option value="paid">مدفوع</option>
+            <option value="partial">جزئي</option>
+            <option value="unpaid">غير مدفوع</option>
+          </select>
+          <div style="flex:1"></div>
+          <button class="btn btn-outline btn-sm" onclick="exportSubExcel()"> Excel</button>
+        </div>
+
+        <!-- Table -->
+        <div class="card animate-in">
+          <div class="card-header">
+            <span class="card-title"> سجل الاشتراكات</span>
+            <span class="badge badge-primary" id="subCount">0 اشتراك</span>
+          </div>
+          <div class="card-body" style="padding:0">
+            <div class="sub-table-wrap">
+              <table class="sub-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>اسم الطالب</th>
+                    <th>الصف</th>
+                    <th>الترم</th>
+                    <th>المدفوع</th>
+                    <th>تاريخ التسديد</th>
+                    <th>الحالة</th>
+                    <th>إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="subTableBody">
+                  <tr><td colspan="8" style="padding:2.5rem;color:var(--text-light)">اضغط على التاب لتحميل البيانات</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /ptab-subscriptions -->
+
+      <!-- ============================================================ -->
+      <!--  TAB: تسجيل مصروفات                                         -->
+      <!-- ============================================================ -->
+      <div class="page-tab-pane" id="ptab-busexpenses">
+
+        <!-- Summary -->
+        <div class="exp3-summary animate-in">
+          <div class="sub-stat-card red">
+            <div class="ss-lbl"> إجمالي المصروفات</div>
+            <div class="ss-val" id="eTotalExp">0 ج.م</div>
+            <div class="ss-sub">كل البنود</div>
+          </div>
+          <div class="sub-stat-card blue">
+            <div class="ss-lbl"> رواتب المشرفين</div>
+            <div class="ss-val" id="eTotalSalaries">0 ج.م</div>
+            <div class="ss-sub">إجمالي الرواتب</div>
+          </div>
+          <div class="sub-stat-card navy">
+            <div class="ss-lbl"> مصروفات أخرى</div>
+            <div class="ss-val" id="eTotalOther">0 ج.م</div>
+            <div class="ss-sub">شحن + انتقالات + أخرى</div>
+          </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="sub-toolbar animate-in">
+          <button class="btn btn-primary" onclick="openExpModal('salaries')"> راتب مشرف</button>
+          <button class="btn btn-outline btn-sm" style="background:#e65100;color:white;border-color:#e65100" onclick="openExpModal('mobile')"> شحن موبايل</button>
+          <button class="btn btn-outline btn-sm" style="background:#1565c0;color:white;border-color:#1565c0" onclick="openExpModal('transport')"> انتقالات</button>
+          <button class="btn btn-outline btn-sm" style="background:#37474f;color:white;border-color:#37474f" onclick="openExpModal('other')"> مصروفات أخرى</button>
+          <div style="flex:1"></div>
+          <button class="btn btn-outline btn-sm" onclick="exportExpExcel()"> Excel</button>
+        </div>
+
+        <!-- Expenses list -->
+        <div id="expContainer" class="animate-in">
+          <div style="text-align:center;padding:3rem;color:var(--text-light)">اضغط على التاب لتحميل البيانات</div>
+        </div>
+
+      </div><!-- /ptab-busexpenses -->
+
+    </div><!-- /page-content -->
+  </div>
+</div>
+
+<!-- Modal: إضافة / تعديل اشتراك -->
+<div class="modal-overlay hidden" id="subModal">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-header" style="background:linear-gradient(135deg,#1a3a6b,#0d2247);border-radius:var(--radius) var(--radius) 0 0">
+      <span class="modal-title" id="subModalTitle" style="color:white"> تسجيل اشتراك جديد</span>
+      <button class="modal-close" onclick="closeSubModal()" style="color:white">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="subEditId" />
+      <div class="mf-row">
+        <div>
+          <label class="mfl">اسم الطالب <span style="color:red">*</span></label>
+          <input type="text" class="mfi" id="subStudentName" placeholder="الاسم الكامل" style="direction:rtl" />
+        </div>
+        <div>
+          <label class="mfl">الصف <span style="color:red">*</span></label>
+          <input type="text" class="mfi" id="subGrade" placeholder="مثال: الصف الثالث الإعدادي" style="direction:rtl" />
+        </div>
+      </div>
+      <div class="mf-row">
+        <div>
+          <label class="mfl">المبلغ المدفوع (ج.م) <span style="color:red">*</span></label>
+          <input type="number" class="mfi" id="subPaidAmount" placeholder="0.00" step="0.01" min="0" oninput="calcSubModal()" />
+        </div>
+        <div>
+          <label class="mfl">تاريخ التسديد</label>
+          <input type="date" class="mfi" id="subPayDate" />
+        </div>
+      </div>
+      <!-- حقل الترم تلقائي أو يدوي -->
+      <div class="mf-row">
+        <div>
+          <label class="mfl">الترم <span style="color:red">*</span></label>
+          <select class="mfi" id="subTerm" onchange="calcSubModal()">
+            <option value="">— اختر الترم —</option>
+            <option value="1">ترم أول</option>
+            <option value="2">ترم ثاني</option>
+            <option value="full">عام كامل</option>
+          </select>
+        </div>
+        <div>
+          <!-- حقل مخفي للتوافق -->
+          <input type="hidden" id="subMonthlyFee" value="0" />
+          <input type="hidden" id="subMonthsCount" value="0" />
+          <input type="hidden" id="subTotalFee" value="0" />
+          <label class="mfl">الترم المُحدَّد تلقائياً</label>
+          <div id="subAutoTermDisplay" style="padding:0.5rem 0.75rem;background:#f0f4ff;border:1px solid #c5d8f5;border-radius:var(--radius-sm);font-size:0.875rem;font-weight:700;color:var(--primary);min-height:2.2rem;display:flex;align-items:center">—</div>
+        </div>
+      </div>
+      <div class="term-info-pill" id="subTermInfo" style="display:none">
+        <span></span><span id="subTermInfoText"></span>
+      </div>
+      <div class="mf-row1">
+        <label class="mfl">ملاحظات</label>
+        <input type="text" class="mfi" id="subNotes" placeholder="أي ملاحظات..." style="direction:rtl" />
+      </div>
+      <!-- ملخص -->
+      <div style="background:var(--accent,#eef3fb);border:1px solid var(--primary-light,#c5d8f5);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-top:0.25rem">
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.25rem">
+          <span>المبلغ المدفوع</span><span id="mSubPaid" style="font-weight:800;color:#2e7d32">0 ج.م</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.9rem;font-weight:900;border-top:1px solid var(--border);padding-top:0.3rem">
+          <span>الترم المحدد</span><span id="mSubTotal" style="color:var(--primary)">—</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeSubModal()">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveSub()"> حفظ الاشتراك</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: إضافة مصروف -->
+<div class="modal-overlay hidden" id="expModal">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-header" style="background:linear-gradient(135deg,#1a3a6b,#0d2247);border-radius:var(--radius) var(--radius) 0 0">
+      <span class="modal-title" id="expModalTitle" style="color:white"> إضافة مصروف</span>
+      <button class="modal-close" onclick="closeExpModal()" style="color:white">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="expEditId" />
+      <input type="hidden" id="expCategory" />
+
+      <!-- رواتب -->
+      <div id="expSalaryFields" style="display:none">
+        <div class="mf-row">
+          <div><label class="mfl">اسم المشرف <span style="color:red">*</span></label><input type="text" class="mfi" id="expSupervisorName" placeholder="اسم المشرف" style="direction:rtl" /></div>
+          <div><label class="mfl">الراتب (ج.م) <span style="color:red">*</span></label><input type="number" class="mfi" id="expSalaryAmount" placeholder="0.00" step="0.01" min="0" /></div>
+        </div>
+        <div class="mf-row">
+          <div>
+            <label class="mfl">الشهر</label>
+            <select class="mfi" id="expSalaryMonth">
+              <option value="9">سبتمبر</option><option value="10">أكتوبر</option>
+              <option value="11">نوفمبر</option><option value="12">ديسمبر</option>
+              <option value="1">يناير</option><option value="2">فبراير</option>
+              <option value="3">مارس</option><option value="4">أبريل</option>
+              <option value="5">مايو</option>
+            </select>
+          </div>
+          <div><label class="mfl">تاريخ الصرف</label><input type="date" class="mfi" id="expSalaryDate" /></div>
+        </div>
+      </div>
+
+      <!-- شحن موبايل -->
+      <div id="expMobileFields" style="display:none">
+        <div class="mf-row">
+          <div><label class="mfl">اسم المشرف / الخط</label><input type="text" class="mfi" id="expMobileName" placeholder="مثال: خط أحمد" style="direction:rtl" /></div>
+          <div><label class="mfl">المبلغ (ج.م) <span style="color:red">*</span></label><input type="number" class="mfi" id="expMobileAmount" placeholder="0.00" step="0.01" min="0" /></div>
+        </div>
+        <div class="mf-row">
+          <div><label class="mfl">التاريخ</label><input type="date" class="mfi" id="expMobileDate" /></div>
+          <div><label class="mfl">ملاحظات</label><input type="text" class="mfi" id="expMobileNotes" placeholder="..." style="direction:rtl" /></div>
+        </div>
+      </div>
+
+      <!-- انتقالات -->
+      <div id="expTransportFields" style="display:none">
+        <div id="expTransportItems"></div>
+        <button type="button" onclick="addTransportItem()" style="width:100%;padding:0.45rem;background:var(--primary);color:white;border:none;border-radius:var(--radius-sm);font-family:Cairo,sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;margin-bottom:0.75rem"> إضافة بند انتقال</button>
+        <div class="mf-row">
+          <div><label class="mfl">التاريخ</label><input type="date" class="mfi" id="expTransportDate" /></div>
+          <div><label class="mfl">ملاحظات</label><input type="text" class="mfi" id="expTransportNotes" placeholder="..." style="direction:rtl" /></div>
+        </div>
+        <div style="background:var(--accent);border-radius:var(--radius-sm);padding:0.5rem 0.75rem;text-align:center">
+          <span style="font-size:0.8rem;color:var(--text-mid)">الإجمالي: </span>
+          <span id="expTransportTotal" style="font-size:1rem;font-weight:900;color:#c0392b">0 ج.م</span>
+        </div>
+      </div>
+
+      <!-- مصروفات أخرى -->
+      <div id="expOtherFields" style="display:none">
+        <div id="expOtherItems"></div>
+        <button type="button" onclick="addOtherItem()" style="width:100%;padding:0.45rem;background:var(--primary);color:white;border:none;border-radius:var(--radius-sm);font-family:Cairo,sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;margin-bottom:0.75rem"> إضافة بند</button>
+        <div class="mf-row">
+          <div><label class="mfl">التاريخ</label><input type="date" class="mfi" id="expOtherDate" /></div>
+          <div><label class="mfl">ملاحظات</label><input type="text" class="mfi" id="expOtherNotes" placeholder="..." style="direction:rtl" /></div>
+        </div>
+        <div style="background:var(--accent);border-radius:var(--radius-sm);padding:0.5rem 0.75rem;text-align:center">
+          <span style="font-size:0.8rem;color:var(--text-mid)">الإجمالي: </span>
+          <span id="expOtherTotal" style="font-size:1rem;font-weight:900;color:#c0392b">0 ج.م</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeExpModal()">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveExp()"> حفظ المصروف</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: إضافة/تعديل شركة -->
+<div class="modal-overlay hidden" id="busCompanyModal">
+  <div class="modal-box" style="max-width:680px">
+    <div class="modal-header">
+      <span class="modal-title" id="busCompanyModalTitle"> إضافة شركة باص</span>
+      <button class="modal-close" onclick="closeBusCompanyModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="busCompanyEditId" value="" />
+
+      <!-- اسم الشركة -->
+      <div class="form-group">
+        <label class="form-label">اسم الشركة <span class="required">*</span></label>
+        <input type="text" class="form-input form-input-ar" id="busCompanyName" placeholder="مثال: شركة النيل للنقل" />
+      </div>
+
+      <!-- بيانات عامة -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:1rem">
+        <div class="form-group">
+          <label class="form-label">عدد أيام الشهر</label>
+          <input type="number" class="form-input" id="busCompanyDays" placeholder="0" min="0" oninput="calcCompanyModal()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">عدد المشتركين</label>
+          <input type="number" class="form-input" id="busCompanySubCount" placeholder="0" oninput="calcCompanyModal()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">قيمة الاشتراك / شخص (ج.م)</label>
+          <input type="number" class="form-input" id="busCompanySubVal" placeholder="0.00" step="0.01" oninput="calcCompanyModal()" />
+        </div>
+      </div>
+
+      <!-- قسم العربيات -->
+      <div style="background:var(--accent);border-radius:var(--radius-sm);border:1px solid var(--primary-light,#c5d8f5);padding:1rem;margin-bottom:0.75rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+          <div style="font-size:0.85rem;font-weight:800;color:var(--primary)"> العربيات</div>
+          <button type="button" onclick="addVehicleRow()" style="padding:0.3rem 0.9rem;background:var(--primary);color:white;border:none;border-radius:var(--radius-sm);font-family:Cairo,sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer"> إضافة عربية</button>
+        </div>
+        <div id="vehicleRowsContainer">
+          <!-- rows added dynamically -->
+        </div>
+        <div id="vehicleRowsEmpty" style="text-align:center;padding:1rem;color:var(--text-light);font-size:0.8rem">
+          اضغط "إضافة عربية" لإضافة أول عربية
+        </div>
+      </div>
+
+      <!-- ملخص الحساب -->
+      <div style="padding:0.75rem;background:var(--accent);border-radius:var(--radius-sm);border:1px solid var(--primary-light,#c5d8f5)" id="busModalCalc">
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.25rem">
+          <span>إجمالي تكلفة العربيات</span><span id="mCalcCost" style="font-weight:800;color:#c0392b">0 ج.م</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.25rem">
+          <span>إيرادات الاشتراكات</span><span id="mCalcRev" style="font-weight:800;color:#2e7d32">0 ج.م</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.9rem;font-weight:900;border-top:1px solid var(--border);padding-top:0.25rem">
+          <span id="mCalcDiffLabel">الفارق</span><span id="mCalcDiff">0 ج.م</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeBusCompanyModal()">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveBusCompany()"> حفظ الشركة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: خصم من العهدة -->
+<div class="modal-overlay hidden" id="busDeductModal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title"> خصم من العهدة</span>
+      <button class="modal-close" onclick="document.getElementById('busDeductModal').classList.add('hidden')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--accent);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1rem;border:1px solid var(--primary-light,#c5d8f5)">
+        <div style="font-size:0.8rem;color:var(--text-mid)">العهدة الحالية (السابقة + الجديدة - المصروفات)</div>
+        <div style="font-size:1.4rem;font-weight:900;color:var(--primary)" id="deductCurrentBalance">—</div>
+      </div>
+      <input type="hidden" id="deductCompanyId" />
+      <input type="hidden" id="deductVehicleId" />
+      <div class="form-group">
+        <label class="form-label">اسم الشركة / العربية</label>
+        <input type="text" class="form-input form-input-ar" id="deductLabel" readonly style="background:#f5f7fa" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">المبلغ المراد خصمه (ج.م) <span class="required">*</span></label>
+        <input type="number" class="form-input" id="deductAmount" placeholder="0.00" min="0" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">ملاحظات</label>
+        <input type="text" class="form-input form-input-ar" id="deductNotes" placeholder="مثال: دفعة شهر يناير" />
+      </div>
+      <div id="deductAlert" style="display:none;padding:0.6rem 0.8rem;border-radius:var(--radius-sm);font-size:0.82rem;margin-top:0.5rem"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('busDeductModal').classList.add('hidden')">إلغاء</button>
+      <button class="btn btn-primary" id="deductSaveBtn" onclick="saveDeduction()" style="background:#c0392b;border-color:#c0392b"> تأكيد الخصم</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="layout.js"></script>
+<script>
+  renderLayout('buses', 'بند الباصات');
+
+  const session  = SESSION.get();
+  const schoolId = session.schoolId;
+  let busCompanies = [];
+  let vehicleRows  = [];   // العربيات في المودال الحالي
+  let vehicleRowId = 0;    // counter للـ rows
+
+  // ===== العهدة (من المصروفات) =====
+  let custodianBalance = 0;
+
+  async function loadCustodianBalance() {
+    try {
+      const doc = await db.collection('custodians').doc(schoolId).get();
+      let prev = 0, nw = 0;
+      if (doc.exists) { prev = doc.data().prevAmount || 0; nw = doc.data().newAmount || 0; }
+      const snap = await db.collection('expenses').where('schoolId','==',schoolId).get();
+      let totalExp = 0;
+      snap.forEach(d => { totalExp += d.data().amount || 0; });
+      custodianBalance = prev + nw - totalExp;
+
+      // تحديث كروت العهدة
+      document.getElementById('busCustPrev').textContent = formatCurrency(prev);
+      document.getElementById('busCustNew').textContent  = formatCurrency(nw);
+      document.getElementById('busCustRem').textContent  = formatCurrency(custodianBalance);
+      const remCard = document.getElementById('busCustRemCard');
+      if (custodianBalance < 0) {
+        remCard.style.background = 'linear-gradient(135deg,#c62828,#b71c1c)';
+      } else {
+        remCard.style.background = '';
+      }
+    } catch(e) {
+      custodianBalance = 0;
+      document.getElementById('busCustPrev').textContent = '—';
+      document.getElementById('busCustNew').textContent  = '—';
+      document.getElementById('busCustRem').textContent  = '—';
+    }
+  }
+
+  // ===== إدارة صفوف العربيات في المودال =====
+  function addVehicleRow(data = {}) {
+    const id = ++vehicleRowId;
+    vehicleRows.push(id);
+    const cont = document.getElementById('vehicleRowsContainer');
+    document.getElementById('vehicleRowsEmpty').style.display = 'none';
+
+    const row = document.createElement('div');
+    row.id = `vrow_${id}`;
+    row.style.cssText = 'background:white;border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem;margin-bottom:0.5rem;position:relative';
+    row.innerHTML = `
+      <button type="button" onclick="removeVehicleRow(${id})" style="position:absolute;top:0.4rem;left:0.4rem;background:none;border:none;color:#c0392b;cursor:pointer;font-size:1rem;line-height:1">✕</button>
+      <div style="font-size:0.75rem;font-weight:800;color:var(--primary);margin-bottom:0.5rem"> عربية ${id}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;margin-bottom:0.5rem">
+        <div>
+          <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:2px">اسم العربية <span style="color:red">*</span></label>
+          <input type="text" class="form-input form-input-ar" id="vplate_${id}" placeholder="مثال: عربية المدينة" value="${data.plate||''}" style="font-size:0.82rem" />
+        </div>
+        <div>
+          <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:2px">رقم الخط</label>
+          <input type="text" class="form-input" id="vline_${id}" placeholder="مثال: خط 5" value="${data.lineNum||''}" style="font-size:0.82rem" />
+        </div>
+        <div>
+          <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:2px">قيمة اليوم (ج.م)</label>
+          <input type="number" class="form-input" id="vdayval_${id}" placeholder="0.00" step="0.01" min="0" value="${data.dayVal||''}" oninput="calcCompanyModal()" style="font-size:0.82rem" />
+        </div>
+      </div>
+      <div>
+        <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:2px">خط السير</label>
+        <input type="text" class="form-input form-input-ar" id="vroute_${id}" placeholder="مثال: المدينة ← الحي الجديد" value="${data.route||''}" style="font-size:0.82rem;width:100%" />
+      </div>
+    `;
+    cont.appendChild(row);
+    calcCompanyModal();
+  }
+
+  function removeVehicleRow(id) {
+    vehicleRows = vehicleRows.filter(r => r !== id);
+    const el = document.getElementById(`vrow_${id}`);
+    if (el) el.remove();
+    if (vehicleRows.length === 0) document.getElementById('vehicleRowsEmpty').style.display = 'block';
+    calcCompanyModal();
+  }
+
+  function getVehiclesFromModal() {
+    return vehicleRows.map(id => ({
+      id: null,
+      plate:   (document.getElementById(`vplate_${id}`)?.value  || '').trim(),
+      lineNum: (document.getElementById(`vline_${id}`)?.value   || '').trim(),
+      route:   (document.getElementById(`vroute_${id}`)?.value  || '').trim(),
+      dayVal:  parseFloat(document.getElementById(`vdayval_${id}`)?.value) || 0,
+    }));
+  }
+
+  // ===== حساب المودال =====
+  function calcCompanyModal() {
+    const days   = parseFloat(document.getElementById('busCompanyDays').value)    || 0;
+    const subCnt = parseFloat(document.getElementById('busCompanySubCount').value)|| 0;
+    const subVal = parseFloat(document.getElementById('busCompanySubVal').value)  || 0;
+
+    const vehicles = getVehiclesFromModal();
+    const cost = vehicles.reduce((s, v) => s + v.dayVal * days, 0);
+    const rev  = subCnt * subVal;
+    const diff = rev - cost;
+
+    document.getElementById('mCalcCost').textContent      = formatCurrency(cost);
+    document.getElementById('mCalcRev').textContent       = formatCurrency(rev);
+    document.getElementById('mCalcDiff').textContent      = formatCurrency(Math.abs(diff));
+    document.getElementById('mCalcDiff').style.color      = diff >= 0 ? '#2e7d32' : '#c0392b';
+    document.getElementById('mCalcDiffLabel').textContent = diff >= 0 ? 'فائض' : 'عجز';
+  }
+
+  // ===== فتح مودال إضافة =====
+  function openAddCompanyModal() {
+    document.getElementById('busCompanyEditId').value   = '';
+    document.getElementById('busCompanyName').value     = '';
+    document.getElementById('busCompanyDays').value     = '';
+    document.getElementById('busCompanySubCount').value = '';
+    document.getElementById('busCompanySubVal').value   = '';
+    document.getElementById('busCompanyModalTitle').textContent = ' إضافة شركة باص';
+
+    // مسح العربيات
+    vehicleRows = [];
+    vehicleRowId = 0;
+    document.getElementById('vehicleRowsContainer').innerHTML = '';
+    document.getElementById('vehicleRowsEmpty').style.display = 'block';
+
+    calcCompanyModal();
+    document.getElementById('busCompanyModal').classList.remove('hidden');
+  }
+
+  // ===== فتح مودال تعديل =====
+  async function openEditCompanyModal(companyId) {
+    const company = busCompanies.find(c => c.id === companyId);
+    if (!company) return;
+    document.getElementById('busCompanyEditId').value   = companyId;
+    document.getElementById('busCompanyName').value     = company.name     || '';
+    document.getElementById('busCompanyDays').value     = company.days     || '';
+    document.getElementById('busCompanySubCount').value = company.subCount || '';
+    document.getElementById('busCompanySubVal').value   = company.subVal   || '';
+    document.getElementById('busCompanyModalTitle').textContent = ' تعديل: ' + company.name;
+
+    // تحميل العربيات من Firestore
+    vehicleRows = [];
+    vehicleRowId = 0;
+    document.getElementById('vehicleRowsContainer').innerHTML = '';
+    document.getElementById('vehicleRowsEmpty').style.display = 'block';
+
+    try {
+      const snap = await db.collection('busCompanies').doc(schoolId)
+        .collection('companies').doc(companyId).collection('vehicles')
+        .orderBy('createdAt','asc').get();
+      snap.forEach(vDoc => {
+        addVehicleRow({ ...vDoc.data(), _vid: vDoc.id });
+      });
+    } catch(e) { /* no vehicles yet */ }
+
+    calcCompanyModal();
+    document.getElementById('busCompanyModal').classList.remove('hidden');
+  }
+
+  function closeBusCompanyModal() {
+    document.getElementById('busCompanyModal').classList.add('hidden');
+  }
+
+  // ===== حفظ شركة + عربياتها =====
+  async function saveBusCompany() {
+    const name     = document.getElementById('busCompanyName').value.trim();
+    const days     = parseFloat(document.getElementById('busCompanyDays').value)    || 0;
+    const subCount = parseFloat(document.getElementById('busCompanySubCount').value)|| 0;
+    const subVal   = parseFloat(document.getElementById('busCompanySubVal').value)  || 0;
+
+    if (!name) { alert('من فضلك ادخل اسم الشركة'); return; }
+
+    const vehicles = getVehiclesFromModal();
+    if (vehicles.length === 0) { alert('من فضلك أضف عربية واحدة على الأقل'); return; }
+    for (const v of vehicles) {
+      if (!v.plate) { alert('من فضلك ادخل اسم كل عربية'); return; }
+    }
+
+    const cars    = vehicles.length;
+    const monthly = vehicles.reduce((s, v) => s + v.dayVal * days, 0);
+    const subTotal= subCount * subVal;
+    const editId  = document.getElementById('busCompanyEditId').value;
+
+    const companyData = {
+      schoolId, name, cars, days, monthly,
+      subCount, subVal, subTotal,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: session.email
+    };
+
+    try {
+      const colRef = db.collection('busCompanies').doc(schoolId).collection('companies');
+      let companyId = editId;
+
+      if (editId) {
+        await colRef.doc(editId).set(companyData, { merge: true });
+      } else {
+        companyData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        const ref = await colRef.add(companyData);
+        companyId = ref.id;
+      }
+
+      // حفظ كل عربية في subcollection
+      const vColRef = colRef.doc(companyId).collection('vehicles');
+
+      // حذف العربيات القديمة عند التعديل
+      if (editId) {
+        const oldVehicles = await vColRef.get();
+        const batch = db.batch();
+        oldVehicles.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+
+      // إضافة العربيات الجديدة
+      for (const v of vehicles) {
+        await vColRef.add({
+          companyId,
+          schoolId,
+          plate:   v.plate,
+          lineNum: v.lineNum,
+          route:   v.route,
+          dayVal:  v.dayVal,
+          monthlyCost: v.dayVal * days,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: session.email
+        });
+      }
+
+      closeBusCompanyModal();
+      await loadBusData();
+    } catch(err) {
+      alert('خطأ في الحفظ: ' + err.message);
+    }
+  }
+
+  // ===== حذف شركة =====
+  async function deleteBusCompany(companyId) {
+    if (!confirm('هل تريد حذف هذه الشركة وكل عربياتها؟')) return;
+    try {
+      const colRef = db.collection('busCompanies').doc(schoolId).collection('companies');
+      // حذف العربيات أولاً
+      const vSnap = await colRef.doc(companyId).collection('vehicles').get();
+      const batch = db.batch();
+      vSnap.forEach(d => batch.delete(d.ref));
+      batch.delete(colRef.doc(companyId));
+      await batch.commit();
+      await loadBusData();
+    } catch(err) {
+      alert('خطأ في الحذف: ' + err.message);
+    }
+  }
+
+  // ===== حفظ كل الشركات =====
+  async function saveBusData() {
+    if (busCompanies.length === 0) { alert('لا توجد شركات لحفظها. أضف شركة أولاً.'); return; }
+    try {
+      const batch  = db.batch();
+      const colRef = db.collection('busCompanies').doc(schoolId).collection('companies');
+      busCompanies.forEach(c => {
+        batch.update(colRef.doc(c.id), { updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      });
+      await batch.commit();
+      const btn = document.querySelector('.btn-secondary[onclick="saveBusData()"]');
+      if (btn) { const o=btn.innerHTML; btn.innerHTML=' تم الحفظ!'; btn.style.background='#2e7d32'; setTimeout(()=>{btn.innerHTML=o;btn.style.background='';},2000); }
+    } catch(err) {
+      alert('خطأ في الحفظ: ' + err.message);
+    }
+  }
+
+  // ===== تحميل الشركات =====
+  async function loadBusData() {
+    const container = document.getElementById('busCompaniesContainer');
+    container.innerHTML = '<div class="loading-spinner"></div>';
+    await loadCustodianBalance();
+    try {
+      const snap = await db.collection('busCompanies').doc(schoolId).collection('companies')
+        .orderBy('createdAt', 'asc').get();
+      busCompanies = [];
+      snap.forEach(doc => busCompanies.push({ id: doc.id, ...doc.data() }));
+    } catch(e) {
+      busCompanies = [];
+    }
+    await renderBusCompanies();
+  }
+
+  // ===== رندر الشركات + عربياتها =====
+  async function renderBusCompanies() {
+    const container = document.getElementById('busCompaniesContainer');
+    document.getElementById('companiesCount').textContent = busCompanies.length + ' شركات';
+
+    if (busCompanies.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:3rem;color:var(--text-light)">
+          <div style="font-size:3rem;margin-bottom:0.75rem"></div>
+          <div style="font-weight:700;font-size:1rem">لا توجد شركات باصات بعد</div>
+          <div style="font-size:0.8rem;margin-top:0.25rem">اضغط "إضافة شركة جديدة" لإضافة أول شركة</div>
+        </div>`;
+      document.getElementById('busTotalSummary').style.display = 'none';
+      updateStats(0, 0);
+      return;
+    }
+
+    let totalCost = 0, totalRevenue = 0;
+    let allCards = '';
+
+    for (const c of busCompanies) {
+      const cost    = c.monthly    || 0;
+      const revenue = c.subTotal   || (c.subCount * c.subVal) || 0;
+      const diff    = revenue - cost;
+      totalCost    += cost;
+      totalRevenue += revenue;
+      const diffColor = diff >= 0 ? '#2e7d32' : '#c0392b';
+      const diffLabel = diff >= 0 ? 'فائض' : 'عجز';
+
+      // تحميل العربيات
+      let vehiclesHtml = '';
+      try {
+        const vSnap = await db.collection('busCompanies').doc(schoolId)
+          .collection('companies').doc(c.id).collection('vehicles')
+          .orderBy('createdAt','asc').get();
+
+        if (!vSnap.empty) {
+          vehiclesHtml = `<div style="margin-top:0.75rem">
+            <div style="font-size:0.75rem;font-weight:800;color:var(--primary);margin-bottom:0.4rem;border-bottom:1px solid var(--border);padding-bottom:0.3rem"> العربيات (${vSnap.size})</div>
+            <div style="display:flex;flex-direction:column;gap:0.4rem">`;
+          vSnap.forEach(vDoc => {
+            const v = vDoc.data();
+            vehiclesHtml += `
+              <div style="background:white;border:1px solid var(--border);border-radius:4px;padding:0.5rem 0.75rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
+                <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center">
+                  <span style="font-weight:800;font-size:0.85rem;color:var(--primary)">${v.plate || '—'}</span>
+                  ${v.lineNum ? `<span style="font-size:0.75rem;background:#e8f0fe;color:var(--primary);padding:1px 8px;border-radius:10px;font-weight:700">خط ${v.lineNum}</span>` : ''}
+                  ${v.route   ? `<span style="font-size:0.75rem;color:var(--text-mid)"> ${v.route}</span>` : ''}
+                  <span style="font-size:0.75rem;color:#c0392b;font-weight:700">${formatCurrency(v.monthlyCost||0)}/شهر</span>
+                </div>
+                <button onclick="openDeductModal('${c.id}','${vDoc.id}','${(c.name+' - '+(v.plate||'')).replace(/'/g,"\\'")}',${v.monthlyCost||0})"
+                  style="padding:0.2rem 0.7rem;background:#c0392b;color:white;border:none;border-radius:4px;cursor:pointer;font-family:Cairo,sans-serif;font-size:0.72rem;font-weight:700;white-space:nowrap">
+                   خصم من العهدة
+                </button>
+              </div>`;
+          });
+          vehiclesHtml += '</div></div>';
+        } else {
+          vehiclesHtml = `<div style="font-size:0.75rem;color:var(--text-light);margin-top:0.5rem;text-align:center">لا توجد عربيات مسجلة — افتح تعديل لإضافتها</div>`;
+        }
+      } catch(e) { vehiclesHtml = ''; }
+
+      allCards += `
+        <div style="background:var(--bg,#f5f7fa);border-radius:var(--radius-sm);border:1px solid var(--border);padding:1rem;margin-bottom:0.75rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+            <div>
+              <div style="font-size:0.95rem;font-weight:800;color:var(--primary)">${c.name}</div>
+              <div style="font-size:0.72rem;color:var(--text-light)">${c.cars||0} عربية | ${c.days||0} يوم/شهر</div>
+            </div>
+            <div style="display:flex;gap:0.5rem">
+              <button onclick="openEditCompanyModal('${c.id}')" style="padding:0.25rem 0.75rem;border:1px solid var(--primary);background:transparent;color:var(--primary);border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:Cairo,sans-serif;font-weight:700"> تعديل</button>
+              <button onclick="deleteBusCompany('${c.id}')" style="padding:0.25rem 0.75rem;border:1px solid #c0392b;background:transparent;color:#c0392b;border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:Cairo,sans-serif;font-weight:700"> حذف</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem">
+            <div style="background:#fdecea;padding:0.5rem;border-radius:4px;text-align:center">
+              <div style="font-size:0.7rem;color:#c0392b">تكلفة الشهر</div>
+              <div style="font-weight:900;color:#c0392b">${formatCurrency(cost)}</div>
+            </div>
+            <div style="background:#e8f5e9;padding:0.5rem;border-radius:4px;text-align:center">
+              <div style="font-size:0.7rem;color:#2e7d32">إيرادات الاشتراكات</div>
+              <div style="font-weight:900;color:#2e7d32">${formatCurrency(revenue)}</div>
+            </div>
+            <div style="background:var(--accent);padding:0.5rem;border-radius:4px;text-align:center">
+              <div style="font-size:0.7rem;color:${diffColor}">${diffLabel}</div>
+              <div style="font-weight:900;color:${diffColor}">${formatCurrency(Math.abs(diff))}</div>
+            </div>
+          </div>
+          ${vehiclesHtml}
+        </div>`;
+    }
+
+    container.innerHTML = allCards;
+
+    const totalDiff = totalRevenue - totalCost;
+    document.getElementById('busTotalCost').textContent    = formatCurrency(totalCost);
+    document.getElementById('busTotalRevenue').textContent = formatCurrency(totalRevenue);
+    document.getElementById('busTotalDiff').textContent    = formatCurrency(Math.abs(totalDiff));
+    document.getElementById('busTotalDiff').style.color    = totalDiff >= 0 ? '#2e7d32' : '#c0392b';
+    document.getElementById('busTotalSummary').style.display = 'block';
+
+    updateStats(totalCost, totalRevenue);
+  }
+
+  // ===== مودال الخصم من العهدة =====
+  function openDeductModal(companyId, vehicleId, label, suggestedAmount) {
+    document.getElementById('deductCompanyId').value  = companyId;
+    document.getElementById('deductVehicleId').value  = vehicleId;
+    document.getElementById('deductLabel').value      = label;
+    document.getElementById('deductAmount').value     = suggestedAmount || '';
+    document.getElementById('deductNotes').value      = '';
+    document.getElementById('deductAlert').style.display = 'none';
+    document.getElementById('deductCurrentBalance').textContent = formatCurrency(custodianBalance);
+    document.getElementById('busDeductModal').classList.remove('hidden');
+  }
+
+  async function saveDeduction() {
+    const amount = parseFloat(document.getElementById('deductAmount').value) || 0;
+    const label  = document.getElementById('deductLabel').value;
+
+    if (!amount || amount <= 0) {
+      showDeductAlert('من فضلك ادخل مبلغ صحيح', 'error'); return;
+    }
+
+    // عرض فقط — بدون خصم فعلي من العهدة
+    showDeductAlert(`تم التسجيل بنجاح! المبلغ: ${formatCurrency(amount)} — (للعرض فقط، لا يُخصم من العهدة)`, 'success');
+    setTimeout(() => {
+      document.getElementById('busDeductModal').classList.add('hidden');
+    }, 2200);
+  }
+
+  function showDeductAlert(msg, type) {
+    const el = document.getElementById('deductAlert');
+    el.style.display = 'block';
+    el.style.background = type === 'success' ? '#e8f5e9' : '#fdecea';
+    el.style.color      = type === 'success' ? '#2e7d32' : '#c0392b';
+    el.style.border     = `1px solid ${type === 'success' ? '#a5d6a7' : '#ef9a9a'}`;
+    el.textContent      = msg;
+  }
+
+  function updateStats(totalCost, totalRevenue) {
+    const diff = totalRevenue - totalCost;
+    document.getElementById('statTotalCost').textContent  = formatCurrency(totalCost);
+    document.getElementById('statTotalRev').textContent   = formatCurrency(totalRevenue);
+    document.getElementById('statTotalDiff').textContent  = formatCurrency(Math.abs(diff));
+    document.getElementById('statDiffLabel').textContent  = diff >= 0 ? ' فائض' : ' عجز';
+    const diffCard = document.querySelector('.bus-stat-card.diff');
+    if (diff < 0) diffCard.style.background = 'linear-gradient(135deg,#c62828,#b71c1c)';
+    else          diffCard.style.background = '';
+  }
+
+  // ---- PDF Export ----
+  function exportBusPDF() {
+    if (busCompanies.length === 0) { alert('لا توجد بيانات للتصدير'); return; }
+    const school = SESSION.getSchool();
+    let totalCost = 0, totalRev = 0;
+    const rows = busCompanies.map((c, i) => {
+      const cost = c.monthly  || 0;
+      const rev  = c.subTotal || (c.subCount * c.subVal) || 0;
+      const diff = rev - cost;
+      totalCost += cost; totalRev += rev;
+      return `<tr>
+        <td>${i+1}</td>
+        <td>${c.name}</td>
+        <td>${c.cars||0}</td>
+        <td>${c.days||0}</td>
+        <td style="color:#c0392b;font-weight:800">${formatCurrency(cost)}</td>
+        <td>${c.subCount||0}</td>
+        <td>${formatCurrency(c.subVal||0)}</td>
+        <td style="color:#2e7d32;font-weight:800">${formatCurrency(rev)}</td>
+        <td style="font-weight:900;color:${diff>=0?'#2e7d32':'#c0392b'}">${diff>=0?'فائض':'عجز'}: ${formatCurrency(Math.abs(diff))}</td>
+      </tr>`;
+    }).join('');
+    const totalDiff = totalRev - totalCost;
+    const win = window.open('', '_blank');
+    win.document.write(`<html dir="rtl"><head><meta charset="UTF-8">
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+      <style>
+        body{font-family:Cairo,sans-serif;padding:20px;font-size:12px;direction:rtl}
+        h2{color:var(--primary,#1a3a6b)}
+        table{width:100%;border-collapse:collapse;margin-top:12px}
+        th{background:#1a3a6b;color:white;padding:7px 8px;text-align:right}
+        td{padding:6px 8px;border-bottom:1px solid #eee}
+        tr:nth-child(even){background:#f8f9fa}
+        .summary{display:flex;gap:24px;background:#1a3a6b;color:white;padding:12px 16px;border-radius:8px;margin:12px 0;flex-wrap:wrap}
+        .sum-item .lbl{font-size:10px;opacity:0.7}
+        .sum-item .val{font-size:16px;font-weight:900}
+        @media print{@page{size:A4 landscape}body{padding:10px}}
+      </style></head><body>
+      <h2>${school?.name || ''} — بيان بند الباصات — السنة الدراسية 2026/2027</h2>
+      <div class="summary">
+        <div class="sum-item"><div class="lbl">إجمالي التكلفة</div><div class="val">${formatCurrency(totalCost)}</div></div>
+        <div class="sum-item"><div class="lbl">إجمالي الاشتراكات</div><div class="val">${formatCurrency(totalRev)}</div></div>
+        <div class="sum-item"><div class="lbl">${totalDiff>=0?'فائض':'عجز'}</div><div class="val">${formatCurrency(Math.abs(totalDiff))}</div></div>
+        <div class="sum-item"><div class="lbl">عدد الشركات</div><div class="val">${busCompanies.length}</div></div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>#</th><th>الشركة</th><th>السيارات</th><th>الأيام</th>
+          <th>تكلفة الشهر</th><th>المشتركون</th><th>اشتراك/شخص</th><th>الإيرادات</th><th>الفارق</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr style="background:#1a3a6b;color:white;font-weight:900">
+            <td colspan="4">الإجمالي</td>
+            <td>${formatCurrency(totalCost)}</td>
+            <td colspan="2"></td>
+            <td>${formatCurrency(totalRev)}</td>
+            <td style="color:${totalDiff>=0?'#90EE90':'#FF9999'}">${totalDiff>=0?'فائض':'عجز'}: ${formatCurrency(Math.abs(totalDiff))}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <script>window.print();setTimeout(()=>window.close(),900)<\/script>
+    </body></html>`);
+  }
+
+  // ---- Excel Export ----
+  async function exportBusExcel() {
+    if (busCompanies.length === 0) { alert('لا توجد بيانات للتصدير'); return; }
+    if (typeof ExcelJS === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      document.head.appendChild(s);
+      await new Promise(r => s.onload = r);
+    }
+    const school = SESSION.getSchool();
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Eng. Kareem Ali Mousa';
+    const ws = wb.addWorksheet('بند الباصات', { views: [{ rightToLeft: true }] });
+    ws.columns = [
+      {width:5},{width:24},{width:10},{width:10},
+      {width:16},{width:14},{width:14},{width:14},{width:14}
+    ];
+    const hStyle = (bg, fc='FFFFFF') => ({
+      font: { name:'Arial', bold:true, size:11, color:{argb:'FF'+fc} },
+      fill: { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+bg} },
+      alignment: { horizontal:'center', vertical:'middle', readingOrder:2 },
+      border: { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+    });
+
+    // Title
+    ws.mergeCells('A1:I1');
+    const r1 = ws.getRow(1); r1.height = 32;
+    r1.getCell(1).value = `بند الباصات  —  ${school?.name||''}  —  السنة الدراسية 2026/2027`;
+    r1.getCell(1).style = hStyle('DDD9C4', 'C00000');
+    r1.getCell(1).font  = { name:'Arial', bold:true, size:14, color:{argb:'FFC00000'} };
+
+    // Header
+    const hdr = ws.addRow(['م','اسم الشركة','السيارات','الأيام','تكلفة الشهر','المشتركون','اشتراك/شخص','الإيرادات','فائض/عجز']);
+    hdr.height = 24;
+    hdr.eachCell({includeEmpty:true}, cell => { cell.style = hStyle('AD818A'); });
+
+    let totalCost=0, totalRev=0;
+    busCompanies.forEach((c, i) => {
+      const cost = c.monthly  || 0;
+      const rev  = c.subTotal || (c.subCount*c.subVal) || 0;
+      const diff = rev - cost;
+      totalCost += cost; totalRev += rev;
+      const row = ws.addRow([i+1,c.name,c.cars||0,c.days||0,cost,c.subCount||0,c.subVal||0,rev,diff]);
+      row.height = 20;
+      const bg = i%2===1 ? 'FFF5F0F0' : null;
+      row.eachCell({includeEmpty:true}, (cell, col) => {
+        cell.style = { font:{name:'Arial',size:10}, fill: bg?{type:'pattern',pattern:'solid',fgColor:{argb:bg}}:undefined, alignment:{horizontal:'center',vertical:'middle',readingOrder:2} };
+        if([5,7,8,9].includes(col)) cell.numFmt='#,##0';
+        if(col===9) cell.font={name:'Arial',bold:true,size:10,color:{argb:diff>=0?'FF1B5E20':'FFC00000'}};
+      });
+    });
+
+    const totalDiff = totalRev - totalCost;
+    const tot = ws.addRow(['','الإجمالي','','',totalCost,'','',totalRev,totalDiff]);
+    tot.height = 24;
+    tot.eachCell({includeEmpty:true}, (cell, col) => {
+      cell.style = { font:{name:'Arial',bold:true,size:12,color:{argb:'FFFFFFFF'}}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FF1A3A6B'}}, alignment:{horizontal:'center',vertical:'middle',readingOrder:2} };
+      if([5,8,9].includes(col)) { cell.numFmt='#,##0'; if(col===9) cell.font.color={argb:totalDiff>=0?'FF90EE90':'FFFF9999'}; }
+    });
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob   = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url    = URL.createObjectURL(blob);
+    const a      = document.createElement('a');
+    a.href=url; a.download=`بند_الباصات_${school?.name||''}.xlsx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ============================================================
+  // حسابات الباصات Modal
+  // ============================================================
+  const TERM1_MONTHS = [
+    { key:'sep',  label:'سبتمبر 2025'  },
+    { key:'oct',  label:'أكتوبر 2025'  },
+    { key:'nov',  label:'نوفمبر 2025'  },
+    { key:'dec',  label:'ديسمبر 2025'  },
+    { key:'jan',  label:'يناير 2026'   },
+    { key:'feb',  label:'فبراير 2026'  },
+  ];
+  const TERM2_MONTHS = [
+    { key:'mar',  label:'مارس 2026'          },
+    { key:'apr',  label:'أبريل 2026 (تقديري)' },
+    { key:'may',  label:'مايو 2026 (تقديري)'  },
+  ];
+
+  let calcCurrentVehicle = null;   // { dayVal, monthlyCost, days, companyDays }
+  let calcData = {};               // key → { days, dayVal, revenue, note, remark }
+
+  async function openBusCalcModal() {
+    const school = SESSION.getSchool();
+    document.getElementById('calcModalSchoolName').textContent = school?.name || '';
+
+    // ملء dropdown الشركات
+    const sel = document.getElementById('calcCompanySelect');
+    sel.innerHTML = '<option value="">— اختر شركة —</option>';
+    busCompanies.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name;
+      sel.appendChild(opt);
+    });
+    document.getElementById('calcVehicleSelect').innerHTML = '<option value="">— اختر عربية —</option>';
+    document.getElementById('calcVehicleSelect').disabled = true;
+
+    calcCurrentVehicle = null;
+    calcData = {};
+    renderCalcTables();
+    document.getElementById('busCalcModal').classList.remove('hidden');
+  }
+
+  function closeBusCalcModal() {
+    document.getElementById('busCalcModal').classList.add('hidden');
+  }
+
+  async function onCalcCompanyChange() {
+    const companyId = document.getElementById('calcCompanySelect').value;
+    const vSel = document.getElementById('calcVehicleSelect');
+    vSel.innerHTML = '<option value="">— اختر عربية —</option>';
+    vSel.disabled = true;
+    calcCurrentVehicle = null;
+    calcData = {};
+    renderCalcTables();
+    if (!companyId) return;
+
+    try {
+      const snap = await db.collection('busCompanies').doc(schoolId)
+        .collection('companies').doc(companyId).collection('vehicles')
+        .orderBy('createdAt','asc').get();
+      snap.forEach(vDoc => {
+        const v = vDoc.data();
+        const opt = document.createElement('option');
+        opt.value = vDoc.id;
+        opt.dataset.dayVal = v.dayVal || 0;
+        opt.dataset.companyId = companyId;
+        const company = busCompanies.find(c => c.id === companyId);
+        opt.dataset.days = company?.days || 0;
+        opt.dataset.subVal = company?.subVal || 0;
+        opt.dataset.subCount = company?.subCount || 0;
+        opt.textContent = `${v.plate || 'عربية'} ${v.lineNum ? '— خط '+v.lineNum : ''} ${v.route ? '— '+v.route : ''}`;
+        vSel.appendChild(opt);
+      });
+      if (!snap.empty) vSel.disabled = false;
+    } catch(e) {}
+  }
+
+  function onCalcVehicleChange() {
+    const vSel = document.getElementById('calcVehicleSelect');
+    const opt = vSel.options[vSel.selectedIndex];
+    if (!opt || !opt.value) { calcCurrentVehicle = null; calcData = {}; renderCalcTables(); return; }
+
+    const dayVal   = parseFloat(opt.dataset.dayVal)   || 0;
+    const days     = parseFloat(opt.dataset.days)      || 0;
+    const subVal   = parseFloat(opt.dataset.subVal)    || 0;
+    const subCount = parseFloat(opt.dataset.subCount)  || 0;
+    const revenue  = subVal * subCount;
+
+    calcCurrentVehicle = { dayVal, days, revenue };
+
+    // تهيئة البيانات بالقيم الافتراضية
+    calcData = {};
+    [...TERM1_MONTHS, ...TERM2_MONTHS].forEach(m => {
+      calcData[m.key] = {
+        days:    days,
+        dayVal:  dayVal,
+        revenue: revenue,
+        note:    '',
+        remark:  ''
+      };
+    });
+
+    renderCalcTables();
+  }
+
+  function renderCalcTables() {
+    const noData = document.getElementById('calcNoData');
+    const t1 = document.getElementById('calcT1Body');
+    const t2 = document.getElementById('calcT2Body');
+    const finalRow = document.getElementById('calcFinalRow');
+
+    if (!calcCurrentVehicle) {
+      noData.style.display = 'block';
+      t1.innerHTML = '';
+      t2.innerHTML = '';
+      finalRow.style.display = 'none';
+      document.getElementById('calcTotalRev').textContent  = '0 ج.م';
+      document.getElementById('calcTotalCost').textContent = '0 ج.م';
+      document.getElementById('calcFinalVal').textContent  = '0 ج.م';
+      return;
+    }
+
+    noData.style.display = 'none';
+    finalRow.style.display = 'grid';
+
+    function buildRows(months, bodyEl, borderColor) {
+      bodyEl.innerHTML = '';
+      months.forEach(m => {
+        const d = calcData[m.key] || { days: 0, dayVal: 0, revenue: 0, note: '', remark: '' };
+        const total = (d.days || 0) * (d.dayVal || 0);
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = `1px solid ${borderColor}`;
+        tr.innerHTML = `
+          <td style="padding:0.45rem 0.75rem;font-weight:700;white-space:nowrap;border:1px solid ${borderColor}">
+            حساب شهر ${m.label}
+          </td>
+          <td style="padding:0.3rem 0.4rem;border:1px solid ${borderColor};text-align:center">
+            <input type="number" value="${d.days}" min="0" step="1"
+              style="width:60px;text-align:center;border:1px solid #ddd;border-radius:4px;padding:2px 4px;font-family:Cairo,sans-serif;font-size:0.82rem"
+              onchange="updateCalcCell('${m.key}','days',this.value)" />
+          </td>
+          <td style="padding:0.3rem 0.4rem;border:1px solid ${borderColor};text-align:center">
+            <input type="number" value="${d.dayVal}" min="0" step="0.01"
+              style="width:75px;text-align:center;border:1px solid #ddd;border-radius:4px;padding:2px 4px;font-family:Cairo,sans-serif;font-size:0.82rem"
+              onchange="updateCalcCell('${m.key}','dayVal',this.value)" />
+          </td>
+          <td style="padding:0.45rem 0.75rem;text-align:center;font-weight:800;color:#c0392b;border:1px solid ${borderColor}" id="calcTotal_${m.key}">
+            ${formatCurrency(total)}
+          </td>
+          <td style="padding:0.3rem 0.4rem;border:1px solid ${borderColor};text-align:center">
+            <input type="number" value="${d.revenue}" min="0" step="0.01"
+              style="width:90px;text-align:center;border:1px solid #ddd;border-radius:4px;padding:2px 4px;font-family:Cairo,sans-serif;font-size:0.82rem;color:#2e7d32;font-weight:700"
+              onchange="updateCalcCell('${m.key}','revenue',this.value)" />
+          </td>
+          <td style="padding:0.3rem 0.4rem;border:1px solid ${borderColor}">
+            <input type="text" value="${d.note}" placeholder="بيان..."
+              style="width:100%;border:1px solid #ddd;border-radius:4px;padding:2px 6px;font-family:Cairo,sans-serif;font-size:0.78rem"
+              onchange="updateCalcCell('${m.key}','note',this.value)" />
+          </td>
+          <td style="padding:0.3rem 0.4rem;border:1px solid ${borderColor}">
+            <input type="text" value="${d.remark}" placeholder="ملاحظة..."
+              style="width:100%;border:1px solid #ddd;border-radius:4px;padding:2px 6px;font-family:Cairo,sans-serif;font-size:0.78rem"
+              onchange="updateCalcCell('${m.key}','remark',this.value)" />
+          </td>
+        `;
+        bodyEl.appendChild(tr);
+      });
+
+      // صف الإجماليات
+      const sumDays = months.reduce((s,m) => s + (calcData[m.key]?.days||0), 0);
+      const sumCost = months.reduce((s,m) => s + (calcData[m.key]?.days||0)*(calcData[m.key]?.dayVal||0), 0);
+      const sumRev  = months.reduce((s,m) => s + (calcData[m.key]?.revenue||0), 0);
+      const totTr = document.createElement('tr');
+      totTr.style.background = borderColor === '#f0e07a' ? '#fffde7' : '#c8e6c9';
+      totTr.innerHTML = `
+        <td style="padding:0.5rem 0.75rem;font-weight:900;border:1px solid ${borderColor}">إجمالي الترم</td>
+        <td style="padding:0.5rem;text-align:center;font-weight:800;border:1px solid ${borderColor}">${sumDays}</td>
+        <td style="padding:0.5rem;border:1px solid ${borderColor}"></td>
+        <td style="padding:0.5rem;text-align:center;font-weight:900;color:#c0392b;border:1px solid ${borderColor}">${formatCurrency(sumCost)}</td>
+        <td style="padding:0.5rem;text-align:center;font-weight:900;color:#2e7d32;border:1px solid ${borderColor}">${formatCurrency(sumRev)}</td>
+        <td colspan="2" style="border:1px solid ${borderColor}"></td>
+      `;
+      bodyEl.appendChild(totTr);
+    }
+
+    buildRows(TERM1_MONTHS, t1, '#f0e07a');
+    buildRows(TERM2_MONTHS, t2, '#a5d6a7');
+    updateCalcSummary();
+  }
+
+  function updateCalcCell(key, field, value) {
+    if (!calcData[key]) return;
+    calcData[key][field] = field === 'note' || field === 'remark' ? value : (parseFloat(value) || 0);
+
+    // تحديث خلية الإجمالي في نفس الصف
+    if (field === 'days' || field === 'dayVal') {
+      const total = (calcData[key].days||0) * (calcData[key].dayVal||0);
+      const el = document.getElementById(`calcTotal_${key}`);
+      if (el) el.textContent = formatCurrency(total);
+    }
+
+    // إعادة رندر الصفوف الإجمالية
+    renderCalcTables();
+  }
+
+  function updateCalcSummary() {
+    const allMonths = [...TERM1_MONTHS, ...TERM2_MONTHS];
+    const totalCost = allMonths.reduce((s,m) => s + (calcData[m.key]?.days||0)*(calcData[m.key]?.dayVal||0), 0);
+    const totalRev  = allMonths.reduce((s,m) => s + (calcData[m.key]?.revenue||0), 0);
+    const final     = totalRev - totalCost;
+
+    document.getElementById('calcTotalRev').textContent  = formatCurrency(totalRev);
+    document.getElementById('calcTotalCost').textContent = formatCurrency(totalCost);
+    document.getElementById('calcFinalVal').textContent  = formatCurrency(Math.abs(final));
+    document.getElementById('calcFinalLabel').textContent = final >= 0 ? 'التصفية النهائية (فائض)' : 'التصفية النهائية (عجز)';
+    const card = document.getElementById('calcFinalCard');
+    if (final < 0) {
+      card.style.background = '#fdecea'; card.style.borderColor = '#c62828';
+      document.getElementById('calcFinalLabel').style.color = '#c62828';
+      document.getElementById('calcFinalVal').style.color   = '#c62828';
+    } else {
+      card.style.background = '#e8f5e9'; card.style.borderColor = '#2e7d32';
+      document.getElementById('calcFinalLabel').style.color = '#2e7d32';
+      document.getElementById('calcFinalVal').style.color   = '#2e7d32';
+    }
+  }
+
+  // ---- تصدير Excel حسابات الباصات (شكل الشيت الرسمي) ----
+  async function exportCalcExcel() {
+    if (!calcCurrentVehicle) { alert('اختر شركة وعربية أولاً'); return; }
+    if (typeof ExcelJS === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      document.head.appendChild(s);
+      await new Promise(r => s.onload = r);
+    }
+
+    const school      = SESSION.getSchool();
+    const companyName = document.getElementById('calcCompanySelect').options[document.getElementById('calcCompanySelect').selectedIndex]?.text || '';
+    const vehicleName = document.getElementById('calcVehicleSelect').options[document.getElementById('calcVehicleSelect').selectedIndex]?.text || '';
+    const companyId   = document.getElementById('calcCompanySelect').value;
+    const company     = busCompanies.find(c => c.id === companyId) || {};
+
+    // ===== حسابات =====
+    const t1Cost = TERM1_MONTHS.reduce((s,m)=>s+(calcData[m.key]?.days||0)*(calcData[m.key]?.dayVal||0),0);
+    const t1Rev  = TERM1_MONTHS.reduce((s,m)=>s+(calcData[m.key]?.revenue||0),0);
+    const t2Cost = TERM2_MONTHS.reduce((s,m)=>s+(calcData[m.key]?.days||0)*(calcData[m.key]?.dayVal||0),0);
+    const t2Rev  = TERM2_MONTHS.reduce((s,m)=>s+(calcData[m.key]?.revenue||0),0);
+    const totalRev  = t1Rev  + t2Rev;
+    const totalCost = t1Cost + t2Cost;
+    const finalVal  = totalRev - totalCost;
+
+    const monthly  = company.monthly  || 0;
+    const subTotal = company.subTotal || (company.subCount||0)*(company.subVal||0);
+    const custPrev = parseFloat(document.getElementById('busCustPrev').textContent.replace(/[^\d.]/g,'')) || 0;
+    const custNew  = parseFloat(document.getElementById('busCustNew').textContent.replace(/[^\d.]/g,''))  || 0;
+    const custRem  = custodianBalance || 0;
+
+    // ===== Workbook =====
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Eng. Kareem Ali Mousa';
+    const ws = wb.addWorksheet(school?.name || 'حسابات الباصات', { views:[{ rightToLeft:true }] });
+
+    ws.columns = [
+      {width:3},{width:44},{width:16},{width:19},{width:20},{width:14},{width:37},{width:17}
+    ];
+
+    // helpers
+    const bdr = (c='C8C8C8') => ({
+      top:{style:'thin',color:{argb:'FF'+c}}, bottom:{style:'thin',color:{argb:'FF'+c}},
+      left:{style:'thin',color:{argb:'FF'+c}}, right:{style:'thin',color:{argb:'FF'+c}}
+    });
+    const fill = hex => ({ type:'pattern', pattern:'solid', fgColor:{argb:'FF'+hex} });
+    const fnt  = (bold=false, sz=12, clr='1A1A2E') => ({ name:'Arial', bold, size:sz, color:{argb:'FF'+clr} });
+    const aln  = (h='center') => ({ horizontal:h, vertical:'middle', readingOrder:2, wrapText:true });
+
+    // =====================================================
+    // صف 1: فراغ (زي الشيت الأصلي)
+    // =====================================================
+    ws.getRow(1).height = 16;
+
+    // =====================================================
+    // صف 2-3: عنوان B2:H3
+    // =====================================================
+    ws.mergeCells('B2:H3');
+    const titleCell = ws.getRow(2).getCell('B');
+    titleCell.value = `${school?.name||''} — ${companyName} — ${vehicleName}`;
+    titleCell.style = { font:fnt(true,16,'C00000'), fill:fill('FFF9C4'), alignment:aln('center'), border:bdr('F9A825') };
+    ws.getRow(2).height = 28;
+    ws.getRow(3).height = 16;
+
+    // =====================================================
+    // صف 4: رؤوس الأعمدة
+    // =====================================================
+    const hdrRow = ws.getRow(4); hdrRow.height = 22;
+    [['B','البيان'],['C','عدد ايام العمل'],['D','قيمة اليوم'],['E','الإجمالي'],['F','مبلغ الايراد'],['G','بيان'],['H','ملاحظات']].forEach(([col,val])=>{
+      const cell = hdrRow.getCell(col);
+      cell.value = val;
+      cell.style = { font:fnt(true,16,'1A1A2E'), fill:fill('FFFFFF'), alignment:aln('center'), border:bdr('C8C8C8') };
+    });
+
+    // =====================================================
+    // صف 5: ترم أول — B5:H5
+    // =====================================================
+    ws.mergeCells('B5:H5');
+    const t1HdrRow = ws.getRow(5); t1HdrRow.height = 28;
+    const t1HdrCell = t1HdrRow.getCell('B');
+    t1HdrCell.value = 'ترم اول';
+    t1HdrCell.style = { font:fnt(true,20,'1A1A2E'), fill:fill('FFFF00'), alignment:aln('center'), border:bdr('F9A825') };
+
+    // =====================================================
+    // صفوف 6-10: بيانات الترم الأول
+    // =====================================================
+    const t1RowsData = [
+      { label:'اجمالي الشهور',    E:t1Cost, F:t1Rev,  bg:'FFFFFF' },
+      { label:'اجمالي شحن موبيل', E:null,   F:null,   bg:'FFFFFF' },
+      { label:'اجمالي الرواتب',   E:null,   F:null,   bg:'FFFFFF' },
+      { label:'مصروفات اخري',     E:null,   F:null,   bg:'FFFFFF' },
+      { label:'الاجمالي',         E:null,   F:null,   bg:'BDD7EE', totalRow:true, fFormula:'SUM(F6:F9)' },
+    ];
+    let rn = 6;
+    t1RowsData.forEach(rd => {
+      const r = ws.getRow(rn); r.height = 30;
+      const setCell = (col, val, bold, clr, bg, numFmt) => {
+        const c = r.getCell(col);
+        c.value = val;
+        c.style = { font:fnt(bold,14,clr), fill:fill(bg||rd.bg), alignment:aln('center'), border:bdr('C8C8C8') };
+        if(numFmt && val !== null) c.numFmt = numFmt;
+      };
+      setCell('B', rd.label, true, '1A1A2E');
+      setCell('C', null, false, '1A1A2E');
+      setCell('D', null, false, '1A1A2E');
+      setCell('E', rd.E, true, 'C00000', null, '#,##0.00');
+      const fCell = r.getCell('F');
+      fCell.value = rd.fFormula ? {formula: rd.fFormula} : rd.F;
+      fCell.style = { font:fnt(true,14,'1B5E20'), fill:fill(rd.bg), alignment:aln('center'), border:bdr('C8C8C8') };
+      if(rd.F !== null || rd.fFormula) fCell.numFmt = '#,##0.00';
+      setCell('G', null, false, '1A1A2E');
+      setCell('H', null, false, '1A1A2E');
+      rn++;
+    });
+
+    // =====================================================
+    // صف 11: ترم ثان — B:H merged
+    // =====================================================
+    ws.mergeCells(`B${rn}:H${rn}`);
+    const t2HdrRow = ws.getRow(rn); t2HdrRow.height = 30;
+    t2HdrRow.getCell('B').value = 'ترم ثان';
+    t2HdrRow.getCell('B').style = { font:fnt(true,20,'1A1A2E'), fill:fill('FFFF00'), alignment:aln('center'), border:bdr('F9A825') };
+    rn++;
+
+    // =====================================================
+    // صفوف 12-16: بيانات الترم الثاني
+    // =====================================================
+    const t2Start = rn;
+    const t2RowsData = [
+      { label:'اجمالي الشهور',    E:t2Cost, F:t2Rev,  bg:'FFFFFF' },
+      { label:'اجمالي شحن موبيل', E:null,   F:null,   bg:'FFFFFF' },
+      { label:'اجمالي الرواتب',   E:null,   F:null,   bg:'FFFFFF' },
+      { label:'مصروفات اخري',     E:null,   F:null,   bg:'FFFFFF' },
+      { label:'الاجمالي',         E:null,   F:null,   bg:'BDD7EE', fFormula:`SUM(F${t2Start}:F${t2Start+3})` },
+    ];
+    t2RowsData.forEach(rd => {
+      const r = ws.getRow(rn); r.height = 30;
+      const setCell = (col, val, bold, clr, bg, numFmt) => {
+        const c = r.getCell(col);
+        c.value = val;
+        c.style = { font:fnt(bold,14,clr), fill:fill(bg||rd.bg), alignment:aln('center'), border:bdr('C8C8C8') };
+        if(numFmt && val !== null) c.numFmt = numFmt;
+      };
+      setCell('B', rd.label, true, '1A1A2E');
+      setCell('C', null, false, '1A1A2E');
+      setCell('D', null, false, '1A1A2E');
+      setCell('E', rd.E, true, 'C00000', null, '#,##0.00');
+      const fCell = r.getCell('F');
+      fCell.value = rd.fFormula ? {formula: rd.fFormula} : rd.F;
+      fCell.style = { font:fnt(true,14,'1B5E20'), fill:fill(rd.bg), alignment:aln('center'), border:bdr('C8C8C8') };
+      if(rd.F !== null || rd.fFormula) fCell.numFmt = '#,##0.00';
+      setCell('G', null, false, '1A1A2E');
+      setCell('H', null, false, '1A1A2E');
+      rn++;
+    });
+
+    // =====================================================
+    // التصفية النهائية — B:C | D:E | F:H
+    // =====================================================
+    ws.mergeCells(`B${rn}:C${rn}`);
+    ws.mergeCells(`D${rn}:E${rn}`);
+    ws.mergeCells(`F${rn}:H${rn}`);
+    const tfRow = ws.getRow(rn); tfRow.height = 30;
+    tfRow.getCell('B').value = 'التصفية النهائية';
+    tfRow.getCell('B').style = { font:fnt(true,14,'1A1A2E'), fill:fill('FFC000'), alignment:aln('center'), border:bdr('E6A800') };
+    tfRow.getCell('D').style = { fill:fill('FFC000'), border:bdr('E6A800') };
+    tfRow.getCell('F').value = finalVal;
+    tfRow.getCell('F').style = { font:fnt(true,14,finalVal>=0?'1B5E20':'C00000'), fill:fill('FFC000'), alignment:aln('center'), border:bdr('E6A800') };
+    tfRow.getCell('F').numFmt = '#,##0.00';
+    rn++;
+
+    // =====================================================
+    // فراغ
+    // =====================================================
+    ws.getRow(rn).height = 10; rn++;
+
+    // =====================================================
+    // جدول المصروفات والعهدة
+    // =====================================================
+    ws.mergeCells(`B${rn}:H${rn}`);
+    const expTitle = ws.getRow(rn); expTitle.height = 26;
+    expTitle.getCell('B').value = 'بند المصروفات والعهدة';
+    expTitle.getCell('B').style = { font:fnt(true,14,'FFFFFF'), fill:fill('1A3A6B'), alignment:aln('center'), border:bdr('1A3A6B') };
+    rn++;
+
+    // رؤوس جدول المصروفات
+    const expHdr = ws.getRow(rn); expHdr.height = 22;
+    [['B','البيان'],['C','إجمالي التكلفة الشهرية'],['D','إجمالي الاشتراكات'],['E','الفارق'],['F','العهدة السابقة'],['G','العهدة الجديدة'],['H','الرصيد المتبقي']].forEach(([col,val])=>{
+      const c = expHdr.getCell(col);
+      c.value = val;
+      c.style = { font:fnt(true,11,'FFFFFF'), fill:fill('1A3A6B'), alignment:aln('center'), border:bdr('1A3A6B') };
+    });
+    rn++;
+
+    // بيانات المصروفات
+    const busDiff = subTotal - monthly;
+    const expData = ws.getRow(rn); expData.height = 30;
+    [
+      ['B', companyName,  false,'1A1A2E','F5F7FA', null],
+      ['C', monthly,      true, 'C00000','FDE8E8', '#,##0.00'],
+      ['D', subTotal,     true, '1B5E20','E8F5E9', '#,##0.00'],
+      ['E', busDiff,      true, busDiff>=0?'1B5E20':'C00000', busDiff>=0?'E8F5E9':'FDE8E8', '#,##0.00'],
+      ['F', custPrev,     true, '1565C0','E3F2FD', '#,##0.00'],
+      ['G', custNew,      true, '2E7D32','E8F5E9', '#,##0.00'],
+      ['H', custRem,      true, custRem>=0?'1B5E20':'C00000', custRem>=0?'E8F5E9':'FDE8E8', '#,##0.00'],
+    ].forEach(([col,val,bold,clr,bg,numFmt])=>{
+      const cell = expData.getCell(col);
+      cell.value = val;
+      cell.style = { font:fnt(bold,12,clr), fill:fill(bg), alignment:aln('center'), border:bdr('1A3A6B') };
+      if(numFmt) cell.numFmt = numFmt;
+    });
+    rn++;
+
+    // =====================================================
+    // تفاصيل كل الشركات
+    // =====================================================
+    ws.getRow(rn).height = 8; rn++;
+    ws.mergeCells(`B${rn}:H${rn}`);
+    const coTitle = ws.getRow(rn); coTitle.height = 24;
+    coTitle.getCell('B').value = 'تفاصيل الشركات والعربيات';
+    coTitle.getCell('B').style = { font:fnt(true,13,'FFFFFF'), fill:fill('375A8C'), alignment:aln('center'), border:bdr('375A8C') };
+    rn++;
+
+    const coHdr = ws.getRow(rn); coHdr.height = 20;
+    [['B','الشركة'],['C','عدد العربيات'],['D','الأيام/شهر'],['E','تكلفة الشهر'],['F','المشتركون'],['G','اشتراك/شخص'],['H','إيرادات الاشتراكات']].forEach(([col,val])=>{
+      const c = coHdr.getCell(col);
+      c.value = val; c.style = { font:fnt(true,11,'FFFFFF'), fill:fill('375A8C'), alignment:aln('center'), border:bdr('375A8C') };
+    });
+    rn++;
+
+    let busTotal=0, busRev=0;
+    busCompanies.forEach((c,idx)=>{
+      const cost = c.monthly||0;
+      const rev  = c.subTotal||(c.subCount||0)*(c.subVal||0);
+      busTotal+=cost; busRev+=rev;
+      const bg = idx%2===0?'F5F7FA':'FFFFFF';
+      const r  = ws.getRow(rn); r.height = 22;
+      [['B',c.name,false,'1A1A2E',bg,null],['C',c.cars||0,false,'1A1A2E',bg,null],['D',c.days||0,false,'1A1A2E',bg,null],
+       ['E',cost,true,'C00000',bg,'#,##0.00'],['F',c.subCount||0,false,'1A1A2E',bg,null],
+       ['G',c.subVal||0,false,'1A1A2E',bg,'#,##0.00'],['H',rev,true,'1B5E20',bg,'#,##0.00']].forEach(([col,val,bold,clr,cbg,numFmt])=>{
+        const cell=r.getCell(col);
+        cell.value=val; cell.style={font:fnt(bold,11,clr),fill:fill(cbg),alignment:aln('center'),border:bdr('C8C8C8')};
+        if(numFmt) cell.numFmt=numFmt;
+      });
+      rn++;
+    });
+
+    // صف الإجمالي
+    const totRow = ws.getRow(rn); totRow.height = 24;
+    const busDiffTotal = busRev - busTotal;
+    [['B','الإجمالي',true,'FFFFFF','1A3A6B',null],['C','',false,'FFFFFF','1A3A6B',null],['D','',false,'FFFFFF','1A3A6B',null],
+     ['E',busTotal,true,'FFCC00','1A3A6B','#,##0.00'],['F','',false,'FFFFFF','1A3A6B',null],['G','',false,'FFFFFF','1A3A6B',null],
+     ['H',busRev,true,'90EE90','1A3A6B','#,##0.00']].forEach(([col,val,bold,clr,bg,numFmt])=>{
+      const cell=totRow.getCell(col);
+      cell.value=val; cell.style={font:fnt(bold,12,clr),fill:fill(bg),alignment:aln('center'),border:bdr('1A3A6B')};
+      if(numFmt && val!=='') cell.numFmt=numFmt;
+    });
+    rn++;
+
+    // تذييل
+    ws.getRow(rn).height = 8; rn++;
+    ws.mergeCells(`B${rn}:H${rn}`);
+    const foot = ws.getRow(rn); foot.height = 18;
+    foot.getCell('B').value = `تم الإصدار بتاريخ: ${new Date().toLocaleDateString('ar-EG')}  —  ${school?.name||''}  —  إعداد: Eng. Kareem Ali Mousa`;
+    foot.getCell('B').style = { font:fnt(false,10,'888888'), fill:fill('F5F7FA'), alignment:aln('center'), border:bdr('C8C8C8') };
+
+    // تصدير
+    const buf  = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href=url; a.download=`حسابات_باصات_${school?.name||''}_${companyName}.xlsx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ===================================================
+  //  Tab switching
+  // ===================================================
+  function switchPageTab(name, btn) {
+    document.querySelectorAll('.page-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page-tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('ptab-' + name).classList.add('active');
+    if (name === 'subscriptions') loadSubs();
+    if (name === 'busexpenses')   loadExps();
+  }
+
+  // ===================================================
+  //  Shared helpers
+  // ===================================================
+  function fmtC(n) {
+    if (n === undefined || n === null || isNaN(n)) return '—';
+    return Number(n).toLocaleString('ar-EG', { minimumFractionDigits: 2 }) + ' ج.م';
+  }
+  function todayStr() { return localDateStr(); }
+  function termInfo(t) {
+    if (t == 1) return { label: 'سبتمبر — يناير (5 أشهر)', count: 5 };
+    if (t == 2) return { label: 'فبراير — مايو (4 أشهر)',  count: 4 };
+    return null;
+  }
+  function payStatus(paid, total) {
+    const p = parseFloat(paid)||0, tt = parseFloat(total)||0;
+    if (!tt || p <= 0) return 'unpaid';
+    if (p >= tt)       return 'paid';
+    return 'partial';
+  }
+  function statusBadge(s) {
+    const map = { paid:'<span class="stbadge stb-paid">مدفوع</span>', partial:'<span class="stbadge stb-partial">جزئي</span>', unpaid:'<span class="stbadge stb-unpaid">غير مدفوع</span>' };
+    return map[s] || '';
+  }
+
+  // ===================================================
+  //  SUBSCRIPTIONS
+  // ===================================================
+  let subsData = [];
+
+  async function loadSubs() {
+    document.getElementById('subTableBody').innerHTML =
+      '<tr><td colspan="8" style="padding:2rem;color:var(--text-light)">جاري التحميل...</td></tr>';
+    try {
+      const snap = await db.collection('busSubscriptions')
+        .where('schoolId','==', schoolId)
+        .orderBy('createdAt','desc').get();
+      subsData = [];
+      snap.forEach(d => subsData.push({ id: d.id, ...d.data() }));
+    } catch(e) { subsData = []; }
+    renderSubTable();
+    updateSubSummary();
+  }
+
+  function renderSubTable() {
+    const search = (document.getElementById('subSearch')?.value || '').toLowerCase();
+    const fTerm  = document.getElementById('subFilterTerm')?.value   || '';
+    const fStat  = document.getElementById('subFilterStatus')?.value || '';
+    const filtered = subsData.filter(s => {
+      return (s.studentName||'').toLowerCase().includes(search)
+        && (!fTerm || String(s.term) === fTerm)
+        && (!fStat || payStatus(s.paidAmount, s.totalFee) === fStat);
+    });
+    document.getElementById('subCount').textContent = filtered.length + ' اشتراك';
+    if (!filtered.length) {
+      document.getElementById('subTableBody').innerHTML =
+        '<tr><td colspan="8" style="padding:2.5rem;color:var(--text-light)">لا توجد اشتراكات مطابقة</td></tr>';
+      return;
+    }
+    let html = '';
+    filtered.forEach((s, i) => {
+      const paid  = parseFloat(s.paidAmount)||0;
+      const term  = s.term;
+      let termLabel = '—', termBadge = '';
+      if (term == 1 || term === '1') {
+        termLabel = 'ترم أول'; termBadge = '<span class="stbadge stb-t1">ترم أول</span>';
+      } else if (term == 2 || term === '2') {
+        termLabel = 'ترم ثاني'; termBadge = '<span class="stbadge stb-t2">ترم ثاني</span>';
+      } else if (term === 'full') {
+        termLabel = 'عام كامل'; termBadge = '<span class="stbadge" style="background:#e8eaf6;color:#283593">عام كامل</span>';
+      }
+      const st = paid > 0 ? 'paid' : 'unpaid';
+      html += `<tr>
+        <td>${i+1}</td>
+        <td style="text-align:right;font-weight:700">${s.studentName||'—'}</td>
+        <td>${s.grade||'—'}</td>
+        <td>${termBadge}</td>
+        <td style="font-weight:700;color:#2e7d32">${fmtC(paid)}</td>
+        <td style="font-size:0.78rem">${s.payDate||'—'}</td>
+        <td>${statusBadge(st)}</td>
+        <td><div style="display:flex;gap:0.3rem;justify-content:center">
+          <button onclick="openSubModal('${s.id}')" style="padding:2px 8px;border:1px solid var(--primary);background:transparent;color:var(--primary);border-radius:4px;cursor:pointer;font-size:0.72rem;font-family:Cairo,sans-serif;font-weight:700">تعديل</button>
+          <button onclick="deleteSub('${s.id}')" style="padding:2px 8px;border:1px solid #c0392b;background:transparent;color:#c0392b;border-radius:4px;cursor:pointer;font-size:0.72rem;font-family:Cairo,sans-serif;font-weight:700">حذف</button>
+        </div></td>
+      </tr>`;
+    });
+    document.getElementById('subTableBody').innerHTML = html;
+  }
+
+  function updateSubSummary() {
+    const collected = subsData.reduce((s,r) => s+(parseFloat(r.paidAmount)||0), 0);
+    document.getElementById('sTotalStudents').textContent  = subsData.length;
+    document.getElementById('sTotalFees').textContent      = fmtC(collected);
+    document.getElementById('sTotalCollected').textContent = fmtC(collected);
+    document.getElementById('sTotalRemaining').textContent = fmtC(0);
+  }
+
+  function openSubModal(editId = null) {
+    document.getElementById('subEditId').value = editId || '';
+    if (editId) {
+      const s = subsData.find(x => x.id === editId);
+      if (!s) return;
+      document.getElementById('subModalTitle').textContent   = ' تعديل: ' + s.studentName;
+      document.getElementById('subStudentName').value = s.studentName || '';
+      document.getElementById('subGrade').value        = s.grade       || '';
+      document.getElementById('subTerm').value         = s.term == 1 ? '1' : s.term == 2 ? '2' : (s.term === 'full' ? 'full' : '');
+      document.getElementById('subPaidAmount').value   = s.paidAmount  || '';
+      document.getElementById('subPayDate').value      = s.payDate     || '';
+      document.getElementById('subNotes').value        = s.notes       || '';
+      calcSubModal();
+    } else {
+      document.getElementById('subModalTitle').textContent = ' تسجيل اشتراك جديد';
+      ['subStudentName','subGrade','subPaidAmount','subNotes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('subTerm').value    = '';
+      document.getElementById('subPayDate').value = todayStr();
+      document.getElementById('subTermInfo').style.display = 'none';
+      document.getElementById('subAutoTermDisplay').textContent = '—';
+      ['mSubTotal','mSubPaid'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = el.id === 'mSubTotal' ? '—' : '0 ج.م'; });
+    }
+    document.getElementById('subModal').classList.remove('hidden');
+  }
+  function closeSubModal() { document.getElementById('subModal').classList.add('hidden'); }
+
+  function onTermChange() { calcSubModal(); }
+
+  // حدد الترم تلقائياً بناءً على المبلغ المدفوع
+  function autoDetectTerm(paid) {
+    if (paid === 6500) return { value: '1', label: 'ترم أول' };
+    if (paid === 13000) return { value: 'full', label: 'ترم أول + ترم ثاني (عام كامل)' };
+    return null;
+  }
+
+  function getTermLabel(termVal) {
+    if (termVal == 1 || termVal === '1') return 'ترم أول';
+    if (termVal == 2 || termVal === '2') return 'ترم ثاني';
+    if (termVal === 'full') return 'ترم أول + ترم ثاني (عام كامل)';
+    return '—';
+  }
+
+  function calcSubModal() {
+    const paid    = parseFloat(document.getElementById('subPaidAmount').value) || 0;
+    const termSel = document.getElementById('subTerm').value;
+
+    // تحديد الترم تلقائياً بناءً على المبلغ
+    const autoTerm = autoDetectTerm(paid);
+    const autoDisplay = document.getElementById('subAutoTermDisplay');
+
+    if (autoTerm) {
+      // تعيين الترم تلقائياً في القائمة
+      document.getElementById('subTerm').value = autoTerm.value;
+      autoDisplay.textContent = autoTerm.label;
+      autoDisplay.style.color = '#2e7d32';
+    } else if (paid > 0) {
+      autoDisplay.textContent = 'المبلغ غير معياري — اختر الترم يدوياً';
+      autoDisplay.style.color = '#e65100';
+    } else {
+      autoDisplay.textContent = '—';
+      autoDisplay.style.color = 'var(--primary)';
+    }
+
+    const finalTerm = document.getElementById('subTerm').value;
+    const termLabel = getTermLabel(finalTerm);
+
+    document.getElementById('mSubPaid').textContent = fmtC(paid);
+    document.getElementById('mSubTotal').textContent = finalTerm ? termLabel : '—';
+
+    // حقول مخفية للحفظ
+    document.getElementById('subTotalFee').value  = paid;
+    document.getElementById('subMonthlyFee').value = paid;
+    document.getElementById('subMonthsCount').value = finalTerm === 'full' ? 9 : finalTerm === '1' ? 5 : finalTerm === '2' ? 4 : 0;
+  }
+
+  async function saveSub() {
+    const name    = document.getElementById('subStudentName').value.trim();
+    const grade   = document.getElementById('subGrade').value.trim();
+    const term    = document.getElementById('subTerm').value;
+    const paid    = parseFloat(document.getElementById('subPaidAmount').value) || 0;
+    const payDate = document.getElementById('subPayDate').value;
+    const notes   = document.getElementById('subNotes').value.trim();
+    const editId  = document.getElementById('subEditId').value;
+
+    if (!name)  { alert('من فضلك ادخل اسم الطالب'); return; }
+    if (!grade) { alert('من فضلك ادخل الصف'); return; }
+    if (!term)  { alert('من فضلك اختر الترم أو أدخل المبلغ لتحديده تلقائياً'); return; }
+    if (!paid)  { alert('من فضلك ادخل المبلغ المدفوع'); return; }
+
+    // الترم المحفوظ: '1' أو '2' أو 'full'
+    const data = {
+      schoolId, studentName: name, grade,
+      term,       // 'full' أو '1' أو '2'
+      paidAmount: paid, totalFee: paid,
+      monthlyFee: paid, monthsCount: term === 'full' ? 9 : term === '1' ? 5 : 4,
+      payDate, notes,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: session.email
+    };
+    try {
+      const col = db.collection('busSubscriptions');
+      if (editId) { await col.doc(editId).update(data); }
+      else { data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); data.createdBy = session.email; await col.add(data); }
+      closeSubModal(); await loadSubs();
+    } catch(e) { alert('خطأ في الحفظ: ' + e.message); }
+  }
+
+  async function deleteSub(id) {
+    if (!confirm('هل تريد حذف هذا الاشتراك؟')) return;
+    try { await db.collection('busSubscriptions').doc(id).delete(); await loadSubs(); }
+    catch(e) { alert('خطأ في الحذف: ' + e.message); }
+  }
+
+  async function exportSubExcel() {
+    if (!window.ExcelJS) { alert('مكتبة Excel غير محملة'); return; }
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('اشتراكات الباصات', { properties: { rightToLeft: true } });
+    ws.columns = [{width:5},{width:26},{width:18},{width:10},{width:28},{width:16},{width:16},{width:16},{width:16},{width:12}];
+    const hStyle = c => { c.style={ font:{bold:true,color:{argb:'FFFFFF'}}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:'1A3A6B'}}, alignment:{horizontal:'center',vertical:'middle'} }; };
+    const hdr = ws.addRow(['#','اسم الطالب','الصف','الترم','الأشهر','الإجمالي','المدفوع','المتبقي','تاريخ التسديد','الحالة']);
+    hdr.eachCell(hStyle);
+    const stAr = { paid:'مدفوع', partial:'جزئي', unpaid:'غير مدفوع' };
+    subsData.forEach((s,i) => {
+      const total = parseFloat(s.totalFee)||0, paid = parseFloat(s.paidAmount)||0;
+      const ti = termInfo(s.term);
+      const row = ws.addRow([i+1, s.studentName, s.grade, 'ترم '+(s.term==1?'أول':'ثاني'), ti?ti.label:'', total, paid, total-paid, s.payDate||'', stAr[payStatus(paid,total)]||'']);
+      row.eachCell(c => { c.style={ alignment:{horizontal:'center'}, border:{bottom:{style:'thin',color:{argb:'E0E0E0'}}} }; });
+      if (i%2===0) row.eachCell(c => { c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'F5F7FA'}}; });
+    });
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href=url; a.download='اشتراكات_الباصات.xlsx'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
+  // ===================================================
+  //  EXPENSES
+  // ===================================================
+  let expsData = [];
+  const EXP_CATS = {
+    salaries:  { label: 'رواتب المشرفين',  icon: '' },
+    mobile:    { label: 'شحن موبايل',       icon: '' },
+    transport: { label: 'انتقالات',          icon: '' },
+    other:     { label: 'مصروفات أخرى',    icon: '' }
+  };
+
+  async function loadExps() {
+    document.getElementById('expContainer').innerHTML =
+      '<div style="text-align:center;padding:2rem;color:var(--text-light)">جاري التحميل...</div>';
+    try {
+      const snap = await db.collection('busExpenses')
+        .where('schoolId','==', schoolId)
+        .orderBy('createdAt','desc').get();
+      expsData = [];
+      snap.forEach(d => expsData.push({ id: d.id, ...d.data() }));
+    } catch(e) { expsData = []; }
+    renderExpContainer(); updateExpSummary();
+  }
+
+  function renderExpContainer() {
+    const container = document.getElementById('expContainer');
+    if (!expsData.length) {
+      container.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text-light)"><div style="font-size:2.5rem">💸</div><div style="font-weight:700;margin-top:0.5rem">لا توجد مصروفات بعد</div></div>';
+      return;
+    }
+    let html = '';
+    ['salaries','mobile','transport','other'].forEach(cat => {
+      const items = expsData.filter(e => e.category === cat);
+      if (!items.length) return;
+      const catTotal = items.reduce((s,e) => s+(parseFloat(e.amount)||0), 0);
+      const meta = EXP_CATS[cat];
+      html += `<div class="exp-cat-body"><div class="exp-cat-hdr"><span>${meta.icon} ${meta.label}</span><span>${fmtC(catTotal)}</span></div>`;
+      items.forEach(e => {
+        html += `<div class="exp-item-row">
+          <div>
+            <div class="ei-label">${e.label||'—'}</div>
+            <div class="ei-date">${e.date||'—'}${e.notes?' — '+e.notes:''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.75rem">
+            <span class="ei-amt">${fmtC(e.amount)}</span>
+            <div style="display:flex;gap:0.3rem">
+              <button onclick="openExpModal('${cat}','${e.id}')" style="padding:2px 8px;border:1px solid var(--primary);background:transparent;color:var(--primary);border-radius:4px;cursor:pointer;font-size:0.72rem;font-family:Cairo,sans-serif;font-weight:700">تعديل</button>
+              <button onclick="deleteExp('${e.id}')" style="padding:2px 8px;border:1px solid #c0392b;background:transparent;color:#c0392b;border-radius:4px;cursor:pointer;font-size:0.72rem;font-family:Cairo,sans-serif;font-weight:700">حذف</button>
+            </div>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  function updateExpSummary() {
+    const total    = expsData.reduce((s,e) => s+(parseFloat(e.amount)||0), 0);
+    const salaries = expsData.filter(e=>e.category==='salaries').reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+    document.getElementById('eTotalExp').textContent      = fmtC(total);
+    document.getElementById('eTotalSalaries').textContent = fmtC(salaries);
+    document.getElementById('eTotalOther').textContent    = fmtC(total - salaries);
+  }
+
+  let tiId = 0, oiId = 0;
+  let transportItems = [], otherItems = [];
+
+  function openExpModal(cat, editId = null) {
+    document.getElementById('expEditId').value   = editId || '';
+    document.getElementById('expCategory').value = cat;
+    ['expSalaryFields','expMobileFields','expTransportFields','expOtherFields']
+      .forEach(id => document.getElementById(id).style.display = 'none');
+    document.getElementById('expModalTitle').textContent =
+      (editId ? ' تعديل: ' : ' إضافة: ') + (EXP_CATS[cat]?.label||'');
+
+    const e = editId ? expsData.find(x=>x.id===editId) : null;
+
+    if (cat === 'salaries') {
+      document.getElementById('expSalaryFields').style.display = 'block';
+      document.getElementById('expSupervisorName').value = e?.supervisorName||'';
+      document.getElementById('expSalaryAmount').value   = e?.amount||'';
+      document.getElementById('expSalaryMonth').value    = e?.month||String(new Date().getMonth()+1);
+      document.getElementById('expSalaryDate').value     = e?.date||todayStr();
+    }
+    if (cat === 'mobile') {
+      document.getElementById('expMobileFields').style.display = 'block';
+      document.getElementById('expMobileName').value   = e?.mobileName||'';
+      document.getElementById('expMobileAmount').value = e?.amount||'';
+      document.getElementById('expMobileDate').value   = e?.date||todayStr();
+      document.getElementById('expMobileNotes').value  = e?.notes||'';
+    }
+    if (cat === 'transport') {
+      document.getElementById('expTransportFields').style.display = 'block';
+      transportItems = []; tiId = 0;
+      document.getElementById('expTransportItems').innerHTML = '';
+      if (e?.items) e.items.forEach(it => addTransportItem(it));
+      else addTransportItem();
+      document.getElementById('expTransportDate').value  = e?.date||todayStr();
+      document.getElementById('expTransportNotes').value = e?.notes||'';
+      calcTransportTotal();
+    }
+    if (cat === 'other') {
+      document.getElementById('expOtherFields').style.display = 'block';
+      otherItems = []; oiId = 0;
+      document.getElementById('expOtherItems').innerHTML = '';
+      if (e?.items) e.items.forEach(it => addOtherItem(it));
+      else addOtherItem();
+      document.getElementById('expOtherDate').value  = e?.date||todayStr();
+      document.getElementById('expOtherNotes').value = e?.notes||'';
+      calcOtherTotal();
+    }
+    document.getElementById('expModal').classList.remove('hidden');
+  }
+  function closeExpModal() { document.getElementById('expModal').classList.add('hidden'); }
+
+  function addTransportItem(data={}) {
+    const id = ++tiId; transportItems.push(id);
+    const cont = document.getElementById('expTransportItems');
+    const row = document.createElement('div'); row.className='custom-item-row'; row.id='ti_'+id;
+    row.innerHTML = `<input type="text" class="mfi" id="ti_label_${id}" placeholder="بيان الانتقال" value="${data.label||''}" style="direction:rtl" />
+      <input type="number" class="mfi" id="ti_amt_${id}" placeholder="المبلغ" value="${data.amount||''}" min="0" step="0.01" oninput="calcTransportTotal()" style="max-width:120px" />
+      <button type="button" class="remove-ci-btn" onclick="removeTransportItem(${id})">✕</button>`;
+    cont.appendChild(row);
+  }
+  function removeTransportItem(id) {
+    transportItems = transportItems.filter(x=>x!==id);
+    document.getElementById('ti_'+id)?.remove(); calcTransportTotal();
+  }
+  function calcTransportTotal() {
+    const total = transportItems.reduce((s,id)=>s+(parseFloat(document.getElementById('ti_amt_'+id)?.value)||0),0);
+    document.getElementById('expTransportTotal').textContent = fmtC(total);
+  }
+
+  function addOtherItem(data={}) {
+    const id = ++oiId; otherItems.push(id);
+    const cont = document.getElementById('expOtherItems');
+    const row = document.createElement('div'); row.className='custom-item-row'; row.id='oi_'+id;
+    row.innerHTML = `<input type="text" class="mfi" id="oi_label_${id}" placeholder="البيان (مثال: أدوات نظافة)" value="${data.label||''}" style="direction:rtl" />
+      <input type="number" class="mfi" id="oi_amt_${id}" placeholder="المبلغ" value="${data.amount||''}" min="0" step="0.01" oninput="calcOtherTotal()" style="max-width:120px" />
+      <button type="button" class="remove-ci-btn" onclick="removeOtherItem(${id})">✕</button>`;
+    cont.appendChild(row);
+  }
+  function removeOtherItem(id) {
+    otherItems = otherItems.filter(x=>x!==id);
+    document.getElementById('oi_'+id)?.remove(); calcOtherTotal();
+  }
+  function calcOtherTotal() {
+    const total = otherItems.reduce((s,id)=>s+(parseFloat(document.getElementById('oi_amt_'+id)?.value)||0),0);
+    document.getElementById('expOtherTotal').textContent = fmtC(total);
+  }
+
+  async function saveExp() {
+    const cat    = document.getElementById('expCategory').value;
+    const editId = document.getElementById('expEditId').value;
+    let data = { schoolId, category: cat, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: session.email };
+
+    if (cat === 'salaries') {
+      const name = document.getElementById('expSupervisorName').value.trim();
+      const amt  = parseFloat(document.getElementById('expSalaryAmount').value)||0;
+      if (!name) { alert('من فضلك ادخل اسم المشرف'); return; }
+      if (!amt)  { alert('من فضلك ادخل الراتب'); return; }
+      Object.assign(data, { supervisorName:name, amount:amt, label:'راتب: '+name,
+        month: document.getElementById('expSalaryMonth').value,
+        date:  document.getElementById('expSalaryDate').value });
+    }
+    if (cat === 'mobile') {
+      const amt = parseFloat(document.getElementById('expMobileAmount').value)||0;
+      if (!amt) { alert('من فضلك ادخل المبلغ'); return; }
+      const nm = document.getElementById('expMobileName').value.trim();
+      Object.assign(data, { mobileName:nm, amount:amt, label:'شحن موبايل: '+(nm||'—'),
+        date:  document.getElementById('expMobileDate').value,
+        notes: document.getElementById('expMobileNotes').value.trim() });
+    }
+    if (cat === 'transport') {
+      const items = transportItems.map(id=>({ label:document.getElementById('ti_label_'+id)?.value.trim()||'', amount:parseFloat(document.getElementById('ti_amt_'+id)?.value)||0 })).filter(it=>it.amount>0);
+      if (!items.length) { alert('من فضلك أضف بند واحد على الأقل'); return; }
+      const amt = items.reduce((s,it)=>s+it.amount,0);
+      Object.assign(data, { items, amount:amt, label:'انتقالات ('+items.length+' بنود)',
+        date:  document.getElementById('expTransportDate').value,
+        notes: document.getElementById('expTransportNotes').value.trim() });
+    }
+    if (cat === 'other') {
+      const items = otherItems.map(id=>({ label:document.getElementById('oi_label_'+id)?.value.trim()||'', amount:parseFloat(document.getElementById('oi_amt_'+id)?.value)||0 })).filter(it=>it.amount>0);
+      if (!items.length) { alert('من فضلك أضف بند واحد على الأقل'); return; }
+      const amt = items.reduce((s,it)=>s+it.amount,0);
+      Object.assign(data, { items, amount:amt, label:'مصروفات أخرى ('+items.length+' بنود)',
+        date:  document.getElementById('expOtherDate').value,
+        notes: document.getElementById('expOtherNotes').value.trim() });
+    }
+    try {
+      const col = db.collection('busExpenses');
+      if (editId) { await col.doc(editId).update(data); }
+      else { data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); data.createdBy = session.email; await col.add(data); }
+      closeExpModal(); await loadExps();
+    } catch(e) { alert('خطأ في الحفظ: ' + e.message); }
+  }
+
+  async function deleteExp(id) {
+    if (!confirm('هل تريد حذف هذا المصروف؟')) return;
+    try { await db.collection('busExpenses').doc(id).delete(); await loadExps(); }
+    catch(e) { alert('خطأ في الحذف: ' + e.message); }
+  }
+
+  async function exportExpExcel() {
+    if (!window.ExcelJS) { alert('مكتبة Excel غير محملة'); return; }
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('مصروفات الباصات', { properties:{ rightToLeft:true } });
+    ws.columns = [{width:5},{width:18},{width:30},{width:16},{width:16},{width:28}];
+    const hdr = ws.addRow(['#','الفئة','البيان','المبلغ','التاريخ','ملاحظات']);
+    hdr.eachCell(c=>{ c.style={ font:{bold:true,color:{argb:'FFFFFF'}}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:'1A3A6B'}}, alignment:{horizontal:'center'} }; });
+    expsData.forEach((e,i)=>{
+      const row = ws.addRow([i+1, EXP_CATS[e.category]?.label||'—', e.label||'—', parseFloat(e.amount)||0, e.date||'', e.notes||'']);
+      row.eachCell(c=>{ c.style={ alignment:{horizontal:'center'}, border:{bottom:{style:'thin',color:{argb:'E0E0E0'}}} }; });
+      if(i%2===0) row.eachCell(c=>{ c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'F5F7FA'}}; });
+    });
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href=url; a.download='مصروفات_الباصات.xlsx'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
+  // ---- Init ----
+  loadBusData();
+</script>
+
+<!-- ======================================================
+     Modal: حسابات الباصات
+     ====================================================== -->
+<div class="modal-overlay hidden" id="busCalcModal">
+  <div class="modal-box" style="max-width:820px;font-family:Cairo,sans-serif">
+    <div class="modal-header" style="background:linear-gradient(135deg,#1a3a6b,#0d2247);color:white;border-radius:var(--radius) var(--radius) 0 0">
+      <span class="modal-title" style="color:white;font-size:1.05rem"> حسابات الباصات — <span id="calcModalSchoolName"></span></span>
+      <button class="modal-close" onclick="closeBusCalcModal()" style="color:white;font-size:1.3rem">✕</button>
+    </div>
+
+    <div class="modal-body" style="padding:1.25rem">
+
+      <!-- اختيار الشركة والعربية -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem">
+        <div class="form-group">
+          <label class="form-label" style="font-weight:800"> اختر الشركة</label>
+          <select class="form-select" id="calcCompanySelect" onchange="onCalcCompanyChange()">
+            <option value="">— اختر شركة —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="font-weight:800"> اختر العربية</label>
+          <select class="form-select" id="calcVehicleSelect" onchange="onCalcVehicleChange()" disabled>
+            <option value="">— اختر عربية —</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- جدول الأشهر - الترم الأول -->
+      <div style="background:#fffde7;border:2px solid #f9a825;border-radius:var(--radius-sm);margin-bottom:0.75rem;overflow:hidden">
+        <div style="background:#f9a825;color:white;padding:0.5rem 1rem;font-weight:800;font-size:0.88rem"> ترم أول</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:0.82rem;direction:rtl" id="calcT1Table">
+            <thead>
+              <tr style="background:#fff9c4">
+                <th style="padding:0.5rem 0.75rem;text-align:right;border:1px solid #f0e07a;white-space:nowrap">البيان</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #f0e07a;white-space:nowrap">عدد أيام العمل</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #f0e07a;white-space:nowrap">قيمة اليوم</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #f0e07a;white-space:nowrap;color:#c0392b">الإجمالي</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #f0e07a;white-space:nowrap;color:#2e7d32">مبلغ الإيراد</th>
+                <th style="padding:0.5rem 0.75rem;text-align:right;border:1px solid #f0e07a">بيان</th>
+                <th style="padding:0.5rem 0.75rem;text-align:right;border:1px solid #f0e07a">ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody id="calcT1Body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- جدول الأشهر - الترم الثاني -->
+      <div style="background:#e8f5e9;border:2px solid #43a047;border-radius:var(--radius-sm);margin-bottom:0.75rem;overflow:hidden">
+        <div style="background:#43a047;color:white;padding:0.5rem 1rem;font-weight:800;font-size:0.88rem"> ترم ثان</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:0.82rem;direction:rtl" id="calcT2Table">
+            <thead>
+              <tr style="background:#c8e6c9">
+                <th style="padding:0.5rem 0.75rem;text-align:right;border:1px solid #a5d6a7;white-space:nowrap">البيان</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #a5d6a7;white-space:nowrap">عدد أيام العمل</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #a5d6a7;white-space:nowrap">قيمة اليوم</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #a5d6a7;white-space:nowrap;color:#c0392b">الإجمالي</th>
+                <th style="padding:0.5rem 0.75rem;text-align:center;border:1px solid #a5d6a7;white-space:nowrap;color:#2e7d32">مبلغ الإيراد</th>
+                <th style="padding:0.5rem 0.75rem;text-align:right;border:1px solid #a5d6a7">بيان</th>
+                <th style="padding:0.5rem 0.75rem;text-align:right;border:1px solid #a5d6a7">ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody id="calcT2Body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- صف التصفية النهائية -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:0.75rem" id="calcFinalRow">
+        <div style="background:#e3f2fd;border:2px solid #1565c0;border-radius:var(--radius-sm);padding:0.75rem;text-align:center">
+          <div style="font-size:0.75rem;color:#1565c0;font-weight:700">إجمالي الإيراد</div>
+          <div style="font-size:1.3rem;font-weight:900;color:#1565c0" id="calcTotalRev">0 ج.م</div>
+        </div>
+        <div style="background:#fdecea;border:2px solid #c62828;border-radius:var(--radius-sm);padding:0.75rem;text-align:center">
+          <div style="font-size:0.75rem;color:#c62828;font-weight:700">إجمالي المنصرف</div>
+          <div style="font-size:1.3rem;font-weight:900;color:#c62828" id="calcTotalCost">0 ج.م</div>
+        </div>
+        <div style="background:#e8f5e9;border:2px solid #2e7d32;border-radius:var(--radius-sm);padding:0.75rem;text-align:center" id="calcFinalCard">
+          <div style="font-size:0.75rem;color:#2e7d32;font-weight:700" id="calcFinalLabel">التصفية النهائية</div>
+          <div style="font-size:1.3rem;font-weight:900;color:#2e7d32" id="calcFinalVal">0 ج.م</div>
+        </div>
+      </div>
+
+      <!-- تنبيه بلا بيانات -->
+      <div id="calcNoData" style="display:none;text-align:center;padding:2rem;color:var(--text-light)">
+        <div style="font-size:2.5rem"></div>
+        <div style="font-weight:700;margin-top:0.5rem">اختر شركة وعربية لعرض الحسابات</div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeBusCalcModal()">إغلاق</button>
+      <button class="btn btn-outline btn-sm" onclick="exportCalcExcel()" style="background:#1b5e20;color:white;border-color:#1b5e20;font-weight:700"> تصدير Excel</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

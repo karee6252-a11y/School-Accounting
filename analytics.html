@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#1a3a6b" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <title>تحليل البيانات - نظام المحاسبة</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .an-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:0.85rem; margin-bottom:1.25rem; }
+    .an-kpi { background:var(--card-bg); border-radius:var(--radius); padding:1rem 1.1rem; box-shadow:var(--shadow); border:1px solid var(--border); }
+    .an-kpi .lbl { font-size:0.75rem; color:var(--text-light); font-weight:700; margin-bottom:0.35rem; }
+    .an-kpi .val { font-size:1.25rem; font-weight:800; color:var(--primary); line-height:1.2; }
+    .an-kpi .sub { font-size:0.7rem; color:var(--text-light); margin-top:0.25rem; }
+    .an-kpi.rev .val { color:#2e7d32; }
+    .an-kpi.exp .val { color:#c62828; }
+    .an-kpi.net .val { color:var(--primary); }
+
+    .an-items { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:0.65rem; margin-bottom:1.25rem; }
+    .an-item {
+      background:var(--card-bg); border:2px solid var(--border); border-radius:var(--radius-sm);
+      padding:0.85rem 0.75rem; cursor:pointer; transition:var(--transition); text-align:center;
+    }
+    .an-item:hover { border-color:var(--primary); transform:translateY(-2px); }
+    .an-item.active { border-color:var(--primary); background:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb, var(--primary) 25%, transparent); }
+    .an-item .name { font-size:0.82rem; font-weight:800; color:var(--text-dark); margin-bottom:0.4rem; }
+    .an-item .amt { font-size:0.95rem; font-weight:800; color:#2e7d32; }
+    .an-item .cnt { font-size:0.68rem; color:var(--text-light); margin-top:0.2rem; }
+
+    .an-charts { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem; }
+    .an-chart-card { background:var(--card-bg); border-radius:var(--radius); box-shadow:var(--shadow); border:1px solid var(--border); padding:1rem; }
+    .an-chart-card h3 { font-size:0.9rem; font-weight:800; margin-bottom:0.75rem; color:var(--text-dark); }
+    .an-chart-wrap { position:relative; height:280px; }
+    .an-chart-wrap.tall { height:320px; }
+
+    .an-form-grid { display:grid; grid-template-columns:1.1fr 1fr; gap:1rem; margin-bottom:1.25rem; }
+    .an-detail-head { display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.75rem; }
+    .an-badge { display:inline-flex; align-items:center; gap:0.35rem; padding:0.25rem 0.7rem; border-radius:20px; font-size:0.75rem; font-weight:800; background:var(--accent); color:var(--primary); }
+    .an-empty { text-align:center; padding:2rem 1rem; color:var(--text-light); font-size:0.9rem; }
+    .an-month-bar { display:flex; gap:0.35rem; overflow-x:auto; padding-bottom:0.35rem; margin-bottom:1rem; }
+    .an-month-chip {
+      flex:0 0 auto; padding:0.35rem 0.7rem; border-radius:20px; border:1px solid var(--border);
+      background:var(--card-bg); font-size:0.75rem; font-weight:700; cursor:pointer; color:var(--text-mid);
+    }
+    .an-month-chip.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .an-print-only { display:none; }
+    @media print {
+      .sidebar, .topbar, .an-form-grid .card:first-child, #sidebarToggle, .btn, .an-month-bar, .no-print { display:none !important; }
+      .main-content { margin:0 !important; }
+      .an-print-only { display:block; }
+      .an-charts { grid-template-columns:1fr 1fr; break-inside:avoid; }
+      body { background:#fff; }
+    }
+    @media (max-width:900px) {
+      .an-charts, .an-form-grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div class="main-content">
+    <div id="topbarContainer"></div>
+    <div class="page-content">
+
+      <div class="d-flex align-center gap-1 no-print" style="justify-content:space-between;flex-wrap:wrap;margin-bottom:1rem">
+        <div>
+          <div style="font-size:0.8rem;color:var(--text-light);font-weight:700">السنة الدراسية <span id="ayLabel"></span></div>
+          <div style="font-size:0.75rem;color:var(--text-light)">البيانات الفعلية من التحصيل والمصروفات + الإدخال اليدوي للتحليل</div>
+        </div>
+        <div class="d-flex gap-1">
+          <button class="btn btn-secondary btn-sm" onclick="loadAll(true)">تحديث البيانات</button>
+          <button class="btn btn-primary btn-sm" onclick="window.print()">طباعة التحليل</button>
+        </div>
+      </div>
+
+      <div class="an-print-only" style="margin-bottom:1rem">
+        <h2 style="margin:0">تحليل البيانات — <span id="printSchool"></span></h2>
+        <div style="font-size:0.85rem;color:#666">السنة الدراسية <span id="printAy"></span> — طُبع في <span id="printDate"></span></div>
+      </div>
+
+      <div class="an-kpis" id="kpiRow">
+        <div class="an-kpi rev"><div class="lbl">إيراد فعلي (تحصيل)</div><div class="val" id="kpiActualRev">—</div><div class="sub" id="kpiTxCount">0 عملية</div></div>
+        <div class="an-kpi exp"><div class="lbl">مصروف فعلي (النظام)</div><div class="val" id="kpiActualExp">—</div><div class="sub" id="kpiExpCount">0 مصروف</div></div>
+        <div class="an-kpi rev"><div class="lbl">إيراد يدوي مُدخل</div><div class="val" id="kpiManualRev">—</div><div class="sub">للتحليل</div></div>
+        <div class="an-kpi exp"><div class="lbl">مصروف يدوي مُدخل</div><div class="val" id="kpiManualExp">—</div><div class="sub">للتحليل</div></div>
+        <div class="an-kpi net"><div class="lbl">صافي (فعلي)</div><div class="val" id="kpiNet">—</div><div class="sub" id="kpiRate">—</div></div>
+        <div class="an-kpi"><div class="lbl">مديونيات متبقية</div><div class="val" id="kpiDebt" style="color:#c62828">—</div><div class="sub" id="kpiDebtCount">0 سجل</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="card-header">
+          <span class="card-title">بنود الدفع — اضغط بند لعرض التفاصيل والتحليل</span>
+          <span class="an-badge" id="selectedItemBadge">كل البنود</span>
+        </div>
+        <div class="card-body">
+          <div class="an-items" id="itemsGrid"><div class="an-empty">جاري التحميل...</div></div>
+        </div>
+      </div>
+
+      <div class="an-form-grid">
+        <div class="card no-print">
+          <div class="card-header"><span class="card-title">إدخال يدوي تحت البند</span></div>
+          <div class="card-body">
+            <div id="manualAlert" class="alert alert-error hidden" style="margin-bottom:0.75rem"></div>
+            <div class="form-group">
+              <label class="form-label">البند</label>
+              <select class="form-input" id="manualItem"></select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+              <div class="form-group">
+                <label class="form-label">إيراد يدوي (ج.م)</label>
+                <input type="number" min="0" step="0.01" class="form-input" id="manualRevenue" placeholder="0" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">مصروف يدوي (ج.م)</label>
+                <input type="number" min="0" step="0.01" class="form-input" id="manualExpense" placeholder="0" />
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+              <div class="form-group">
+                <label class="form-label">الشهر</label>
+                <select class="form-input" id="manualMonth"></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">التاريخ</label>
+                <input type="date" class="form-input" id="manualDate" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ملاحظات</label>
+              <input type="text" class="form-input" id="manualNotes" placeholder="اختياري" />
+            </div>
+            <button class="btn btn-primary w-full" id="manualSaveBtn" onclick="saveManualEntry()">حفظ وعرض التحليل</button>
+            <p style="font-size:0.72rem;color:var(--text-light);margin-top:0.6rem;line-height:1.5">
+              الإدخال اليدوي للتحليل والمقارنة — لا يغيّر التحصيل أو المصروفات المسجّلة في النظام.
+            </p>
+          </div>
+        </div>
+
+        <div class="card" id="itemDetailCard">
+          <div class="card-header">
+            <span class="card-title">تفاصيل البند المختار</span>
+            <button class="btn btn-sm btn-secondary no-print" onclick="printItemDetail()">طباعة التفاصيل</button>
+          </div>
+          <div class="card-body" id="itemDetailBody">
+            <div class="an-empty">اختر بندًا من الأعلى أو أدخل بيانات يدوية لعرض التفاصيل</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="an-month-bar no-print" id="monthFilterBar"></div>
+
+      <div class="an-charts">
+        <div class="an-chart-card">
+          <h3>توزيع الإيراد الفعلي حسب البند</h3>
+          <div class="an-chart-wrap"><canvas id="chartItemsPie"></canvas></div>
+        </div>
+        <div class="an-chart-card">
+          <h3>إيراد × مصروف يدوي حسب البند</h3>
+          <div class="an-chart-wrap"><canvas id="chartManualBars"></canvas></div>
+        </div>
+        <div class="an-chart-card" style="grid-column:1 / -1">
+          <h3>مسار السنة الدراسية — إيراد فعلي / مصروف فعلي / إيراد يدوي / مصروف يدوي</h3>
+          <div class="an-chart-wrap tall"><canvas id="chartYearLine"></canvas></div>
+        </div>
+        <div class="an-chart-card">
+          <h3>مقارنة فعلي vs يدوي للبند المختار</h3>
+          <div class="an-chart-wrap"><canvas id="chartCompare"></canvas></div>
+        </div>
+        <div class="an-chart-card">
+          <h3>طرق الدفع (إيراد فعلي)</h3>
+          <div class="an-chart-wrap"><canvas id="chartPayTypes"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">سجل الإدخال اليدوي</span>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>التاريخ</th>
+                <th>الشهر</th>
+                <th>البند</th>
+                <th>إيراد</th>
+                <th>مصروف</th>
+                <th>صافي</th>
+                <th>ملاحظات</th>
+                <th class="no-print">حذف</th>
+              </tr>
+            </thead>
+            <tbody id="manualTableBody">
+              <tr><td colspan="9"><div class="an-empty">لا توجد إدخالات يدوية بعد</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="firebase-config.js"></script>
+<script src="layout.js"></script>
+<script>
+renderLayout('analytics', 'تحليل البيانات');
+
+const session  = SESSION.get();
+const schoolId = session.schoolId;
+const school   = SESSION.getSchool();
+
+document.getElementById('ayLabel').textContent = ACADEMIC_YEAR;
+document.getElementById('printAy').textContent = ACADEMIC_YEAR;
+document.getElementById('printSchool').textContent = school?.name || '';
+document.getElementById('printDate').textContent = new Date().toLocaleString('ar-EG');
+document.getElementById('manualDate').value = localDateStr();
+
+const CHART_COLORS = [
+  '#1a3a6b','#2e7d32','#c62828','#f57f17','#6a1b9a','#00838f',
+  '#ad1457','#4527a0','#558b2f','#ef6c00','#1565c0','#6d4c41'
+];
+
+let allTx = [];
+let allExp = [];
+let allDebts = [];
+let manualEntries = [];
+let selectedItem = null; // null = all
+let selectedMonthYm = null; // null = all year
+let charts = {};
+
+const AY_MONTHS = buildAcademicMonths();
+
+function buildAcademicMonths() {
+  const startY = parseInt(ACADEMIC_YEAR_START.slice(0, 4), 10);
+  const labels = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(startY, 6 + i, 1); // يوليو
+    const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    labels.push({
+      ym,
+      year: d.getFullYear(),
+      month: d.getMonth() + 1,
+      label: d.toLocaleDateString('ar-EG', { month: 'long' }),
+      short: d.toLocaleDateString('ar-EG', { month: 'short' })
+    });
+  }
+  return labels;
+}
+
+function academicYearEnd() {
+  const startY = parseInt(ACADEMIC_YEAR_START.slice(0, 4), 10);
+  return `${startY + 1}-06-30`;
+}
+
+/** توزيع مبلغ التحصيل على البنود بنسبة netPrice (نفس منطق التقارير) */
+function allocateTxAmounts(d) {
+  const paidAmount = Number(d.amount) || 0;
+  const rows = [];
+
+  if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
+    const itemNetPrices = d.paymentItems.map(pi => {
+      if (typeof pi === 'object' && pi.item) {
+        const price = Number(pi.price) || 0;
+        const disc  = Number(pi.discount) || 0;
+        return { item: String(pi.item).trim(), net: Number(pi.netPrice) || (price * (1 - disc / 100)) };
+      }
+      return { item: String(pi).trim(), net: 0 };
+    }).filter(x => x.item);
+
+    const totalNet = itemNetPrices.reduce((s, x) => s + x.net, 0);
+    if (totalNet > 0) {
+      let assigned = 0;
+      itemNetPrices.forEach((x, idx) => {
+        const amt = idx === itemNetPrices.length - 1
+          ? Math.round((paidAmount - assigned) * 100) / 100
+          : Math.round(paidAmount * (x.net / totalNet) * 100) / 100;
+        if (idx < itemNetPrices.length - 1) assigned += amt;
+        rows.push({ item: x.item, amount: amt, due: x.net });
+      });
+    } else {
+      const share = paidAmount / itemNetPrices.length;
+      itemNetPrices.forEach(x => rows.push({ item: x.item, amount: share, due: 0 }));
+    }
+    return rows;
+  }
+
+  const itemStr = String(d.paymentItem || '').trim();
+  if (!itemStr) return [{ item: 'غير محدد', amount: paidAmount, due: Number(d.totalDue) || 0 }];
+  if (itemStr.includes('+')) {
+    const parts = itemStr.split('+').map(s => s.trim()).filter(Boolean);
+    const share = paidAmount / parts.length;
+    const dueShare = (Number(d.totalDue) || 0) / parts.length;
+    return parts.map(item => ({ item, amount: share, due: dueShare }));
+  }
+  return [{ item: itemStr, amount: paidAmount, due: Number(d.totalDue) || 0 }];
+}
+
+function dateToYm(dateStr) {
+  if (!dateStr || dateStr.length < 7) return '';
+  return dateStr.slice(0, 7);
+}
+
+function getAnalysisItems() {
+  const base = [...PAYMENT_ITEMS];
+  if (schoolId === 'cardiff') {
+    ['مصروفات - قسط 3', 'سمر كورس'].forEach(i => { if (!base.includes(i)) base.push(i); });
+  }
+  const fromData = new Set();
+  allTx.forEach(tx => allocateTxAmounts(tx).forEach(r => fromData.add(r.item)));
+  manualEntries.forEach(e => { if (e.paymentItem) fromData.add(e.paymentItem); });
+  fromData.forEach(i => { if (i && !base.includes(i)) base.push(i); });
+  return base;
+}
+
+function round2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
+
+function showManualAlert(msg, type) {
+  const el = document.getElementById('manualAlert');
+  el.className = 'alert alert-' + (type || 'error');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  setTimeout(() => el.classList.add('hidden'), 4000);
+}
+
+// ── تجميع البيانات ──
+function buildItemStats(filterYm) {
+  const items = getAnalysisItems();
+  const map = {};
+  items.forEach(name => {
+    map[name] = {
+      name,
+      actualRev: 0, actualDue: 0, txCount: 0,
+      manualRev: 0, manualExp: 0, manualCount: 0,
+      byMonth: {},
+      payTypes: {},
+      txs: []
+    };
+    AY_MONTHS.forEach(m => { map[name].byMonth[m.ym] = { actualRev: 0, manualRev: 0, manualExp: 0 }; });
+  });
+
+  allTx.forEach(tx => {
+    if (tx.isDebtSettlement) return; // التسوية تُحسب كإيراد منفصل تحت بندها إن رغبت — تُستبعد من المستحقات الجديدة
+    const ym = dateToYm(tx.date);
+    if (filterYm && ym !== filterYm) return;
+    if (ym < AY_MONTHS[0].ym || ym > AY_MONTHS[11].ym) return;
+
+    allocateTxAmounts(tx).forEach(row => {
+      if (!map[row.item]) {
+        map[row.item] = {
+          name: row.item, actualRev: 0, actualDue: 0, txCount: 0,
+          manualRev: 0, manualExp: 0, manualCount: 0, byMonth: {}, payTypes: {}, txs: []
+        };
+        AY_MONTHS.forEach(m => { map[row.item].byMonth[m.ym] = { actualRev: 0, manualRev: 0, manualExp: 0 }; });
+      }
+      const s = map[row.item];
+      s.actualRev += row.amount;
+      s.actualDue += row.due;
+      s.txCount += 1;
+      if (s.byMonth[ym]) s.byMonth[ym].actualRev += row.amount;
+      const pt = tx.paymentTypeName || tx.paymentType || 'أخرى';
+      s.payTypes[pt] = (s.payTypes[pt] || 0) + row.amount;
+      s.txs.push({
+        id: tx.id,
+        date: tx.date,
+        studentName: tx.studentName,
+        amount: row.amount,
+        grade: tx.grade,
+        paymentType: pt,
+        receiptNumber: tx.receiptNumber,
+        isSettlement: !!tx.isDebtSettlement
+      });
+    });
+  });
+
+  // تسويات المديونية تُضاف كإيراد فعلي تحت بندها
+  allTx.filter(tx => tx.isDebtSettlement).forEach(tx => {
+    const ym = dateToYm(tx.date);
+    if (filterYm && ym !== filterYm) return;
+    if (ym < AY_MONTHS[0].ym || ym > AY_MONTHS[11].ym) return;
+    const item = String(tx.paymentItem || 'تسوية مديونية').split('+')[0].trim() || 'تسوية مديونية';
+    if (!map[item]) {
+      map[item] = {
+        name: item, actualRev: 0, actualDue: 0, txCount: 0,
+        manualRev: 0, manualExp: 0, manualCount: 0, byMonth: {}, payTypes: {}, txs: []
+      };
+      AY_MONTHS.forEach(m => { map[item].byMonth[m.ym] = { actualRev: 0, manualRev: 0, manualExp: 0 }; });
+    }
+    const s = map[item];
+    const amt = Number(tx.amount) || 0;
+    s.actualRev += amt;
+    s.txCount += 1;
+    if (s.byMonth[ym]) s.byMonth[ym].actualRev += amt;
+    const pt = tx.paymentTypeName || tx.paymentType || 'أخرى';
+    s.payTypes[pt] = (s.payTypes[pt] || 0) + amt;
+    s.txs.push({
+      id: tx.id, date: tx.date, studentName: tx.studentName, amount: amt,
+      grade: tx.grade, paymentType: pt, receiptNumber: tx.receiptNumber, isSettlement: true
+    });
+  });
+
+  manualEntries.forEach(e => {
+    const ym = e.yearMonth || dateToYm(e.date);
+    if (filterYm && ym !== filterYm) return;
+    const item = e.paymentItem;
+    if (!item) return;
+    if (!map[item]) {
+      map[item] = {
+        name: item, actualRev: 0, actualDue: 0, txCount: 0,
+        manualRev: 0, manualExp: 0, manualCount: 0, byMonth: {}, payTypes: {}, txs: []
+      };
+      AY_MONTHS.forEach(m => { map[item].byMonth[m.ym] = { actualRev: 0, manualRev: 0, manualExp: 0 }; });
+    }
+    const s = map[item];
+    const rev = Number(e.revenue) || 0;
+    const exp = Number(e.expense) || 0;
+    s.manualRev += rev;
+    s.manualExp += exp;
+    s.manualCount += 1;
+    if (s.byMonth[ym]) {
+      s.byMonth[ym].manualRev += rev;
+      s.byMonth[ym].manualExp += exp;
+    }
+  });
+
+  Object.values(map).forEach(s => {
+    s.actualRev = round2(s.actualRev);
+    s.actualDue = round2(s.actualDue);
+    s.manualRev = round2(s.manualRev);
+    s.manualExp = round2(s.manualExp);
+  });
+
+  return map;
+}
+
+function totalSystemExpenses(filterYm) {
+  return round2(allExp.reduce((s, e) => {
+    const ym = dateToYm(e.date);
+    if (filterYm && ym !== filterYm) return s;
+    if (ym < AY_MONTHS[0].ym || ym > AY_MONTHS[11].ym) return s;
+    return s + (Number(e.amount) || 0);
+  }, 0));
+}
+
+function remainingDebts() {
+  let rem = 0, cnt = 0;
+  allDebts.forEach(d => {
+    const r = Number(d.remaining) || 0;
+    if (r > 0) { rem += r; cnt++; }
+  });
+  return { rem: round2(rem), cnt };
+}
+
+// ── تحميل من Firestore ──
+async function loadAll(force) {
+  try {
+    const end = academicYearEnd();
+    const [txSnap, expSnap, debtSnap, manSnap] = await Promise.all([
+      db.collection('transactions')
+        .where('schoolId', '==', schoolId)
+        .where('date', '>=', ACADEMIC_YEAR_START)
+        .where('date', '<=', end)
+        .get(),
+      db.collection('expenses')
+        .where('schoolId', '==', schoolId)
+        .where('date', '>=', ACADEMIC_YEAR_START)
+        .where('date', '<=', end)
+        .get(),
+      db.collection('debts').where('schoolId', '==', schoolId).get(),
+      db.collection('analyticsEntries')
+        .where('schoolId', '==', schoolId)
+        .where('academicYear', '==', ACADEMIC_YEAR)
+        .get()
+    ]);
+
+    allTx = txSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allExp = expSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allDebts = debtSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    manualEntries = manSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+
+    fillManualItemSelect();
+    fillMonthSelects();
+    renderAll();
+    if (force) showManualAlert('تم تحديث البيانات من النظام', 'success');
+  } catch (err) {
+    console.error(err);
+    document.getElementById('itemsGrid').innerHTML =
+      `<div class="an-empty" style="color:var(--danger)">تعذر تحميل البيانات: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function fillManualItemSelect() {
+  const sel = document.getElementById('manualItem');
+  const items = getAnalysisItems();
+  const prev = sel.value || selectedItem || '';
+  sel.innerHTML = items.map(i => `<option value="${escapeHtml(i)}">${escapeHtml(i)}</option>`).join('');
+  if (prev && items.includes(prev)) sel.value = prev;
+}
+
+function fillMonthSelects() {
+  const sel = document.getElementById('manualMonth');
+  const nowYm = localDateStr().slice(0, 7);
+  sel.innerHTML = AY_MONTHS.map(m =>
+    `<option value="${m.ym}">${escapeHtml(m.label)} ${m.year}</option>`
+  ).join('');
+  if (AY_MONTHS.some(m => m.ym === nowYm)) sel.value = nowYm;
+  else sel.value = AY_MONTHS[0].ym;
+
+  const bar = document.getElementById('monthFilterBar');
+  bar.innerHTML = `<button class="an-month-chip ${!selectedMonthYm ? 'active' : ''}" onclick="setMonthFilter(null)">كل السنة</button>` +
+    AY_MONTHS.map(m =>
+      `<button class="an-month-chip ${selectedMonthYm === m.ym ? 'active' : ''}" onclick="setMonthFilter('${m.ym}')">${escapeHtml(m.short)}</button>`
+    ).join('');
+}
+
+function setMonthFilter(ym) {
+  selectedMonthYm = ym;
+  fillMonthSelects();
+  renderAll();
+}
+
+function selectItem(name) {
+  selectedItem = selectedItem === name ? null : name;
+  if (selectedItem) {
+    const sel = document.getElementById('manualItem');
+    if ([...sel.options].some(o => o.value === selectedItem)) sel.value = selectedItem;
+  }
+  renderAll();
+}
+
+function renderAll() {
+  const stats = buildItemStats(selectedMonthYm);
+  const items = getAnalysisItems();
+  const sysExp = totalSystemExpenses(selectedMonthYm);
+  const debts = remainingDebts();
+
+  let actualRev = 0, manualRev = 0, manualExp = 0, txCount = 0;
+  items.forEach(name => {
+    const s = stats[name];
+    if (!s) return;
+    actualRev += s.actualRev;
+    manualRev += s.manualRev;
+    manualExp += s.manualExp;
+    txCount += s.txCount;
+  });
+  actualRev = round2(actualRev);
+  manualRev = round2(manualRev);
+  manualExp = round2(manualExp);
+
+  document.getElementById('kpiActualRev').textContent = formatCurrency(actualRev);
+  document.getElementById('kpiActualExp').textContent = formatCurrency(sysExp);
+  document.getElementById('kpiManualRev').textContent = formatCurrency(manualRev);
+  document.getElementById('kpiManualExp').textContent = formatCurrency(manualExp);
+  document.getElementById('kpiNet').textContent = formatCurrency(actualRev - sysExp);
+  document.getElementById('kpiTxCount').textContent = txCount + ' توزيع بند';
+  document.getElementById('kpiExpCount').textContent = allExp.filter(e => {
+    const ym = dateToYm(e.date);
+    if (selectedMonthYm && ym !== selectedMonthYm) return false;
+    return ym >= AY_MONTHS[0].ym && ym <= AY_MONTHS[11].ym;
+  }).length + ' مصروف';
+  document.getElementById('kpiDebt').textContent = formatCurrency(debts.rem);
+  document.getElementById('kpiDebtCount').textContent = debts.cnt + ' سجل مفتوح';
+  const rate = actualRev + debts.rem > 0 ? Math.round(actualRev / (actualRev + debts.rem) * 100) : 0;
+  document.getElementById('kpiRate').textContent = 'نسبة التحصيل التقريبية: ' + rate + '%';
+
+  document.getElementById('selectedItemBadge').textContent = selectedItem || 'كل البنود';
+
+  // بطاقات البنود
+  const grid = document.getElementById('itemsGrid');
+  grid.innerHTML = items.map((name, idx) => {
+    const s = stats[name] || { actualRev: 0, txCount: 0, manualCount: 0 };
+    return `<div class="an-item ${selectedItem === name ? 'active' : ''}" data-item-idx="${idx}">
+      <div class="name">${escapeHtml(name)}</div>
+      <div class="amt">${formatCurrency(s.actualRev)}</div>
+      <div class="cnt">${s.txCount} عملية${s.manualCount ? ' • يدوي: ' + s.manualCount : ''}</div>
+    </div>`;
+  }).join('');
+  grid.querySelectorAll('.an-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = Number(el.getAttribute('data-item-idx'));
+      selectItem(items[idx]);
+    });
+  });
+
+  renderItemDetail(stats);
+  renderManualTable();
+  renderCharts(stats, sysExp);
+}
+
+function renderItemDetail(stats) {
+  const body = document.getElementById('itemDetailBody');
+  if (!selectedItem) {
+    body.innerHTML = '<div class="an-empty">اختر بندًا من الأعلى لعرض تفاصيله على مدار السنة</div>';
+    return;
+  }
+  const s = stats[selectedItem];
+  if (!s) {
+    body.innerHTML = '<div class="an-empty">لا توجد بيانات لهذا البند</div>';
+    return;
+  }
+
+  const monthRows = AY_MONTHS.map(m => {
+    const bm = s.byMonth[m.ym] || { actualRev: 0, manualRev: 0, manualExp: 0 };
+    return `<tr>
+      <td>${escapeHtml(m.label)} ${m.year}</td>
+      <td style="color:#2e7d32;font-weight:700">${formatCurrency(bm.actualRev)}</td>
+      <td style="color:#2e7d32">${formatCurrency(bm.manualRev)}</td>
+      <td style="color:#c62828">${formatCurrency(bm.manualExp)}</td>
+      <td style="font-weight:800">${formatCurrency(bm.actualRev + bm.manualRev - bm.manualExp)}</td>
+    </tr>`;
+  }).join('');
+
+  const recentTx = [...s.txs].sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 40);
+  const txRows = recentTx.length
+    ? recentTx.map(t => `<tr>
+        <td class="text-sm">${escapeHtml(t.date || '')}</td>
+        <td>${escapeHtml(t.studentName || '')}${t.isSettlement ? ' <span class="badge badge-primary">تسوية</span>' : ''}</td>
+        <td class="text-sm">${escapeHtml(t.grade || '')}</td>
+        <td style="font-weight:700;color:#2e7d32">${formatCurrency(t.amount)}</td>
+        <td class="text-sm">${escapeHtml(t.paymentType || '')}</td>
+        <td class="text-sm text-muted">${escapeHtml(t.receiptNumber || '')}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="6"><div class="an-empty">لا تحصيل مسجّل على هذا البند في الفترة</div></td></tr>';
+
+  body.innerHTML = `
+    <div class="an-detail-head">
+      <strong style="font-size:1.05rem">${escapeHtml(selectedItem)}</strong>
+      <span class="an-badge">${selectedMonthYm ? ('شهر ' + selectedMonthYm) : 'كل السنة ' + ACADEMIC_YEAR}</span>
+    </div>
+    <div class="an-kpis" style="margin-bottom:1rem">
+      <div class="an-kpi rev"><div class="lbl">إيراد فعلي</div><div class="val" style="font-size:1.05rem">${formatCurrency(s.actualRev)}</div></div>
+      <div class="an-kpi"><div class="lbl">مستحق (من البنود)</div><div class="val" style="font-size:1.05rem">${formatCurrency(s.actualDue)}</div></div>
+      <div class="an-kpi rev"><div class="lbl">إيراد يدوي</div><div class="val" style="font-size:1.05rem">${formatCurrency(s.manualRev)}</div></div>
+      <div class="an-kpi exp"><div class="lbl">مصروف يدوي</div><div class="val" style="font-size:1.05rem">${formatCurrency(s.manualExp)}</div></div>
+      <div class="an-kpi net"><div class="lbl">صافي تحليلي</div><div class="val" style="font-size:1.05rem">${formatCurrency(s.actualRev + s.manualRev - s.manualExp)}</div></div>
+    </div>
+    <h4 style="font-size:0.85rem;margin-bottom:0.5rem">تفصيل شهري</h4>
+    <div class="table-wrapper" style="margin-bottom:1rem;max-height:260px;overflow:auto">
+      <table class="data-table">
+        <thead><tr><th>الشهر</th><th>إيراد فعلي</th><th>إيراد يدوي</th><th>مصروف يدوي</th><th>صافي</th></tr></thead>
+        <tbody>${monthRows}</tbody>
+      </table>
+    </div>
+    <h4 style="font-size:0.85rem;margin-bottom:0.5rem">آخر التحصيلات على البند (${recentTx.length})</h4>
+    <div class="table-wrapper" style="max-height:280px;overflow:auto">
+      <table class="data-table">
+        <thead><tr><th>التاريخ</th><th>الطالب</th><th>الصف</th><th>المبلغ</th><th>طريقة الدفع</th><th>إيصال</th></tr></thead>
+        <tbody>${txRows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderManualTable() {
+  const tbody = document.getElementById('manualTableBody');
+  let rows = manualEntries;
+  if (selectedItem) rows = rows.filter(e => e.paymentItem === selectedItem);
+  if (selectedMonthYm) rows = rows.filter(e => (e.yearMonth || dateToYm(e.date)) === selectedMonthYm);
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="an-empty">لا توجد إدخالات يدوية بعد</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map((e, i) => {
+    const rev = Number(e.revenue) || 0;
+    const exp = Number(e.expense) || 0;
+    const ym = e.yearMonth || dateToYm(e.date);
+    const mLabel = AY_MONTHS.find(m => m.ym === ym);
+    return `<tr>
+      <td class="text-sm text-muted">${i + 1}</td>
+      <td>${escapeHtml(e.date || '')}</td>
+      <td>${escapeHtml(mLabel ? mLabel.label : ym)}</td>
+      <td><strong>${escapeHtml(e.paymentItem || '')}</strong></td>
+      <td style="color:#2e7d32;font-weight:700">${formatCurrency(rev)}</td>
+      <td style="color:#c62828;font-weight:700">${formatCurrency(exp)}</td>
+      <td style="font-weight:800">${formatCurrency(rev - exp)}</td>
+      <td class="text-sm">${escapeHtml(e.notes || '—')}</td>
+      <td class="no-print"><button class="btn btn-sm" style="color:var(--danger)" onclick="deleteManual('${escapeHtml(e.id)}')">حذف</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function destroyChart(key) {
+  if (charts[key]) { charts[key].destroy(); delete charts[key]; }
+}
+
+function renderCharts(stats, sysExp) {
+  const items = getAnalysisItems().filter(n => {
+    const s = stats[n];
+    return s && (s.actualRev > 0 || s.manualRev > 0 || s.manualExp > 0);
+  });
+
+  // Pie — actual revenue by item
+  destroyChart('pie');
+  const pieCtx = document.getElementById('chartItemsPie');
+  charts.pie = new Chart(pieCtx, {
+    type: 'doughnut',
+    data: {
+      labels: items.map(i => i),
+      datasets: [{
+        data: items.map(i => stats[i].actualRev),
+        backgroundColor: items.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]),
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { family: 'Cairo', size: 11 }, boxWidth: 12 } } }
+    }
+  });
+
+  // Manual bars
+  destroyChart('manual');
+  charts.manual = new Chart(document.getElementById('chartManualBars'), {
+    type: 'bar',
+    data: {
+      labels: items,
+      datasets: [
+        { label: 'إيراد يدوي', data: items.map(i => stats[i].manualRev), backgroundColor: '#2e7d32aa' },
+        { label: 'مصروف يدوي', data: items.map(i => stats[i].manualExp), backgroundColor: '#c62828aa' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { family: 'Cairo' } } } },
+      scales: {
+        x: { ticks: { font: { family: 'Cairo', size: 10 }, maxRotation: 45 } },
+        y: { beginAtZero: true, ticks: { font: { family: 'Cairo', size: 10 } } }
+      }
+    }
+  });
+
+  // Year line — aggregate months
+  const monthActual = AY_MONTHS.map(m => 0);
+  const monthManRev = AY_MONTHS.map(m => 0);
+  const monthManExp = AY_MONTHS.map(m => 0);
+  const monthSysExp = AY_MONTHS.map(m => 0);
+
+  Object.values(stats).forEach(s => {
+    AY_MONTHS.forEach((m, idx) => {
+      const bm = s.byMonth[m.ym];
+      if (!bm) return;
+      monthActual[idx] += bm.actualRev;
+      monthManRev[idx] += bm.manualRev;
+      monthManExp[idx] += bm.manualExp;
+    });
+  });
+  allExp.forEach(e => {
+    const ym = dateToYm(e.date);
+    const idx = AY_MONTHS.findIndex(m => m.ym === ym);
+    if (idx >= 0) monthSysExp[idx] += Number(e.amount) || 0;
+  });
+
+  destroyChart('year');
+  charts.year = new Chart(document.getElementById('chartYearLine'), {
+    type: 'line',
+    data: {
+      labels: AY_MONTHS.map(m => m.short),
+      datasets: [
+        { label: 'إيراد فعلي', data: monthActual.map(round2), borderColor: '#2e7d32', backgroundColor: '#2e7d3322', tension: 0.3, fill: true },
+        { label: 'مصروف فعلي', data: monthSysExp.map(round2), borderColor: '#c62828', backgroundColor: '#c6282822', tension: 0.3, fill: true },
+        { label: 'إيراد يدوي', data: monthManRev.map(round2), borderColor: '#1565c0', borderDash: [6, 4], tension: 0.3, fill: false },
+        { label: 'مصروف يدوي', data: monthManExp.map(round2), borderColor: '#ef6c00', borderDash: [6, 4], tension: 0.3, fill: false }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { labels: { font: { family: 'Cairo' } } } },
+      scales: {
+        x: { ticks: { font: { family: 'Cairo' } } },
+        y: { beginAtZero: true, ticks: { font: { family: 'Cairo', size: 10 } } }
+      }
+    }
+  });
+
+  // Compare selected item
+  destroyChart('compare');
+  const cmpItem = selectedItem || items[0];
+  const cs = cmpItem ? stats[cmpItem] : null;
+  charts.compare = new Chart(document.getElementById('chartCompare'), {
+    type: 'bar',
+    data: {
+      labels: ['إيراد فعلي', 'إيراد يدوي', 'مصروف يدوي', 'صافي تحليلي'],
+      datasets: [{
+        label: cmpItem || '—',
+        data: cs ? [
+          cs.actualRev, cs.manualRev, cs.manualExp,
+          round2(cs.actualRev + cs.manualRev - cs.manualExp)
+        ] : [0, 0, 0, 0],
+        backgroundColor: ['#2e7d32', '#1565c0', '#c62828', '#1a3a6b']
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: cmpItem ? ('البند: ' + cmpItem) : 'اختر بندًا', font: { family: 'Cairo', size: 13 } }
+      },
+      scales: { y: { beginAtZero: true, ticks: { font: { family: 'Cairo', size: 10 } } } }
+    }
+  });
+
+  // Payment types
+  const payMap = {};
+  Object.values(stats).forEach(s => {
+    Object.entries(s.payTypes || {}).forEach(([k, v]) => { payMap[k] = (payMap[k] || 0) + v; });
+  });
+  const payLabels = Object.keys(payMap);
+  destroyChart('pay');
+  charts.pay = new Chart(document.getElementById('chartPayTypes'), {
+    type: 'pie',
+    data: {
+      labels: payLabels.length ? payLabels : ['لا بيانات'],
+      datasets: [{
+        data: payLabels.length ? payLabels.map(k => round2(payMap[k])) : [1],
+        backgroundColor: payLabels.map((_, i) => CHART_COLORS[i % CHART_COLORS.length])
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { family: 'Cairo', size: 11 } } } }
+    }
+  });
+}
+
+async function saveManualEntry() {
+  const paymentItem = document.getElementById('manualItem').value;
+  const revenue = parseFloat(document.getElementById('manualRevenue').value) || 0;
+  const expense = parseFloat(document.getElementById('manualExpense').value) || 0;
+  const yearMonth = document.getElementById('manualMonth').value;
+  const date = document.getElementById('manualDate').value || localDateStr();
+  const notes = document.getElementById('manualNotes').value.trim();
+
+  if (!paymentItem) return showManualAlert('اختر البند');
+  if (revenue <= 0 && expense <= 0) return showManualAlert('أدخل إيرادًا أو مصروفًا أكبر من صفر');
+  if (!yearMonth) return showManualAlert('اختر الشهر');
+
+  const btn = document.getElementById('manualSaveBtn');
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+  try {
+    await db.collection('analyticsEntries').add({
+      schoolId,
+      schoolName: school?.name || '',
+      academicYear: ACADEMIC_YEAR,
+      paymentItem,
+      revenue: round2(revenue),
+      expense: round2(expense),
+      yearMonth,
+      date,
+      notes,
+      createdBy: session.email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    selectedItem = paymentItem;
+    document.getElementById('manualRevenue').value = '';
+    document.getElementById('manualExpense').value = '';
+    document.getElementById('manualNotes').value = '';
+    showManualAlert('تم الحفظ — جاري تحديث التحليل', 'success');
+    await loadAll(false);
+  } catch (err) {
+    console.error(err);
+    showManualAlert('خطأ في الحفظ: ' + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'حفظ وعرض التحليل';
+  }
+}
+
+async function deleteManual(id) {
+  if (!confirm('حذف هذا الإدخال اليدوي؟')) return;
+  try {
+    await db.collection('analyticsEntries').doc(id).delete();
+    await loadAll(false);
+  } catch (err) {
+    alert('خطأ: ' + err.message);
+  }
+}
+
+function printItemDetail() {
+  if (!selectedItem) { alert('اختر بندًا أولاً'); return; }
+  window.print();
+}
+
+loadAll(false);
+</script>
+</body>
+</html>

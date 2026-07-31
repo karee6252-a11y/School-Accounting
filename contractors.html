@@ -1,0 +1,3518 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#1a3a6b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="المحاسبة" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<title>بند المقاولات - نظام المحاسبة</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ===== TABS ===== */
+    .main-tabs {
+      display: flex; gap: 0.5rem;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 1.5rem; flex-wrap: wrap;
+    }
+    .main-tab {
+      padding: 0.65rem 1.4rem; border: none; background: none;
+      font-family: 'Cairo', sans-serif; font-size: 0.9rem; font-weight: 700;
+      color: var(--text-light); cursor: pointer; border-bottom: 3px solid transparent;
+      margin-bottom: -2px; transition: var(--transition); border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    }
+    .main-tab:hover  { color: var(--primary); background: var(--accent); }
+    .main-tab.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--accent); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ===== SUMMARY CARDS ===== */
+    .sum-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr));
+      gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .sum-card {
+      border-radius: var(--radius); padding: 1.1rem 1.3rem;
+      color: white; box-shadow: var(--shadow); position: relative; overflow: hidden;
+    }
+    .sum-card::after {
+      content:''; position:absolute; inset:0;
+      background:rgba(255,255,255,0.06); pointer-events:none;
+    }
+    .sum-card .icon { font-size:1.8rem; position:absolute; left:1rem; top:50%; transform:translateY(-50%); opacity:0.18; }
+    .sum-card .lbl  { font-size:0.75rem; opacity:0.82; font-weight:600; }
+    .sum-card .val  { font-size:1.5rem; font-weight:900; line-height:1.15; }
+    .sum-card .sub  { font-size:0.7rem; opacity:0.7; }
+    .sum-card.blue   { background:linear-gradient(135deg,var(--primary),#0d2247); }
+    .sum-card.green  { background:linear-gradient(135deg,#2e7d32,#1b5e20); }
+    .sum-card.orange { background:linear-gradient(135deg,#e65100,#bf360c); }
+    .sum-card.red    { background:linear-gradient(135deg,#c62828,#b71c1c); }
+    .sum-card.purple { background:linear-gradient(135deg,#6a1b9a,#4a148c); }
+
+    /* ===== SUPPLIER CARD ===== */
+    .supplier-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr));
+      gap: 1rem; margin-top: 1rem;
+    }
+    .supplier-card {
+      background: var(--card-bg); border-radius: var(--radius);
+      border: 1px solid var(--border); padding: 1.25rem;
+      box-shadow: var(--shadow); transition: var(--transition); cursor: pointer;
+    }
+    .supplier-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
+    .supplier-card .sc-header { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; }
+    .supplier-avatar {
+      width:46px; height:46px; border-radius:50%;
+      background:linear-gradient(135deg,var(--primary),var(--secondary));
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.3rem; font-weight:900; color:white; flex-shrink:0;
+    }
+    .supplier-name { font-size:0.95rem; font-weight:800; color:var(--text-dark); }
+    .supplier-phone { font-size:0.78rem; color:var(--text-light); }
+    .supplier-meta { display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.75rem; }
+    .supplier-stat {
+      flex:1; min-width:90px; text-align:center; padding:0.5rem;
+      background:var(--bg); border-radius:var(--radius-sm); border:1px solid var(--border);
+    }
+    .supplier-stat .s-val { font-size:0.95rem; font-weight:800; color:var(--primary); }
+    .supplier-stat .s-lbl { font-size:0.68rem; color:var(--text-light); }
+    .supplier-debt-row {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid var(--border);
+    }
+    .debt-badge {
+      padding:0.2rem 0.65rem; border-radius:20px;
+      font-size:0.72rem; font-weight:700;
+    }
+    .debt-badge.has-debt { background:#fdecea; color:#c0392b; border:1px solid #f5c6cb; }
+    .debt-badge.no-debt  { background:#e8f5e9; color:#2e7d32; border:1px solid #c8e6c9; }
+
+    /* ===== WORK TYPE TAG ===== */
+    .work-tag {
+      display:inline-flex; align-items:center; gap:0.3rem;
+      padding:0.18rem 0.55rem; border-radius:20px;
+      font-size:0.7rem; font-weight:700; border:1px solid;
+    }
+    .work-tag.carpentry         { background:#fff8e1; color:#f57f17; border-color:#ffe082; }
+    .work-tag.plumbing          { background:#e3f2fd; color:#0277bd; border-color:#90caf9; }
+    .work-tag.electric          { background:#fff3e0; color:#e65100; border-color:#ffcc02; }
+    .work-tag.tiling            { background:#f3e5f5; color:#6a1b9a; border-color:#ce93d8; }
+    .work-tag.farming           { background:#e8f5e9; color:#2e7d32; border-color:#a5d6a7; }
+    .work-tag.building          { background:#fce4ec; color:#c2185b; border-color:#f48fb1; }
+    .work-tag.ironwork          { background:#eceff1; color:#37474f; border-color:#90a4ae; }
+    .work-tag.loader            { background:#fff8e1; color:#795548; border-color:#bcaaa4; }
+    .work-tag.sand              { background:#fdf3e3; color:#8d6e29; border-color:#f0c060; }
+    .work-tag.gravel            { background:#f5f0e8; color:#6d5c3f; border-color:#c9b97a; }
+    .work-tag.cement            { background:#f0f0f0; color:#555555; border-color:#bbbbbb; }
+    .work-tag.blacksmith        { background:#e8eaf6; color:#3949ab; border-color:#9fa8da; }
+    .work-tag.loader_big        { background:#fff3e0; color:#bf360c; border-color:#ffab91; }
+    .work-tag.loader_small      { background:#fbe9e7; color:#d84315; border-color:#ffccbc; }
+    .work-tag.interlock         { background:#e8f5e9; color:#1b5e20; border-color:#81c784; }
+    .work-tag.painter           { background:#e1f5fe; color:#01579b; border-color:#81d4fa; }
+    .work-tag.pool_services     { background:#e0f7fa; color:#00695c; border-color:#80cbc4; }
+    .work-tag.interlock_services{ background:#f1f8e9; color:#33691e; border-color:#aed581; }
+    .work-tag.paint_services    { background:#fce4ec; color:#880e4f; border-color:#f48fb1; }
+    .work-tag.cleaning          { background:#e0f2f1; color:#00695c; border-color:#80cbc4; }
+    .work-tag.miscellaneous     { background:#fafafa; color:#546e7a; border-color:#b0bec5; }
+    .work-tag.marble            { background:#f3e5f5; color:#4a148c; border-color:#ba68c8; }
+    .work-tag.aluminum          { background:#e8eaf6; color:#1a237e; border-color:#7986cb; }
+    .work-tag.other             { background:#eceff1; color:#455a64; border-color:#b0bec5; }
+
+
+    /* ===== PURPOSE TAG ===== */
+    .purpose-tag {
+      display:inline-flex; align-items:center; gap:0.3rem;
+      padding:0.18rem 0.55rem; border-radius:6px;
+      font-size:0.7rem; font-weight:700;
+      background:var(--accent); color:var(--primary); border:1px solid var(--primary-light,#c5d8f5);
+    }
+
+    /* ===== RECORD PANEL ===== */
+    .record-panel {
+      background:var(--card-bg); border:1px solid var(--border);
+      border-radius:var(--radius); padding:1.25rem; margin-bottom:1rem;
+      box-shadow:var(--shadow);
+    }
+    .record-panel-header {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:0.75rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border);
+    }
+    .record-panel-title { font-size:0.9rem; font-weight:800; color:var(--primary); }
+
+    /* ===== PAYMENT HISTORY ===== */
+    .payment-history { margin-top:0.75rem; }
+    .ph-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:0.45rem 0.75rem; border-radius:var(--radius-sm);
+      margin-bottom:0.3rem; font-size:0.82rem;
+      background:var(--bg); border:1px solid var(--border);
+    }
+    .ph-row .ph-date { color:var(--text-light); font-size:0.75rem; }
+    .ph-row .ph-amount { font-weight:800; color:var(--primary); }
+
+    /* ===== SEARCH BAR ===== */
+    .search-bar {
+      display:flex; gap:0.75rem; align-items:center;
+      background:var(--card-bg); padding:1rem 1.25rem;
+      border-radius:var(--radius); border:1px solid var(--border);
+      box-shadow:var(--shadow); margin-bottom:1rem; flex-wrap:wrap;
+    }
+
+    /* ===== CUSTODY WIDGET ===== */
+    .custody-widget {
+      background: linear-gradient(135deg, #0d2247 0%, #1a3a6b 60%, #1e4d8c 100%);
+      border-radius: var(--radius); padding: 1.3rem 1.5rem;
+      margin-bottom: 1.25rem; box-shadow: 0 4px 24px rgba(26,58,107,0.22);
+      border: 1px solid rgba(255,255,255,0.08); position: relative; overflow: hidden;
+    }
+    .custody-widget::before {
+      content:''; position:absolute; top:-40px; left:-40px;
+      width:180px; height:180px; border-radius:50%;
+      background:rgba(255,255,255,0.04); pointer-events:none;
+    }
+    .custody-widget::after {
+      content:''; position:absolute; bottom:-30px; right:10%;
+      width:120px; height:120px; border-radius:50%;
+      background:rgba(255,255,255,0.03); pointer-events:none;
+    }
+    .custody-header {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:1rem;
+    }
+    .custody-title {
+      font-size:0.82rem; font-weight:800; color:rgba(255,255,255,0.75);
+      letter-spacing:0.04em; text-transform:uppercase;
+    }
+    .custody-actions { display:flex; gap:0.5rem; position:relative; z-index:1; }
+    .custody-btn {
+      padding:0.35rem 0.9rem; border-radius:20px; border:1.5px solid rgba(255,255,255,0.3);
+      background:rgba(255,255,255,0.1); color:white; font-family:'Cairo',sans-serif;
+      font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s;
+    }
+    .custody-btn:hover { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.6); }
+    .custody-btn.primary { background:rgba(255,255,255,0.18); border-color:rgba(255,255,255,0.5); }
+    .custody-numbers {
+      display:grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap:1rem; align-items:end;
+    }
+    .custody-main { }
+    .custody-main .c-lbl { font-size:0.72rem; color:rgba(255,255,255,0.6); font-weight:600; margin-bottom:0.2rem; }
+    .custody-main .c-val {
+      font-size:2.4rem; font-weight:900; color:white; line-height:1;
+      text-shadow:0 2px 8px rgba(0,0,0,0.2);
+    }
+    .custody-main .c-sub { font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:0.2rem; }
+    .custody-stat { text-align:center; }
+    .custody-stat .cs-lbl { font-size:0.68rem; color:rgba(255,255,255,0.55); font-weight:600; margin-bottom:0.25rem; display:flex; align-items:center; justify-content:center; gap:0.3rem; }
+    .custody-stat .cs-val { font-size:1.1rem; font-weight:800; color:rgba(255,255,255,0.9); }
+    .custody-stat.danger .cs-val { color:#ff6b6b; }
+    .custody-stat.success .cs-val { color:#69db7c; }
+    .cw-edit-btn {
+      background:none; border:none; cursor:pointer; padding:0; font-size:0.75rem;
+      opacity:0.55; line-height:1; transition:opacity 0.2s;
+    }
+    .cw-edit-btn:hover { opacity:1; }
+    .cw-edit-btn.is-manual { opacity:0.95; }
+    .cw-manual-badge {
+      margin-top:0.3rem; font-size:0.62rem; font-weight:700; color:#ffd43b;
+      background:rgba(255,212,59,0.12); border:1px solid rgba(255,212,59,0.35);
+      border-radius:20px; padding:0.1rem 0.5rem; display:inline-block;
+    }
+    .custody-progress {
+      margin-top:1rem; height:6px; background:rgba(255,255,255,0.12);
+      border-radius:3px; overflow:hidden;
+    }
+    .custody-progress-bar {
+      height:100%; border-radius:3px; transition:width 0.5s ease;
+      background:linear-gradient(90deg,#69db7c,#40c057);
+    }
+    .custody-progress-bar.warning { background:linear-gradient(90deg,#ffd43b,#fab005); }
+    .custody-progress-bar.danger  { background:linear-gradient(90deg,#ff6b6b,#fa5252); }
+
+    /* custody log modal */
+    .clog-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:0.55rem 0.85rem; border-radius:var(--radius-sm);
+      margin-bottom:0.35rem; background:var(--bg); border:1px solid var(--border);
+      font-size:0.83rem;
+    }
+    .clog-row .clog-amount { font-weight:800; color:var(--primary); }
+    .clog-row .clog-date   { font-size:0.72rem; color:var(--text-light); }
+    .clog-row .clog-del    { background:none; border:none; color:#e74c3c; cursor:pointer; font-size:1rem; padding:0 4px; }
+
+    @media (max-width:768px) {
+      .custody-numbers { grid-template-columns:1fr 1fr; }
+      .custody-main .c-val { font-size:1.8rem; }
+    }
+
+    @media (max-width:768px) {
+      .sum-grid { grid-template-columns:1fr 1fr; }
+      .supplier-grid { grid-template-columns:1fr; }
+    }
+
+    /* ===== FIX: layout + table scroll ===== */
+    .main-content {
+      min-width: 0;
+      overflow-x: hidden;
+      max-width: calc(100vw - var(--sidebar-width, 260px));
+    }
+    .page-content {
+      min-width: 0;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+    .card { min-width: 0; }
+    .table-wrapper {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+      width: 100%;
+      max-width: 100%;
+    }
+    .data-table { min-width: max-content; }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div id="topbarContainer"></div>
+
+    <div class="page-content">
+
+      <!-- ===== CUSTODY WIDGET ===== -->
+      <div class="custody-widget animate-in" id="custodyWidget">
+        <div class="custody-header">
+          <div class="custody-title"> العهدة الإجمالية — صندوق المشتريات</div>
+          <div class="custody-actions">
+            <button class="custody-btn" onclick="openCustodyLog()"> السجل</button>
+            <button class="custody-btn primary" onclick="openAddCustody()"> إضافة عهدة</button>
+          </div>
+        </div>
+        <div class="custody-numbers">
+          <div class="custody-main">
+            <div class="c-lbl">المتبقي من العهدة</div>
+            <div class="c-val" id="cwBalance">—</div>
+            <div class="c-sub" id="cwBalanceSub">جاري التحميل...</div>
+          </div>
+          <div class="custody-stat">
+            <div class="cs-lbl">
+              إجمالي العهدة
+              <button class="cw-edit-btn" id="cwEditTotalBtn" onclick="openEditCustodyTotal()" title="تعديل إجمالي العهدة">✏️</button>
+            </div>
+            <div class="cs-val" id="cwTotal">—</div>
+            <div class="cw-manual-badge hidden" id="cwManualBadge">قيمة معدّلة يدويًا</div>
+          </div>
+          <div class="custody-stat danger">
+            <div class="cs-lbl">المصروف (مشتريات + مقاولات)</div>
+            <div class="cs-val" id="cwSpent">—</div>
+          </div>
+          <div class="custody-stat">
+            <div class="cs-lbl">عدد دفعات العهدة</div>
+            <div class="cs-val" id="cwCount">—</div>
+          </div>
+        </div>
+        <div class="custody-progress">
+          <div class="custody-progress-bar" id="cwProgressBar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- SUMMARY CARDS -->
+      <div class="sum-grid animate-in" id="mainSumGrid">
+        <div class="sum-card blue">
+          <div class="icon">🛒</div>
+          <div class="lbl">إجمالي المدفوعات للمشتريات</div>
+          <div class="val" id="sumPurchasesPaid">—</div>
+          <div class="sub" id="sumPurchasesPaidSub">إجمالي العقد − المديونية</div>
+        </div>
+        <div class="sum-card red">
+          <div class="icon">📋</div>
+          <div class="lbl">مديونية المشتريات</div>
+          <div class="val" id="sumPurchasesDebt">—</div>
+          <div class="sub" id="sumPurchasesDebtCount">0 فاتورة</div>
+        </div>
+        <div class="sum-card purple">
+          <div class="icon">🏗️</div>
+          <div class="lbl">إجمالي المقاولات</div>
+          <div class="val" id="sumContractsNet">—</div>
+          <div class="sub">إجمالي عقود المقاولات</div>
+        </div>
+        <div class="sum-card green">
+          <div class="icon">💸</div>
+          <div class="lbl">المدفوع للمقاولين الفعلي</div>
+          <div class="val" id="sumContractsPaid">—</div>
+          <div class="sub" id="sumContractsPaidCount">0 عقد</div>
+        </div>
+        <div class="sum-card orange">
+          <div class="icon">⚠️</div>
+          <div class="lbl">مديونية المقاولين</div>
+          <div class="val" id="sumContractsDebt">—</div>
+          <div class="sub" id="sumContractsDebtCount">0 مقاول</div>
+        </div>
+        <div class="sum-card green" style="background:linear-gradient(135deg,#00695c,#004d40)">
+          <div class="icon">💰</div>
+          <div class="lbl">إجمالي المدفوعات</div>
+          <div class="val" id="sumTotalPayments">—</div>
+          <div class="sub">مدفوعات المشتريات + المقاولين</div>
+        </div>
+      </div>
+
+      <!-- MAIN TABS -->
+      <div class="main-tabs animate-in">
+        <button class="main-tab active" onclick="switchTab('suppliers')"> الموردون والمقاولون</button>
+        <button class="main-tab" onclick="switchTab('purchases')"> المشتريات</button>
+        <button class="main-tab" onclick="switchTab('contracts')"> أعمال المقاولين</button>
+        <button class="main-tab" onclick="switchTab('reports')"> التقارير</button>
+      </div>
+
+      <!-- ========== TAB 1: SUPPLIERS ========== -->
+      <div class="tab-panel active" id="tab-suppliers">
+        <div class="search-bar">
+          <input type="text" class="form-input" id="supplierSearch" placeholder="ابحث باسم المورد أو التليفون..." oninput="renderSuppliers()" style="flex:1;min-width:200px" />
+          <select class="form-select" id="supplierTypeFilter" onchange="renderSuppliers()" style="width:160px">
+            <option value="">كل الأنواع</option>
+            <option value="supplier">مورد مشتريات</option>
+            <option value="contractor">مقاول/منفذ</option>
+            <option value="both">مورد ومقاول</option>
+          </select>
+          <button class="btn btn-primary" onclick="openSupplierModal()"> إضافة مورد/مقاول</button>
+        </div>
+        <div class="supplier-grid" id="supplierGrid">
+          <div style="grid-column:1/-1;text-align:center;padding:2rem"><div class="loading-spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- ========== TAB 2: PURCHASES ========== -->
+      <div class="tab-panel" id="tab-purchases">
+        <div class="search-bar">
+          <input type="text" class="form-input" id="purchaseSearch" placeholder="ابحث..." oninput="filterPurchases()" style="flex:1;min-width:180px"/>
+          <select class="form-select" id="purchaseWorkType" onchange="filterPurchases()" style="width:150px">
+            <option value="">كل أنواع العمل</option>
+            <option value="carpentry">نجارة</option>
+            <option value="plumbing">سباكة</option>
+            <option value="electric">كهرباء</option>
+            <option value="tiling">تبليط</option>
+            <option value="farming">زراعة</option>
+            <option value="building">بناء</option>
+            <option value="ironwork">حدادة</option>
+            <option value="loader">لودر</option>
+            <option value="sand">رمل</option>
+            <option value="gravel">ظلط</option>
+            <option value="cement">اسمنت</option>
+            <option value="blacksmith">حداد</option>
+            <option value="loader_big">لودر كبير</option>
+            <option value="loader_small">لودر صغير</option>
+            <option value="interlock">بناء انترلوك</option>
+            <option value="painter">نقاش</option>
+            <option value="pool_services">خدمات حمام سباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
+            <option value="cleaning">نضافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="marble">رخام</option>
+            <option value="aluminum">الومنتال</option>
+            <option value="other">أخرى</option>
+          </select>
+          <select class="form-select" id="purchasePurpose" onchange="filterPurchases()" style="width:170px">
+            <option value="">كل الأغراض</option>
+            <option value="pool_small">حمام السباحة الصغير</option>
+            <option value="pool_large">حمام السباحة الكبير</option>
+            <option value="wc_pool">دورات مياه خدمات حمام السباحة</option>
+            <option value="wc_building">دورات مياه المبنى</option>
+            <option value="building">المبنى المدرسي</option>
+            <option value="playground">الملاعب</option>
+            <option value="ironwork_s">حدادة</option>
+            <option value="pool_services">خدمات حمام السباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
+            <option value="fountain">نافورة</option>
+            <option value="cleaning">نظافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="agriculture_followup">متابعة الزراعة</option>
+            <option value="aluminum">الوميتال</option>
+            <option value="marble">رخام</option>
+            <option value="other">أخرى</option>
+          </select>
+          <button class="btn btn-primary" onclick="openPurchaseModal()"> إضافة فاتورة</button>
+        </div>
+
+        <div class="card animate-in">
+          <div class="card-header">
+            <span class="card-title"> سجل المشتريات</span>
+            <div style="display:flex;gap:0.5rem;align-items:center">
+              <span class="badge badge-primary" id="purchaseCount">0</span>
+              <button class="btn btn-outline btn-sm" onclick="exportPurchasesPDF()"> PDF</button>
+              <button class="btn btn-outline btn-sm" onclick="exportPurchasesExcel()"> Excel</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>نوع العمل</th>
+                  <th>البيان</th><th>الدفعة الأولى</th><th>تاريخها</th><th>طريقة / جهة الصرف</th><th>إجمالي العقد</th><th>التخصيم</th><th>المديونية</th><th>ملاحظات</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="purchasesBody">
+                <tr><td colspan="14"><div class="loading-spinner"></div></td></tr>
+              </tbody>
+              <tfoot id="purchasesFoot"></tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== TAB 3: CONTRACTS ========== -->
+      <div class="tab-panel" id="tab-contracts">
+        <div class="search-bar">
+          <input type="text" class="form-input" id="contractSearch" placeholder="ابحث..." oninput="filterContracts()" style="flex:1;min-width:180px"/>
+          <select class="form-select" id="contractWorkType" onchange="filterContracts()" style="width:150px">
+            <option value="">كل أنواع العمل</option>
+            <option value="tiling">تبليط</option>
+            <option value="farming">زراعة</option>
+            <option value="building">بناء</option>
+            <option value="carpentry">نجارة</option>
+            <option value="plumbing">سباكة</option>
+            <option value="electric">كهرباء</option>
+            <option value="ironwork">حدادة</option>
+            <option value="loader">لودر</option>
+            <option value="sand">رمل</option>
+            <option value="gravel">ظلط</option>
+            <option value="cement">اسمنت</option>
+            <option value="blacksmith">حداد</option>
+            <option value="loader_big">لودر كبير</option>
+            <option value="loader_small">لودر صغير</option>
+            <option value="interlock">بناء انترلوك</option>
+            <option value="painter">نقاش</option>
+            <option value="pool_services">خدمات حمام سباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
+            <option value="cleaning">نضافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="marble">رخام</option>
+            <option value="aluminum">الومنتال</option>
+            <option value="other">أخرى</option>
+          </select>
+          <select class="form-select" id="contractPurpose" onchange="filterContracts()" style="width:170px">
+            <option value="">كل الأغراض</option>
+            <option value="pool_small">حمام السباحة الصغير</option>
+            <option value="pool_large">حمام السباحة الكبير</option>
+            <option value="wc_pool">دورات مياه خدمات حمام السباحة</option>
+            <option value="wc_building">دورات مياه المبنى</option>
+            <option value="building">المبنى المدرسي</option>
+            <option value="playground">الملاعب</option>
+            <option value="ironwork_s">حدادة</option>
+            <option value="pool_services">خدمات حمام السباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
+            <option value="fountain">نافورة</option>
+            <option value="cleaning">نظافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="agriculture_followup">متابعة الزراعة</option>
+            <option value="aluminum">الوميتال</option>
+            <option value="marble">رخام</option>
+            <option value="other">أخرى</option>
+          </select>
+          <button class="btn btn-primary" onclick="openContractModal()"> إضافة عقد/عمل</button>
+        </div>
+
+        <div class="card animate-in">
+          <div class="card-header">
+            <span class="card-title"> سجل أعمال المقاولين</span>
+            <div style="display:flex;gap:0.5rem;align-items:center">
+              <span class="badge badge-primary" id="contractCount">0</span>
+              <button class="btn btn-outline btn-sm" onclick="exportContractsPDF()"> PDF</button>
+              <button class="btn btn-outline btn-sm" onclick="exportContractsExcel()"> Excel</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th><th>التاريخ</th><th>المقاول</th><th>الغرض</th><th>نوع العمل</th>
+                  <th>البيان</th><th>إجمالي العقد</th>
+                  <th>الدفعة الأولى</th><th>الدفعة الثانية</th><th>الدفعة الثالثة</th><th>الدفعة الرابعة</th><th>التخصيم</th><th>طريقة / جهة الصرف</th><th>المديونية</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="contractsBody">
+                <tr><td colspan="16"><div class="loading-spinner"></div></td></tr>
+              </tbody>
+              <tfoot id="contractsFoot"></tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== TAB 4: REPORTS ========== -->
+      <div class="tab-panel" id="tab-reports">
+        <div class="search-bar">
+          <div style="display:flex;flex-direction:column;gap:0.25rem;min-width:160px">
+            <label class="form-label" style="margin:0">من تاريخ</label>
+            <input type="date" class="form-input" id="reportFrom" />
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.25rem;min-width:160px">
+            <label class="form-label" style="margin:0">إلى تاريخ</label>
+            <input type="date" class="form-input" id="reportTo" />
+          </div>
+          <select class="form-select" id="reportSupplier" style="width:200px">
+            <option value="">كل الموردين/المقاولين</option>
+          </select>
+          <button class="btn btn-primary" onclick="generateReport()"> عرض التقرير</button>
+          <button class="btn btn-outline" onclick="exportFullExcel()"> Excel شامل</button>
+          <button class="btn btn-outline" onclick="exportDebtsExcel()" style="background:linear-gradient(135deg,#c62828,#b71c1c);color:white;border-color:#c62828;font-weight:800;"> 📊 تصدير مديونيات</button>
+        </div>
+
+        <div id="reportArea">
+          <div class="empty-state" style="padding:3rem">
+            <div class="empty-state-icon"></div>
+            <div class="empty-state-title">اختر الفترة واضغط "عرض التقرير"</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div>
+</div>
+
+<!-- ===== MODAL: SUPPLIER/CONTRACTOR ===== -->
+<div class="modal-overlay hidden" id="supplierModal">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <span class="modal-title" id="supplierModalTitle"> إضافة مورد/مقاول</span>
+      <button class="btn-close" onclick="closeModal('supplierModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert hidden" id="supplierAlert"></div>
+      <input type="hidden" id="supplierEditId" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">الاسم الكامل <span class="required">*</span></label>
+          <input type="text" class="form-input" id="sName" placeholder="اسم المورد أو المقاول" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">رقم الهاتف <span class="required">*</span></label>
+          <input type="tel" class="form-input" id="sPhone" placeholder="01XXXXXXXXX" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">هاتف إضافي</label>
+          <input type="tel" class="form-input" id="sPhone2" placeholder="اختياري" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">النوع <span class="required">*</span></label>
+          <select class="form-select" id="sType">
+            <option value="supplier">مورد مشتريات</option>
+            <option value="contractor">مقاول/منفذ</option>
+            <option value="both">مورد ومقاول</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">تخصص العمل</label>
+          <select class="form-select" id="sWorkType">
+            <option value="">— اختر —</option>
+            <option value="carpentry">نجارة</option>
+            <option value="plumbing">سباكة</option>
+            <option value="electric">كهرباء</option>
+            <option value="tiling">تبليط</option>
+            <option value="farming">زراعة</option>
+            <option value="building">بناء</option>
+            <option value="ironwork">حدادة</option>
+            <option value="loader">لودر</option>
+            <option value="sand">رمل ظلط</option>
+            <option value="gravel">ظلط</option>
+            <option value="cement">اسمنت</option>
+            <option value="blacksmith">حداد</option>
+            <option value="loader_big">لودر كبير</option>
+            <option value="loader_small">لودر صغير</option>
+            <option value="interlock">بناء انترلوك</option>
+            <option value="painter">نقاش</option>
+            <option value="pool_services">خدمات حمام سباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
+            <option value="other">متنوع / أخرى</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">العنوان</label>
+          <input type="text" class="form-input" id="sAddress" placeholder="العنوان أو المنطقة" />
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">ملاحظات</label>
+          <textarea class="form-textarea" id="sNotes" rows="2" placeholder="أي تفاصيل إضافية..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('supplierModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveSupplier()"> حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: PURCHASE ===== -->
+<div class="modal-overlay hidden" id="purchaseModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <span class="modal-title"> إضافة فاتورة مشتريات</span>
+      <button class="btn-close" onclick="closeModal('purchaseModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert hidden" id="purchaseAlert"></div>
+      <input type="hidden" id="purchaseEditId" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="form-group">
+          <label class="form-label">المورد <span class="required">*</span></label>
+          <select class="form-select" id="pSupplier">
+            <option value="">— اختر مورداً —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">التاريخ <span class="required">*</span></label>
+          <input type="date" class="form-input" id="pDate" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">الغرض من الاستخدام <span class="required">*</span></label>
+          <select class="form-select" id="pPurpose">
+            <option value="">— اختر —</option>
+            <option value="pool_small">حمام السباحة الصغير</option>
+            <option value="pool_large">حمام السباحة الكبير</option>
+            <option value="wc_pool">دورات مياه خدمات حمام السباحة</option>
+            <option value="wc_building">دورات مياه المبنى</option>
+            <option value="building">المبنى المدرسي</option>
+            <option value="playground">الملاعب</option>
+            <option value="ironwork_s">حدادة</option>
+            <option value="pool_services">خدمات حمام السباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
+            <option value="fountain">نافورة</option>
+            <option value="cleaning">نظافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="agriculture_followup">متابعة الزراعة</option>
+            <option value="aluminum">الوميتال</option>
+            <option value="marble">رخام</option>
+            <option value="other">أخرى</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">نوع العمل <span class="required">*</span></label>
+          <select class="form-select" id="pWorkType" onchange="toggleAreaMode()">
+            <option value="">— اختر —</option>
+            <option value="carpentry">نجارة</option>
+            <option value="plumbing">سباكة</option>
+            <option value="electric">كهرباء</option>
+            <option value="tiling">تبليط</option>
+            <option value="farming">زراعة</option>
+            <option value="building">بناء</option>
+            <option value="ironwork">حدادة</option>
+            <option value="loader">لودر</option>
+            <option value="sand">رمل</option>
+            <option value="gravel">ظلط</option>
+            <option value="cement">اسمنت</option>
+            <option value="blacksmith">حداد</option>
+            <option value="loader_big">لودر كبير</option>
+            <option value="loader_small">لودر صغير</option>
+            <option value="interlock">بناء انترلوك</option>
+            <option value="painter">نقاش</option>
+            <option value="pool_services">خدمات حمام سباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
+            <option value="cleaning">نضافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="marble">رخام</option>
+            <option value="aluminum">الومنتال</option>
+            <option value="other">أخرى</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">بيان الصنف / الوصف <span class="required">*</span></label>
+          <input type="text" class="form-input" id="pDesc" placeholder="مثال: بلاط 60×60 أبيض / خشب سنديان..." />
+        </div>
+        <div class="form-group" id="pQtyGroup" style="display:none">
+          <label class="form-label" id="pQtyLabel">الكمية</label>
+          <input type="number" class="form-input" id="pQtyHidden" placeholder="0" min="0" step="0.01" oninput="calcPurchaseTotal()" />
+        </div>
+        <div class="form-group" id="pUnitGroup" style="display:none">
+          <label class="form-label">وحدة القياس</label>
+          <select class="form-select" id="pUnit">
+            <option value="قطعة">قطعة</option>
+            <option value="متر">متر</option>
+            <option value="م²">م² (متر مربع)</option>
+            <option value="م³">م³ (متر مكعب)</option>
+            <option value="كيلو">كيلو</option>
+            <option value="طن">طن</option>
+            <option value="لتر">لتر</option>
+            <option value="كيس">كيس</option>
+            <option value="لفة">لفة</option>
+            <option value="عدد">عدد</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:none">
+          <label class="form-label">سعر الوحدة (ج.م)</label>
+          <input type="number" class="form-input" id="pUnitPrice" placeholder="0.00" min="0" step="0.01" />
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">إجمالي العقد (ج.م) <span class="required">*</span></label>
+          <input type="number" class="form-input" id="pTotal" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseNet()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">الدفعة الأولى (ج.م)</label>
+          <input type="number" class="form-input" id="pQty" placeholder="0" min="0" step="0.01" oninput="calcPurchaseNet()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">تاريخ الدفعة الأولى</label>
+          <input type="date" class="form-input" id="pQtyDate" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">التخصيم (ج.م)</label>
+          <input type="number" class="form-input" id="pDeduction" placeholder="0.00" min="0" step="0.01" oninput="calcPurchaseNet()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">المديونية (الإجمالي - التخصيم - المدفوع)</label>
+          <input type="number" class="form-input" id="pNet" placeholder="0.00" style="background:var(--accent);font-weight:800;color:#c0392b" readonly />
+        </div>
+        <!-- طريقة الدفع وجهة الصرف -->
+        <div class="form-group">
+          <label class="form-label">طريقة الدفع</label>
+          <select class="form-select" id="pPayMethod">
+            <option value="cash">نقدي</option>
+            <option value="bank_transfer">تحويل بنكي</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="font-weight:800">جهة الصرف <span class="required">*</span></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.4rem">
+            <label id="pPaySourceChairmanLabel" style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 0.75rem;border-radius:var(--radius-sm);border:2px solid var(--border);cursor:pointer;transition:all 0.18s;background:var(--bg)" onclick="selectPPaySource('chairman')">
+              <input type="radio" name="pPaySource" id="pPaySourceChairman" value="chairman" style="accent-color:var(--primary);width:15px;height:15px" />
+              <span style="font-size:0.8rem;font-weight:700"> رئيس مجلس الإدارة</span>
+            </label>
+            <label id="pPaySourceAccountsLabel" style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 0.75rem;border-radius:var(--radius-sm);border:2px solid var(--border);cursor:pointer;transition:all 0.18s;background:var(--bg)" onclick="selectPPaySource('accounts')">
+              <input type="radio" name="pPaySource" id="pPaySourceAccounts" value="accounts" style="accent-color:var(--primary);width:15px;height:15px" />
+              <span style="font-size:0.8rem;font-weight:700"> عهدة الحاج علي</span>
+            </label>
+          </div>
+          <div id="pChairmanNote" style="display:none;margin-top:0.5rem;background:#fff8e1;border:1px solid #ffe082;border-radius:var(--radius-sm);padding:0.5rem 0.85rem;font-size:0.8rem;font-weight:700;color:#e65100;display:none;align-items:center;gap:0.4rem">
+            <span>⚠️</span> لا يُخصم من العهدة
+          </div>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">ملاحظات</label>
+          <textarea class="form-textarea" id="pNotes" rows="2" placeholder="رقم الفاتورة، ضمان، ملاحظات..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('purchaseModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="savePurchase()"> حفظ الفاتورة</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: CONTRACT ===== -->
+<div class="modal-overlay hidden" id="contractModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <span class="modal-title"> إضافة عقد / عمل مقاول</span>
+      <button class="btn-close" onclick="closeModal('contractModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert hidden" id="contractAlert"></div>
+      <input type="hidden" id="contractEditId" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="form-group">
+          <label class="form-label">المقاول/المنفذ <span class="required">*</span></label>
+          <select class="form-select" id="cContractor">
+            <option value="">— اختر —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">التاريخ <span class="required">*</span></label>
+          <input type="date" class="form-input" id="cDate" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">الغرض <span class="required">*</span></label>
+          <select class="form-select" id="cPurpose">
+            <option value="">— اختر —</option>
+            <option value="pool_small">حمام السباحة الصغير</option>
+            <option value="pool_large">حمام السباحة الكبير</option>
+            <option value="wc_pool">دورات مياه خدمات حمام السباحة</option>
+            <option value="wc_building">دورات مياه المبنى</option>
+            <option value="building">المبنى المدرسي</option>
+            <option value="playground">الملاعب</option>
+            <option value="ironwork_s">حدادة</option>
+            <option value="pool_services">خدمات حمام السباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
+            <option value="fountain">نافورة</option>
+            <option value="cleaning">نظافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="agriculture_followup">متابعة الزراعة</option>
+            <option value="aluminum">الوميتال</option>
+            <option value="marble">رخام</option>
+            <option value="other">أخرى</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">نوع العمل <span class="required">*</span></label>
+          <select class="form-select" id="cWorkType" onchange="toggleContractMode()">
+            <option value="">— اختر —</option>
+            <option value="tiling">تبليط</option>
+            <option value="farming">زراعة</option>
+            <option value="building">بناء</option>
+            <option value="carpentry">نجارة</option>
+            <option value="plumbing">سباكة</option>
+            <option value="electric">كهرباء</option>
+            <option value="ironwork">حدادة</option>
+            <option value="loader">لودر</option>
+            <option value="sand">رمل</option>
+            <option value="gravel">ظلط</option>
+            <option value="cement">اسمنت</option>
+            <option value="blacksmith">حداد</option>
+            <option value="loader_big">لودر كبير</option>
+            <option value="loader_small">لودر صغير</option>
+            <option value="interlock">بناء انترلوك</option>
+            <option value="painter">نقاش</option>
+            <option value="pool_services">خدمات حمام سباحة</option>
+            <option value="interlock_services">خدمات انترلوك</option>
+            <option value="paint_services">خدمات دهان</option>
+            <option value="cleaning">نضافة</option>
+            <option value="miscellaneous">نثريات</option>
+            <option value="marble">رخام</option>
+            <option value="aluminum">الومنتال</option>
+            <option value="other">أخرى</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">بيان العمل <span class="required">*</span></label>
+          <input type="text" class="form-input" id="cDesc" placeholder="وصف العمل المطلوب..." />
+        </div>
+        <!-- Area mode (تبليط/زراعة/بناء) -->
+        <div id="cAreaGroup" style="display:none;grid-column:1/-1">
+          <div style="background:var(--accent);border:1px solid var(--primary-light,#c5d8f5);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:0.75rem">
+            <div style="font-size:0.78rem;font-weight:700;color:var(--primary);margin-bottom:0.25rem"> حساب بالمساحة</div>
+            <div style="font-size:0.75rem;color:var(--text-light)">الإجمالي = المساحة × سعر المتر</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem">
+            <div class="form-group">
+              <label class="form-label">المساحة (م²) <span class="required">*</span></label>
+              <input type="number" class="form-input" id="cArea" placeholder="0" min="0" step="0.01" oninput="calcContractTotal()" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">سعر المتر (ج.م) <span class="required">*</span></label>
+              <input type="number" class="form-input" id="cPricePerM" placeholder="0" min="0" step="0.01" oninput="calcContractTotal()" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">الإجمالي (ج.م)</label>
+              <input type="number" class="form-input" id="cTotal" readonly style="background:var(--accent);font-weight:800" />
+            </div>
+          </div>
+        </div>
+        <!-- Fixed mode (نجارة/سباكة/كهرباء) -->
+        <div id="cFixedGroup" style="grid-column:1/-1">
+          <div style="display:grid;grid-template-columns:1fr;gap:0.75rem">
+            <div class="form-group">
+              <label class="form-label">إجمالي العقد (ج.م) <span class="required">*</span></label>
+              <input type="number" class="form-input" id="cFixedTotal" placeholder="0.00" min="0" step="0.01" oninput="syncFixedTotal()" />
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">الدفعة الأولى (ج.م)</label>
+          <input type="number" class="form-input" id="cPay1" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">تاريخ الدفعة الأولى</label>
+          <input type="date" class="form-input" id="cPay1Date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">الدفعة الثانية (ج.م)</label>
+          <input type="number" class="form-input" id="cPay2" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">تاريخ الدفعة الثانية</label>
+          <input type="date" class="form-input" id="cPay2Date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">الدفعة الثالثة (ج.م)</label>
+          <input type="number" class="form-input" id="cPay3" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">تاريخ الدفعة الثالثة</label>
+          <input type="date" class="form-input" id="cPay3Date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">الدفعة الرابعة (ج.م)</label>
+          <input type="number" class="form-input" id="cPay4" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">تاريخ الدفعة الرابعة</label>
+          <input type="date" class="form-input" id="cPay4Date" />
+        </div>
+        <!-- حقل مخفي للتوافق مع الكود القديم -->
+        <input type="hidden" id="cPaidNow" />
+        <div class="form-group">
+          <label class="form-label">التخصيم (ج.م)</label>
+          <input type="number" class="form-input" id="cDeduction" placeholder="0.00" min="0" step="0.01" oninput="calcContractDebt()" />
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label" style="color:#c0392b;font-weight:800">المديونية = إجمالي العقد − إجمالي الدفع − التخصيم</label>
+          <input type="number" class="form-input" id="cDebt" readonly style="background:var(--accent);font-weight:800;color:#c0392b" />
+        </div>
+        <!-- طريقة الدفع وجهة الصرف -->
+        <div class="form-group">
+          <label class="form-label">طريقة الدفع</label>
+          <select class="form-select" id="cPayMethod">
+            <option value="cash">نقدي</option>
+            <option value="bank_transfer">تحويل بنكي</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="font-weight:800">جهة الصرف <span class="required">*</span></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.4rem">
+            <label id="cPaySourceChairmanLabel" style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 0.75rem;border-radius:var(--radius-sm);border:2px solid var(--border);cursor:pointer;transition:all 0.18s;background:var(--bg)" onclick="selectCPaySource('chairman')">
+              <input type="radio" name="cPaySource" id="cPaySourceChairman" value="chairman" style="accent-color:var(--primary);width:15px;height:15px" />
+              <span style="font-size:0.8rem;font-weight:700"> رئيس مجلس الإدارة</span>
+            </label>
+            <label id="cPaySourceAccountsLabel" style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 0.75rem;border-radius:var(--radius-sm);border:2px solid var(--border);cursor:pointer;transition:all 0.18s;background:var(--bg)" onclick="selectCPaySource('accounts')">
+              <input type="radio" name="cPaySource" id="cPaySourceAccounts" value="accounts" style="accent-color:var(--primary);width:15px;height:15px" />
+              <span style="font-size:0.8rem;font-weight:700"> عهدة الحاج علي</span>
+            </label>
+          </div>
+          <div id="cChairmanNote" style="display:none;margin-top:0.5rem;background:#fff8e1;border:1px solid #ffe082;border-radius:var(--radius-sm);padding:0.5rem 0.85rem;font-size:0.8rem;font-weight:700;color:#e65100;align-items:center;gap:0.4rem">
+            <span>⚠️</span> لا يُخصم من العهدة
+          </div>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">ملاحظات</label>
+          <textarea class="form-textarea" id="cNotes" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('contractModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveContract()"> حفظ العقد</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: SUPPLIER PROFILE (view) ===== -->
+<div class="modal-overlay hidden" id="profileModal">
+  <div class="modal" style="max-width:680px;max-height:85vh;overflow-y:auto">
+    <div class="modal-header" id="profileHeader">
+      <span class="modal-title" id="profileTitle">ملف المورد</span>
+      <button class="btn-close" onclick="closeModal('profileModal')">×</button>
+    </div>
+    <div class="modal-body" id="profileBody">
+      <div class="loading-spinner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: PAY CONTRACTOR ===== -->
+<div class="modal-overlay hidden" id="payModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title"> سداد دفعة للمقاول</span>
+      <button class="btn-close" onclick="closeModal('payModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert hidden" id="payAlert"></div>
+      <input type="hidden" id="payContractId" />
+      <div id="payInfo" style="background:var(--accent);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem"></div>
+      <div class="form-group">
+        <label class="form-label">المبلغ المدفوع (ج.م) <span class="required">*</span></label>
+        <input type="number" class="form-input" id="payAmount" placeholder="0.00" min="0.01" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">طريقة الدفع</label>
+        <select class="form-select" id="payMethod">
+          <option value="cash">نقدي</option>
+          <option value="bank_transfer">تحويل بنكي</option>
+          <option value="check">شيك</option>
+          <option value="instapay">إنستاباي</option>
+        </select>
+      </div>
+      <!-- جهة الصرف -->
+      <div class="form-group" style="margin-top:0.25rem">
+        <label class="form-label" style="font-weight:800">جهة الصرف <span class="required">*</span></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.4rem">
+          <label id="paySourceChairmanLabel" style="display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.85rem;border-radius:var(--radius-sm);border:2px solid var(--border);cursor:pointer;transition:all 0.18s;background:var(--bg)" onclick="selectPaySource('chairman')">
+            <input type="radio" name="paySource" id="paySourceChairman" value="chairman" style="accent-color:var(--primary);width:16px;height:16px" />
+            <span style="font-size:0.83rem;font-weight:700"> رئيس مجلس الإدارة</span>
+          </label>
+          <label id="paySourceAccountsLabel" style="display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.85rem;border-radius:var(--radius-sm);border:2px solid var(--border);cursor:pointer;transition:all 0.18s;background:var(--bg)" onclick="selectPaySource('accounts')">
+            <input type="radio" name="paySource" id="paySourceAccounts" value="accounts" style="accent-color:var(--primary);width:16px;height:16px" />
+            <span style="font-size:0.83rem;font-weight:700"> عهدة الحاج علي</span>
+          </label>
+        </div>
+        <!-- ملاحظة رئيس مجلس الإدارة -->
+        <div id="chairmanNote" style="display:none;margin-top:0.55rem;background:#fff8e1;border:1px solid #ffe082;border-radius:var(--radius-sm);padding:0.55rem 0.85rem;font-size:0.8rem;font-weight:700;color:#e65100;align-items:center;gap:0.4rem">
+          <span style="font-size:1rem">⚠️</span> لا يُخصم من العهدة
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ملاحظات</label>
+        <input type="text" class="form-input" id="payNotes" placeholder="اختياري..." />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('payModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="confirmPay()"> تأكيد السداد</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: ADD CUSTODY ===== -->
+<div class="modal-overlay hidden" id="addCustodyModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title"> إضافة عهدة</span>
+      <button class="btn-close" onclick="closeModal('addCustodyModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert hidden" id="addCustodyAlert"></div>
+      <div class="form-group">
+        <label class="form-label">التاريخ <span class="required">*</span></label>
+        <input type="date" class="form-input" id="cwDate" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+        <div class="form-group">
+          <label class="form-label">العهدة السابقة (ج.م)</label>
+          <input type="number" class="form-input" id="cwPrev" placeholder="0.00" min="0" step="0.01" oninput="calcCustodyTotal()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">العهدة الجديدة (ج.م) <span class="required">*</span></label>
+          <input type="number" class="form-input" id="cwNew" placeholder="0.00" min="0" step="0.01" oninput="calcCustodyTotal()" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">إجمالي العهدة (ج.م)</label>
+        <input type="number" class="form-input" id="cwAmount" placeholder="0.00" readonly style="font-size:1.2rem;font-weight:800;background:var(--accent);color:var(--primary)" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addCustodyModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveCustodyEntry()"> حفظ العهدة</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: EDIT CUSTODY ENTRY ===== -->
+<div class="modal-overlay hidden" id="editCustodyModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title"> تعديل دفعة عهدة</span>
+      <button class="btn-close" onclick="closeModal('editCustodyModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert hidden" id="editCustodyAlert"></div>
+      <input type="hidden" id="ecId" />
+      <div class="form-group">
+        <label class="form-label">التاريخ <span class="required">*</span></label>
+        <input type="date" class="form-input" id="ecDate" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+        <div class="form-group">
+          <label class="form-label">العهدة السابقة (ج.م)</label>
+          <input type="number" class="form-input" id="ecPrev" placeholder="0.00" min="0" step="0.01" oninput="calcEditCustodyTotal()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">العهدة الجديدة (ج.م) <span class="required">*</span></label>
+          <input type="number" class="form-input" id="ecNew" placeholder="0.00" min="0" step="0.01" oninput="calcEditCustodyTotal()" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">إجمالي الدفعة (ج.م)</label>
+        <input type="number" class="form-input" id="ecAmount" placeholder="0.00" step="0.01" oninput="onEditCustodyAmountInput()" style="font-size:1.2rem;font-weight:800;background:var(--accent);color:var(--primary)" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('editCustodyModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveEditCustodyEntry()"> حفظ التعديل</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: EDIT CUSTODY TOTAL (OVERRIDE) ===== -->
+<div class="modal-overlay hidden" id="editCustodyTotalModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title"> تعديل إجمالي العهدة</span>
+      <button class="btn-close" onclick="closeModal('editCustodyTotalModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert hidden" id="editCustodyTotalAlert"></div>
+      <div class="alert" style="background:#e3f2fd;border:1px solid #90caf9;color:#0277bd;font-size:0.78rem;font-weight:600;padding:0.6rem 0.85rem;border-radius:var(--radius-sm);margin-bottom:1rem">
+        هتحط رقم ثابت يحل محل مجموع دفعات العهدة في العرض. مجموع الدفعات الفعلي (<span id="ectComputed">—</span>) هيفضل زي ما هو من غير تغيير.
+      </div>
+      <div class="form-group">
+        <label class="form-label">إجمالي العهدة الجديد (ج.م) <span class="required">*</span></label>
+        <input type="number" class="form-input" id="ectValue" placeholder="0.00" min="0" step="0.01" style="font-size:1.2rem;font-weight:800;background:var(--accent);color:var(--primary)" />
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-secondary" id="ectResetBtn" onclick="resetCustodyTotalOverride()">رجوع للحساب التلقائي</button>
+      <div style="display:flex;gap:0.5rem">
+        <button class="btn btn-secondary" onclick="closeModal('editCustodyTotalModal')">إلغاء</button>
+        <button class="btn btn-primary" onclick="saveCustodyTotalOverride()"> حفظ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: CUSTODY LOG ===== -->
+<div class="modal-overlay hidden" id="custodyLogModal">
+  <div class="modal" style="max-width:560px;max-height:85vh;overflow-y:auto">
+    <div class="modal-header">
+      <span class="modal-title"> سجل العهدة</span>
+      <button class="btn-close" onclick="closeModal('custodyLogModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- ملخص -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:1.25rem">
+        <div class="supplier-stat">
+          <div class="s-val" id="clogTotal">—</div>
+          <div class="s-lbl">إجمالي العهدة</div>
+        </div>
+        <div class="supplier-stat">
+          <div class="s-val" style="color:#c0392b" id="clogSpent">—</div>
+          <div class="s-lbl">المصروف (مشتريات + مقاولات)</div>
+        </div>
+        <div class="supplier-stat">
+          <div class="s-val" id="clogBalance">—</div>
+          <div class="s-lbl">المتبقي</div>
+        </div>
+      </div>
+      <div class="alert hidden" id="clogManualNote" style="background:#fff8e1;border:1px solid #ffe082;color:#e65100;font-weight:700;font-size:0.78rem;padding:0.55rem 0.85rem;border-radius:var(--radius-sm);margin-bottom:1rem"></div>
+      <!-- سجل الدفعات -->
+      <div style="font-size:0.82rem;font-weight:800;color:var(--primary);margin-bottom:0.65rem"> دفعات العهدة المُضافة</div>
+      <div id="custodyLogList">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="firebase-config.js"></script>
+<script src="layout.js"></script>
+<script>
+if (!guardContractorsPage()) { throw new Error('redirecting'); }
+renderLayout('contractors', 'بند المقاولات');
+const session  = SESSION.get();
+const schoolId = session.schoolId;
+const school   = SESSION.getSchool();
+
+// ─── CONSTANTS ───────────────────────────────────────────────────
+const PURPOSES = { pool_small:'حمام السباحة الصغير', pool_large:'حمام السباحة الكبير', wc_pool:'دورات مياه خدمات حمام السباحة', wc_building:'دورات مياه المبنى', building:'المبنى المدرسي', playground:'الملاعب', ironwork_s:'حدادة', pool_services:'خدمات حمام السباحة', interlock_services:'خدمات انترلوك', paint_services:'خدمات دهان', fountain:'نافورة', cleaning:'نظافة', miscellaneous:'نثريات', agriculture_followup:'متابعة الزراعة', aluminum:'الوميتال', marble:'رخام', other:'أخرى' };
+// backward compat: القيم القديمة في Firebase
+const PURPOSES_LEGACY = { pool:'حمام السباحة (قديم)', wc:'دورات المياه (قديم)' };
+function getPurposeLabel(p) { return PURPOSES[p] || PURPOSES_LEGACY[p] || p || '—'; }
+const WORK_TYPES = { carpentry:'نجارة', plumbing:'سباكة', electric:'كهرباء', tiling:'تبليط', farming:'زراعة', building:'بناء', ironwork:'حدادة', loader:'لودر', sand:'رمل', gravel:'ظلط', cement:'اسمنت', blacksmith:'حداد', loader_big:'لودر كبير', loader_small:'لودر صغير', interlock:'بناء انترلوك', painter:'نقاش', pool_services:'خدمات حمام سباحة', interlock_services:'خدمات انترلوك', paint_services:'خدمات دهان', cleaning:'نضافة', miscellaneous:'نثريات', marble:'رخام', aluminum:'الومنتال', other:'أخرى' };
+const AREA_BASED = ['tiling','farming','building']; // بالمساحة
+const PAY_LABELS = { cash:'نقدي', bank_transfer:'تحويل بنكي', check:'شيك', instapay:'إنستاباي' };
+
+// ─── STATE ───────────────────────────────────────────────────────
+let allSuppliers  = [];
+let allPurchases  = [];
+let allContracts  = [];
+let filteredPurch = [];
+let filteredContr = [];
+let custodyEntries = [];   // دفعات العهدة المستقلة
+let custodyManualTotal = null; // تعديل يدوي على إجمالي العهدة (null = يتحسب تلقائي من الدفعات)
+
+// ─── INIT ────────────────────────────────────────────────────────
+async function init() {
+  document.getElementById('pDate').value = localDateStr();
+  document.getElementById('cDate').value = localDateStr();
+  document.getElementById('cwDate').value = localDateStr();
+  setDefaultReportDates();
+  await Promise.all([ loadCustodyEntries(), loadCustodySettings(), loadSuppliers(), loadPurchases(), loadContracts() ]);
+  await migratePurchases();   // ترقية الفواتير القديمة مرة واحدة
+  populateSupplierSelects();
+  updateSummaryCards();
+  renderCustodyWidget();
+}
+
+// ─── MIGRATION: ترقية الفواتير القديمة ───────────────────────────
+async function migratePurchases() {
+  const flagKey = `migration_done_${schoolId}`;
+  if (localStorage.getItem(flagKey)) return;
+  const oldPurchases = allPurchases.filter(p => p.net == null);
+  if (oldPurchases.length === 0) { localStorage.setItem(flagKey,'1'); return; }
+
+  console.log(`[Migration] هيتم ترقية ${oldPurchases.length} فاتورة قديمة...`);
+
+  const batch = db.batch();
+  oldPurchases.forEach(p => {
+    const deduction = p.deduction || 0;
+    const pay1      = p.pay1      || p.qty || 0; // الدفعة الأولى أو الكمية للتوافق القديم
+    const net       = Math.max(0, (p.total||0) - deduction - pay1);
+    const custodyPrev   = p.custodyPrev   || 0;
+    const custodyNew    = p.custodyNew    || 0;
+    const custodyTotal  = custodyPrev + custodyNew;
+    // المصروف = الصافي لو مفيش عهدة مدخلة (يعني الفاتورة اتصرفت كلها)
+    const custodySpent  = p.custodySpent  != null ? p.custodySpent  : (custodyTotal > 0 ? net : 0);
+    const custodyBalance= custodyTotal - custodySpent;
+
+    const ref = db.collection('contractors_purchases').doc(p.id);
+    batch.update(ref, {
+      deduction, net,
+      custodyPrev, custodyNew, custodyTotal,
+      custodySpent, custodyBalance,
+      migratedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // تحديث الكاش المحلي برضو
+    Object.assign(p, { deduction, net, custodyPrev, custodyNew, custodyTotal, custodySpent, custodyBalance });
+  });
+
+  try {
+    await batch.commit();
+    localStorage.setItem(flagKey,'1');
+    filteredPurch = [...allPurchases];
+    renderPurchases();
+    updateSummaryCards();
+    console.log('[Migration] تمت الترقية بنجاح ✓');
+  } catch(e) {
+    console.error('[Migration] خطأ:', e);
+  }
+}
+
+function setDefaultReportDates() {
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  document.getElementById('reportFrom').value = `${y}-${String(m+1).padStart(2,'0')}-01`;
+  const last = new Date(y, m+1, 0);
+  document.getElementById('reportTo').value = localDateStr(last);
+}
+
+// ─── CUSTODY (العهدة المستقلة) ────────────────────────────────────
+async function loadCustodySettings() {
+  try {
+    const doc = await db.collection('custody_settings').doc(schoolId).get();
+    custodyManualTotal = (doc.exists && doc.data().manualTotal != null) ? doc.data().manualTotal : null;
+  } catch(e) {
+    console.error('loadCustodySettings:', e);
+    custodyManualTotal = null;
+  }
+}
+
+async function loadCustodyEntries() {
+  try {
+    const snap = await db.collection('custody_entries')
+      .where('schoolId','==',schoolId)
+      .orderBy('date','desc')
+      .get();
+    custodyEntries = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+  } catch(e) {
+    // لو index مش موجود نجيب بدون ترتيب
+    try {
+      const snap = await db.collection('custody_entries').where('schoolId','==',schoolId).get();
+      custodyEntries = snap.docs.map(d => ({ id:d.id, ...d.data() }))
+        .sort((a,b) => (b.date||'') > (a.date||'') ? 1 : -1);
+    } catch(e2) { console.error('loadCustodyEntries:', e2); }
+  }
+}
+
+// إجمالي العهدة الفعلي: قيمة معدّلة يدويًا (لو موجودة) أو مجموع كل الدفعات
+function getCustodyTotal() {
+  const computed = custodyEntries.reduce((s,e) => s+(e.amount||0), 0);
+  return { total: (custodyManualTotal != null ? custodyManualTotal : computed), computed, isManual: custodyManualTotal != null };
+}
+
+function renderCustodyWidget() {
+  const { total: cwTotal, isManual } = getCustodyTotal();
+
+  const editBtn = document.getElementById('cwEditTotalBtn');
+  if (editBtn) editBtn.classList.toggle('is-manual', isManual);
+  const badge = document.getElementById('cwManualBadge');
+  if (badge) badge.classList.toggle('hidden', !isManual);
+
+  // لو مفيش عهدة مضافة ولا قيمة معدّلة يدويًا، اعرض صفر بدون حسابات
+  if (cwTotal === 0 && !isManual) {
+    document.getElementById('cwTotal').textContent   = formatCurrency(0);
+    document.getElementById('cwSpent').textContent   = formatCurrency(0);
+    document.getElementById('cwCount').textContent   = '0 دفعة';
+    document.getElementById('cwBalance').textContent = '—';
+    document.getElementById('cwBalance').style.color = 'rgba(255,255,255,0.5)';
+    document.getElementById('cwBalanceSub').textContent = 'لم تُضف عهدة بعد';
+    document.getElementById('cwProgressBar').style.width = '0%';
+    document.getElementById('cwProgressBar').className = 'custody-progress-bar';
+    return;
+  }
+
+  // المصروف = إجمالي المدفوعات (مشتريات مدفوعة + مدفوع للمقاولين)
+  const _pTotal  = allPurchases.reduce((s,p) => s+(p.total||0), 0);
+  const _pDebt   = allPurchases.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0);
+  const _pPaid   = _pTotal - _pDebt;
+  const _cPaid   = allContracts.reduce((s,c) => s+(c.paid||0), 0);
+  const cwSpent  = _pPaid + _cPaid;
+
+  const cwBalance = cwTotal - cwSpent;
+  const pct = cwTotal > 0 ? Math.max(0, Math.min(100, Math.round(cwBalance/cwTotal*100))) : 0;
+
+  document.getElementById('cwTotal').textContent   = formatCurrency(cwTotal);
+  document.getElementById('cwSpent').textContent   = formatCurrency(cwSpent);
+  document.getElementById('cwCount').textContent   = custodyEntries.length + ' دفعة';
+  document.getElementById('cwBalance').textContent = formatCurrency(cwBalance);
+  document.getElementById('cwBalanceSub').textContent =
+    cwBalance < 0
+      ? '⚠️ العهدة تجاوزت الرصيد!'
+      : `نسبة المتبقي ${pct}% من إجمالي العهدة`;
+
+  const balEl = document.getElementById('cwBalance');
+  balEl.style.color = cwBalance < 0 ? '#ff6b6b' : cwBalance < cwTotal*0.15 ? '#ffd43b' : 'white';
+
+  const bar = document.getElementById('cwProgressBar');
+  bar.style.width = pct + '%';
+  bar.className = 'custody-progress-bar' +
+    (pct < 15 ? ' danger' : pct < 30 ? ' warning' : '');
+}
+
+function calcCustodyTotal() {
+  const prev = parseFloat(document.getElementById('cwPrev').value) || 0;
+  const newC = parseFloat(document.getElementById('cwNew').value)  || 0;
+  document.getElementById('cwAmount').value = (prev + newC).toFixed(2);
+}
+
+function openAddCustody() {
+  document.getElementById('cwPrev').value   = '';
+  document.getElementById('cwNew').value    = '';
+  document.getElementById('cwAmount').value = '';
+  document.getElementById('cwDate').value   = localDateStr();
+  document.getElementById('addCustodyAlert').classList.add('hidden');
+  openModal('addCustodyModal');
+  setTimeout(() => document.getElementById('cwPrev').focus(), 200);
+}
+
+async function saveCustodyEntry() {
+  const prev   = parseFloat(document.getElementById('cwPrev').value)   || 0;
+  const newC   = parseFloat(document.getElementById('cwNew').value)    || 0;
+  const amount = prev + newC;
+  const date   = document.getElementById('cwDate').value;
+  if (amount <= 0) return showAlert('addCustodyAlert','ادخل مبلغ العهدة السابقة أو الجديدة');
+  if (!date)       return showAlert('addCustodyAlert','التاريخ مطلوب');
+
+  try {
+    await db.collection('custody_entries').add({
+      schoolId, amount, custodyPrev: prev, custodyNew: newC, date,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: session.email
+    });
+    closeModal('addCustodyModal');
+    await loadCustodyEntries();
+    renderCustodyWidget();
+    toast(`تم إضافة عهدة ${formatCurrency(amount)} ✓`);
+  } catch(e) { showAlert('addCustodyAlert','خطأ: '+e.message); }
+}
+
+function openCustodyLog() {
+  openModal('custodyLogModal');
+  renderCustodyLog();
+}
+
+function renderCustodyLog() {
+  const { total: cwTotal, computed: cwComputed, isManual } = getCustodyTotal();
+  const _pTotal2 = allPurchases.reduce((s,p) => s+(p.total||0), 0);
+  const _pDebt2  = allPurchases.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0);
+  const cwSpent  = (_pTotal2 - _pDebt2) + allContracts.reduce((s,c) => s+(c.paid||0), 0);
+  const cwBalance = cwTotal - cwSpent;
+
+  document.getElementById('clogTotal').textContent   = formatCurrency(cwTotal);
+  document.getElementById('clogSpent').textContent   = formatCurrency(cwSpent);
+  const balEl = document.getElementById('clogBalance');
+  balEl.textContent = formatCurrency(cwBalance);
+  balEl.style.color = cwBalance < 0 ? '#c0392b' : '#2e7d32';
+
+  const clogNote = document.getElementById('clogManualNote');
+  if (clogNote) {
+    clogNote.classList.toggle('hidden', !isManual);
+    if (isManual) clogNote.textContent = `⚠️ إجمالي العهدة معدَّل يدويًا (${formatCurrency(cwTotal)}) — مجموع الدفعات الفعلي: ${formatCurrency(cwComputed)}`;
+  }
+
+  const list = document.getElementById('custodyLogList');
+  if (custodyEntries.length === 0) {
+    list.innerHTML = `<div class="empty-state" style="padding:2rem">
+      <div class="empty-state-icon"></div>
+      <div class="empty-state-title">لا توجد دفعات عهدة بعد</div>
+    </div>`;
+    return;
+  }
+  list.innerHTML = custodyEntries.map(e => `
+    <div class="clog-row">
+      <div>
+        <div class="clog-amount">${formatCurrency(e.amount)}</div>
+        <div style="font-size:0.72rem;color:var(--text-light);margin-top:2px">
+          سابقة: ${formatCurrency(e.custodyPrev||0)} &nbsp;|&nbsp; جديدة: ${formatCurrency(e.custodyNew||0)}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <div class="clog-date">${e.date||'—'}</div>
+        <button class="clog-del" onclick="openEditCustody('${e.id}')" title="تعديل" style="color:var(--primary)">✏️</button>
+        <button class="clog-del" onclick="deleteCustodyEntry('${e.id}')" title="حذف">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function calcEditCustodyTotal() {
+  const prev = parseFloat(document.getElementById('ecPrev').value) || 0;
+  const newC = parseFloat(document.getElementById('ecNew').value)  || 0;
+  document.getElementById('ecAmount').value = (prev + newC).toFixed(2);
+}
+
+function onEditCustodyAmountInput() {
+  // لو المستخدم عدّل إجمالي الدفعة مباشرة، اضبط "العهدة الجديدة" عشان
+  // سابقة + جديدة يفضلوا متطابقين مع الإجمالي المكتوب
+  const prev   = parseFloat(document.getElementById('ecPrev').value)   || 0;
+  const amount = parseFloat(document.getElementById('ecAmount').value) || 0;
+  document.getElementById('ecNew').value = (amount - prev).toFixed(2);
+}
+
+function openEditCustody(id) {
+  const entry = custodyEntries.find(e => e.id === id);
+  if (!entry) return;
+  document.getElementById('ecId').value     = entry.id;
+  document.getElementById('ecDate').value   = entry.date || '';
+  document.getElementById('ecPrev').value   = entry.custodyPrev || 0;
+  document.getElementById('ecNew').value    = entry.custodyNew  || 0;
+  document.getElementById('ecAmount').value = (entry.amount || 0).toFixed(2);
+  document.getElementById('editCustodyAlert').classList.add('hidden');
+  openModal('editCustodyModal');
+}
+
+async function saveEditCustodyEntry() {
+  const id     = document.getElementById('ecId').value;
+  const prev   = parseFloat(document.getElementById('ecPrev').value)   || 0;
+  const amount = parseFloat(document.getElementById('ecAmount').value) || 0;
+  const newC   = amount - prev; // العهدة الجديدة = الإجمالي المكتوب − السابقة
+  const date   = document.getElementById('ecDate').value;
+  if (amount <= 0) return showAlert('editCustodyAlert','ادخل مبلغ العهدة السابقة أو الجديدة');
+  if (!date)       return showAlert('editCustodyAlert','التاريخ مطلوب');
+
+  try {
+    await db.collection('custody_entries').doc(id).update({
+      amount, custodyPrev: prev, custodyNew: newC, date
+    });
+    closeModal('editCustodyModal');
+    await loadCustodyEntries();
+    renderCustodyWidget();
+    const logModal = document.getElementById('custodyLogModal');
+    if (!logModal.classList.contains('hidden')) renderCustodyLog();
+    toast('تم تعديل العهدة ✓');
+  } catch(e) { showAlert('editCustodyAlert','خطأ: '+e.message); }
+}
+
+async function deleteCustodyEntry(id) {
+  if (!confirm('هل تريد حذف هذه الدفعة نهائياً؟')) return;
+  try {
+    await db.collection('custody_entries').doc(id).delete();
+    await loadCustodyEntries();
+    renderCustodyWidget();
+    const logModal = document.getElementById('custodyLogModal');
+    if (!logModal.classList.contains('hidden')) renderCustodyLog();
+    toast('تم الحذف ✓');
+  } catch(e) { alert('خطأ: '+e.message); }
+}
+
+// ─── CUSTODY TOTAL OVERRIDE (تعديل مباشر على إجمالي العهدة في الكارت) ──
+function openEditCustodyTotal() {
+  const { total, computed, isManual } = getCustodyTotal();
+  document.getElementById('ectComputed').textContent = formatCurrency(computed);
+  document.getElementById('ectValue').value = total.toFixed(2);
+  document.getElementById('ectResetBtn').classList.toggle('hidden', !isManual);
+  document.getElementById('editCustodyTotalAlert').classList.add('hidden');
+  openModal('editCustodyTotalModal');
+}
+
+async function saveCustodyTotalOverride() {
+  const value = parseFloat(document.getElementById('ectValue').value);
+  if (isNaN(value) || value < 0) return showAlert('editCustodyTotalAlert','ادخل قيمة صحيحة');
+  try {
+    await db.collection('custody_settings').doc(schoolId).set({
+      manualTotal: value,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    custodyManualTotal = value;
+    closeModal('editCustodyTotalModal');
+    renderCustodyWidget();
+    const logModal = document.getElementById('custodyLogModal');
+    if (!logModal.classList.contains('hidden')) renderCustodyLog();
+    toast('تم تعديل إجمالي العهدة ✓');
+  } catch(e) { showAlert('editCustodyTotalAlert','خطأ: '+e.message); }
+}
+
+async function resetCustodyTotalOverride() {
+  try {
+    await db.collection('custody_settings').doc(schoolId).set({
+      manualTotal: null,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    custodyManualTotal = null;
+    closeModal('editCustodyTotalModal');
+    renderCustodyWidget();
+    const logModal = document.getElementById('custodyLogModal');
+    if (!logModal.classList.contains('hidden')) renderCustodyLog();
+    toast('تم الرجوع للحساب التلقائي ✓');
+  } catch(e) { showAlert('editCustodyTotalAlert','خطأ: '+e.message); }
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.main-tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`#tab-${name}`).classList.add('active');
+  const idx = ['suppliers','purchases','contracts','reports'].indexOf(name);
+  document.querySelectorAll('.main-tab')[idx].classList.add('active');
+}
+
+// ─── LOAD DATA ────────────────────────────────────────────────────
+async function loadSuppliers() {
+  try {
+    const snap = await db.collection('contractors_suppliers').where('schoolId','==',schoolId).get();
+    allSuppliers = snap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a,b) => (a.name||'').localeCompare(b.name||'','ar'));
+    renderSuppliers();
+  } catch(e) { console.error('load suppliers', e); }
+}
+
+async function loadPurchases() {
+  try {
+    const snap = await db.collection('contractors_purchases').where('schoolId','==',schoolId).get();
+    allPurchases = snap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a,b) => (b.date||'')>(a.date||'') ? 1:-1);
+    filteredPurch = [...allPurchases];
+    renderPurchases();
+  } catch(e) { console.error('load purchases', e); }
+}
+
+async function loadContracts() {
+  try {
+    const snap = await db.collection('contractors_contracts').where('schoolId','==',schoolId).get();
+    allContracts = snap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a,b) => (b.date||'')>(a.date||'') ? 1:-1);
+    filteredContr = [...allContracts];
+    renderContracts();
+  } catch(e) { console.error('load contracts', e); }
+}
+
+// ─── RENDER SUPPLIERS ─────────────────────────────────────────────
+function renderSuppliers() {
+  const search = document.getElementById('supplierSearch').value.toLowerCase();
+  const type   = document.getElementById('supplierTypeFilter').value;
+  const grid   = document.getElementById('supplierGrid');
+
+  let list = allSuppliers.filter(s => {
+    if (search && !(s.name||'').toLowerCase().includes(search) && !(s.phone||'').includes(search)) return false;
+    if (type && s.type !== type) return false;
+    return true;
+  });
+
+  if (list.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1"><div class="empty-state" style="padding:2rem">
+      <div class="empty-state-icon"></div>
+      <div class="empty-state-title">لا يوجد موردون/مقاولون</div>
+      <div class="empty-state-text">اضغط "+ إضافة مورد/مقاول" لإضافة أول سجل</div>
+    </div></div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(s => {
+    const sTotal   = allPurchases.filter(p => p.supplierId === s.id).reduce((a,p) => a+(p.total||0), 0);
+    const cTotal   = allContracts.filter(c => c.contractorId === s.id).reduce((a,c) => a+(c.total||0), 0);
+    const cDebt    = allContracts.filter(c => c.contractorId === s.id).reduce((a,c) => a+(c.remaining||0), 0);
+    const hasDebt  = cDebt > 0;
+    const initial  = (s.name||'?').charAt(0);
+    const wTag     = s.workType ? `<span class="work-tag ${s.workType}">${WORK_TYPES[s.workType]||s.workType}</span>` : '';
+    const typeLabel= { supplier:'مورد مشتريات', contractor:'مقاول/منفذ', both:'مورد ومقاول' }[s.type] || s.type;
+
+    return `<div class="supplier-card" onclick="openProfile('${s.id}')">
+      <div class="sc-header">
+        <div class="supplier-avatar">${initial}</div>
+        <div>
+          <div class="supplier-name">${s.name}</div>
+          <div class="supplier-phone">${s.phone||'—'}${s.phone2?' | '+s.phone2:''}</div>
+          <div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">
+            <span class="badge badge-info" style="font-size:0.68rem">${typeLabel}</span>
+            ${wTag}
+          </div>
+        </div>
+      </div>
+      <div class="supplier-meta">
+        <div class="supplier-stat">
+          <div class="s-val">${formatCurrency(sTotal)}</div>
+          <div class="s-lbl">مشتريات</div>
+        </div>
+        <div class="supplier-stat">
+          <div class="s-val">${formatCurrency(cTotal)}</div>
+          <div class="s-lbl">مقاولات</div>
+        </div>
+        <div class="supplier-stat">
+          <div class="s-val" style="color:${hasDebt?'#c0392b':'#2e7d32'}">${formatCurrency(cDebt)}</div>
+          <div class="s-lbl">مديونية</div>
+        </div>
+      </div>
+      <div class="supplier-debt-row">
+        <span class="debt-badge ${hasDebt?'has-debt':'no-debt'}">${hasDebt?'يوجد دين':'لا يوجد دين'}</span>
+        <div style="display:flex;gap:0.4rem">
+          <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();openEditSupplier('${s.id}')"> تعديل</button>
+          <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();openProfile('${s.id}')"> ملف</button>
+          <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteSupplier('${s.id}')" title="حذف"> </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── RENDER PURCHASES ─────────────────────────────────────────────
+function filterPurchases() {
+  const search  = document.getElementById('purchaseSearch').value.toLowerCase();
+  const wtype   = document.getElementById('purchaseWorkType').value;
+  const purpose = document.getElementById('purchasePurpose').value;
+  filteredPurch = allPurchases.filter(p => {
+    if (search && !(p.desc||'').toLowerCase().includes(search) && !(p.supplierName||'').toLowerCase().includes(search)) return false;
+    if (wtype   && p.workType !== wtype)   return false;
+    if (purpose && p.purpose  !== purpose) return false;
+    return true;
+  });
+  renderPurchases();
+}
+
+function renderPurchases() {
+  const tbody = document.getElementById('purchasesBody');
+  const tfoot = document.getElementById('purchasesFoot');
+  document.getElementById('purchaseCount').textContent = filteredPurch.length;
+
+  if (filteredPurch.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد فواتير</div></div></td></tr>`;
+    tfoot.innerHTML = ''; return;
+  }
+
+  let grandTotal = 0, grandDeduction = 0, grandNet = 0;
+  tbody.innerHTML = filteredPurch.map((p, i) => {
+    grandTotal     += p.total || 0;
+    grandDeduction += p.deduction || 0;
+    grandNet       += p.net != null ? p.net : (p.total || 0);
+    const wTag = p.workType ? `<span class="work-tag ${p.workType}">${WORK_TYPES[p.workType]||p.workType}</span>` : '—';
+    const ppTag= p.purpose  ? `<span class="purpose-tag">${getPurposeLabel(p.purpose)}</span>` : '—';
+    const deductCell = (p.deduction||0) > 0 ? `<span style="color:#e65100;font-weight:700">${formatCurrency(p.deduction)}</span>` : '—';
+    const netVal = p.net != null ? p.net : (p.total||0);
+    const srcBadge = p.paySource === 'chairman'
+      ? `<span style="background:#fff8e1;color:#e65100;border:1px solid #ffe082;border-radius:12px;padding:2px 7px;font-size:0.68rem;font-weight:700;white-space:nowrap">رئيس م.إ.</span>`
+      : p.paySource === 'accounts'
+      ? `<span style="background:var(--accent);color:var(--primary);border:1px solid var(--primary-light,#c5d8f5);border-radius:12px;padding:2px 7px;font-size:0.68rem;font-weight:700;white-space:nowrap">عهدة الحاج علي</span>`
+      : '—';
+    const methodBadge = p.payMethod === 'bank_transfer'
+      ? `<span style="background:#e3f2fd;color:#0277bd;border-radius:10px;padding:1px 6px;font-size:0.67rem;font-weight:700">تحويل بنكي</span>`
+      : `<span style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 6px;font-size:0.67rem;font-weight:700">نقدي</span>`;
+    return `<tr>
+      <td class="text-sm text-muted">${i+1}</td>
+      <td>${p.date||'—'}</td>
+      <td><strong>${p.supplierName||'—'}</strong></td>
+      <td>${ppTag}</td>
+      <td>${wTag}</td>
+      <td>${p.desc||'—'}</td>
+      <td style="color:#2e7d32;font-weight:700">${(p.pay1||0)>0?formatCurrency(p.pay1):'—'}</td>
+      <td style="font-size:0.78rem;color:var(--text-light)">${p.pay1Date||'—'}</td>
+      <td>${methodBadge}<br/>${srcBadge}</td>
+      <td class="text-bold text-primary">${formatCurrency(p.total||0)}</td>
+      <td>${deductCell}</td>
+      <td class="text-bold" style="color:#c0392b">${formatCurrency(netVal)}</td>
+      <td class="text-sm text-muted">${p.notes||'—'}</td>
+      <td>
+        <button class="btn btn-sm btn-secondary" onclick="openEditPurchase('${p.id}')"></button>
+        <button class="btn btn-sm btn-danger" onclick="deletePurchase('${p.id}')" style="margin-right:3px"></button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  tfoot.innerHTML = `<tr style="background:var(--accent);font-weight:800;color:var(--primary)">
+    <td colspan="9" style="padding:0.75rem 1rem">إجمالي المشتريات (${filteredPurch.length} فاتورة)</td>
+    <td style="padding:0.75rem 1rem">${formatCurrency(grandTotal)}</td>
+    <td style="padding:0.75rem 1rem;color:#e65100">${grandDeduction>0?formatCurrency(grandDeduction):'—'}</td>
+    <td style="padding:0.75rem 1rem;color:#c0392b">${formatCurrency(grandNet)}</td>
+    <td colspan="2"></td>
+  </tr>`;
+}
+
+// ─── RENDER CONTRACTS ─────────────────────────────────────────────
+function filterContracts() {
+  const search  = document.getElementById('contractSearch').value.toLowerCase();
+  const wtype   = document.getElementById('contractWorkType').value;
+  const purpose = document.getElementById('contractPurpose').value;
+  filteredContr = allContracts.filter(c => {
+    if (search && !(c.desc||'').toLowerCase().includes(search) && !(c.contractorName||'').toLowerCase().includes(search)) return false;
+    if (wtype   && c.workType !== wtype)   return false;
+    if (purpose && c.purpose  !== purpose) return false;
+    return true;
+  });
+  renderContracts();
+}
+
+function renderContracts() {
+  const tbody = document.getElementById('contractsBody');
+  const tfoot = document.getElementById('contractsFoot');
+  document.getElementById('contractCount').textContent = filteredContr.length;
+
+  if (filteredContr.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="15"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد عقود</div></div></td></tr>`;
+    tfoot.innerHTML = ''; return;
+  }
+
+  let gTotal = 0, gPaid = 0, gDeduct = 0, gDebt = 0;
+  tbody.innerHTML = filteredContr.map((c, i) => {
+    gTotal += c.total||0; gPaid += c.paid||0; gDeduct += c.deduction||0; gDebt += c.remaining||0;
+    const wTag = c.workType ? `<span class="work-tag ${c.workType}">${WORK_TYPES[c.workType]||c.workType}</span>` : '—';
+    const ppTag= c.purpose  ? `<span class="purpose-tag">${getPurposeLabel(c.purpose)}</span>` : '—';
+    const hasDebt = (c.remaining||0) > 0;
+    const srcBadge = c.paySource === 'chairman'
+      ? `<span style="background:#fff8e1;color:#e65100;border:1px solid #ffe082;border-radius:12px;padding:2px 7px;font-size:0.67rem;font-weight:700;white-space:nowrap">رئيس م.إ.</span>`
+      : c.paySource === 'accounts'
+      ? `<span style="background:var(--accent);color:var(--primary);border:1px solid var(--primary-light,#c5d8f5);border-radius:12px;padding:2px 7px;font-size:0.67rem;font-weight:700;white-space:nowrap">عهدة الحاج علي</span>`
+      : '—';
+    const methodBadge = c.payMethod === 'bank_transfer'
+      ? `<span style="background:#e3f2fd;color:#0277bd;border-radius:10px;padding:1px 6px;font-size:0.67rem;font-weight:700">تحويل بنكي</span>`
+      : c.payMethod ? `<span style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 6px;font-size:0.67rem;font-weight:700">نقدي</span>` : '—';
+    return `<tr>
+      <td class="text-sm text-muted">${i+1}</td>
+      <td>${c.date||'—'}</td>
+      <td><strong>${c.contractorName||'—'}</strong></td>
+      <td>${ppTag}</td>
+      <td>${wTag}</td>
+      <td>${c.desc||'—'}</td>
+      <td class="text-bold text-primary">${formatCurrency(c.total||0)}</td>
+      <td style="color:#2e7d32;font-weight:700">${(c.pay1||0)>0?formatCurrency(c.pay1):'—'}<br><span style="font-size:0.7rem;color:var(--text-light)">${c.pay1Date||''}</span></td>
+      <td style="color:#2e7d32;font-weight:700">${(c.pay2||0)>0?formatCurrency(c.pay2):'—'}<br><span style="font-size:0.7rem;color:var(--text-light)">${c.pay2Date||''}</span></td>
+      <td style="color:#2e7d32;font-weight:700">${(c.pay3||0)>0?formatCurrency(c.pay3):'—'}<br><span style="font-size:0.7rem;color:var(--text-light)">${c.pay3Date||''}</span></td>
+      <td style="color:#2e7d32;font-weight:700">${(c.pay4||0)>0?formatCurrency(c.pay4):'—'}<br><span style="font-size:0.7rem;color:var(--text-light)">${c.pay4Date||''}</span></td>
+      <td style="color:#e65100;font-weight:700">${(c.deduction||0)>0 ? formatCurrency(c.deduction) : '—'}</td>
+      <td>${methodBadge}<br/>${srcBadge}</td>
+      <td style="color:${hasDebt?'#c0392b':'#2e7d32'};font-weight:800">${hasDebt?formatCurrency(c.remaining||0):'مسدد ✓'}</td>
+      <td>
+        <button class="btn btn-sm btn-secondary" onclick="openEditContract('${c.id}')" style="margin-right:3px"></button>
+        <button class="btn btn-sm" onclick="deleteContract('${c.id}')" style="background:#fdecea;color:#c0392b;border:1px solid #f5c6cb;margin-right:3px" title="حذف">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  tfoot.innerHTML = `<tr style="background:var(--accent);font-weight:800;color:var(--primary)">
+    <td colspan="6" style="padding:0.75rem 1rem">الإجمالي (${filteredContr.length} عقد)</td>
+    <td style="padding:0.75rem 1rem">${formatCurrency(gTotal)}</td>
+    <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(filteredContr.reduce((a,c)=>a+(c.pay1||0),0))}</td>
+    <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(filteredContr.reduce((a,c)=>a+(c.pay2||0),0))}</td>
+    <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(filteredContr.reduce((a,c)=>a+(c.pay3||0),0))}</td>
+    <td style="padding:0.75rem 1rem;color:#2e7d32">${formatCurrency(filteredContr.reduce((a,c)=>a+(c.pay4||0),0))}</td>
+    <td style="padding:0.75rem 1rem;color:#e65100">${gDeduct>0?formatCurrency(gDeduct):'—'}</td>
+    <td></td>
+    <td style="padding:0.75rem 1rem;color:#c0392b">${formatCurrency(gDebt)}</td>
+    <td></td>
+  </tr>`;
+}
+
+// ─── SUMMARY CARDS ────────────────────────────────────────────────
+function updateSummaryCards() {
+  // ── المشتريات ──
+  const pTotal = allPurchases.reduce((s,p) => s+(p.total||0), 0);
+  const pDebt  = allPurchases.reduce((s,p) => s+(p.net != null ? p.net : (p.total||0)), 0);
+  const pPaid  = pTotal - pDebt;
+
+  // ── المقاولات ──
+  const cTotal     = allContracts.reduce((s,c) => s+(c.total||0), 0);
+  const cDeduction = allContracts.reduce((s,c) => s+(c.deduction||0), 0);
+  const cDebt      = allContracts.reduce((s,c) => s+(c.remaining||0), 0);
+  const cPaid      = allContracts.reduce((s,c) => s+(c.paid||0), 0);
+  const cNet       = cTotal - cDeduction - cDebt;
+
+  // كارت 1: إجمالي المدفوعات للمشتريات
+  document.getElementById('sumPurchasesPaid').textContent    = formatCurrency(pPaid);
+  document.getElementById('sumPurchasesPaidSub').textContent = `إجمالي العقد − المديونية`;
+
+  // كارت 2: مديونية المشتريات
+  document.getElementById('sumPurchasesDebt').textContent      = formatCurrency(pDebt);
+  document.getElementById('sumPurchasesDebtCount').textContent = `${allPurchases.filter(p=>(p.net||0)>0).length} فاتورة لم تُسدَّد`;
+
+  // كارت 3: إجمالي المقاولات (إجمالي العقد)
+  document.getElementById('sumContractsNet').textContent = formatCurrency(cTotal);
+
+  // كارت 4: المدفوع للمقاولين الفعلي
+  document.getElementById('sumContractsPaid').textContent      = formatCurrency(cPaid);
+  document.getElementById('sumContractsPaidCount').textContent = `${allContracts.length} عقد`;
+
+  // كارت 5: مديونية المقاولين
+  document.getElementById('sumContractsDebt').textContent      = formatCurrency(cDebt);
+  document.getElementById('sumContractsDebtCount').textContent = `${allContracts.filter(c=>(c.remaining||0)>0).length} مقاول`;
+
+  // كارت 6: إجمالي المدفوعات (مشتريات + مقاولين)
+  const totalPayments = pPaid + cPaid;
+  document.getElementById('sumTotalPayments').textContent = formatCurrency(totalPayments);
+}
+
+// ─── POPULATE SELECTS ─────────────────────────────────────────────
+function populateSupplierSelects() {
+  const suppOnly = allSuppliers.filter(s => s.type==='supplier'||s.type==='both');
+  const contOnly = allSuppliers.filter(s => s.type==='contractor'||s.type==='both');
+
+  const pSel = document.getElementById('pSupplier');
+  pSel.innerHTML = '<option value="">— اختر مورداً —</option>' +
+    suppOnly.map(s => `<option value="${s.id}">${s.name} — ${s.phone||''}</option>`).join('');
+
+  const cSel = document.getElementById('cContractor');
+  cSel.innerHTML = '<option value="">— اختر —</option>' +
+    contOnly.map(s => `<option value="${s.id}">${s.name} — ${s.phone||''}</option>`).join('');
+
+  const rSel = document.getElementById('reportSupplier');
+  rSel.innerHTML = '<option value="">كل الموردين/المقاولين</option>' +
+    allSuppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+// ─── MODALS HELPERS ───────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
+
+function showAlert(elId, msg, type='error') {
+  const el = document.getElementById(elId);
+  el.className = `alert alert-${type}`;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+// ─── SUPPLIER SAVE ────────────────────────────────────────────────
+function openSupplierModal() {
+  document.getElementById('supplierEditId').value = '';
+  document.getElementById('supplierModalTitle').textContent = ' إضافة مورد/مقاول';
+  ['sName','sPhone','sPhone2','sAddress','sNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('sType').value = 'supplier';
+  document.getElementById('sWorkType').value = '';
+  document.getElementById('supplierAlert').classList.add('hidden');
+  openModal('supplierModal');
+}
+
+function openEditSupplier(id) {
+  const s = allSuppliers.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('supplierEditId').value = id;
+  document.getElementById('supplierModalTitle').textContent = ' تعديل بيانات المورد';
+  document.getElementById('sName').value    = s.name||'';
+  document.getElementById('sPhone').value   = s.phone||'';
+  document.getElementById('sPhone2').value  = s.phone2||'';
+  document.getElementById('sType').value    = s.type||'supplier';
+  document.getElementById('sWorkType').value= s.workType||'';
+  document.getElementById('sAddress').value = s.address||'';
+  document.getElementById('sNotes').value   = s.notes||'';
+  document.getElementById('supplierAlert').classList.add('hidden');
+  openModal('supplierModal');
+}
+
+async function saveSupplier() {
+  const name  = document.getElementById('sName').value.trim();
+  const phone = document.getElementById('sPhone').value.trim();
+  const type  = document.getElementById('sType').value;
+  if (!name)  return showAlert('supplierAlert','الاسم مطلوب');
+  if (!phone) return showAlert('supplierAlert','رقم الهاتف مطلوب');
+
+  const data = {
+    schoolId, name, phone, type,
+    phone2:    document.getElementById('sPhone2').value.trim(),
+    workType:  document.getElementById('sWorkType').value,
+    address:   document.getElementById('sAddress').value.trim(),
+    notes:     document.getElementById('sNotes').value.trim(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  const editId = document.getElementById('supplierEditId').value;
+  try {
+    if (editId) {
+      await db.collection('contractors_suppliers').doc(editId).update(data);
+    } else {
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      data.createdBy = session.email;
+      await db.collection('contractors_suppliers').add(data);
+    }
+    closeModal('supplierModal');
+    await loadSuppliers();
+    populateSupplierSelects();
+    updateSummaryCards();
+    toast(`تم حفظ بيانات ${name} ✓`);
+  } catch(e) { showAlert('supplierAlert','خطأ: '+e.message); }
+}
+
+async function deleteSupplier(id) {
+  const s = allSuppliers.find(x => x.id === id);
+  if (!s) return;
+  const hasPurchases = allPurchases.some(p => p.supplierId === id);
+  const hasContracts = allContracts.some(c => c.contractorId === id);
+  if (hasPurchases || hasContracts) {
+    alert('لا يمكن حذف هذا المورد لأن لديه فواتير أو عقود مسجلة');
+    return;
+  }
+  if (!confirm(`هل تريد حذف "${s.name}" نهائياً؟`)) return;
+  try {
+    await db.collection('contractors_suppliers').doc(id).delete();
+    await loadSuppliers();
+    populateSupplierSelects();
+    updateSummaryCards();
+    toast('تم الحذف ✓');
+  } catch(e) { alert('خطأ: ' + e.message); }
+}
+
+// ─── PURCHASE SAVE ────────────────────────────────────────────────
+function openPurchaseModal() {
+  document.getElementById('purchaseEditId').value = '';
+  document.getElementById('pDate').value = localDateStr();
+  ['pDesc','pNotes'].forEach(id => document.getElementById(id).value = '');
+  ['pQty','pUnitPrice','pTotal','pDeduction','pNet'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pPayMethod').value = 'cash';
+  document.getElementById('pPaySourceChairman').checked = false;
+  document.getElementById('pPaySourceAccounts').checked  = false;
+  document.getElementById('pChairmanNote').style.display = 'none';
+  ['pPaySourceChairmanLabel','pPaySourceAccountsLabel'].forEach(id => {
+    document.getElementById(id).style.borderColor = 'var(--border)';
+    document.getElementById(id).style.background  = 'var(--bg)';
+  });
+  document.getElementById('purchaseAlert').classList.add('hidden');
+  openModal('purchaseModal');
+}
+
+function openEditPurchase(id) {
+  const p = allPurchases.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('purchaseEditId').value  = id;
+  document.getElementById('pSupplier').value       = p.supplierId||'';
+  document.getElementById('pDate').value           = p.date||'';
+  document.getElementById('pPurpose').value        = p.purpose||'';
+  document.getElementById('pWorkType').value       = p.workType||'';
+  document.getElementById('pDesc').value           = p.desc||'';
+  document.getElementById('pQty').value            = p.pay1 ?? p.qty ?? '';
+  document.getElementById('pQtyDate').value        = p.pay1Date||'';
+  document.getElementById('pUnit').value           = p.unit||'قطعة';
+  document.getElementById('pUnitPrice').value      = p.unitPrice||'';
+  document.getElementById('pTotal').value          = p.total||'';
+  document.getElementById('pDeduction').value      = p.deduction||'';
+  document.getElementById('pNet').value            = p.net != null ? p.net : (p.total||'');
+  document.getElementById('pNotes').value          = p.notes||'';
+  // حقول الدفع
+  document.getElementById('pPayMethod').value = p.payMethod || 'cash';
+  const pSrc = p.paySource || '';
+  document.getElementById('pPaySourceChairman').checked = (pSrc === 'chairman');
+  document.getElementById('pPaySourceAccounts').checked  = (pSrc === 'accounts');
+  document.getElementById('pChairmanNote').style.display = (pSrc === 'chairman') ? 'flex' : 'none';
+  ['pPaySourceChairmanLabel','pPaySourceAccountsLabel'].forEach(id => {
+    document.getElementById(id).style.borderColor = 'var(--border)';
+    document.getElementById(id).style.background  = 'var(--bg)';
+  });
+  if (pSrc === 'chairman') {
+    document.getElementById('pPaySourceChairmanLabel').style.borderColor = '#e65100';
+    document.getElementById('pPaySourceChairmanLabel').style.background  = '#fff8e1';
+  } else if (pSrc === 'accounts') {
+    document.getElementById('pPaySourceAccountsLabel').style.borderColor = 'var(--primary)';
+    document.getElementById('pPaySourceAccountsLabel').style.background  = 'var(--accent)';
+  }
+  document.getElementById('purchaseAlert').classList.add('hidden');
+  openModal('purchaseModal');
+}
+
+function toggleAreaMode() { /* purchases use qty always */ }
+
+function calcPurchaseTotal() {
+  const qty   = parseFloat(document.getElementById('pQty').value)       || 0;
+  const price = parseFloat(document.getElementById('pUnitPrice').value) || 0;
+  document.getElementById('pTotal').value = (qty * price).toFixed(2);
+  calcPurchaseNet();
+}
+
+function calcPurchaseNet() {
+  const total     = parseFloat(document.getElementById('pTotal').value)     || 0;
+  const deduction = parseFloat(document.getElementById('pDeduction').value) || 0;
+  const paid      = parseFloat(document.getElementById('pQty').value)       || 0;
+  document.getElementById('pNet').value = Math.max(0, total - deduction - paid).toFixed(2);
+}
+
+async function savePurchase() {
+  const suppId   = document.getElementById('pSupplier').value;
+  const date     = document.getElementById('pDate').value;
+  const purpose  = document.getElementById('pPurpose').value;
+  const workType = document.getElementById('pWorkType').value;
+  const desc     = document.getElementById('pDesc').value.trim();
+  const total    = parseFloat(document.getElementById('pTotal').value) || 0;
+  const pay1     = parseFloat(document.getElementById('pQty').value)   || 0;
+  const pay1Date = document.getElementById('pQtyDate').value           || '';
+  const qty      = pay1; // backward compat
+  const unit     = document.getElementById('pUnit').value;
+  const unitPrice= 0; // not used
+  const deduction= parseFloat(document.getElementById('pDeduction').value) || 0;
+  const net      = Math.max(0, total - deduction - pay1);
+
+  // جهة الصرف وطريقة الدفع
+  const payMethod = document.getElementById('pPayMethod').value;
+  const pSrcEl    = document.querySelector('input[name="pPaySource"]:checked');
+  const paySource = pSrcEl ? pSrcEl.value : '';
+  const PAY_SOURCE_LABELS = { chairman:'رئيس مجلس الإدارة', accounts:'عهدة الحاج علي' };
+
+  if (!paySource) return showAlert('purchaseAlert','اختر جهة الصرف (رئيس مجلس الإدارة / عهدة الحاج علي)');
+
+  // منطق العهدة: رئيس مجلس الإدارة = لا يخصم من العهدة
+  const deductsFromCustody = (paySource === 'accounts');
+
+  // custody
+  const custodySpentInput = parseFloat(document.getElementById('pCustodySpent')?.value);
+  const custodySpent  = !isNaN(custodySpentInput) ? custodySpentInput : (deductsFromCustody ? net : 0);
+  const custodyBalance = -custodySpent;
+
+  if (!suppId)   return showAlert('purchaseAlert','اختر المورد');
+  if (!date)     return showAlert('purchaseAlert','التاريخ مطلوب');
+  if (!purpose)  return showAlert('purchaseAlert','اختر الغرض');
+  if (!workType) return showAlert('purchaseAlert','اختر نوع العمل');
+  if (!desc)     return showAlert('purchaseAlert','البيان مطلوب');
+  if (total <= 0) return showAlert('purchaseAlert','إجمالي العقد يجب أن يكون أكبر من صفر');
+
+  const supp = allSuppliers.find(s => s.id === suppId);
+  const data = {
+    schoolId, supplierId: suppId, supplierName: supp?.name||'', date,
+    purpose, purposeLabel: getPurposeLabel(purpose),
+    workType, workTypeLabel: WORK_TYPES[workType]||workType,
+    desc, qty, unit, unitPrice, total,
+    pay1, pay1Date,
+    deduction, net,
+    payMethod, paySource,
+    paySourceLabel: PAY_SOURCE_LABELS[paySource]||paySource,
+    deductsFromCustody,
+    notes: document.getElementById('pNotes').value.trim(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  const editId = document.getElementById('purchaseEditId').value;
+  try {
+    if (editId) {
+      await db.collection('contractors_purchases').doc(editId).update(data);
+    } else {
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      data.createdBy = session.email;
+      await db.collection('contractors_purchases').add(data);
+    }
+    closeModal('purchaseModal');
+    await loadPurchases();
+    updateSummaryCards();
+    renderCustodyWidget();
+    toast('تم حفظ الفاتورة ✓');
+  } catch(e) { showAlert('purchaseAlert','خطأ: '+e.message); }
+}
+
+async function deletePurchase(id) {
+  if (!confirm('هل تريد حذف هذه الفاتورة نهائياً؟')) return;
+  try {
+    await db.collection('contractors_purchases').doc(id).delete();
+    await loadPurchases();
+    updateSummaryCards();
+    renderCustodyWidget();
+    toast('تم الحذف');
+  } catch(e) { alert('خطأ: '+e.message); }
+}
+
+// ─── CONTRACT SAVE ────────────────────────────────────────────────
+function openContractModal() {
+  document.getElementById('contractEditId').value = '';
+  document.getElementById('cDate').value = localDateStr();
+  ['cContractor','cPurpose','cWorkType'].forEach(id => document.getElementById(id).value = '');
+  ['cDesc','cNotes'].forEach(id => document.getElementById(id).value = '');
+  ['cArea','cPricePerM','cTotal','cFixedTotal','cPay1','cPay1Date','cPay2','cPay2Date','cPay3','cPay3Date','cPay4','cPay4Date','cDeduction','cDebt'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  const fixedUnitEl1 = document.getElementById('cFixedUnit');
+  if (fixedUnitEl1) fixedUnitEl1.value = '';
+  document.getElementById('cPayMethod').value = 'cash';
+  document.getElementById('cPaySourceChairman').checked = false;
+  document.getElementById('cPaySourceAccounts').checked  = false;
+  document.getElementById('cChairmanNote').style.display = 'none';
+  ['cPaySourceChairmanLabel','cPaySourceAccountsLabel'].forEach(id => {
+    document.getElementById(id).style.borderColor = 'var(--border)';
+    document.getElementById(id).style.background  = 'var(--bg)';
+  });
+  document.getElementById('contractAlert').classList.add('hidden');
+  document.getElementById('cAreaGroup').style.display  = 'none';
+  document.getElementById('cFixedGroup').style.display = 'grid';
+  openModal('contractModal');
+}
+
+function openEditContract(id) {
+  const c = allContracts.find(x => x.id === id);
+  if (!c) return;
+
+  // helper آمن يتجنب null errors
+  const setVal = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val; };
+  const setChk = (elId, val) => { const el = document.getElementById(elId); if (el) el.checked = val; };
+  const setDisp = (elId, val) => { const el = document.getElementById(elId); if (el) el.style.display = val; };
+
+  setVal('contractEditId', id);
+  setVal('cContractor',    c.contractorId||'');
+  setVal('cDate',          c.date||'');
+  setVal('cPurpose',       c.purpose||'');
+  setVal('cWorkType',      c.workType||'');
+  setVal('cDesc',          c.desc||'');
+  setVal('cNotes',         c.notes||'');
+  setVal('cPay1',          c.pay1||'');
+  setVal('cPay1Date',      c.pay1Date||'');
+  setVal('cPay2',          c.pay2||'');
+  setVal('cPay2Date',      c.pay2Date||'');
+  setVal('cPay3',          c.pay3||'');
+  setVal('cPay3Date',      c.pay3Date||'');
+  setVal('cPay4',          c.pay4||'');
+  setVal('cPay4Date',      c.pay4Date||'');
+  setVal('cDeduction',     c.deduction||'');
+  setVal('cDebt',          c.remaining||'');
+
+  const isArea = AREA_BASED.includes(c.workType);
+  setDisp('cAreaGroup',  isArea ? 'block' : 'none');
+  setDisp('cFixedGroup', isArea ? 'none'  : 'grid');
+
+  if (isArea) {
+    setVal('cArea',      c.area||'');
+    setVal('cPricePerM', c.pricePerM||'');
+    setVal('cTotal',     c.total||'');
+  } else {
+    setVal('cFixedTotal', c.total||'');
+    setVal('cFixedUnit',  c.fixedUnit||'');
+  }
+
+  const alertEl = document.getElementById('contractAlert');
+  if (alertEl) alertEl.classList.add('hidden');
+
+  // حقول الدفع
+  setVal('cPayMethod', c.payMethod || 'cash');
+  const cSrc = c.paySource || '';
+  setChk('cPaySourceChairman', cSrc === 'chairman');
+  setChk('cPaySourceAccounts',  cSrc === 'accounts');
+  setDisp('cChairmanNote', (cSrc === 'chairman') ? 'flex' : 'none');
+
+  ['cPaySourceChairmanLabel','cPaySourceAccountsLabel'].forEach(lid => {
+    const el = document.getElementById(lid);
+    if (el) { el.style.borderColor = 'var(--border)'; el.style.background = 'var(--bg)'; }
+  });
+  if (cSrc === 'chairman') {
+    const el = document.getElementById('cPaySourceChairmanLabel');
+    if (el) { el.style.borderColor = '#e65100'; el.style.background = '#fff8e1'; }
+  } else if (cSrc === 'accounts') {
+    const el = document.getElementById('cPaySourceAccountsLabel');
+    if (el) { el.style.borderColor = 'var(--primary)'; el.style.background = 'var(--accent)'; }
+  }
+
+  openModal('contractModal');
+}
+
+function toggleContractMode() {
+  const wt = document.getElementById('cWorkType').value;
+  const isArea = AREA_BASED.includes(wt);
+  document.getElementById('cAreaGroup').style.display  = isArea ? 'block' : 'none';
+  document.getElementById('cFixedGroup').style.display = isArea ? 'none'  : 'grid';
+  document.getElementById('cArea').value = '';
+  document.getElementById('cPricePerM').value = '';
+  document.getElementById('cTotal').value = '';
+  document.getElementById('cFixedTotal').value = '';
+  document.getElementById('cPay1').value = '';
+  document.getElementById('cPay1Date').value = '';
+  document.getElementById('cPay2').value = '';
+  document.getElementById('cPay2Date').value = '';
+  document.getElementById('cPay3').value = '';
+  document.getElementById('cPay3Date').value = '';
+  document.getElementById('cPay4').value = '';
+  document.getElementById('cPay4Date').value = '';
+  document.getElementById('cDeduction').value = '';
+  document.getElementById('cDebt').value = '';
+}
+
+function calcContractTotal() {
+  const area  = parseFloat(document.getElementById('cArea').value)     || 0;
+  const price = parseFloat(document.getElementById('cPricePerM').value)|| 0;
+  const total = area * price;
+  document.getElementById('cTotal').value = total.toFixed(2);
+  calcContractDebt();
+}
+
+function syncFixedTotal() { calcContractDebt(); }
+
+function calcContractDebt() {
+  const wt = document.getElementById('cWorkType').value;
+  const isArea = AREA_BASED.includes(wt);
+  const total = isArea
+    ? (parseFloat(document.getElementById('cTotal').value)||0)
+    : (parseFloat(document.getElementById('cFixedTotal').value)||0);
+  const pay1      = parseFloat(document.getElementById('cPay1').value)||0;
+  const pay2      = parseFloat(document.getElementById('cPay2').value)||0;
+  const pay3      = parseFloat(document.getElementById('cPay3').value)||0;
+  const pay4      = parseFloat(document.getElementById('cPay4').value)||0;
+  const totalPaid = pay1 + pay2 + pay3 + pay4;
+  // sync hidden field for backward compat
+  document.getElementById('cPaidNow').value = totalPaid;
+  const deduction = parseFloat(document.getElementById('cDeduction').value)||0;
+  document.getElementById('cDebt').value = Math.max(0, total - totalPaid - deduction).toFixed(2);
+}
+
+async function saveContract() {
+  const contId   = document.getElementById('cContractor').value;
+  const date     = document.getElementById('cDate').value;
+  const purpose  = document.getElementById('cPurpose').value;
+  const workType = document.getElementById('cWorkType').value;
+  const desc     = document.getElementById('cDesc').value.trim();
+
+  if (!contId)   return showAlert('contractAlert','اختر المقاول');
+  if (!date)     return showAlert('contractAlert','التاريخ مطلوب');
+  if (!purpose)  return showAlert('contractAlert','اختر الغرض');
+  if (!workType) return showAlert('contractAlert','اختر نوع العمل');
+  if (!desc)     return showAlert('contractAlert','البيان مطلوب');
+
+  const isArea = AREA_BASED.includes(workType);
+  let total, area, pricePerM, fixedUnit;
+
+  if (isArea) {
+    area      = parseFloat(document.getElementById('cArea').value)||0;
+    pricePerM = parseFloat(document.getElementById('cPricePerM').value)||0;
+    total     = area * pricePerM;
+    if (area<=0||pricePerM<=0) return showAlert('contractAlert','ادخل المساحة وسعر المتر');
+  } else {
+    total     = parseFloat(document.getElementById('cFixedTotal').value)||0;
+    fixedUnit = ''; // تم حذف حقل الكمية/الوحدة
+    if (total<=0) return showAlert('contractAlert','إجمالي العقد مطلوب');
+  }
+
+  const pay1      = parseFloat(document.getElementById('cPay1').value)||0;
+  const pay1Date  = document.getElementById('cPay1Date').value||'';
+  const pay2      = parseFloat(document.getElementById('cPay2').value)||0;
+  const pay2Date  = document.getElementById('cPay2Date').value||'';
+  const pay3      = parseFloat(document.getElementById('cPay3').value)||0;
+  const pay3Date  = document.getElementById('cPay3Date').value||'';
+  const pay4      = parseFloat(document.getElementById('cPay4').value)||0;
+  const pay4Date  = document.getElementById('cPay4Date').value||'';
+  const paid      = pay1 + pay2 + pay3 + pay4;
+  const deduction = parseFloat(document.getElementById('cDeduction').value)||0;
+  const remaining = Math.max(0, total - paid - deduction);
+  const contr     = allSuppliers.find(s => s.id === contId);
+
+  // جهة الصرف وطريقة الدفع
+  const cPayMethod = document.getElementById('cPayMethod').value;
+  const cSrcEl     = document.querySelector('input[name="cPaySource"]:checked');
+  const cPaySource = cSrcEl ? cSrcEl.value : '';
+  const PAY_SOURCE_LABELS = { chairman:'رئيس مجلس الإدارة', accounts:'عهدة الحاج علي' };
+
+  if (!cPaySource) return showAlert('contractAlert','اختر جهة الصرف (رئيس مجلس الإدارة / عهدة الحاج علي)');
+
+  // رئيس مجلس الإدارة = لا يخصم من العهدة
+  const deductsFromCustody = (cPaySource === 'accounts');
+
+  const data = {
+    schoolId, contractorId: contId, contractorName: contr?.name||'',
+    date, purpose, purposeLabel: getPurposeLabel(purpose),
+    workType, workTypeLabel: WORK_TYPES[workType]||workType,
+    desc, total, paid, pay1, pay1Date, pay2, pay2Date, pay3, pay3Date, pay4, pay4Date, deduction, remaining,
+    payMethod: cPayMethod,
+    paySource: cPaySource,
+    paySourceLabel: PAY_SOURCE_LABELS[cPaySource]||cPaySource,
+    deductsFromCustody,
+    notes: document.getElementById('cNotes').value.trim(),
+    isAreaBased: isArea,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  if (isArea)   { data.area = area; data.pricePerM = pricePerM; }
+  else          { data.fixedUnit = fixedUnit||''; }
+
+  const editId = document.getElementById('contractEditId').value;
+  try {
+    if (editId) {
+      // preserve existing paymentHistory
+      const existing = allContracts.find(c => c.id === editId);
+      data.paymentHistory = existing?.paymentHistory || [];
+      await db.collection('contractors_contracts').doc(editId).update(data);
+    } else {
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      data.createdBy = session.email;
+      data.paymentHistory = [];
+      await db.collection('contractors_contracts').add(data);
+    }
+    closeModal('contractModal');
+    await loadContracts();
+    updateSummaryCards();
+    renderCustodyWidget();
+    toast('تم حفظ العقد ✓');
+  } catch(e) { showAlert('contractAlert','خطأ: '+e.message); }
+}
+
+async function deleteContract(id) {
+  if (!confirm('هل تريد حذف هذا العقد نهائياً؟')) return;
+  try {
+    await db.collection('contractors_contracts').doc(id).delete();
+    await loadContracts();
+    updateSummaryCards();
+    renderCustodyWidget();
+    toast('تم حذف العقد ✓');
+  } catch(e) { alert('خطأ: ' + e.message); }
+}
+
+// ─── PAY CONTRACTOR ───────────────────────────────────────────────
+function openPayModal(contractId) {
+  const c = allContracts.find(x => x.id === contractId);
+  if (!c) return;
+  document.getElementById('payContractId').value = contractId;
+  document.getElementById('payAmount').value = c.remaining||'';
+  document.getElementById('payMethod').value = 'cash';
+  document.getElementById('payNotes').value  = '';
+  document.getElementById('payAlert').classList.add('hidden');
+  // reset جهة الصرف
+  document.getElementById('paySourceChairman').checked = false;
+  document.getElementById('paySourceAccounts').checked  = false;
+  document.getElementById('chairmanNote').style.display = 'none';
+  ['paySourceChairmanLabel','paySourceAccountsLabel'].forEach(id => {
+    document.getElementById(id).style.borderColor = 'var(--border)';
+    document.getElementById(id).style.background  = 'var(--bg)';
+  });
+  document.getElementById('payInfo').innerHTML = `
+    <strong>${c.contractorName}</strong> — ${c.desc}<br>
+    إجمالي العقد: <strong>${formatCurrency(c.total)}</strong> |
+    سبق دفعه: <strong style="color:#2e7d32">${formatCurrency(c.paid)}</strong> |
+    المتبقي: <strong style="color:#c0392b">${formatCurrency(c.remaining)}</strong>
+  `;
+  openModal('payModal');
+}
+
+// ─── جهة الصرف في مودال المشتريات ───────────────────────────────
+function selectPPaySource(src) {
+  document.getElementById('pPaySourceChairman').checked = (src === 'chairman');
+  document.getElementById('pPaySourceAccounts').checked  = (src === 'accounts');
+  const note = document.getElementById('pChairmanNote');
+  const clbl = document.getElementById('pPaySourceChairmanLabel');
+  const albl = document.getElementById('pPaySourceAccountsLabel');
+  if (src === 'chairman') {
+    note.style.display = 'flex';
+    clbl.style.borderColor = '#e65100'; clbl.style.background = '#fff8e1';
+    albl.style.borderColor = 'var(--border)'; albl.style.background = 'var(--bg)';
+  } else {
+    note.style.display = 'none';
+    albl.style.borderColor = 'var(--primary)'; albl.style.background = 'var(--accent)';
+    clbl.style.borderColor = 'var(--border)'; clbl.style.background = 'var(--bg)';
+  }
+}
+
+// ─── جهة الصرف في مودال العقود ───────────────────────────────────
+function selectCPaySource(src) {
+  document.getElementById('cPaySourceChairman').checked = (src === 'chairman');
+  document.getElementById('cPaySourceAccounts').checked  = (src === 'accounts');
+  const note = document.getElementById('cChairmanNote');
+  const clbl = document.getElementById('cPaySourceChairmanLabel');
+  const albl = document.getElementById('cPaySourceAccountsLabel');
+  if (src === 'chairman') {
+    note.style.display = 'flex';
+    clbl.style.borderColor = '#e65100'; clbl.style.background = '#fff8e1';
+    albl.style.borderColor = 'var(--border)'; albl.style.background = 'var(--bg)';
+  } else {
+    note.style.display = 'none';
+    albl.style.borderColor = 'var(--primary)'; albl.style.background = 'var(--accent)';
+    clbl.style.borderColor = 'var(--border)'; clbl.style.background = 'var(--bg)';
+  }
+}
+
+// ─── جهة الصرف في مودال السداد ───────────────────────────────────
+function selectPaySource(src) {
+  document.getElementById('paySourceChairman').checked = (src === 'chairman');
+  document.getElementById('paySourceAccounts').checked  = (src === 'accounts');
+  const note = document.getElementById('chairmanNote');
+  const chairmanLbl = document.getElementById('paySourceChairmanLabel');
+  const accountsLbl = document.getElementById('paySourceAccountsLabel');
+  if (src === 'chairman') {
+    note.style.display = 'flex';
+    chairmanLbl.style.borderColor = '#e65100';
+    chairmanLbl.style.background  = '#fff8e1';
+    accountsLbl.style.borderColor = 'var(--border)';
+    accountsLbl.style.background  = 'var(--bg)';
+  } else {
+    note.style.display = 'none';
+    accountsLbl.style.borderColor = 'var(--primary)';
+    accountsLbl.style.background  = 'var(--accent)';
+    chairmanLbl.style.borderColor = 'var(--border)';
+    chairmanLbl.style.background  = 'var(--bg)';
+  }
+}
+
+async function confirmPay() {
+  const contractId = document.getElementById('payContractId').value;
+  const amount     = parseFloat(document.getElementById('payAmount').value)||0;
+  const method     = document.getElementById('payMethod').value;
+  const notes      = document.getElementById('payNotes').value.trim();
+  const srcEl      = document.querySelector('input[name="paySource"]:checked');
+  const paySource  = srcEl ? srcEl.value : '';
+  const PAY_SOURCE_LABELS = { chairman:'رئيس مجلس الإدارة', accounts:'عهدة الحاج علي' };
+
+  if (amount <= 0) return showAlert('payAlert','ادخل مبلغاً صحيحاً');
+  if (!paySource)  return showAlert('payAlert','اختر جهة الصرف (رئيس مجلس الإدارة / عهدة الحاج علي)');
+
+  const c = allContracts.find(x => x.id === contractId);
+  if (!c) return;
+  if (amount > c.remaining + 0.01) return showAlert('payAlert','المبلغ أكبر من المتبقي');
+
+  const newPaid      = (c.paid||0) + amount;
+  const newRemaining = Math.max(0, (c.remaining||0) - amount);
+  const today        = localDateStr();
+
+  // تحديث أعمدة الدفعات بالترتيب
+  const paySlotUpdates = {};
+  if (!(c.pay1 > 0)) {
+    paySlotUpdates.pay1 = amount; paySlotUpdates.pay1Date = today;
+  } else if (!(c.pay2 > 0)) {
+    paySlotUpdates.pay2 = amount; paySlotUpdates.pay2Date = today;
+  } else if (!(c.pay3 > 0)) {
+    paySlotUpdates.pay3 = amount; paySlotUpdates.pay3Date = today;
+  } else if (!(c.pay4 > 0)) {
+    paySlotUpdates.pay4 = amount; paySlotUpdates.pay4Date = today;
+  } else {
+    paySlotUpdates.pay4 = (c.pay4||0) + amount; // أكثر من 4 دفعات تتجمع في pay4
+  }
+
+  const notesWithSource = paySource === 'chairman'
+    ? (notes ? notes + ' — لا يُخصم من العهدة' : 'لا يُخصم من العهدة')
+    : notes;
+  const history = [...(c.paymentHistory||[]), {
+    amount, method, methodLabel: PAY_LABELS[method]||method,
+    paySource, paySourceLabel: PAY_SOURCE_LABELS[paySource]||paySource,
+    date: today, notes: notesWithSource, by: session.email
+  }];
+
+  try {
+    await db.collection('contractors_contracts').doc(contractId).update({
+      paid: newPaid, remaining: newRemaining, paymentHistory: history,
+      ...paySlotUpdates,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    closeModal('payModal');
+    await loadContracts();
+    updateSummaryCards();
+    renderCustodyWidget();
+    toast(`تم تسجيل دفع ${formatCurrency(amount)} ✓`);
+  } catch(e) { showAlert('payAlert','خطأ: '+e.message); }
+}
+
+// ─── SUPPLIER PROFILE ─────────────────────────────────────────────
+function openProfile(supplierId) {
+  const s = allSuppliers.find(x => x.id === supplierId);
+  if (!s) return;
+  document.getElementById('profileTitle').textContent = `ملف: ${s.name}`;
+  openModal('profileModal');
+
+  const purchases  = allPurchases.filter(p => p.supplierId  === supplierId);
+  const contracts  = allContracts.filter(c => c.contractorId === supplierId);
+  const pTotal     = purchases.reduce((a,p)=>a+(p.total||0),0);
+  const cTotal     = contracts.reduce((a,c)=>a+(c.total||0),0);
+  const cPaid      = contracts.reduce((a,c)=>a+(c.paid||0), 0);
+  const cDebt      = contracts.reduce((a,c)=>a+(c.remaining||0),0);
+  const typeLabel  = { supplier:'مورد مشتريات', contractor:'مقاول/منفذ', both:'مورد ومقاول' }[s.type]||s.type;
+
+  const pNet       = purchases.reduce((a,p)=>a+(p.net!=null?p.net:(p.total||0)),0);
+  const pDeduction = purchases.reduce((a,p)=>a+(p.deduction||0),0);
+  const custTotal  = purchases.reduce((a,p)=>a+(p.custodyTotal||0),0);
+  const custBal    = purchases.reduce((a,p)=>a+(p.custodyBalance!=null?p.custodyBalance:0),0);
+
+  const pRows = purchases.map((p,i) => {
+    const net = p.net != null ? p.net : (p.total||0);
+    const hasCust = (p.custodyTotal||0) > 0;
+    return `<tr>
+      <td>${i+1}</td><td>${p.date}</td>
+      <td><span class="purpose-tag">${getPurposeLabel(p.purpose)}</span></td>
+      <td><span class="work-tag ${p.workType||'other'}">${WORK_TYPES[p.workType]||p.workType||'—'}</span></td>
+      <td>${p.desc}</td><td style="text-align:center">${p.qty} ${p.unit}</td>
+      <td class="text-bold text-primary">${formatCurrency(p.total)}</td>
+      <td style="color:#e65100;font-weight:700">${(p.deduction||0)>0?formatCurrency(p.deduction):'—'}</td>
+      <td style="color:#c0392b;font-weight:800">${formatCurrency(net)}</td>
+      <td style="text-align:center">${hasCust?formatCurrency(p.custodyTotal):'—'}</td>
+      <td style="text-align:center">${hasCust&&(p.custodySpent||0)>0?formatCurrency(p.custodySpent):'—'}</td>
+      <td style="color:${hasCust&&(p.custodyBalance||0)<0?'#c0392b':'#2e7d32'};font-weight:700">${hasCust?formatCurrency(p.custodyBalance||0):'—'}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="12" style="text-align:center;color:var(--text-light)">لا توجد مشتريات</td></tr>`;
+
+  const cRows = contracts.map((c,i) => {
+    return `<tr>
+      <td>${i+1}</td><td>${c.date}</td>
+      <td><span class="purpose-tag">${getPurposeLabel(c.purpose)}</span></td>
+      <td><span class="work-tag ${c.workType||'other'}">${WORK_TYPES[c.workType]||c.workType}</span></td>
+      <td>${c.desc}</td>
+      <td class="text-bold text-primary">${formatCurrency(c.total)}</td>
+      <td style="color:#2e7d32;font-weight:700">${formatCurrency(c.paid)}</td>
+      <td style="color:#e65100;font-weight:700">${(c.deduction||0)>0 ? formatCurrency(c.deduction) : '—'}</td>
+      <td style="color:${c.remaining>0?'#c0392b':'#2e7d32'};font-weight:800">${c.remaining>0?formatCurrency(c.remaining):'مسدد ✓'}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--text-light)">لا توجد عقود</td></tr>`;
+
+  document.getElementById('profileBody').innerHTML = `
+    <!-- info -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem">
+      <div style="background:var(--bg);border-radius:var(--radius-sm);padding:1rem;border:1px solid var(--border)">
+        <div style="font-size:0.78rem;color:var(--text-light);margin-bottom:0.5rem;font-weight:700">بيانات المورد</div>
+        <div style="font-size:0.92rem;font-weight:800">${s.name}</div>
+        <div style="font-size:0.82rem;color:var(--text-light);margin-top:2px">${s.phone||''}${s.phone2?' | '+s.phone2:''}</div>
+        <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">
+          <span class="badge badge-info">${typeLabel}</span>
+          ${s.workType?`<span class="work-tag ${s.workType}">${WORK_TYPES[s.workType]}</span>`:''}
+        </div>
+        ${s.address?`<div style="font-size:0.78rem;color:var(--text-light);margin-top:4px">${s.address}</div>`:''}
+        ${s.notes  ?`<div style="font-size:0.78rem;color:var(--text-light);margin-top:4px">${s.notes}</div>`:''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+        <div class="supplier-stat"><div class="s-val">${formatCurrency(pTotal)}</div><div class="s-lbl">إجمالي المشتريات</div></div>
+        <div class="supplier-stat"><div class="s-val" style="color:#c0392b">${formatCurrency(pNet)}</div><div class="s-lbl">صافي المشتريات</div></div>
+        <div class="supplier-stat"><div class="s-val">${formatCurrency(cTotal)}</div><div class="s-lbl">إجمالي المقاولات</div></div>
+        <div class="supplier-stat"><div class="s-val" style="color:#2e7d32">${formatCurrency(cPaid)}</div><div class="s-lbl">المدفوع للمقاولين</div></div>
+        <div class="supplier-stat"><div class="s-val" style="color:var(--primary)">${formatCurrency(custTotal)}</div><div class="s-lbl">إجمالي العهدة</div></div>
+        <div class="supplier-stat"><div class="s-val" style="color:${custBal<0?'#c0392b':'#2e7d32'}">${formatCurrency(custBal)}</div><div class="s-lbl">المتبقي من العهدة</div></div>
+        <div class="supplier-stat"><div class="s-val" style="color:${cDebt>0?'#c0392b':'#2e7d32'}">${formatCurrency(cDebt)}</div><div class="s-lbl">مديونية المقاولات</div></div>
+      </div>
+    </div>
+    <!-- purchases -->
+    ${purchases.length > 0 ? `
+    <div style="font-size:0.85rem;font-weight:800;color:var(--primary);margin-bottom:0.5rem"> سجل المشتريات (${purchases.length})</div>
+    <div class="table-wrapper" style="margin-bottom:1rem">
+      <table class="data-table"><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>إجمالي العهدة</th><th>المصروف</th><th>المتبقي من العهدة</th></tr></thead>
+      <tbody>${pRows}</tbody></table>
+    </div>` : ''}
+    <!-- contracts -->
+    ${contracts.length > 0 ? `
+    <div style="font-size:0.85rem;font-weight:800;color:var(--primary);margin-bottom:0.5rem"> سجل العقود والأعمال (${contracts.length})</div>
+    <div class="table-wrapper">
+      <table class="data-table"><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>التخصيم</th><th>المتبقي</th></tr></thead>
+      <tbody>${cRows}</tbody></table>
+    </div>` : ''}
+    <div style="margin-top:1rem;display:flex;gap:0.5rem;justify-content:flex-end">
+      <button class="btn btn-outline btn-sm" onclick="exportProfilePDF('${supplierId}')"> PDF</button>
+      <button class="btn btn-outline btn-sm" onclick="exportProfileExcel('${supplierId}')"> Excel</button>
+    </div>
+  `;
+}
+
+// ─── REPORTS ──────────────────────────────────────────────────────
+function generateReport() {
+  const from    = document.getElementById('reportFrom').value;
+  const to      = document.getElementById('reportTo').value;
+  const suppId  = document.getElementById('reportSupplier').value;
+  if (!from||!to) { alert('اختر الفترة الزمنية'); return; }
+
+  const pFiltered = allPurchases.filter(p => p.date>=from && p.date<=to && (!suppId||p.supplierId===suppId));
+  const cFiltered = allContracts.filter(c => c.date>=from && c.date<=to && (!suppId||c.contractorId===suppId));
+
+  const pTotal    = pFiltered.reduce((s,p)=>s+(p.total||0),0);
+  const pNet      = pFiltered.reduce((s,p)=>s+(p.net!=null?p.net:(p.total||0)),0);
+  const custTotal = pFiltered.reduce((s,p)=>s+(p.custodyTotal||0),0);
+  const custBal   = pFiltered.reduce((s,p)=>s+(p.custodyBalance!=null?p.custodyBalance:0),0);
+  const cTotal = cFiltered.reduce((s,c)=>s+(c.total||0),0);
+  const cDebt  = cFiltered.reduce((s,c)=>s+(c.remaining||0),0);
+
+  // group purchases by purpose
+  const byPurpose = {};
+  pFiltered.forEach(p => {
+    const k = getPurposeLabel(p.purpose)||'أخرى';
+    if (!byPurpose[k]) byPurpose[k] = 0;
+    byPurpose[k] += (p.net!=null?p.net:(p.total||0));
+  });
+
+  document.getElementById('reportArea').innerHTML = `
+    <!-- summary -->
+    <div class="sum-grid" style="margin-bottom:1.25rem">
+      <div class="sum-card blue"><div class="lbl">مشتريات الفترة (صافي)</div><div class="val">${formatCurrency(pNet)}</div><div class="sub">${pFiltered.length} فاتورة</div></div>
+      <div class="sum-card purple"><div class="lbl">مقاولات الفترة</div><div class="val">${formatCurrency(cTotal)}</div><div class="sub">${cFiltered.length} عقد</div></div>
+      <div class="sum-card red"><div class="lbl">مديونيات الفترة</div><div class="val">${formatCurrency(cDebt)}</div></div>
+      ${custTotal>0?`<div class="sum-card orange"><div class="lbl">إجمالي العهدة</div><div class="val">${formatCurrency(custTotal)}</div><div class="sub" style="color:${custBal<0?'#ffcdd2':'#c8e6c9'}">متبقي: ${formatCurrency(custBal)}</div></div>`:''}
+      <div class="sum-card green"><div class="lbl">إجمالي الإنفاق</div><div class="val">${formatCurrency(pNet+cTotal)}</div></div>
+    </div>
+
+    <!-- by purpose breakdown -->
+    ${Object.keys(byPurpose).length>0?`
+    <div class="card" style="margin-bottom:1rem">
+      <div class="card-header"><span class="card-title"> توزيع المشتريات حسب الغرض</span></div>
+      <div class="card-body">
+        ${Object.entries(byPurpose).map(([k,v])=>`
+          <div style="margin-bottom:0.65rem">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+              <span class="purpose-tag">${k}</span>
+              <strong style="color:var(--primary)">${formatCurrency(v)}</strong>
+            </div>
+            <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${pNet>0?Math.round(v/pNet*100):0}%;background:var(--primary);border-radius:3px"></div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`:''}
+
+    <!-- purchases table -->
+    ${pFiltered.length>0?`
+    <div class="card" style="margin-bottom:1rem">
+      <div class="card-header"><span class="card-title"> المشتريات</span></div>
+      <div class="table-wrapper">
+        <table class="data-table"><thead><tr><th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th></tr></thead>
+        <tbody>${pFiltered.map((p,i)=>`<tr>
+          <td>${i+1}</td><td>${p.date}</td><td><strong>${p.supplierName}</strong></td>
+          <td><span class="purpose-tag">${getPurposeLabel(p.purpose)}</span></td>
+          <td><span class="work-tag ${p.workType||'other'}">${WORK_TYPES[p.workType]||p.workType}</span></td>
+          <td>${p.desc}</td><td>${p.qty} ${p.unit}</td>
+          <td class="text-bold text-primary">${formatCurrency(p.total)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`:''}
+
+    <!-- contracts table -->
+    ${cFiltered.length>0?`
+    <div class="card">
+      <div class="card-header"><span class="card-title"> العقود والأعمال</span></div>
+      <div class="table-wrapper">
+        <table class="data-table"><thead><tr><th>#</th><th>التاريخ</th><th>المقاول</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
+        <tbody>${cFiltered.map((c,i)=>`<tr>
+          <td>${i+1}</td><td>${c.date}</td><td><strong>${c.contractorName}</strong></td>
+          <td><span class="purpose-tag">${getPurposeLabel(c.purpose)}</span></td>
+          <td><span class="work-tag ${c.workType||'other'}">${WORK_TYPES[c.workType]||c.workType}</span></td>
+          <td>${c.desc}</td>
+          <td class="text-bold text-primary">${formatCurrency(c.total)}</td>
+          <td style="color:#2e7d32;font-weight:700">${formatCurrency(c.paid)}</td>
+          <td style="color:${c.remaining>0?'#c0392b':'#2e7d32'};font-weight:800">${c.remaining>0?formatCurrency(c.remaining):'مسدد ✓'}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`:''}
+  `;
+}
+
+// ─── EXCEL EXPORTS ────────────────────────────────────────────────
+const EX = {
+  S(bg,bold,sz,fc='000000') {
+    return {
+      font:{ name:'Arial', bold:!!bold, size:sz||11, color:{argb:'FF'+fc} },
+      fill: bg?{ type:'pattern', pattern:'solid', fgColor:{argb:'FF'+bg} }:undefined,
+      alignment:{ horizontal:'right', vertical:'middle', wrapText:true, readingOrder:2 },
+      border:{ top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} }
+    };
+  },
+  title(ws, text, cols) {
+    ws.mergeCells(`A1:${cols}1`);
+    const r = ws.getRow(1); r.height=34;
+    r.getCell(1).value = text;
+    r.getCell(1).style = this.S('DDD9C4',true,16,'C00000');
+  },
+  subTitle(ws, text, cols, rowN) {
+    ws.mergeCells(`A${rowN}:${cols}${rowN}`);
+    const r = ws.getRow(rowN); r.height=20;
+    r.getCell(1).value = text;
+    r.getCell(1).style = this.S('D8E4BC',true,11);
+  },
+  hdr(ws, arr) {
+    const r = ws.addRow(arr); r.height=24;
+    r.eachCell({includeEmpty:true}, c => { c.style=this.S('AD818A',true,11,'FFFFFF'); c.alignment={horizontal:'center',vertical:'middle',readingOrder:2}; });
+    return r;
+  },
+  dataRow(ws, arr, even) {
+    const r = ws.addRow(arr); r.height=20;
+    r.eachCell({includeEmpty:true}, c => { c.style=this.S(even?'F5F0F0':null,false,11); });
+    return r;
+  },
+  totRow(ws, arr, cols) {
+    const r = ws.addRow(arr); r.height=24;
+    r.eachCell({includeEmpty:true}, c => { c.style=this.S('1A3A6B',true,12,'FFFFFF'); c.alignment={horizontal:'center',vertical:'middle',readingOrder:2}; });
+    return r;
+  },
+  async download(wb, name) {
+    const buf = await wb.xlsx.writeBuffer();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    a.download = name + '.xlsx';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+};
+
+async function exportPurchasesExcel() {
+  if (!filteredPurch.length) { alert('لا توجد بيانات'); return; }
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Eng. Kareem Ali Mousa';
+  const ws = wb.addWorksheet('المشتريات', { views:[{ rightToLeft:true }] });
+
+  // عرض الأعمدة بالظبط زي الشيت المرجعي
+  ws.columns = [
+    { width: 7.85  },  // A  #
+    { width: 21.4  },  // B  التاريخ
+    { width: 18    },  // C  المورد
+    { width: 18    },  // D  الغرض
+    { width: 14    },  // E  نوع العمل
+    { width: 38.5  },  // F  البيان
+    { width: 21.4  },  // G  الإجمالي
+    { width: 21.4  },  // H  المدفوع
+    { width: 21.4  },  // I  المتبقي
+  ];
+
+  const numFmt = '#,##0';
+  const thin   = { style:'thin' };
+  const border = { top:thin, bottom:thin, left:thin, right:thin };
+  const centerWrap   = { horizontal:'center', vertical:'middle', wrapText:true, readingOrder:2 };
+  const centerNoWrap = { horizontal:'center', vertical:'middle', readingOrder:2 };
+
+  const pTotal     = filteredPurch.reduce((s,p) => s+(p.total||0), 0);
+  const pDeduction = filteredPurch.reduce((s,p) => s+(p.deduction||0), 0);
+  const pNet       = filteredPurch.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0); // المديونية (الصافي المتبقي)
+  const pPaid      = pTotal - pNet; // المدفوع فعلاً = إجمالي العقد - المديونية
+
+  // ── صف 1: العنوان ─────────────────────────────────────────────
+  ws.mergeCells('A1:I1');
+  const r1 = ws.getRow(1); r1.height = 33.95;
+  const t1 = r1.getCell(1);
+  t1.value     = `سجل المشتريات — ${school?.name||''} — 2026/2027`;
+  t1.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FFC00000' } };
+  t1.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFDDD9C4' } };
+  t1.alignment = centerWrap;
+  t1.border    = border;
+
+  // ── صف 2: الترويسة ────────────────────────────────────────────
+  ws.mergeCells('A2:I2');
+  const r2 = ws.getRow(2); r2.height = 20.1;
+  const t2 = r2.getCell(1);
+  t2.value     = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}  |  عدد الفواتير: ${filteredPurch.length}  |  الإجمالي: ${formatCurrency(pTotal)}  |  المدفوع: ${formatCurrency(pPaid)}  |  المديونية: ${formatCurrency(pNet)}`;
+  t2.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FF000000' } };
+  t2.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFD8E4BC' } };
+  t2.alignment = centerWrap;
+  t2.border    = border;
+
+  // ── صف 3: الهيدر ──────────────────────────────────────────────
+  const headers = ['#','التاريخ','المورد','الغرض','نوع العمل','البيان','الإجمالي','المدفوع','المتبقي'];
+  const r3 = ws.getRow(3); r3.height = 24;
+  headers.forEach((h, idx) => {
+    const cell     = r3.getCell(idx + 1);
+    cell.value     = h;
+    cell.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FFFFFFFF' } };
+    cell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFAD818A' } };
+    cell.alignment = centerNoWrap;
+    cell.border    = border;
+  });
+
+  // صفوف البيانات
+  filteredPurch.forEach((p, i) => {
+    const even    = i % 2 === 1;
+    const bgArgb  = even ? 'FFF5F0F0' : null;
+    const pDebt   = p.net != null ? p.net : (p.total || 0); // المديونية
+    const pPaidRow = (p.total || 0) - pDebt;                // المدفوع
+
+    const row = ws.getRow(4 + i);
+    row.height = 30;
+
+    const vals = [
+      i + 1,
+      p.date || '',
+      p.supplierName || '',
+      getPurposeLabel(p.purpose) || '',
+      WORK_TYPES[p.workType] || p.workType || '',
+      p.desc || '',
+      p.total   || 0,   // G: إجمالي العقد
+      pPaidRow,          // H: المدفوع
+      pDebt,             // I: المديونية
+    ];
+
+    vals.forEach((val, idx) => {
+      const cell     = row.getCell(idx + 1);
+      cell.value     = val;
+      cell.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FF000000' } };
+      cell.alignment = centerWrap;
+      cell.border    = border;
+      if (bgArgb) cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:bgArgb } };
+      // تنسيق الأرقام (G,H,I = col 7,8,9)
+      if (idx >= 6) cell.numFmt = numFmt;
+    });
+  });
+
+  // ── صف الإجمالي ───────────────────────────────────────────────
+  const dataCount = filteredPurch.length;
+  const totRow    = ws.getRow(4 + dataCount);
+  totRow.height   = 24;
+
+  const totVals = [
+    'الإجمالي', '', '', '', '', '',
+    filteredPurch.reduce((s,p) => s+(p.total||0), 0),                                          // G: إجمالي العقود
+    filteredPurch.reduce((s,p) => { const d=p.net!=null?p.net:(p.total||0); return s+((p.total||0)-d); }, 0), // H: المدفوع
+    filteredPurch.reduce((s,p) => s+(p.net!=null?p.net:(p.total||0)), 0),                      // I: المديونية
+  ];
+  totVals.forEach((val, idx) => {
+    const cell     = totRow.getCell(idx + 1);
+    cell.value     = val;
+    cell.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FFFFFFFF' } };
+    cell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF1A3A6B' } };
+    cell.alignment = centerNoWrap;
+    cell.border    = border;
+    if (idx >= 6) cell.numFmt = numFmt;
+  });
+
+  // تجميد الصفوف الأولى
+  ws.views = [{ state:'frozen', ySplit:3, rightToLeft:true }];
+
+  await EX.download(wb, `مشتريات_${school?.name||''}`);
+}
+
+async function exportContractsExcel() {
+  if (!filteredContr.length) { alert('لا توجد بيانات'); return; }
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Eng. Kareem Ali Mousa';
+  const ws = wb.addWorksheet('العقود', { views:[{ rightToLeft:true }] });
+
+  ws.columns = [
+    { width: 5 },      // A  #
+    { width: 18.5 },   // B  التاريخ
+    { width: 22 },     // C  المقاول
+    { width: 18 },     // D  الغرض
+    { width: 14 },     // E  نوع العمل
+    { width: 52 },     // F  البيان
+    { width: 14 },     // G  الإجمالي
+    { width: 12 },     // H  تخصيم
+    { width: 14 },     // I  دفعة 1
+    { width: 14 },     // J  دفعة 2
+    { width: 14 },     // K  دفعة 3
+    { width: 14 },     // L  دفعة 4
+    { width: 14 },     // M  المدفوع
+    { width: 14 },     // N  المتبقي
+  ];
+
+  const LAST = 'N';
+  const numFmt    = '#,##0;-#,##0;"-"';
+  const thin = { style:'thin' };
+  const border = { top:thin, bottom:thin, left:thin, right:thin };
+  const centerWrap = { horizontal:'center', vertical:'middle', wrapText:true, readingOrder:2 };
+  const centerNoWrap = { horizontal:'center', vertical:'middle', readingOrder:2 };
+
+  const gTotal     = filteredContr.reduce((s,c)=>s+(c.total||0),0);
+  const gPaid      = filteredContr.reduce((s,c)=>s+(c.paid||0),0);
+  const gRemaining = filteredContr.reduce((s,c)=>s+(c.remaining||0),0);
+
+  // صف 1: العنوان
+  ws.mergeCells('A1:N1');
+  const r1 = ws.getRow(1); r1.height = 34;
+  const t1 = r1.getCell(1);
+  t1.value = `سجل العقود والأعمال — ${school?.name||''} — 2026/2027`;
+  t1.font      = { name:'Arial', bold:true, size:16, color:{ argb:'FFC00000' } };
+  t1.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFDDD9C4' } };
+  t1.alignment = centerWrap;
+  t1.border    = border;
+
+  // صف 2: الترويسة
+  ws.mergeCells('A2:N2');
+  const r2 = ws.getRow(2); r2.height = 20;
+  const t2 = r2.getCell(1);
+  t2.value = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}  |  عدد العقود: ${filteredContr.length}  |  الإجمالي: ${formatCurrency(gTotal)}  |  المدفوع: ${formatCurrency(gPaid)}  |  المتبقي: ${formatCurrency(gRemaining)}`;
+  t2.font      = { name:'Arial', bold:true, size:11, color:{ argb:'FF000000' } };
+  t2.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFD8E4BC' } };
+  t2.alignment = centerWrap;
+  t2.border    = border;
+
+  // صف 3: الهيدر
+  const headers = ['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','الإجمالي','تخصيم','دفعة 1','دفعة 2','دفعة 3','دفعة 4','المدفوع','المتبقي'];
+  const r3 = ws.getRow(3); r3.height = 24;
+  headers.forEach((h, idx) => {
+    const cell = r3.getCell(idx + 1);
+    cell.value     = h;
+    cell.font      = { name:'Arial', bold:true, size:11, color:{ argb:'FFFFFFFF' } };
+    cell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFAD818A' } };
+    cell.alignment = centerNoWrap;
+    cell.border    = border;
+  });
+
+  // صفوف البيانات
+  const numCols = [7, 8, 9, 10, 11, 12, 13, 14]; // G→N
+  filteredContr.forEach((c, i) => {
+    const even   = i % 2 === 1;
+    const bgArgb = even ? 'FFF5F0F0' : null;
+    const rowData = [
+      i + 1,
+      c.date || '',
+      c.contractorName || '',
+      getPurposeLabel(c.purpose) || '',
+      WORK_TYPES[c.workType] || c.workType || '',
+      c.desc || '',
+      c.total      || 0,
+      c.deduction  || 0,
+      c.pay1       || 0,
+      c.pay2       || 0,
+      c.pay3       || 0,
+      c.pay4       || 0,
+      c.paid       || 0,
+      c.remaining  || 0,
+    ];
+
+    const row = ws.getRow(4 + i);
+    row.height = 30;
+    rowData.forEach((val, idx) => {
+      const cell = row.getCell(idx + 1);
+      cell.value     = val;
+      cell.font      = { name:'Arial', bold:true, size:11, color:{ argb:'FF000000' } };
+      cell.alignment = centerWrap;
+      cell.border    = border;
+      if (bgArgb) cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb: bgArgb } };
+      if (numCols.includes(idx + 1)) cell.numFmt = numFmt;
+    });
+  });
+
+  // صف الإجمالي
+  const dataCount = filteredContr.length;
+  const totRow    = ws.getRow(4 + dataCount);
+  totRow.height   = 24;
+
+  const totVals = [
+    '', '', '', '', '', 'الإجمالي',
+    filteredContr.reduce((s,c)=>s+(c.total||0),0),
+    filteredContr.reduce((s,c)=>s+(c.deduction||0),0),
+    filteredContr.reduce((s,c)=>s+(c.pay1||0),0),
+    filteredContr.reduce((s,c)=>s+(c.pay2||0),0),
+    filteredContr.reduce((s,c)=>s+(c.pay3||0),0),
+    filteredContr.reduce((s,c)=>s+(c.pay4||0),0),
+    filteredContr.reduce((s,c)=>s+(c.paid||0),0),
+    filteredContr.reduce((s,c)=>s+(c.remaining||0),0),
+  ];
+  totVals.forEach((val, idx) => {
+    const cell = totRow.getCell(idx + 1);
+    cell.value     = val;
+    cell.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FFFFFFFF' } };
+    cell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF1A3A6B' } };
+    cell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+    cell.border    = border;
+    if (numCols.includes(idx + 1)) cell.numFmt = numFmt;
+  });
+
+  ws.views = [{ state:'frozen', ySplit:3, rightToLeft:true }];
+  await EX.download(wb, `أعمال_المقاولين_${school?.name||''}`);
+}
+
+async function exportFullExcel() {
+  const from   = document.getElementById('reportFrom').value;
+  const to     = document.getElementById('reportTo').value;
+  const suppId = document.getElementById('reportSupplier').value;
+  const pList  = allPurchases.filter(p=>p.date>=from&&p.date<=to&&(!suppId||p.supplierId===suppId));
+  const cList  = allContracts.filter(c=>c.date>=from&&c.date<=to&&(!suppId||c.contractorId===suppId));
+  if (!pList.length && !cList.length) { alert('لا توجد بيانات في هذه الفترة'); return; }
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Eng. Kareem Ali Mousa';
+
+  // Sheet 1: ملخص
+  const ws0 = wb.addWorksheet('الملخص',{views:[{rightToLeft:true}]});
+  ws0.columns = [{width:30},{width:20}];
+  EX.title(ws0,`التقرير الشامل — ${school?.name} — من ${from} إلى ${to}`,'B');
+  EX.subTitle(ws0,`تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`,'B',2);
+  ws0.addRow([]);
+  EX.hdr(ws0,['البيان','القيمة']);
+  const rows0 = [
+    ['إجمالي المشتريات (قبل التخصيم)', pList.reduce((s,p)=>s+(p.total||0),0)],
+    ['إجمالي التخصيم على المشتريات', pList.reduce((s,p)=>s+(p.deduction||0),0)],
+    ['صافي المشتريات', pList.reduce((s,p)=>s+(p.net!=null?p.net:(p.total||0)),0)],
+    ['إجمالي العهدة', pList.reduce((s,p)=>s+(p.custodyTotal||0),0)],
+    ['المتبقي من العهدة', pList.reduce((s,p)=>s+(p.custodyBalance!=null?p.custodyBalance:0),0)],
+    ['عدد فواتير المشتريات', pList.length],
+    ['إجمالي المقاولات', cList.reduce((s,c)=>s+(c.total||0),0)],
+    ['عدد العقود', cList.length],
+    ['إجمالي المدفوع للمقاولين', cList.reduce((s,c)=>s+(c.paid||0),0)],
+    ['إجمالي المديونيات المتبقية', cList.reduce((s,c)=>s+(c.remaining||0),0)],
+    ['الإجمالي الكلي (صافي مشتريات + مقاولات)', pList.reduce((s,p)=>s+(p.net!=null?p.net:(p.total||0)),0)+cList.reduce((s,c)=>s+(c.total||0),0)],
+  ];
+  rows0.forEach((r,i)=>{ const row=EX.dataRow(ws0,r,i%2===1); row.getCell(2).numFmt='#,##0'; });
+
+  // Sheet 2: مشتريات
+  if (pList.length > 0) {
+    const ws1 = wb.addWorksheet('المشتريات',{views:[{rightToLeft:true}]});
+    ws1.columns = [{width:5},{width:12},{width:22},{width:18},{width:14},{width:26},{width:10},{width:10},{width:14},{width:14},{width:14},{width:14},{width:16},{width:16},{width:16},{width:18},{width:24}];
+    EX.title(ws1,'المشتريات','Q');
+    EX.hdr(ws1,['#','التاريخ','المورد','الغرض','نوع العمل','البيان','الكمية','الوحدة','سعر الوحدة','الإجمالي','التخصيم','الصافي','ع.سابقة','ع.جديدة','إجمالي العهدة','المتبقي من العهدة','ملاحظات']);
+    pList.forEach((p,i)=>{
+      const pnet=p.net!=null?p.net:(p.total||0);
+      EX.dataRow(ws1,[i+1,p.date,p.supplierName,getPurposeLabel(p.purpose),WORK_TYPES[p.workType]||p.workType,p.desc,p.qty,p.unit,p.unitPrice,p.total,p.deduction||0,pnet,p.custodyPrev||0,p.custodyNew||0,p.custodyTotal||0,p.custodyBalance||0,p.notes||''],i%2===1);
+    });
+    const pNet=pList.reduce((s,p)=>s+(p.net!=null?p.net:(p.total||0)),0);
+    EX.totRow(ws1,['','','','','','','','','الإجمالي',pList.reduce((s,p)=>s+(p.total||0),0),pList.reduce((s,p)=>s+(p.deduction||0),0),pNet,'','',pList.reduce((s,p)=>s+(p.custodyTotal||0),0),pList.reduce((s,p)=>s+(p.custodyBalance!=null?p.custodyBalance:0),0),''],'Q');
+  }
+
+  // Sheet 3: عقود
+  if (cList.length > 0) {
+    const ws2 = wb.addWorksheet('العقود والأعمال',{views:[{rightToLeft:true}]});
+    ws2.columns = [{width:5},{width:12},{width:22},{width:18},{width:14},{width:26},{width:14},{width:12},{width:14},{width:14},{width:14},{width:14},{width:14}];
+    EX.title(ws2,'العقود والأعمال','M');
+    EX.hdr(ws2,['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','الإجمالي','تخصيم','دفعة 1','دفعة 2','دفعة 3','دفعة 4','المدفوع','المتبقي']);
+    cList.forEach((c,i)=>{
+      EX.dataRow(ws2,[i+1,c.date,c.contractorName,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,c.total,c.deduction||0,c.pay1||0,c.pay2||0,c.pay3||0,c.pay4||0,c.paid,c.remaining],i%2===1);
+    });
+    EX.totRow(ws2,['','','','','','الإجمالي',cList.reduce((s,c)=>s+(c.total||0),0),cList.reduce((s,c)=>s+(c.deduction||0),0),cList.reduce((s,c)=>s+(c.pay1||0),0),cList.reduce((s,c)=>s+(c.pay2||0),0),cList.reduce((s,c)=>s+(c.pay3||0),0),cList.reduce((s,c)=>s+(c.pay4||0),0),cList.reduce((s,c)=>s+(c.paid||0),0),cList.reduce((s,c)=>s+(c.remaining||0),0)],'M');
+  }
+
+  // Sheet 4: موردين وأرصدتهم
+  const ws3 = wb.addWorksheet('الموردون والمقاولون',{views:[{rightToLeft:true}]});
+  ws3.columns = [{width:5},{width:24},{width:16},{width:14},{width:16},{width:16},{width:16},{width:14}];
+  EX.title(ws3,'الموردون والمقاولون','H');
+  EX.hdr(ws3,['#','الاسم','الهاتف','النوع','مشتريات','مقاولات','مدفوع','مديونية']);
+  allSuppliers.forEach((s,i)=>{
+    const pt = allPurchases.filter(p=>p.supplierId===s.id).reduce((a,p)=>a+(p.total||0),0);
+    const ct = allContracts.filter(c=>c.contractorId===s.id).reduce((a,c)=>a+(c.total||0),0);
+    const cp = allContracts.filter(c=>c.contractorId===s.id).reduce((a,c)=>a+(c.paid||0),0);
+    const cd = allContracts.filter(c=>c.contractorId===s.id).reduce((a,c)=>a+(c.remaining||0),0);
+    EX.dataRow(ws3,[i+1,s.name,s.phone||'',{supplier:'مورد',contractor:'مقاول',both:'مورد ومقاول'}[s.type]||s.type,pt,ct,cp,cd],i%2===1);
+  });
+
+  await EX.download(wb,`تقرير_شامل_${school?.name}_${from}_${to}`);
+}
+
+async function exportProfileExcel(supplierId) {
+  const s = allSuppliers.find(x=>x.id===supplierId);
+  if (!s) return;
+  const pList = allPurchases.filter(p=>p.supplierId===supplierId);
+  const cList = allContracts.filter(c=>c.contractorId===supplierId);
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Eng. Kareem Ali Mousa';
+
+  if (pList.length > 0) {
+    const ws = wb.addWorksheet('المشتريات',{views:[{rightToLeft:true}]});
+    ws.columns=[{width:5},{width:12},{width:18},{width:14},{width:26},{width:10},{width:10},{width:14},{width:14},{width:14},{width:14},{width:16},{width:16},{width:16},{width:18}];
+    EX.title(ws,`مشتريات: ${s.name}`,'O');
+    EX.hdr(ws,['#','التاريخ','الغرض','نوع العمل','البيان','الكمية','الوحدة','سعر الوحدة','الإجمالي','التخصيم','الصافي','ع.سابقة','ع.جديدة','إجمالي العهدة','المتبقي من العهدة']);
+    pList.forEach((p,i)=>{
+      const pnet=p.net!=null?p.net:(p.total||0);
+      EX.dataRow(ws,[i+1,p.date,getPurposeLabel(p.purpose),WORK_TYPES[p.workType]||p.workType,p.desc,p.qty,p.unit,p.unitPrice,p.total,p.deduction||0,pnet,p.custodyPrev||0,p.custodyNew||0,p.custodyTotal||0,p.custodyBalance||0],i%2===1);
+    });
+    const pNet=pList.reduce((s,p)=>s+(p.net!=null?p.net:(p.total||0)),0);
+    EX.totRow(ws,['','','','','','','','الإجمالي',pList.reduce((s,p)=>s+(p.total||0),0),pList.reduce((s,p)=>s+(p.deduction||0),0),pNet,'','',pList.reduce((s,p)=>s+(p.custodyTotal||0),0),pList.reduce((s,p)=>s+(p.custodyBalance!=null?p.custodyBalance:0),0)],'O');
+  }
+  if (cList.length > 0) {
+    const ws = wb.addWorksheet('العقود',{views:[{rightToLeft:true}]});
+    ws.columns=[{width:5},{width:12},{width:18},{width:14},{width:26},{width:12},{width:14},{width:14},{width:14}];
+    EX.title(ws,`عقود: ${s.name}`,'I');
+    EX.hdr(ws,['#','التاريخ','الغرض','نوع العمل','البيان','المساحة/الوحدة','الإجمالي','المدفوع','المتبقي']);
+    cList.forEach((c,i)=>EX.dataRow(ws,[i+1,c.date,getPurposeLabel(c.purpose),WORK_TYPES[c.workType]||c.workType,c.desc,AREA_BASED.includes(c.workType)?`${c.area||0} م²`:(c.fixedUnit||'—'),c.total,c.paid,c.remaining],i%2===1));
+    EX.totRow(ws,['','','','','','الإجمالي',cList.reduce((s,c)=>s+(c.total||0),0),cList.reduce((s,c)=>s+(c.paid||0),0),cList.reduce((s,c)=>s+(c.remaining||0),0)],'I');
+  }
+
+  await EX.download(wb,`ملف_${s.name}`);
+}
+
+function exportProfilePDF(supplierId) {
+  const s = allSuppliers.find(x=>x.id===supplierId);
+  if (!s) return;
+  const pList = allPurchases.filter(p=>p.supplierId===supplierId);
+  const cList = allContracts.filter(c=>c.contractorId===supplierId);
+  const pTotal     = pList.reduce((a,p)=>a+(p.total||0),0);
+  const pNet       = pList.reduce((a,p)=>a+(p.net!=null?p.net:(p.total||0)),0);
+  const pDeduction = pList.reduce((a,p)=>a+(p.deduction||0),0);
+  const cTotal = cList.reduce((a,c)=>a+(c.total||0),0);
+  const cDebt  = cList.reduce((a,c)=>a+(c.remaining||0),0);
+  const typeLabel = {supplier:'مورد مشتريات',contractor:'مقاول/منفذ',both:'مورد ومقاول'}[s.type]||s.type;
+
+  const win = window.open('','_blank');
+  win.document.write(`<html dir="rtl"><head><meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+    <style>
+      body{font-family:Cairo,sans-serif;padding:20px;direction:rtl;color:#1a1a2e;font-size:11px}
+      .hdr{display:flex;gap:12px;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:3px solid #1a3a6b}
+      .school-name{font-size:16px;font-weight:900;color:#1a3a6b}
+      .info-box{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;background:#e8f0fe;padding:10px 14px;border-radius:8px}
+      .info-item .lbl{font-size:9px;color:#666}.info-item .val{font-size:13px;font-weight:900;color:#1a3a6b}
+      h3{color:#1a3a6b;margin:14px 0 6px;font-size:12px;border-bottom:1px solid #e0e4f0;padding-bottom:4px}
+      table{width:100%;border-collapse:collapse;margin-bottom:14px}
+      th{background:#1a3a6b;color:white;padding:5px 6px;text-align:right;font-size:9px}
+      td{padding:4px 6px;border-bottom:1px solid #eee;font-size:10px}
+      tr:nth-child(even){background:#f8f9fa}
+      .total-row{background:#fce4ec;font-weight:900;color:#c0392b}
+      @media print{@page{size:A4 landscape}body{padding:12px}}
+    </style></head><body>
+    <div class="hdr">
+      <img src="${school?.logo||''}" width="46" height="46" style="object-fit:contain;border-radius:6px" onerror="this.style.display='none'"/>
+      <div>
+        <div class="school-name">${school?.name}</div>
+        <div style="font-size:11px;color:#666">ملف: ${s.name} — ${typeLabel}</div>
+        <div style="font-size:10px;color:#999">هاتف: ${s.phone||'—'}${s.phone2?' / '+s.phone2:''} | تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}</div>
+      </div>
+    </div>
+    <div class="info-box">
+      <div class="info-item"><div class="lbl">إجمالي المشتريات</div><div class="val">${formatCurrency(pTotal)}</div></div>
+      ${pDeduction>0?`<div class="info-item"><div class="lbl">التخصيم</div><div class="val" style="color:#e65100">${formatCurrency(pDeduction)}</div></div>`:''}
+      <div class="info-item"><div class="lbl">صافي المشتريات</div><div class="val" style="color:#c0392b">${formatCurrency(pNet)}</div></div>
+      <div class="info-item"><div class="lbl">إجمالي المقاولات</div><div class="val">${formatCurrency(cTotal)}</div></div>
+      <div class="info-item"><div class="lbl">المديونية</div><div class="val" style="color:${cDebt>0?'#c0392b':'#2e7d32'}">${formatCurrency(cDebt)}</div></div>
+    </div>
+    ${pList.length>0?`<h3> المشتريات (${pList.length} فاتورة)</h3>
+    <table><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>ملاحظات</th></tr></thead>
+    <tbody>${pList.map((p,i)=>{
+      const pnet=p.net!=null?p.net:(p.total||0);
+      return `<tr><td>${i+1}</td><td>${p.date}</td><td>${getPurposeLabel(p.purpose)}</td><td>${WORK_TYPES[p.workType]||p.workType}</td><td>${p.desc}</td><td>${p.qty} ${p.unit}</td><td>${formatCurrency(p.total)}</td><td style="color:#e65100">${(p.deduction||0)>0?formatCurrency(p.deduction):'—'}</td><td style="color:#c0392b;font-weight:700">${formatCurrency(pnet)}</td><td>${p.notes||'—'}</td></tr>`;
+    }).join('')}
+    <tr class="total-row"><td colspan="6">الإجمالي</td><td>${formatCurrency(pTotal)}</td><td style="color:#e65100">${pDeduction>0?formatCurrency(pDeduction):'—'}</td><td>${formatCurrency(pNet)}</td><td></td></tr></tbody></table>`:''}
+    ${cList.length>0?`<h3> العقود والأعمال (${cList.length} عقد)</h3>
+    <table><thead><tr><th>#</th><th>التاريخ</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>التخصيم</th><th>المتبقي</th></tr></thead>
+    <tbody>${cList.map((c,i)=>`<tr><td>${i+1}</td><td>${c.date}</td><td>${getPurposeLabel(c.purpose)}</td><td>${WORK_TYPES[c.workType]||c.workType}</td><td>${c.desc}</td><td>${formatCurrency(c.total)}</td><td style="color:#2e7d32">${formatCurrency(c.paid)}</td><td style="color:#e65100">${(c.deduction||0)>0?formatCurrency(c.deduction):'—'}</td><td style="color:${c.remaining>0?'#c0392b':'#2e7d32'}">${c.remaining>0?formatCurrency(c.remaining):'مسدد ✓'}</td></tr>`).join('')}
+    <tr class="total-row"><td colspan="5">الإجمالي</td><td>${formatCurrency(cTotal)}</td><td>${formatCurrency(cList.reduce((a,c)=>a+(c.paid||0),0))}</td><td>${formatCurrency(cList.reduce((a,c)=>a+(c.deduction||0),0))}</td><td>${formatCurrency(cDebt)}</td></tr></tbody></table>`:''}
+    <script>window.print();setTimeout(()=>window.close(),800)<\/script>
+  </body></html>`);
+}
+
+function exportPurchasesPDF() {
+  const total     = filteredPurch.reduce((s,p)=>s+(p.total||0),0);
+  const deduction = filteredPurch.reduce((s,p)=>s+(p.deduction||0),0);
+  const net       = filteredPurch.reduce((s,p)=>s+(p.net!=null?p.net:(p.total||0)),0);
+  const win = window.open('','_blank');
+  win.document.write(`<html dir="rtl"><head><meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+    <style>body{font-family:Cairo,sans-serif;padding:20px;direction:rtl;font-size:11px}
+    h2{color:#1a3a6b;margin-bottom:10px}table{width:100%;border-collapse:collapse}
+    th{background:#1a3a6b;color:white;padding:5px 6px;text-align:right;font-size:9px}
+    td{padding:4px 6px;border-bottom:1px solid #eee;font-size:10px}tr:nth-child(even){background:#f8f9fa}
+    .tot{background:#fce4ec;font-weight:900;color:#c0392b}
+    .summary{display:flex;gap:16px;flex-wrap:wrap;background:#e8f0fe;padding:10px 14px;border-radius:8px;margin-bottom:12px}
+    .si .lbl{font-size:9px;color:#666}.si .val{font-size:13px;font-weight:900;color:#1a3a6b}
+    @media print{@page{size:A4 landscape}}</style></head><body>
+    <h2>سجل المشتريات — ${school?.name} — (${filteredPurch.length} فاتورة)</h2>
+    <p style="font-size:10px;color:#666">تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}</p>
+    <div class="summary">
+      <div class="si"><div class="lbl">الإجمالي</div><div class="val">${formatCurrency(total)}</div></div>
+      ${deduction>0?`<div class="si"><div class="lbl">التخصيم</div><div class="val" style="color:#e65100">${formatCurrency(deduction)}</div></div>`:''}
+      <div class="si"><div class="lbl">الصافي</div><div class="val" style="color:#c0392b">${formatCurrency(net)}</div></div>
+    </div>
+    <table><thead><tr><th>#</th><th>التاريخ</th><th>المورد</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>الإجمالي</th><th>التخصيم</th><th>الصافي</th><th>ملاحظات</th></tr></thead>
+    <tbody>${filteredPurch.map((p,i)=>{
+      const pnet=p.net!=null?p.net:(p.total||0);
+      return `<tr><td>${i+1}</td><td>${p.date}</td><td>${p.supplierName}</td><td>${getPurposeLabel(p.purpose)}</td><td>${WORK_TYPES[p.workType]||p.workType}</td><td>${p.desc}</td><td>${p.qty} ${p.unit}</td><td>${formatCurrency(p.total)}</td><td style="color:#e65100">${(p.deduction||0)>0?formatCurrency(p.deduction):'—'}</td><td style="color:#c0392b;font-weight:700">${formatCurrency(pnet)}</td><td>${p.notes||'—'}</td></tr>`;
+    }).join('')}
+    <tr class="tot"><td colspan="7">الإجمالي</td><td>${formatCurrency(total)}</td><td>${deduction>0?formatCurrency(deduction):'—'}</td><td>${formatCurrency(net)}</td><td></td></tr></tbody></table>
+    <script>window.print();setTimeout(()=>window.close(),800)<\/script></body></html>`);
+}
+
+function exportContractsPDF() {
+  const total=filteredContr.reduce((s,c)=>s+(c.total||0),0);
+  const win=window.open('','_blank');
+  win.document.write(`<html dir="rtl"><head><meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+    <style>body{font-family:Cairo,sans-serif;padding:20px;direction:rtl;font-size:12px}
+    h2{color:#1a3a6b;margin-bottom:10px}table{width:100%;border-collapse:collapse}
+    th{background:#1a3a6b;color:white;padding:6px 8px;text-align:right;font-size:10px}
+    td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px}tr:nth-child(even){background:#f8f9fa}
+    .tot{background:#fce4ec;font-weight:900}
+    @media print{@page{size:A4 landscape}}</style></head><body>
+    <h2>سجل العقود والأعمال — ${school?.name} — (${filteredContr.length} عقد)</h2>
+    <p style="font-size:11px;color:#666">تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}</p>
+    <table><thead><tr><th>#</th><th>التاريخ</th><th>المقاول</th><th>الغرض</th><th>النوع</th><th>البيان</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
+    <tbody>${filteredContr.map((c,i)=>`<tr><td>${i+1}</td><td>${c.date}</td><td>${c.contractorName}</td><td>${getPurposeLabel(c.purpose)}</td><td>${WORK_TYPES[c.workType]||c.workType}</td><td>${c.desc}</td><td>${formatCurrency(c.total)}</td><td style="color:#2e7d32">${formatCurrency(c.paid)}</td><td style="color:${c.remaining>0?'#c0392b':'#2e7d32'}">${c.remaining>0?formatCurrency(c.remaining):'مسدد'}</td></tr>`).join('')}
+    <tr class="tot"><td colspan="6">الإجمالي</td><td>${formatCurrency(total)}</td><td>${formatCurrency(filteredContr.reduce((s,c)=>s+(c.paid||0),0))}</td><td style="color:#c0392b">${formatCurrency(filteredContr.reduce((s,c)=>s+(c.remaining||0),0))}</td></tr></tbody></table>
+    <script>window.print();setTimeout(()=>window.close(),800)<\/script></body></html>`);
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────
+function toast(msg) {
+  const div = document.createElement('div');
+  div.style.cssText = 'position:fixed;top:1rem;left:50%;transform:translateX(-50%);z-index:9999;background:#2e7d32;color:white;padding:0.65rem 1.5rem;border-radius:30px;font-family:Cairo,sans-serif;font-weight:700;font-size:0.9rem;box-shadow:0 4px 20px rgba(0,0,0,0.2)';
+  div.textContent = msg;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 3000);
+}
+
+// ─── EXPORT DEBTS EXCEL ───────────────────────────────────────────
+async function exportDebtsExcel() {
+  // ── جمع مديونيات المشتريات: p.net هو المديونية مباشرة (total - deduction - pay1) ──
+  const purchDebts = allPurchases.filter(p => {
+    const debt = p.net != null ? p.net : (p.total || 0);
+    return debt > 0;
+  }).map(p => {
+    const pay1 = p.pay1 ?? p.qty ?? 0;
+    const debt = p.net != null ? p.net : (p.total || 0);
+    return {
+      supplierName : p.supplierName || '',
+      date         : p.date || '',
+      purpose      : getPurposeLabel(p.purpose) || '',
+      workType     : WORK_TYPES[p.workType] || p.workType || '',
+      desc         : p.desc || '',
+      total        : p.total || 0,
+      deduction    : p.deduction || 0,
+      paid         : pay1,
+      debt         : debt,
+    };
+  });
+
+  // ── جمع مديونيات المقاولين: عقود remaining > 0 ──
+  const contrDebts = allContracts.filter(c => (c.remaining || 0) > 0).map(c => ({
+    contractorName : c.contractorName || '',
+    date           : c.date || '',
+    purpose        : getPurposeLabel(c.purpose) || '',
+    workType       : WORK_TYPES[c.workType] || c.workType || '',
+    desc           : c.desc || '',
+    total          : c.total || 0,
+    deduction      : c.deduction || 0,
+    pay1           : c.pay1 || 0,
+    pay2           : c.pay2 || 0,
+    pay3           : c.pay3 || 0,
+    pay4           : c.pay4 || 0,
+    paid           : c.paid || 0,
+    remaining      : c.remaining || 0,
+  }));
+
+  if (!purchDebts.length && !contrDebts.length) {
+    alert('🎉 لا توجد مديونيات مستحقة حالياً!');
+    return;
+  }
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Eng. Kareem Ali Mousa';
+
+  const ws = wb.addWorksheet('كشف المديونيات', { views: [{ rightToLeft: true }] });
+
+  // ── ستايلات مشتركة ──
+  const border = {
+    top:    { style:'thin', color:{ argb:'FF1A3A6B' } },
+    left:   { style:'thin', color:{ argb:'FF1A3A6B' } },
+    bottom: { style:'thin', color:{ argb:'FF1A3A6B' } },
+    right:  { style:'thin', color:{ argb:'FF1A3A6B' } },
+  };
+  const thickBorder = {
+    top:    { style:'medium', color:{ argb:'FF1A3A6B' } },
+    left:   { style:'medium', color:{ argb:'FF1A3A6B' } },
+    bottom: { style:'medium', color:{ argb:'FF1A3A6B' } },
+    right:  { style:'medium', color:{ argb:'FF1A3A6B' } },
+  };
+  const numFmt = '#,##0.00';
+  const centerWrap = { horizontal:'center', vertical:'middle', wrapText:true, readingOrder:2 };
+  const centerNoWrap = { horizontal:'center', vertical:'middle', readingOrder:2 };
+
+  // ── عرض الأعمدة ──
+  ws.columns = [
+    { width: 5  }, // #
+    { width: 13 }, // التاريخ
+    { width: 24 }, // الاسم
+    { width: 20 }, // الغرض
+    { width: 16 }, // نوع العمل
+    { width: 30 }, // البيان
+    { width: 14 }, // الإجمالي
+    { width: 12 }, // التخصيم
+    { width: 14 }, // المدفوع
+    { width: 14 }, // المديونية
+  ];
+
+  let currentRow = 1;
+
+  // ── دالة مساعدة: عنوان قسم ──
+  function sectionTitle(label, bgArgb, fgArgb) {
+    ws.mergeCells(currentRow, 1, currentRow, 10);
+    const cell = ws.getCell(currentRow, 1);
+    cell.value = label;
+    cell.font  = { name:'Arial', bold:true, size:14, color:{ argb: fgArgb } };
+    cell.fill  = { type:'pattern', pattern:'solid', fgColor:{ argb: bgArgb } };
+    cell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+    cell.border = thickBorder;
+    ws.getRow(currentRow).height = 34;
+    currentRow++;
+  }
+
+  // ── دالة مساعدة: صف رأس ──
+  function headerRow(cols, bgArgb) {
+    const row = ws.getRow(currentRow);
+    row.height = 28;
+    cols.forEach((col, idx) => {
+      const cell = row.getCell(idx + 1);
+      cell.value = col;
+      cell.font  = { name:'Arial', bold:true, size:11, color:{ argb:'FFFFFFFF' } };
+      cell.fill  = { type:'pattern', pattern:'solid', fgColor:{ argb: bgArgb } };
+      cell.alignment = centerNoWrap;
+      cell.border = thickBorder;
+    });
+    currentRow++;
+  }
+
+  // ── دالة مساعدة: صف بيانات ──
+  function dataRow(vals, even, numCols, debtCol) {
+    const row = ws.getRow(currentRow);
+    row.height = 26;
+    vals.forEach((val, idx) => {
+      const cell = row.getCell(idx + 1);
+      cell.value = val;
+      const colNum = idx + 1;
+      const isDebtCol = colNum === debtCol;
+      cell.font = {
+        name  : 'Arial',
+        bold  : isDebtCol,
+        size  : isDebtCol ? 12 : 11,
+        color : { argb: isDebtCol ? 'FFC62828' : 'FF000000' },
+      };
+      if (even) cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFF5F5' } };
+      cell.alignment = colNum <= 2 ? centerNoWrap : centerWrap;
+      cell.border = border;
+      if (numCols.includes(colNum)) cell.numFmt = numFmt;
+    });
+    currentRow++;
+  }
+
+  // ── دالة مساعدة: صف إجمالي ──
+  function totalRow(vals, numCols, bgArgb) {
+    const row = ws.getRow(currentRow);
+    row.height = 30;
+    vals.forEach((val, idx) => {
+      const cell = row.getCell(idx + 1);
+      cell.value = val;
+      cell.font  = { name:'Arial', bold:true, size:12, color:{ argb:'FFFFFFFF' } };
+      cell.fill  = { type:'pattern', pattern:'solid', fgColor:{ argb: bgArgb } };
+      cell.alignment = centerNoWrap;
+      cell.border = thickBorder;
+      if (numCols.includes(idx + 1)) cell.numFmt = numFmt;
+    });
+    currentRow++;
+  }
+
+  // ── صف فراغ بين الأقسام ──
+  function gapRow() {
+    ws.getRow(currentRow).height = 10;
+    currentRow++;
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  القسم الأول: مديونية المشتريات
+  // ═══════════════════════════════════════════════════
+  sectionTitle(
+    `📋  مديونية المشتريات  —  ${purchDebts.length} فاتورة`,
+    'FFC62828', 'FFFFFFFF'
+  );
+
+  headerRow(
+    ['#','التاريخ','المورد','الغرض','نوع العمل','البيان','الإجمالي','التخصيم','المدفوع','المديونية'],
+    'FF8B0000'
+  );
+
+  const PURCH_NUM_COLS = [7, 8, 9, 10];
+  purchDebts.forEach((p, i) => {
+    dataRow(
+      [i+1, p.date, p.supplierName, p.purpose, p.workType, p.desc,
+       p.total, p.deduction, p.paid, p.debt],
+      i % 2 === 1, PURCH_NUM_COLS, 10
+    );
+  });
+
+  if (purchDebts.length > 0) {
+    totalRow(
+      ['','','','','','الإجمالي',
+       purchDebts.reduce((s,p)=>s+p.total, 0),
+       purchDebts.reduce((s,p)=>s+p.deduction, 0),
+       purchDebts.reduce((s,p)=>s+p.paid, 0),
+       purchDebts.reduce((s,p)=>s+p.debt, 0)],
+      PURCH_NUM_COLS, 'FFC62828'
+    );
+  } else {
+    ws.mergeCells(currentRow, 1, currentRow, 10);
+    const cell = ws.getCell(currentRow, 1);
+    cell.value = '✅ لا توجد مديونيات مشتريات';
+    cell.font  = { name:'Arial', bold:true, size:12, color:{ argb:'FF2E7D32' } };
+    cell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+    cell.fill  = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFE8F5E9' } };
+    cell.border = border;
+    ws.getRow(currentRow).height = 26;
+    currentRow++;
+  }
+
+  gapRow();
+  gapRow();
+  gapRow();
+
+  // ═══════════════════════════════════════════════════
+  //  القسم الثاني: مديونية المقاولين
+  // ═══════════════════════════════════════════════════
+  sectionTitle(
+    `🏗️  مديونية المقاولين  —  ${contrDebts.length} عقد`,
+    'FFE65100', 'FFFFFFFF'
+  );
+
+  headerRow(
+    ['#','التاريخ','المقاول','الغرض','نوع العمل','البيان','الإجمالي','التخصيم','المدفوع','المديونية'],
+    'FFB34700'
+  );
+
+  const CONTR_NUM_COLS = [7, 8, 9, 10];
+  contrDebts.forEach((c, i) => {
+    dataRow(
+      [i+1, c.date, c.contractorName, c.purpose, c.workType, c.desc,
+       c.total, c.deduction, c.paid, c.remaining],
+      i % 2 === 1, CONTR_NUM_COLS, 10
+    );
+  });
+
+  if (contrDebts.length > 0) {
+    totalRow(
+      ['','','','','','الإجمالي',
+       contrDebts.reduce((s,c)=>s+c.total, 0),
+       contrDebts.reduce((s,c)=>s+c.deduction, 0),
+       contrDebts.reduce((s,c)=>s+c.paid, 0),
+       contrDebts.reduce((s,c)=>s+c.remaining, 0)],
+      CONTR_NUM_COLS, 'FFE65100'
+    );
+  } else {
+    ws.mergeCells(currentRow, 1, currentRow, 10);
+    const cell = ws.getCell(currentRow, 1);
+    cell.value = '✅ لا توجد مديونيات مقاولين';
+    cell.font  = { name:'Arial', bold:true, size:12, color:{ argb:'FF2E7D32' } };
+    cell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+    cell.fill  = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFE8F5E9' } };
+    cell.border = border;
+    ws.getRow(currentRow).height = 26;
+    currentRow++;
+  }
+
+  gapRow();
+  gapRow();
+
+  // ═══════════════════════════════════════════════════
+  //  ملخص إجمالي في الأسفل
+  // ═══════════════════════════════════════════════════
+  const totalPurchDebt = purchDebts.reduce((s,p)=>s+p.debt, 0);
+  const totalContrDebt = contrDebts.reduce((s,c)=>s+c.remaining, 0);
+  const grandTotal     = totalPurchDebt + totalContrDebt;
+
+  ws.mergeCells(currentRow, 1, currentRow, 7);
+  const summaryLabelCell = ws.getCell(currentRow, 1);
+  summaryLabelCell.value     = '💰  إجمالي مديونية المشتريات';
+  summaryLabelCell.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FFFFFFFF' } };
+  summaryLabelCell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF8B0000' } };
+  summaryLabelCell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+  summaryLabelCell.border    = thickBorder;
+  ws.mergeCells(currentRow, 8, currentRow, 10);
+  const summaryValCell = ws.getCell(currentRow, 8);
+  summaryValCell.value     = totalPurchDebt;
+  summaryValCell.numFmt    = numFmt;
+  summaryValCell.font      = { name:'Arial', bold:true, size:13, color:{ argb:'FFC62828' } };
+  summaryValCell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFF0F0' } };
+  summaryValCell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+  summaryValCell.border    = thickBorder;
+  ws.getRow(currentRow).height = 30;
+  currentRow++;
+
+  ws.mergeCells(currentRow, 1, currentRow, 7);
+  const summaryLabelCell2 = ws.getCell(currentRow, 1);
+  summaryLabelCell2.value     = '🏗️  إجمالي مديونية المقاولين';
+  summaryLabelCell2.font      = { name:'Arial', bold:true, size:12, color:{ argb:'FFFFFFFF' } };
+  summaryLabelCell2.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFB34700' } };
+  summaryLabelCell2.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+  summaryLabelCell2.border    = thickBorder;
+  ws.mergeCells(currentRow, 8, currentRow, 10);
+  const summaryValCell2 = ws.getCell(currentRow, 8);
+  summaryValCell2.value     = totalContrDebt;
+  summaryValCell2.numFmt    = numFmt;
+  summaryValCell2.font      = { name:'Arial', bold:true, size:13, color:{ argb:'FFE65100' } };
+  summaryValCell2.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFF8F0' } };
+  summaryValCell2.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+  summaryValCell2.border    = thickBorder;
+  ws.getRow(currentRow).height = 30;
+  currentRow++;
+
+  ws.mergeCells(currentRow, 1, currentRow, 7);
+  const grandLabelCell = ws.getCell(currentRow, 1);
+  grandLabelCell.value     = '💸  إجمالي المديونيات الكلي';
+  grandLabelCell.font      = { name:'Arial', bold:true, size:14, color:{ argb:'FFFFFFFF' } };
+  grandLabelCell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF1A3A6B' } };
+  grandLabelCell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+  grandLabelCell.border    = thickBorder;
+  ws.mergeCells(currentRow, 8, currentRow, 10);
+  const grandValCell = ws.getCell(currentRow, 8);
+  grandValCell.value     = grandTotal;
+  grandValCell.numFmt    = numFmt;
+  grandValCell.font      = { name:'Arial', bold:true, size:14, color:{ argb:'FF1A3A6B' } };
+  grandValCell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFE8F0FE' } };
+  grandValCell.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 };
+  grandValCell.border    = thickBorder;
+  ws.getRow(currentRow).height = 36;
+
+  ws.views = [{ state:'frozen', ySplit:0, rightToLeft:true }];
+
+  const dateStr = new Date().toLocaleDateString('ar-EG').replace(/\//g,'-');
+  await EX.download(wb, `كشف_المديونيات_${school?.name||''}_${dateStr}`);
+}
+
+// ─── START ────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,2024 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>بند المصروفات - نظام المحاسبة</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /*  Custodian Cards  */
+    .custodian-summary {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .custodian-card {
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .custodian-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.08);
+      border-radius: inherit;
+      pointer-events: none;
+    }
+    .custodian-card.prev  { background: linear-gradient(135deg, #1565c0, #0d47a1); }
+    .custodian-card.new   { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
+    .custodian-card.gross { background: linear-gradient(135deg, #6a1b9a, #4a148c); }
+    .custodian-card.total { background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247)); }
+    .custodian-card.vault { background: linear-gradient(135deg, #e65100, #bf360c); }
+    .custodian-card .cust-label { font-size: 0.8rem; opacity: 0.8; font-weight: 600; }
+    .custodian-card .cust-value { font-size: 1.8rem; font-weight: 900; line-height: 1; }
+    .custodian-card .cust-sub   { font-size: 0.75rem; opacity: 0.7; }
+    .custodian-card .cust-icon  { font-size: 2rem; position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.25; }
+    .cust-edit-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: rgba(255,255,255,0.18);
+      border: none;
+      border-radius: 4px;
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 2;
+    }
+    .custodian-card:hover .cust-edit-btn { opacity: 1; }
+
+    /*  Period Tabs  */
+    .report-period-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .period-tab {
+      padding: 0.45rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text-mid);
+      font-family: 'Cairo', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .period-tab.active, .period-tab:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /*  Filter Section  */
+    .filter-section {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      border: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+
+    /*  Summary Box  */
+    .summary-box {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247));
+      color: white;
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .summary-box .big-num { font-size: 2rem; font-weight: 900; }
+    .summary-box .sub     { font-size: 0.8rem; opacity: 0.75; margin-top: 0.2rem; }
+    .summary-meta { display: flex; gap: 2rem; flex-wrap: wrap; }
+    .summary-meta-item .lbl { font-size: 0.75rem; opacity: 0.7; }
+    .summary-meta-item .val { font-size: 1.1rem; font-weight: 800; }
+
+    /*  Export Buttons  */
+    .export-btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+    /*  Table Styling - Header فقط ملون */
+    .data-table {
+      background: #ffffff;
+      border-collapse: collapse;
+      width: 100%;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .data-table thead th {
+      background: var(--primary);
+      color: white;
+      padding: 1rem 0.75rem;
+      font-weight: 800;
+      text-align: right;
+      font-size: 0.85rem;
+    }
+    .data-table tbody td {
+      padding: 0.85rem 0.75rem;
+      border-bottom: 1px solid #e5e7eb;
+      color: var(--text-dark);
+      font-size: 0.9rem;
+      background: #ffffff;
+    }
+    .data-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .data-table tbody tr:hover {
+      background: #f9fafb;
+    }
+    .data-table tfoot tr {
+      background: #f3f4f6;
+      border-top: 2px solid var(--primary);
+    }
+    .data-table tfoot td {
+      padding: 1rem 0.75rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /*  Breakdown bars  */
+    .breakdown-bar { margin-bottom: 0.6rem; }
+    .breakdown-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .breakdown-bar-track {
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .breakdown-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 4px;
+      transition: width 0.8s ease;
+    }
+
+    /*  Table footer total  */
+    .table-footer-total {
+      background: #f3f4f6;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    /*  Modal  */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal-box {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 640px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      animation: fadeInUp 0.25s ease;
+    }
+    .modal-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: var(--card-bg);
+      z-index: 1;
+    }
+    .modal-title { font-size: 1rem; font-weight: 800; color: var(--text-dark); }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--text-light);
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      transition: var(--transition);
+    }
+    .modal-close:hover { background: var(--border); color: var(--text-dark); }
+    .modal-body { padding: 1.5rem; }
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    /*  Custodian Input  */
+    .custodian-input-group {
+      background: var(--accent);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      border: 1px solid var(--primary-light, #c5d8f5);
+      margin-bottom: 1.25rem;
+    }
+    .custodian-input-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.75rem;
+    }
+
+    /*  Responsive  */
+    @media (max-width: 1100px) {
+      .custodian-summary { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .custodian-summary { grid-template-columns: 1fr 1fr; }
+      .summary-meta { gap: 1rem; }
+    }
+    @media (max-width: 480px) {
+      .custodian-summary { grid-template-columns: 1fr 1fr; }
+    }
+
+    /*  Badge colors per category  */
+    .badge-expense { background: #fce4ec; color: #c2185b; }
+
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div id="topbarContainer"></div>
+
+    <div class="page-content">
+
+      <!-- Custodian Summary Cards -->
+      <div class="custodian-summary animate-in" id="custodianSummary">
+        <div class="custodian-card prev">
+          <button class="cust-edit-btn" onclick="openCustodianModal()" title="تعديل">✏ تعديل</button>
+          <div class="cust-icon"></div>
+          <div class="cust-label">العهدة السابقة</div>
+          <div class="cust-value" id="custPrev">—</div>
+          <div class="cust-sub">الرصيد المرحّل</div>
+        </div>
+        <div class="custodian-card new">
+          <button class="cust-edit-btn" onclick="openCustodianModal()" title="تعديل">✏ تعديل</button>
+          <div class="cust-icon"></div>
+          <div class="cust-label">العهدة الجديدة</div>
+          <div class="cust-value" id="custNew">—</div>
+          <div class="cust-sub">المبلغ المستلم جديداً</div>
+        </div>
+        <div class="custodian-card gross">
+          <div class="cust-icon">🏦</div>
+          <div class="cust-label">إجمالي العهدة</div>
+          <div class="cust-value" id="custGross">—</div>
+          <div class="cust-sub">السابقة + الجديدة</div>
+        </div>
+        <div class="custodian-card total">
+          <button class="cust-edit-btn" onclick="openCustodianModal()" title="تعديل">✏ تعديل</button>
+          <div class="cust-icon"></div>
+          <div class="cust-label">الرصيد المتبقي</div>
+          <div class="cust-value" id="custTotal">—</div>
+          <div class="cust-sub" id="custTotalSub">السابقة + الجديدة - المصروفات</div>
+        </div>
+        <div class="custodian-card vault">
+          <button class="cust-edit-btn" onclick="openCustodianModal()" title="تعديل">✏ تعديل</button>
+          <div class="cust-icon">🗄️</div>
+          <div class="cust-label">رصيد الخزنة أول اليوم</div>
+          <div class="cust-value" id="custVault">—</div>
+          <div class="cust-sub">الرصيد في بداية اليوم</div>
+        </div>
+      </div>
+
+      <!-- Actions Bar -->
+      <div class="d-flex align-center gap-1 mb-2 animate-in" style="flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="openAddModal()">
+           تسجيل مصروف جديد
+        </button>
+        <button class="btn btn-secondary" onclick="openCustodianModal()">
+           تعديل العهدتين</button>
+        <div style="flex:1"></div>
+        <div class="export-btn-group">
+          <button class="btn btn-outline btn-sm" onclick="exportExcel()"> Excel</button>
+          <button class="btn btn-outline btn-sm" onclick="exportPDF()"> PDF</button>
+          <button class="btn btn-outline btn-sm" onclick="exportDailyExpensesSheet()" style="background:var(--accent);color:var(--primary);border-color:var(--primary);font-weight:800"> شيت المصروفات اليومي</button>
+        </div>
+      </div>
+
+      <!-- Period Tabs + Filters -->
+      <div class="report-period-tabs animate-in">
+        <button class="period-tab active" onclick="setPeriod('daily', this)"> يومي</button>
+        <button class="period-tab" onclick="setPeriod('weekly', this)"> أسبوعي</button>
+        <button class="period-tab" onclick="setPeriod('monthly', this)"> شهري</button>
+        <button class="period-tab" onclick="setPeriod('custom', this)"> مخصص</button>
+      </div>
+
+      <div class="filter-section animate-in">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;align-items:end">
+
+          <!-- Date filters -->
+          <div id="dailyFilter">
+            <label class="form-label">التاريخ</label>
+            <input type="date" class="form-input" id="filterDate" onchange="loadReport()" />
+          </div>
+          <div id="weeklyFilter" style="display:none">
+            <label class="form-label">أسبوع من</label>
+            <input type="date" class="form-input" id="filterWeekStart" onchange="loadReport()" />
+          </div>
+          <div id="monthlyFilter" style="display:none">
+            <label class="form-label">الشهر</label>
+            <input type="month" class="form-input" id="filterMonth" onchange="loadReport()" />
+          </div>
+          <div id="customFilter" style="display:none;grid-column:span 2;display:none;gap:0.5rem;grid-template-columns:1fr 1fr">
+            <div>
+              <label class="form-label">من</label>
+              <input type="date" class="form-input" id="filterFrom" onchange="loadReport()" />
+            </div>
+            <div>
+              <label class="form-label">إلى</label>
+              <input type="date" class="form-input" id="filterTo" onchange="loadReport()" />
+            </div>
+          </div>
+
+          <!-- Category filter -->
+          <div>
+            <label class="form-label">المقابل / الفئة</label>
+            <select class="form-select" id="filterCategory" onchange="loadReport()">
+              <option value="">كل الفئات</option>
+            </select>
+          </div>
+
+          <!-- Recipient filter -->
+          <div>
+            <label class="form-label">اسم المستلم</label>
+            <input type="text" class="form-input" id="filterRecipient" placeholder="ابحث بالاسم..." oninput="loadReport()" />
+          </div>
+
+          <div style="align-self:end">
+            <button class="btn btn-primary w-full" onclick="loadReport()"> بحث</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Box -->
+      <div class="summary-box animate-in">
+        <div>
+          <div style="font-size:0.8rem;opacity:0.75">إجمالي المصروفات</div>
+          <div class="big-num" id="reportTotal">0 ج.م</div>
+          <div class="sub" id="reportPeriodLabel">—</div>
+        </div>
+        <div class="summary-meta">
+          <div class="summary-meta-item">
+            <div class="lbl">عدد العمليات</div>
+            <div class="val" id="reportCount">0</div>
+          </div>
+          <div class="summary-meta-item">
+            <div class="lbl">أعلى مصروف</div>
+            <div class="val" id="reportMax">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Two-column: Table + Breakdown -->
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem" class="animate-in" id="mainGrid">
+
+        <!-- Transactions Table -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"> سجل المصروفات</span>
+            <span class="badge badge-primary" id="tableCount">0 سجل</span>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table" id="expensesTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>التاريخ</th>
+                  <th>اسم المستلم</th>
+                  <th>المقابل</th>
+                  <th>المبلغ</th>
+                  <th>ملاحظات</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="expensesTableBody">
+                <tr><td colspan="7"><div class="loading-spinner"></div></td></tr>
+              </tbody>
+              <tfoot id="expensesTableFoot"></tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Breakdown by category -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"> توزيع المصروفات</span>
+          </div>
+          <div class="card-body" id="breakdownArea">
+            <div class="loading-spinner"></div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ==============================
+     ADD EXPENSE MODAL
+     ============================== -->
+<div class="modal-overlay hidden" id="addModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title"> تسجيل مصروف جديد</span>
+      <button class="modal-close" onclick="closeAddModal()"></button>
+    </div>
+    <div class="modal-body">
+      <div class="alert hidden" id="addAlert"></div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label class="form-label">اسم المستلم <span class="required">*</span></label>
+          <input type="text" class="form-input form-input-ar" id="recipientName" placeholder="الاسم كاملاً" list="expRecipientSuggestions" oninput="onRecipientNameInput()" autocomplete="off" />
+          <datalist id="expRecipientSuggestions"></datalist>
+        </div>
+        <div class="form-group">
+          <label class="form-label">التاريخ <span class="required">*</span></label>
+          <input type="date" class="form-input" id="expenseDate" />
+        </div>
+      </div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label class="form-label">المبلغ (جنيه) <span class="required">*</span></label>
+          <input type="number" class="form-input" id="expenseAmount" placeholder="0.00" min="0" step="0.01" oninput="updateRefundRemaining()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">المقابل <span class="required">*</span></label>
+          <select class="form-select" id="expenseCategory" onchange="onExpCategoryChange()">
+            <option value="">— اختر الفئة —</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- حقل البيان — يظهر فقط عند أخري / استرداد / سلفه -->
+      <div class="form-group" id="customLabelGroup" style="display:none">
+        <label class="form-label">البيان <span class="required">*</span></label>
+        <input type="text" class="form-input form-input-ar" id="expenseCustomLabel" placeholder="اكتب البيان هنا..." />
+      </div>
+
+      <!-- لوحة التحقق من الطالب — تظهر فقط عند اختيار "استرداد" -->
+      <div class="form-group" id="refundStudentPanel" style="display:none">
+        <label class="form-label">ربط الاسترداد بدفعة الطالب <span class="required">*</span></label>
+        <div id="refundStatusMsg" style="font-size:0.85rem;color:var(--text-light);margin-bottom:6px">اكتب اسم الطالب كما هو مسجل بالضبط في التحصيل اليومي...</div>
+        <div id="refundTxnList" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto"></div>
+        <div id="refundRemainingBox" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-weight:800"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">ملاحظات</label>
+        <textarea class="form-textarea" id="expenseNotes" placeholder="أي تفاصيل إضافية..." rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeAddModal()">إلغاء</button>
+      <button class="btn btn-primary" id="saveExpenseBtn" onclick="saveExpense()">
+        <span id="saveBtnText"> حفظ المصروف</span>
+        <span id="saveBtnLoader" class="hidden">⏳</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==============================
+     CUSTODIAN MODAL
+     ============================== -->
+<div class="modal-overlay hidden" id="custodianModal">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-header">
+      <span class="modal-title"> إعداد العهدة وأرصدة الكروت</span>
+      <button class="modal-close" onclick="closeCustodianModal()"></button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info" style="margin-bottom:1rem">
+        <span>ℹ</span>
+        <span>العهدة السابقة = الرصيد المرحّل | العهدة الجديدة = المبلغ المستلم حديثاً</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">العهدة السابقة (جنيه)</label>
+        <input type="number" class="form-input" id="prevCustodianInput" placeholder="0.00" min="0" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">العهدة الجديدة (جنيه)</label>
+        <input type="number" class="form-input" id="newCustodianInput" placeholder="0.00" min="0" step="0.01" />
+      </div>
+      <div class="form-group" style="margin-top:0.5rem;padding-top:0.75rem;border-top:1px solid var(--border)">
+        <label class="form-label" style="color:var(--primary);font-weight:800">🗄️ رصيد الخزنة في بداية اليوم (جنيه)</label>
+        <input type="number" class="form-input" id="vaultBalanceInput" placeholder="0.00" min="0" step="0.01" />
+      </div>
+      <div class="form-group" style="margin-top:0.5rem;padding-top:0.75rem;border-top:1px solid var(--border)">
+        <label class="form-label" style="color:#e65100;font-weight:800"> تعديل الرصيد المتبقي يدوياً (جنيه)</label>
+        <input type="number" class="form-input" id="manualRemainingInput" placeholder="اتركه فارغ للحساب التلقائي" min="0" step="0.01" />
+        <div style="font-size:0.75rem;color:var(--text-light);margin-top:4px">⚠ لو دخلت قيمة هنا هتتعرض بدل الحساب التلقائي. امسحه لرجوع للحساب التلقائي.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeCustodianModal()">إلغاء</button>
+      <button class="btn btn-primary" onclick="savePrevCustodian()"> حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<!-- SheetJS for Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- ExcelJS for styled Excel -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="firebase-config.js"></script>
+<script src="layout.js"></script>
+<script>
+
+
+  renderLayout('expenses', 'بند المصروفات');
+
+  const session = SESSION.get();
+  const schoolId = session.schoolId;
+
+  //  Expense categories 
+  const EXPENSE_CATEGORIES = [
+    { value: 'electricity',   label: 'كهرباء',              icon: '' },
+    { value: 'water',         label: 'ماء',                  icon: '' },
+    { value: 'transport',     label: 'بدل انتقال',           icon: '' },
+    { value: 'buffet',        label: 'بوفيه وضيافة',         icon: '' },
+    { value: 'events',        label: 'حفلات',                icon: '' },
+    { value: 'mobile_charge', label: 'شحن موبايل',           icon: '' },
+    { value: 'net_charge',    label: 'شحن نت',               icon: '' },
+    { value: 'landline',      label: 'شحن خط أرضي',          icon: '' },
+    { value: 'stationery',    label: 'مكتبات',               icon: '' },
+    { value: 'gifts',         label: 'هدايا',                icon: '' },
+    { value: 'taxes',         label: 'ضرائب',                icon: '' },
+    { value: 'insurance',     label: 'تأمينات',              icon: '' },
+    { value: 'martyrs',       label: 'مدفوعات الشهداء',      icon: '' },
+    { value: 'other_custom',  label: 'أخري',                 icon: '', customLabel: true },
+    { value: 'refund',        label: 'استرداد',              icon: '', customLabel: true },
+    { value: 'advance',       label: 'سلفه',                 icon: '', customLabel: true },
+  ];
+
+  let currentPeriod = 'daily';
+  window.currentData   = [];
+  window.prevCustodian = 0;
+  window.newCustodian  = 0;
+  window.vaultBalance  = 0;
+  window.allExpensesTotal = 0;
+  window.manualRemaining = null; // null = حساب تلقائي
+
+  //  Populate selects 
+  function populateCategories() {
+    ['filterCategory', 'expenseCategory'].forEach(id => {
+      const sel = document.getElementById(id);
+      const isFilter = id === 'filterCategory';
+      if (isFilter) sel.innerHTML = '<option value="">كل الفئات</option>';
+      else         sel.innerHTML = '<option value="">— اختر الفئة —</option>';
+      EXPENSE_CATEGORIES.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.value;
+        opt.textContent = `${c.icon} ${c.label}`;
+        sel.appendChild(opt);
+      });
+    });
+  }
+  populateCategories();
+
+  // إظهار / إخفاء حقل البيان
+  function onExpCategoryChange(selectId, groupId) {
+    selectId = selectId || 'expenseCategory';
+    groupId  = groupId  || 'customLabelGroup';
+    const val = document.getElementById(selectId).value;
+    const cat = EXPENSE_CATEGORIES.find(c => c.value === val);
+    const grp = document.getElementById(groupId);
+    if (cat?.customLabel) {
+      grp.style.display = 'block';
+      grp.querySelector('input')?.focus();
+    } else {
+      grp.style.display = 'none';
+      if (grp.querySelector('input')) grp.querySelector('input').value = '';
+    }
+
+    // لوحة ربط الاسترداد بدفعة الطالب — تظهر فقط عند "استرداد"
+    const refundPanel = document.getElementById('refundStudentPanel');
+    if (val === 'refund') {
+      refundPanel.style.display = 'block';
+      loadStudentNamesForExpenses();
+      onRecipientNameInput(); // شغّل المطابقة على أي اسم مكتوب بالفعل
+    } else {
+      refundPanel.style.display = 'none';
+      resetRefundState();
+    }
+  }
+
+  //  ربط الاسترداد باسم الطالب 
+  window.studentNamesSet   = null; // Set بأسماء الطلاب — نفس مصدر التحصيل اليومي
+  window.refundTxnOptions  = [];   // الدفعات المطابقة لاسم الطالب المكتوب
+  window.selectedRefundTxn = null; // الدفعة المختارة لخصم الاسترداد منها
+
+  function resetRefundState() {
+    window.refundTxnOptions  = [];
+    window.selectedRefundTxn = null;
+    const list = document.getElementById('refundTxnList');
+    if (list) list.innerHTML = '';
+    const box = document.getElementById('refundRemainingBox');
+    if (box) box.style.display = 'none';
+    const msg = document.getElementById('refundStatusMsg');
+    if (msg) msg.textContent = 'اكتب اسم الطالب كما هو مسجل بالضبط في التحصيل اليومي...';
+  }
+
+  // نفس مصدر ونفس الكاش المستخدم في صفحة التحصيل اليومي (student_names_${schoolId})
+  // عشان نضمن مطابقة الأسماء مع الشيتات والتحصيل اليومي بالظبط
+  async function loadStudentNamesForExpenses() {
+    if (window.studentNamesSet) return; // اتحمّلت قبل كده في نفس الجلسة
+    const NAMES_KEY = `student_names_${schoolId}`;
+    const NAMES_TTL = 30 * 60 * 1000;
+    try {
+      const raw = sessionStorage.getItem(NAMES_KEY);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        if (Date.now() - obj.ts < NAMES_TTL) {
+          window.studentNamesSet = new Set(obj.names);
+          document.getElementById('expRecipientSuggestions').innerHTML =
+            obj.names.map(n => `<option value="${n}">`).join('');
+          return;
+        }
+      }
+      const snap = await db.collection('transactions')
+        .where('schoolId', '==', schoolId)
+        .where('date', '>=', ACADEMIC_YEAR_START)
+        .get();
+      const names = new Set();
+      snap.forEach(doc => { if (doc.data().studentName) names.add(doc.data().studentName); });
+      const namesArr = [...names].sort();
+      sessionStorage.setItem(NAMES_KEY, JSON.stringify({ names: namesArr, ts: Date.now() }));
+      window.studentNamesSet = new Set(namesArr);
+      document.getElementById('expRecipientSuggestions').innerHTML =
+        namesArr.map(n => `<option value="${n}">`).join('');
+    } catch (e) {
+      window.studentNamesSet = new Set();
+    }
+  }
+
+  let refundNameDebounce = null;
+  function onRecipientNameInput() {
+    const category = document.getElementById('expenseCategory').value;
+    if (category !== 'refund') return; // المطابقة تخص الاسترداد بس
+    clearTimeout(refundNameDebounce);
+    refundNameDebounce = setTimeout(runRefundNameMatch, 350);
+  }
+
+  async function runRefundNameMatch() {
+    const name = document.getElementById('recipientName').value.trim();
+    const msg  = document.getElementById('refundStatusMsg');
+    const list = document.getElementById('refundTxnList');
+    window.selectedRefundTxn = null;
+    list.innerHTML = '';
+    document.getElementById('refundRemainingBox').style.display = 'none';
+
+    if (!name) { msg.textContent = 'اكتب اسم الطالب كما هو مسجل بالضبط في التحصيل اليومي...'; return; }
+
+    if (!window.studentNamesSet || !window.studentNamesSet.has(name)) {
+      msg.innerHTML = ' لا يوجد طالب بهذا الاسم حرفيًا في سجلات التحصيل اليومي — تأكد من تطابق الاسم تمامًا (اختر من قائمة الاقتراحات).';
+      msg.style.color = '#c0392b';
+      return;
+    }
+
+    msg.style.color = 'var(--text-light)';
+    msg.textContent = 'جاري البحث عن دفعات هذا الطالب...';
+    try {
+      const snap = await db.collection('transactions')
+        .where('schoolId', '==', schoolId)
+        .where('studentName', '==', name)
+        .get();
+
+      const txns = [];
+      snap.forEach(doc => txns.push({ id: doc.id, ...doc.data() }));
+      txns.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      window.refundTxnOptions = txns;
+
+      if (txns.length === 0) {
+        msg.innerHTML = ' الاسم مطابق لكن لا توجد دفعات مسجلة لهذا الطالب.';
+        msg.style.color = '#c0392b';
+        return;
+      }
+
+      msg.textContent = ` تم إيجاد ${txns.length} دفعة — اختر الدفعة المطلوب خصم الاسترداد منها:`;
+      list.innerHTML = txns.map((t, idx) => `
+        <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+          <input type="radio" name="refundTxnRadio" value="${idx}" onchange="selectRefundTxn(${idx})" />
+          <span style="flex:1">
+            <strong>${formatCurrency ? formatCurrency(t.amount||0) : (t.amount||0)}</strong>
+            — ${t.paymentItem || ''} — ${t.date || ''}${t.receiptNumber ? ' — إيصال #' + t.receiptNumber : ''}
+          </span>
+        </label>
+      `).join('');
+    } catch (e) {
+      msg.textContent = 'خطأ في البحث: ' + e.message;
+      msg.style.color = '#c0392b';
+    }
+  }
+
+  function selectRefundTxn(idx) {
+    window.selectedRefundTxn = window.refundTxnOptions[idx] || null;
+    updateRefundRemaining();
+  }
+
+  function updateRefundRemaining() {
+    const category = document.getElementById('expenseCategory').value;
+    const box = document.getElementById('refundRemainingBox');
+    if (category !== 'refund' || !window.selectedRefundTxn) { box.style.display = 'none'; return; }
+
+    const refundAmount = parseFloat(document.getElementById('expenseAmount').value) || 0;
+    const paid = window.selectedRefundTxn.amount || 0;
+    const remaining = paid - refundAmount;
+
+    box.style.display = 'block';
+    if (refundAmount <= 0) {
+      box.style.background = '#fff8e1'; box.style.color = '#8a6d00';
+      box.textContent = 'ادخل مبلغ الاسترداد لحساب المتبقي.';
+    } else if (remaining < 0) {
+      box.style.background = '#fdecea'; box.style.color = '#c0392b';
+      box.textContent = `⚠ مبلغ الاسترداد أكبر من المبلغ المدفوع في هذه الدفعة (${formatCurrency ? formatCurrency(paid) : paid}).`;
+    } else {
+      box.style.background = '#e8f5e9'; box.style.color = '#1b5e20';
+      box.textContent = `المبلغ المدفوع: ${formatCurrency ? formatCurrency(paid) : paid} — بعد الاسترداد يتبقى: ${formatCurrency ? formatCurrency(remaining) : remaining} (هيتحدث في التحصيل والتقارير تلقائيًا)`;
+    }
+  }
+
+  //  Set today defaults 
+  const todayStr = localDateStr();
+  document.getElementById('filterDate').value = todayStr;
+  document.getElementById('expenseDate').value = todayStr;
+  const ym = todayStr.substring(0,7);
+  document.getElementById('filterMonth').value = ym;
+
+  //  Period management 
+  function setPeriod(period, btn) {
+    currentPeriod = period;
+    document.querySelectorAll('.period-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.getElementById('dailyFilter').style.display  = period === 'daily'   ? 'block' : 'none';
+    document.getElementById('weeklyFilter').style.display = period === 'weekly'  ? 'block' : 'none';
+    document.getElementById('monthlyFilter').style.display= period === 'monthly' ? 'block' : 'none';
+
+    const cf = document.getElementById('customFilter');
+    cf.style.display = period === 'custom' ? 'grid' : 'none';
+
+    loadReport();
+  }
+
+  function getDateRange() {
+    const today = new Date();
+    const fmt = d => localDateStr(d);
+
+    if (currentPeriod === 'daily') {
+      const d = document.getElementById('filterDate').value || todayStr;
+      return { from: d, to: d, label: `يوم ${d}` };
+    }
+    if (currentPeriod === 'weekly') {
+      const start = document.getElementById('filterWeekStart').value || fmt(today);
+      const end   = new Date(start);
+      end.setDate(end.getDate() + 6);
+      return { from: start, to: fmt(end), label: `أسبوع من ${start} إلى ${fmt(end)}` };
+    }
+    if (currentPeriod === 'monthly') {
+      const m     = document.getElementById('filterMonth').value || ym;
+      const [y, mo] = m.split('-').map(Number);
+      const last  = new Date(y, mo, 0);
+      return { from: `${m}-01`, to: fmt(last), label: `شهر ${m}` };
+    }
+    // custom
+    const from = document.getElementById('filterFrom').value || todayStr;
+    const to   = document.getElementById('filterTo').value   || todayStr;
+    return { from, to, label: `من ${from} إلى ${to}` };
+  }
+
+  //  Category helpers 
+  function getCatLabel(val) {
+    const c = EXPENSE_CATEGORIES.find(x => x.value === val);
+    return c ? `${c.icon} ${c.label}` : val;
+  }
+
+  //  يوم الشغل (Work Day) 
+  // يوم الشغل بيبدأ 7 الصبح ويخلص 7 الصبح اللي بعده (مش نص الليل زي اليوم التقويمي العادي)
+  // فأي وقت قبل 7 الصبح بيتحسب لسه على يوم الشغل بتاع "امبارح"
+  function getWorkDayKey(dateObj) {
+    const dt = new Date(dateObj);
+    const cutover = new Date(dt);
+    cutover.setHours(7, 0, 0, 0);
+    if (dt < cutover) cutover.setDate(cutover.getDate() - 1);
+    const y = cutover.getFullYear();
+    const m = String(cutover.getMonth() + 1).padStart(2, '0');
+    const day = String(cutover.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  //  Load prev custodian from Firestore 
+  async function loadPrevCustodian() {
+    const ref = db.collection('custodians').doc(schoolId);
+    const currentWorkDay = getWorkDayKey(new Date());
+    try {
+      const doc = await ref.get();
+      if (doc.exists) {
+        const data = doc.data();
+        prevCustodian   = data.prevAmount    || 0;
+        newCustodian    = data.newAmount     || 0;
+        vaultBalance    = data.vaultBalance  || 0;
+        manualRemaining = data.manualRemaining ?? null;
+        const lastWorkDay = data.lastWorkDay || null;
+
+        if (lastWorkDay && lastWorkDay !== currentWorkDay) {
+          // فات ميعاد الـ 7 الصبح من آخر مرة اتسجل فيها حاجة — قفل يوم الشغل اللي فات ورحّل المتبقي للخزنة
+          await closeWorkDayAndRollover(ref, lastWorkDay, currentWorkDay);
+        } else if (!lastWorkDay) {
+          await ref.set({ lastWorkDay: currentWorkDay }, { merge: true });
+        }
+      } else {
+        prevCustodian = 0; newCustodian = 0; vaultBalance = 0; manualRemaining = null;
+        await ref.set({ schoolId, lastWorkDay: currentWorkDay }, { merge: true });
+      }
+    } catch (e) {
+      prevCustodian = 0; newCustodian = 0; vaultBalance = 0; manualRemaining = null;
+    }
+  }
+
+  // قفل يوم شغل قديم: بيحسب المتبقي منه، يرحّله فوق رصيد الخزنة، ويصفّر العهدة استعداداً ليوم شغل جديد
+  async function closeWorkDayAndRollover(ref, oldWorkDay, newWorkDay) {
+    try {
+      const snap = await db.collection('expenses')
+        .where('schoolId', '==', schoolId)
+        .where('workDayKey', '==', oldWorkDay)
+        .get();
+      let oldExpensesTotal = 0;
+      snap.forEach(d => { oldExpensesTotal += d.data().amount || 0; });
+
+      const oldGross     = prevCustodian + newCustodian;
+      const oldRemaining = (manualRemaining !== null && manualRemaining !== undefined)
+                            ? manualRemaining
+                            : (oldGross - oldExpensesTotal);
+      const newVaultBalance = (vaultBalance || 0) + oldRemaining;
+
+      await ref.set({
+        schoolId,
+        prevAmount: 0,
+        newAmount: 0,
+        vaultBalance: newVaultBalance,
+        manualRemaining: null,
+        lastWorkDay: newWorkDay,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy: 'system-auto-rollover-7am'
+      }, { merge: true });
+
+      // سجل تاريخي لقفل كل يوم شغل — للمراجعة لاحقاً لو احتجت تتأكد من رقم معين
+      await db.collection('custodianClosures').add({
+        schoolId, workDay: oldWorkDay,
+        prevCustodian, newCustodian, expensesTotal: oldExpensesTotal,
+        remaining: oldRemaining,
+        rolledIntoVaultAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      prevCustodian   = 0;
+      newCustodian    = 0;
+      vaultBalance    = newVaultBalance;
+      manualRemaining = null;
+    } catch (e) {
+      console.error('فشل ترحيل نهاية يوم الشغل:', e);
+    }
+  }
+
+  //  Load report 
+  async function loadReport() {
+    const { from, to, label } = getDateRange();
+    const catFilter  = document.getElementById('filterCategory').value;
+    const nameFilter = document.getElementById('filterRecipient').value.trim().toLowerCase();
+
+    document.getElementById('reportPeriodLabel').textContent = label;
+
+    // Show loading
+    document.getElementById('expensesTableBody').innerHTML =
+      '<tr><td colspan="7"><div class="loading-spinner"></div></td></tr>';
+    document.getElementById('breakdownArea').innerHTML = '<div class="loading-spinner"></div>';
+
+    try {
+      // category filter بيتعمل client-side عشان Firestore مش بيسمح بـ where على field تاني مع range query
+      let query = db.collection('expenses')
+        .where('schoolId', '==', schoolId)
+        .where('date', '>=', from)
+        .where('date', '<=', to);
+
+      const snap = await query.get();
+
+      currentData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Client-side filters
+      if (catFilter) {
+        currentData = currentData.filter(d => (d.category || '') === catFilter);
+      }
+
+      if (nameFilter) {
+        currentData = currentData.filter(d =>
+          (d.recipientName || '').toLowerCase().includes(nameFilter)
+        );
+      }
+
+      // Sort by date desc, then createdAt desc
+      currentData.sort((a, b) => {
+        if (b.date !== a.date) return b.date.localeCompare(a.date);
+        return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+      });
+
+      renderTable();
+      renderBreakdown();
+
+      // إجمالي مصروفات يوم الشغل الحالي بس (من 7 الصبح) — مش كل المصروفات من الأول للعهدة
+      try {
+        const currentWorkDay = getWorkDayKey(new Date());
+        const allSnap = await db.collection('expenses')
+          .where('schoolId', '==', schoolId)
+          .where('workDayKey', '==', currentWorkDay)
+          .get();
+        allExpensesTotal = 0;
+        allSnap.forEach(d => { allExpensesTotal += d.data().amount || 0; });
+      } catch(e) {
+        allExpensesTotal = currentData.reduce((s,d) => s + (d.amount||0), 0);
+      }
+      updateCustodianCards();
+
+    } catch (err) {
+      console.error(err);
+      document.getElementById('expensesTableBody').innerHTML =
+        `<tr><td colspan="7" style="color:var(--danger);text-align:center"> خطأ في التحميل: ${err.message}</td></tr>`;
+    }
+  }
+
+  //  Render table 
+  function renderTable() {
+    const tbody = document.getElementById('expensesTableBody');
+    const tfoot = document.getElementById('expensesTableFoot');
+    const total = currentData.reduce((s, d) => s + (d.amount || 0), 0);
+
+    document.getElementById('tableCount').textContent = currentData.length + ' سجل';
+    document.getElementById('reportCount').textContent = currentData.length;
+    document.getElementById('reportTotal').textContent = formatCurrency(total);
+
+    const maxAmt = currentData.length ? Math.max(...currentData.map(d => d.amount || 0)) : 0;
+    document.getElementById('reportMax').textContent = maxAmt ? formatCurrency(maxAmt) : '—';
+
+    if (currentData.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7">
+        <div class="empty-state">
+          <div class="empty-state-icon"></div>
+          <div class="empty-state-title">لا توجد مصروفات في هذه الفترة</div>
+        </div>
+      </td></tr>`;
+      tfoot.innerHTML = '';
+      return;
+    }
+
+    tbody.innerHTML = '';
+    currentData.forEach((d, i) => {
+      const tr = document.createElement('tr');
+      const isAdmin = SESSION.isAdmin();
+      tr.innerHTML = `
+        <td class="text-sm text-muted">${i + 1}</td>
+        <td class="text-sm">${d.date}</td>
+        <td><strong>${d.recipientName}</strong>${d.linkedTransactionId ? `<div class="text-sm text-muted">تم الخصم من دفعة الطالب — متبقي ${formatCurrency(d.remainingAfterRefund || 0)}</div>` : ''}</td>
+        <td><span class="badge badge-expense">${getCatLabel(d.category)}</span></td>
+        <td class="text-bold text-primary">${formatCurrency(d.amount)}</td>
+        <td class="text-sm text-muted">${d.notes || '—'}</td>
+        <td>
+          <button class="btn btn-sm" onclick="openEditExpenseModal('${d.id}')" style="color:var(--primary);background:none;border:1px solid var(--primary);border-radius:4px;padding:2px 8px;font-size:0.75rem;cursor:pointer;margin-left:4px">✏</button>
+          ${isAdmin ? `<button class="btn btn-danger btn-sm" onclick="deleteExpense('${d.id}')" title="حذف"></button>` : ''}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    tfoot.innerHTML = `
+      <tr class="table-footer-total">
+        <td colspan="4" style="padding:0.75rem 1rem;font-size:0.9rem">
+          الإجمالي (${currentData.length} عملية)
+        </td>
+        <td style="padding:0.75rem 1rem;font-size:1rem;font-weight:900;color:var(--primary)">
+          ${formatCurrency(total)}
+        </td>
+        <td colspan="2"></td>
+      </tr>
+    `;
+  }
+
+  //  Render breakdown 
+  function renderBreakdown() {
+    const catTotals = {};
+    currentData.forEach(d => {
+      if (!catTotals[d.category]) catTotals[d.category] = 0;
+      catTotals[d.category] += d.amount || 0;
+    });
+
+    const area = document.getElementById('breakdownArea');
+    if (Object.keys(catTotals).length === 0) {
+      area.innerHTML = `<div class="empty-state">
+        <div class="empty-state-icon"></div>
+        <div class="empty-state-title">لا توجد بيانات</div>
+      </div>`;
+      return;
+    }
+
+    const sorted = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+    const maxVal = sorted[0][1];
+
+    area.innerHTML = sorted.map(([cat, total]) => `
+      <div class="breakdown-bar">
+        <div class="breakdown-bar-label">
+          <span>${getCatLabel(cat)}</span>
+          <span style="color:var(--primary)">${formatCurrency(total)}</span>
+        </div>
+        <div class="breakdown-bar-track">
+          <div class="breakdown-bar-fill" style="width:${Math.round(total/maxVal*100)}%"></div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  //  Update custodian summary cards 
+  function updateCustodianCards() {
+    // الرصيد المتبقي يحسب على كل المصروفات المسجلة (مش الفترة المفلترة بس)
+    const totalExpenses = allExpensesTotal;
+    const gross         = prevCustodian + newCustodian;
+    const autoRemaining = gross - totalExpenses;
+    const remaining     = (manualRemaining !== null && manualRemaining !== undefined)
+                          ? manualRemaining
+                          : autoRemaining;
+
+    document.getElementById('custPrev').textContent  = formatCurrency(prevCustodian);
+    document.getElementById('custNew').textContent   = formatCurrency(newCustodian);
+    document.getElementById('custGross').textContent = formatCurrency(gross);
+    document.getElementById('custTotal').textContent = formatCurrency(remaining);
+    document.getElementById('custVault').textContent = formatCurrency(vaultBalance);
+
+    // sub label يوضح المصدر
+    const subEl = document.getElementById('custTotalSub');
+    if (subEl) {
+      subEl.textContent = (manualRemaining !== null && manualRemaining !== undefined)
+        ? '✏ رصيد معدّل يدوياً'
+        : 'السابقة + الجديدة - مصروفات يوم الشغل الحالي (من 7 الصبح)';
+    }
+
+    // لون الرصيد المتبقي حسب الحالة
+    const totalCard = document.querySelector('.custodian-card.total');
+    if (remaining < 0) {
+      totalCard.style.background = 'linear-gradient(135deg, #c62828, #b71c1c)';
+    } else {
+      totalCard.style.background = '';
+    }
+  }
+
+  //  Add Expense Modal 
+  function openAddModal() {
+    document.getElementById('addModal').classList.remove('hidden');
+    document.getElementById('addAlert').classList.add('hidden');
+    document.getElementById('recipientName').focus();
+  }
+  function closeAddModal() {
+    document.getElementById('addModal').classList.add('hidden');
+    document.getElementById('recipientName').value    = '';
+    document.getElementById('expenseDate').value      = todayStr;
+    document.getElementById('expenseAmount').value    = '';
+    document.getElementById('expenseCategory').value  = '';
+    document.getElementById('expenseCustomLabel').value = '';
+    document.getElementById('customLabelGroup').style.display = 'none';
+    document.getElementById('expenseNotes').value     = '';
+    resetRefundState();
+  }
+
+  function showAddAlert(msg, type='error') {
+    const el = document.getElementById('addAlert');
+    el.className = `alert alert-${type}`;
+    el.innerHTML = `<span>${type==='error'?'':''}</span><span>${msg}</span>`;
+    el.classList.remove('hidden');
+    if (type === 'success') setTimeout(() => el.classList.add('hidden'), 3000);
+  }
+
+  async function saveExpense() {
+    const recipientName = document.getElementById('recipientName').value.trim();
+    const date          = document.getElementById('expenseDate').value;
+    const amount        = parseFloat(document.getElementById('expenseAmount').value);
+    const category      = document.getElementById('expenseCategory').value;
+    const notes         = document.getElementById('expenseNotes').value.trim();
+    const customLabel   = document.getElementById('expenseCustomLabel').value.trim();
+
+    if (!recipientName) return showAddAlert('من فضلك ادخل اسم المستلم');
+    if (!date)          return showAddAlert('من فضلك اختر التاريخ');
+    if (!amount || amount <= 0) return showAddAlert('من فضلك ادخل مبلغ صحيح');
+    if (!category)      return showAddAlert('من فضلك اختر فئة المصروف (المقابل)');
+
+    const cat = EXPENSE_CATEGORIES.find(c => c.value === category);
+    if (cat?.customLabel && !customLabel) return showAddAlert('من فضلك اكتب البيان');
+
+    // تحقق خاص بالاسترداد — لازم دفعة مختارة والمبلغ متسّق معاها
+    let refundTxn = null;
+    if (category === 'refund') {
+      if (!window.studentNamesSet || !window.studentNamesSet.has(recipientName)) {
+        return showAddAlert('اسم المستلم لازم يطابق اسم طالب موجود بالظبط في التحصيل اليومي');
+      }
+      if (!window.selectedRefundTxn) {
+        return showAddAlert('من فضلك اختر الدفعة المطلوب خصم الاسترداد منها من القائمة');
+      }
+      refundTxn = window.selectedRefundTxn;
+      if (amount > (refundTxn.amount || 0)) {
+        return showAddAlert('مبلغ الاسترداد أكبر من المبلغ المدفوع في الدفعة المختارة');
+      }
+    }
+
+    const btn     = document.getElementById('saveExpenseBtn');
+    const btnText = document.getElementById('saveBtnText');
+    const loader  = document.getElementById('saveBtnLoader');
+    btn.disabled  = true;
+    btnText.classList.add('hidden');
+    loader.classList.remove('hidden');
+
+    try {
+      const finalLabel = cat?.customLabel ? customLabel : (cat?.label || category);
+      const expense = {
+        schoolId,
+        recipientName,
+        date,
+        amount,
+        category,
+        categoryLabel: finalLabel,
+        customLabel:   cat?.customLabel ? customLabel : null,
+        notes,
+        createdBy: session.email,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        workDayKey: getWorkDayKey(new Date()), // يوم الشغل (7 صباحا ل 7 صباحا) — علشان تصفير العهدة كل يوم
+        year:  new Date(date).getFullYear(),
+        month: new Date(date).getMonth() + 1,
+        week:  getWeekNumber(new Date(date))
+      };
+
+      let newExpenseId = null;
+
+      if (refundTxn) {
+        // خصم الاسترداد من الدفعة الأصلية في التحصيل — بشكل ذري (Firestore transaction)
+        const txnRef = db.collection('transactions').doc(refundTxn.id);
+        const result = await db.runTransaction(async (t) => {
+          const freshSnap = await t.get(txnRef);
+          if (!freshSnap.exists) throw new Error('الدفعة الأصلية لم تعد موجودة');
+          const freshData    = freshSnap.data();
+          const currentAmount= freshData.amount || 0;
+          if (amount > currentAmount) throw new Error('مبلغ الاسترداد أكبر من المبلغ المدفوع الحالي في هذه الدفعة (ممكن حد استرد منها قبلك)');
+          const newAmount = currentAmount - amount;
+          const totalDue  = freshData.totalDue || 0;
+          const newDebt   = Math.max(0, totalDue - newAmount);
+          t.update(txnRef, {
+            amount:  newAmount,
+            debt:    newDebt,
+            hasDebt: newDebt > 0,
+            refunds: firebase.firestore.FieldValue.arrayUnion({
+              amount, date, notes: expense.customLabel || notes || 'استرداد',
+              refundedBy: session.email, refundedAt: new Date().toISOString()
+            })
+          });
+          return { originalAmount: currentAmount, newAmount, newDebt };
+        });
+
+        expense.linkedTransactionId = refundTxn.id;
+        expense.linkedStudentName   = recipientName;
+        expense.originalAmount      = result.originalAmount;
+        expense.remainingAfterRefund= result.newAmount;
+
+        // تحديث سجل الدين المرتبط (لو موجود) عشان يفضل متسق مع الدفعة
+        try {
+          const debtSnap = await db.collection('debts')
+            .where('schoolId', '==', schoolId)
+            .where('transactionId', '==', refundTxn.id)
+            .get();
+          if (!debtSnap.empty) {
+            await debtSnap.docs[0].ref.update({
+              paid: result.newAmount,
+              remaining: result.newDebt,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        } catch (e) { /* تحديث الدين ثانوي — متبتعملش fail على الحفظ الأساسي */ }
+
+        // امسح كاش الأسماء عشان يترفريش لو الاسم اتغير من مكان تاني لاحقًا
+        sessionStorage.removeItem(`student_names_${schoolId}`);
+      }
+
+      const ref = await db.collection('expenses').add(expense);
+      newExpenseId = ref.id;
+
+      showAddAlert(refundTxn
+        ? `تم حفظ الاسترداد وخصمه من دفعة الطالب بنجاح! المتبقي: ${formatCurrency(expense.remainingAfterRefund)}`
+        : 'تم حفظ المصروف بنجاح! ', 'success');
+      setTimeout(() => {
+        closeAddModal();
+        loadReport();
+      }, 1200);
+
+    } catch (err) {
+      showAddAlert('خطأ في الحفظ: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btnText.classList.remove('hidden');
+      loader.classList.add('hidden');
+    }
+  }
+
+  //  Delete 
+  async function deleteExpense(id) {
+    if (!confirm('هل تريد حذف هذا المصروف؟')) return;
+    try {
+      await db.collection('expenses').doc(id).delete();
+      loadReport();
+    } catch (err) {
+      alert('خطأ في الحذف: ' + err.message);
+    }
+  }
+
+  //  Custodian Modal 
+  function openCustodianModal() {
+    document.getElementById('prevCustodianInput').value  = prevCustodian;
+    document.getElementById('newCustodianInput').value   = newCustodian;
+    document.getElementById('vaultBalanceInput').value   = vaultBalance;
+    document.getElementById('manualRemainingInput').value = (manualRemaining !== null && manualRemaining !== undefined) ? manualRemaining : '';
+    document.getElementById('custodianModal').classList.remove('hidden');
+  }
+  function closeCustodianModal() {
+    document.getElementById('custodianModal').classList.add('hidden');
+  }
+
+  async function savePrevCustodian() {
+    const val      = parseFloat(document.getElementById('prevCustodianInput').value)  || 0;
+    const valNew   = parseFloat(document.getElementById('newCustodianInput').value)   || 0;
+    const valVault = parseFloat(document.getElementById('vaultBalanceInput').value)   || 0;
+    const manualRawStr = document.getElementById('manualRemainingInput').value.trim();
+    const manualRaw = manualRawStr === '' ? null : parseFloat(manualRawStr);
+
+    try {
+      await db.collection('custodians').doc(schoolId).set({
+        schoolId,
+        prevAmount:      val,
+        newAmount:       valNew,
+        vaultBalance:    valVault,
+        manualRemaining: manualRaw,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy: session.email
+      });
+      prevCustodian   = val;
+      newCustodian    = valNew;
+      vaultBalance    = valVault;
+      manualRemaining = manualRaw;
+      updateCustodianCards();
+      closeCustodianModal();
+    } catch (err) {
+      alert('خطأ في الحفظ: ' + err.message);
+    }
+  }
+
+  //  Week number helper 
+  function getWeekNumber(d) {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  }
+
+  // ============================================================
+  // EXPORT EXCEL — بند المصروفات بـ ExcelJS وألوان المدرسة وبوردرات
+  // ============================================================
+  async function exportExcel() {
+    if (typeof ExcelJS === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      document.head.appendChild(s);
+      s.onload = () => exportExcel();
+      return;
+    }
+    if (!currentData || currentData.length === 0) { alert('لا توجد بيانات للتصدير'); return; }
+
+    const school     = SESSION.getSchool();
+    const schoolName = school?.name || 'المدرسة';
+    const { from, to, label } = getDateRange();
+    const total     = currentData.reduce((s,d) => s+(d.amount||0), 0);
+    const remaining = prevCustodian + newCustodian - allExpensesTotal;
+
+    const rawP = (school?.primaryColor   || '#1E2D5A').replace('#','');
+    const rawS = (school?.secondaryColor || '#4A6FA5').replace('#','');
+    const rawA = (school?.accentColor    || '#D6E4F0').replace('#','');
+    const PRI='FF'+rawP, SEC='FF'+rawS, ACC='FF'+rawA;
+    const WHT='FFFFFFFF', BLK='FF000000', RED='FFC00000';
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = schoolName;
+    wb.views   = [{ rightToLeft:true }];
+    const ws = wb.addWorksheet('مصروفات');
+    ws.views  = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:3, activeCell:'A4' }];
+    ws.columns = [{width:5},{width:16},{width:30},{width:22},{width:16},{width:32}];
+
+    const hF  = a => ({type:'pattern',pattern:'solid',fgColor:{argb:a}});
+    const brd = (st='medium',c='FF444444') => { const s={style:st,color:{argb:c}}; return {top:s,bottom:s,left:s,right:s}; };
+    const brdM= () => brd('medium','FF555555');
+    const brdT= () => brd('thick','FF222222');
+    const cAl = () => ({horizontal:'center',vertical:'middle',readingOrder:2});
+    const rAl = () => ({horizontal:'right', vertical:'middle',readingOrder:2});
+    const nFmt= cell => { cell.numFmt='#,##0;(#,##0);"-"'; };
+    function sAll(row,bg,fc=BLK,bold=false,sz=10,bFn=brdM) {
+      row.eachCell({includeEmpty:true}, cell => {
+        if(bg) cell.fill=hF(bg);
+        cell.font={name:'Arial',bold,size:sz,color:{argb:fc}};
+        cell.alignment=cAl(); cell.border=bFn();
+      });
+    }
+
+    // صف 1: عنوان
+    const r1 = ws.addRow([`بيان المصروفات — ${schoolName} — ${ACADEMIC_YEAR}`]);
+    ws.mergeCells('A1:F1');
+    sAll(r1,PRI,WHT,true,14,brdT); r1.getCell(1).alignment=cAl(); r1.height=32;
+
+    // صف 2: الفترة
+    const r2 = ws.addRow([`الفترة: ${label}    تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')}    بواسطة: ${session.email}`]);
+    ws.mergeCells('A2:F2');
+    sAll(r2,SEC,WHT,true,11); r2.getCell(1).alignment=cAl(); r2.height=22;
+
+    // صف 3: هيدر
+    const r3 = ws.addRow(['م','التاريخ','اسم المستلم','المقابل / الفئة','المبلغ (ج.م)','ملاحظات']);
+    sAll(r3,SEC,WHT,true,11,brdT); r3.height=26;
+
+    // بيانات
+    currentData.forEach((d,i) => {
+      const row = ws.addRow([i+1, d.date, d.recipientName||'', d.categoryLabel||getCatLabel(d.category)||'', d.amount||0, d.notes||'']);
+      sAll(row, i%2===0 ? WHT : ('FF'+rawA), BLK, false, 10, brdM);
+      nFmt(row.getCell(5)); row.getCell(3).alignment=rAl(); row.height=20;
+    });
+
+    // إجمالي
+    const totR = ws.addRow(['الإجمالي','','','', total,'']);
+    ws.mergeCells(`A${totR.number}:D${totR.number}`);
+    sAll(totR,PRI,WHT,true,12,brdT); nFmt(totR.getCell(5)); totR.height=26;
+
+    ws.addRow([]);
+
+    // ملخص العهدة والرصيد
+    [
+      ['العهدة السابقة', prevCustodian, 'FF1565C0', WHT],
+      ['العهدة الجديدة', newCustodian,  'FF2E7D32', WHT],
+      ['إجمالي المصروفات', total,        RED,        WHT],
+      ['الرصيد المتبقي', remaining,      remaining>=0?'FF1B5E20':'FFC00000', WHT],
+    ].forEach(([lbl,val,bg,fc]) => {
+      const sr = ws.addRow([lbl,'','','',val,'']);
+      ws.mergeCells(`A${sr.number}:D${sr.number}`);
+      sAll(sr,bg,fc,true,11,brdT); nFmt(sr.getCell(5)); sr.height=24;
+    });
+
+    ws.addRow([]);
+    const ftr = ws.addRow([`Designed by Eng. Kareem Ali Mousa — ${new Date().toLocaleDateString('ar-EG')}`]);
+    ws.mergeCells(`A${ftr.number}:F${ftr.number}`);
+    ftr.getCell(1).font={name:'Arial',size:9,color:{argb:'FF888888'}}; ftr.getCell(1).alignment=cAl();
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob= new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href=url; a.download=`مصروفات_${schoolName}_${from}.xlsx`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ============================================================
+  // شيت المصروفات اليومي — تصميم احترافي عريض بعرض الصفحة
+  // ============================================================
+  async function exportDailyExpensesSheet() {
+    if (typeof ExcelJS === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      document.head.appendChild(s);
+      s.onload = () => exportDailyExpensesSheet();
+      return;
+    }
+
+    const school      = SESSION.getSchool();
+    const schoolName  = school?.name || 'المدرسة';
+    const today       = localDateStr(new Date());
+    const filterDateEl= document.getElementById('filterDate');
+    const selectedDate= (filterDateEl && filterDateEl.value) ? filterDateEl.value : today;
+
+    // جلب العهدة
+    let custPrev=0, custNew=0;
+    try {
+      const cd = await db.collection('custodians').doc(schoolId).get();
+      if (cd.exists) { custPrev=cd.data().prevAmount||0; custNew=cd.data().newAmount||0; }
+    } catch(e) {}
+
+    // جلب مصروفات اليوم
+    let dayExpenses=[];
+    try {
+      const es = await db.collection('expenses')
+        .where('schoolId','==',schoolId)
+        .where('date','==',selectedDate).get();
+      es.forEach(doc => dayExpenses.push({id:doc.id,...doc.data()}));
+      dayExpenses.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+    } catch(e) {}
+
+    // نظام العهدة فقط - لا نحتاج إيرادات اليوم
+    // العملية تقتصر على: صرف من العهدة + تحصيل بـ العهدة
+
+    const totalExpenses  = dayExpenses.reduce((s,e)=>s+(e.amount||0),0);
+    const openingBalance = custPrev + custNew;
+    const closingBalance = openingBalance - totalExpenses;
+
+    // ============================================================
+    // ألوان المدرسة
+    // ============================================================
+    const rawP = (school?.primaryColor   || '#1E2D5A').replace('#','').toUpperCase();
+    const rawS = (school?.secondaryColor || '#4A6FA5').replace('#','').toUpperCase();
+    const rawA = (school?.accentColor    || '#D6E4F0').replace('#','').toUpperCase();
+    const PRI  = 'FF' + rawP;
+    const SEC  = 'FF' + rawS;
+    const ACC  = 'FF' + rawA;
+    const WHT  = 'FFFFFFFF';
+    const BLK  = 'FF111111';
+    const BLUE = 'FF1A4A80';
+    const GRN  = 'FF1B5E20';
+    const RED  = 'FFC00000';
+    const DRED = 'FF8B0000';
+    const LGRY = 'FFF7F7F7';
+    const MGRY = 'FFE8E8E8';
+    const DGRY = 'FFCCCCCC';
+
+    // تاريخ عربي منسق
+    const dateObj    = new Date(selectedDate + 'T00:00:00');
+    const dateAr     = dateObj.toLocaleDateString('ar-EG', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    const printDateAr= new Date().toLocaleDateString('ar-EG', { year:'numeric', month:'long', day:'numeric' });
+
+    // ============================================================
+    // إنشاء الـ Workbook
+    // ============================================================
+    const wb = new ExcelJS.Workbook();
+    wb.creator  = schoolName;
+    wb.modified = new Date();
+    wb.views    = [{ rightToLeft: true }];
+
+    const ws = wb.addWorksheet(`مصروفات ${selectedDate}`, {
+      views: [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:5, activeCell:'A6' }],
+      pageSetup: {
+        paperSize: 9,        // A4
+        orientation: 'landscape',
+        fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+        margins: { left:0.4, right:0.4, top:0.5, bottom:0.5, header:0.2, footer:0.2 }
+      },
+      headerFooter: {
+        oddFooter: `&C&"Arial,Regular"&9${schoolName} — بيان المصروفات اليومي — ${selectedDate}    |    صفحة &P من &N`
+      }
+    });
+
+    // ============================================================
+    // الأعمدة — 11 عمود بعرض الصفحة الكامل
+    // A=م  B=التاريخ  C=اسم المستلم  D=الفئة  E=البيان
+    // F=المبلغ  G=نقدي؟  H=التوقيع  I=ملاحظات  J=رقم الإيصال  K=بواسطة
+    // ============================================================
+    ws.columns = [
+      { key:'no',       width: 5  },   // A م
+      { key:'date',     width: 14 },   // B التاريخ
+      { key:'name',     width: 28 },   // C اسم المستلم
+      { key:'cat',      width: 18 },   // D الفئة
+      { key:'bayan',    width: 26 },   // E البيان / المقابل
+      { key:'amount',   width: 16 },   // F المبلغ
+      { key:'method',   width: 12 },   // G طريقة الصرف
+      { key:'sign',     width: 16 },   // H التوقيع
+      { key:'notes',    width: 22 },   // I ملاحظات
+      { key:'receipt',  width: 14 },   // J المرجع
+      { key:'by',       width: 14 },   // K بواسطة
+    ];
+    const LC   = 'K'; // آخر عمود
+    const NCOLS= 11;
+
+    // ============================================================
+    // دوال مساعدة
+    // ============================================================
+    const hF    = a => ({ type:'pattern', pattern:'solid', fgColor:{ argb:a } });
+    const brd   = (st,c) => { const s={style:st,color:{argb:c}}; return {top:s,bottom:s,left:s,right:s}; };
+    const brdTk = () => brd('thick',  'FF111111');
+    const brdMd = () => brd('medium', 'FF333333');
+    const brdSm = () => brd('thin',   'FF888888');
+    const brdDb = () => ({ top:brd('thick','FF111111').top, bottom:brd('thick','FF111111').bottom, left:brd('medium','FF333333').left, right:brd('medium','FF333333').right });
+    const cAl   = (wrap=false) => ({ horizontal:'center', vertical:'middle', wrapText:wrap, readingOrder:2 });
+    const rAl   = (wrap=false) => ({ horizontal:'right',  vertical:'middle', wrapText:wrap, readingOrder:2 });
+    const nFmt  = cell => { cell.numFmt = '#,##0;[Red](#,##0);"-"'; };
+    const merge  = (r, from, to) => ws.mergeCells(`${from}${r}:${to}${r}`);
+
+    function fillRow(row, bg, fc, bold, sz, bFn=brdMd, al=cAl) {
+      row.eachCell({ includeEmpty:true }, cell => {
+        if (bg) cell.fill = hF(bg);
+        cell.font      = { name:'Arial', bold, size:sz, color:{ argb:fc } };
+        cell.alignment = al();
+        cell.border    = bFn();
+      });
+    }
+    function sc(cell, bg, fc, bold, sz, bFn=brdMd, al=cAl) {
+      if (bg) cell.fill = hF(bg);
+      cell.font      = { name:'Arial', bold, size:sz, color:{ argb:fc } };
+      cell.alignment = al();
+      cell.border    = bFn();
+    }
+
+    // ============================================================
+    // صف 1 — شريط ملوّن بلون المدرسة (تزييني فقط)
+    // ============================================================
+    const rStripe = ws.addRow(Array(NCOLS).fill(''));
+    merge(rStripe.number, 'A', LC);
+    rStripe.getCell(1).fill = hF(SEC);
+    rStripe.height = 6;
+
+    // ============================================================
+    // صف 2 — العنوان الكبير
+    // ============================================================
+    const r1 = ws.addRow([`بيان المصروفات اليومي — ${schoolName}`]);
+    merge(r1.number, 'A', LC);
+    sc(r1.getCell(1), PRI, WHT, true, 18, brdTk, cAl);
+    r1.height = 44;
+
+    // ============================================================
+    // صف 3 — شريط المعلومات (تاريخ | سنة دراسية | طباعة)
+    // ============================================================
+    const r2 = ws.addRow([dateAr,'','','التاريخ','','','',`العام الدراسي: ${ACADEMIC_YEAR}`,'','',`طباعة: ${printDateAr}`]);
+    // دمج A:C (يوم)، D:G (التاريخ)، H:J (سنة دراسية)
+    merge(r2.number, 'A', 'C'); merge(r2.number, 'D', 'G'); merge(r2.number, 'H', 'J');
+    [[1,SEC,WHT,true,11],[4,SEC,WHT,true,11],[8,SEC,WHT,true,11],[11,SEC,WHT,true,10]].forEach(([ci,bg,fc,bold,sz])=>{
+      sc(r2.getCell(ci), bg, fc, bold, sz, brdMd, ci===1||ci===4||ci===8 ? cAl : rAl);
+    });
+    r2.getCell(4).value = `التاريخ: ${selectedDate}`;
+    r2.height = 22;
+
+    // ============================================================
+    // صف 4 — شريط الرصيد (عهدة سابقة + عهدة جديدة + رصيد أول اليوم)
+    // ============================================================
+    const rBal = ws.addRow([
+      'العهدة السابقة','','',
+      'العهدة الجديدة','','',
+      'رصيد أول اليوم','',''
+    ]);
+    merge(rBal.number,'A','C'); merge(rBal.number,'D','F'); merge(rBal.number,'G','I');
+    [[1,BLUE,WHT],[4,GRN,WHT],[7,PRI,WHT]].forEach(([ci,bg,fc])=>{
+      const lbl = rBal.getCell(ci);
+      lbl.fill=hF(bg); lbl.font={name:'Arial',bold:true,size:11,color:{argb:fc}};
+      lbl.alignment=cAl(true); lbl.border=brdTk();
+    });
+    rBal.height = 20;
+
+    // صف 5 — قيم الرصيد
+    const rBalV = ws.addRow([
+      custPrev,'','',
+      custNew,'','',
+      openingBalance,'',''
+    ]);
+    merge(rBalV.number,'A','C'); merge(rBalV.number,'D','F'); merge(rBalV.number,'G','I');
+    [[1,BLUE,WHT],[4,GRN,WHT],[7,PRI,WHT]].forEach(([ci,bg,fc])=>{
+      const v = rBalV.getCell(ci);
+      v.fill=hF(bg); v.font={name:'Arial',bold:true,size:16,color:{argb:fc}};
+      v.alignment=cAl(); v.border=brdTk();
+      nFmt(v);
+    });
+    rBalV.height = 34;
+
+    // ============================================================
+    // فراغ فاصل
+    // ============================================================
+    const rSep = ws.addRow(Array(NCOLS).fill(''));
+    merge(rSep.number,'A',LC);
+    rSep.getCell(1).fill = hF(MGRY);
+    rSep.height = 5;
+
+    // ============================================================
+    // هيدر جدول المصروفات — صفين (مجموعات + أعمدة)
+    // ============================================================
+    const rHG = ws.addRow(['بيانات المصروف','','','','','المبلغ','','','الملاحظات والمراجع','','']);
+    merge(rHG.number,'A','E'); merge(rHG.number,'F','G'); merge(rHG.number,'H',LC);
+    [[1,PRI,WHT],[6,SEC,WHT],[8,PRI,WHT]].forEach(([ci,bg,fc])=>{
+      const c=rHG.getCell(ci); c.fill=hF(bg);
+      c.font={name:'Arial',bold:true,size:11,color:{argb:fc}};
+      c.alignment=cAl(false); c.border=brdTk();
+    });
+    rHG.height = 20;
+
+    const rHdr = ws.addRow(['م','التاريخ','اسم المستلم / المستفيد','الفئة','البيان / المقابل','المبلغ (ج.م)','طريقة الصرف','التوقيع','ملاحظات','المرجع / الإيصال','بواسطة']);
+    fillRow(rHdr, SEC, WHT, true, 11, brdTk, cAl);
+    rHdr.eachCell((c,i) => { c.alignment = cAl(true); });
+    rHdr.height = 30;
+
+    // ============================================================
+    // بيانات المصروفات
+    // ============================================================
+    let runTotal = 0;
+    if (dayExpenses.length === 0) {
+      const emR = ws.addRow(['—', selectedDate, 'لا توجد مصروفات مسجلة في هذا اليوم', '—', '—', 0, '—', '', '', '', '']);
+      merge(emR.number,'C','E');
+      fillRow(emR, MGRY, BLK, false, 11, brdSm, cAl);
+      nFmt(emR.getCell(6));
+      emR.height = 26;
+    } else {
+      dayExpenses.forEach((e, i) => {
+        const isEven = i % 2 === 0;
+        const bgRow  = isEven ? WHT : LGRY;
+        const amt    = e.amount || 0;
+        runTotal    += amt;
+
+        const row = ws.addRow([
+          i + 1,
+          e.date || selectedDate,
+          e.recipientName || '',
+          e.categoryLabel || getCatLabel(e.category) || '',
+          e.category === e.categoryLabel ? '' : (getCatLabel(e.category) === e.categoryLabel ? e.categoryLabel : getCatLabel(e.category)),
+          amt,
+          'نقدي',    // طريقة الصرف
+          '',          // التوقيع (فراغ للتوقيع اليدوي)
+          e.notes || '',
+          '',          // رقم المرجع
+          (e.createdBy||'').split('@')[0] || ''
+        ]);
+
+        // البيان الحقيقي في E
+        row.getCell(5).value = e.categoryLabel || getCatLabel(e.category) || '';
+
+        fillRow(row, bgRow, BLK, false, 11, brdSm, cAl);
+
+        // رقم التسلسل — وسط
+        sc(row.getCell(1), bgRow, BLK, true, 11, brdSm, cAl);
+
+        // اسم المستلم — يمين بولد
+        sc(row.getCell(3), bgRow, BLK, true, 11, brdSm, rAl);
+
+        // الفئة — وسط مع لون خلفية خفيفة
+        sc(row.getCell(4), isEven ? ('FF'+rawA) : LGRY, PRI, true, 10, brdSm, cAl);
+
+        // البيان — يمين
+        row.getCell(5).alignment = rAl();
+
+        // المبلغ — وسط بولد وأحمر
+        sc(row.getCell(6), isEven ? ('FFFFF0F0') : ('FFFFF5F5'), RED, true, 13, brdMd, cAl);
+        nFmt(row.getCell(6));
+
+        // طريقة الصرف
+        sc(row.getCell(7), bgRow, BLK, false, 10, brdSm, cAl);
+
+        // خانة التوقيع — حدود واضحة للتوقيع اليدوي
+        sc(row.getCell(8), WHT, BLK, false, 10, brdMd, cAl);
+
+        // ملاحظات
+        row.getCell(9).alignment  = rAl(true);
+        row.getCell(9).font       = {name:'Arial',size:10,color:{argb:BLK}};
+
+        row.height = 24;
+      });
+    }
+
+    // ============================================================
+    // صف إجمالي المصروفات
+    // ============================================================
+    const rTot = ws.addRow(['', '', 'إجمالي المصروفات اليومية', '', '', totalExpenses, '', '', `عدد العمليات: ${dayExpenses.length}`, '', '']);
+    merge(rTot.number,'A','B');
+    merge(rTot.number,'C','E');
+    merge(rTot.number,'G','H');
+    merge(rTot.number,'I',LC);
+    sc(rTot.getCell(1), PRI, WHT, true, 11, brdTk, cAl);
+    sc(rTot.getCell(3), PRI, WHT, true, 13, brdTk, cAl);
+    sc(rTot.getCell(6), RED,  WHT, true, 16, brdTk, cAl);
+    nFmt(rTot.getCell(6));
+    sc(rTot.getCell(7), PRI, WHT, true, 11, brdTk, cAl);
+    sc(rTot.getCell(9), SEC, WHT, true, 11, brdTk, cAl);
+    rTot.height = 34;
+
+    // ============================================================
+    // فراغ فاصل
+    // ============================================================
+    const rSep2 = ws.addRow(Array(NCOLS).fill(''));
+    merge(rSep2.number,'A',LC);
+    rSep2.getCell(1).fill = hF(MGRY);
+    rSep2.height = 5;
+
+    // ============================================================
+    // ملخص الموقف المالي اليومي — 4 صفوف بتنسيق جدولي احترافي
+    // ============================================================
+    const rFinHdr = ws.addRow(['الموقف المالي اليومي — ملخص الخزنة']);
+    merge(rFinHdr.number,'A',LC);
+    sc(rFinHdr.getCell(1), PRI, WHT, true, 12, brdTk, rAl);
+    rFinHdr.getCell(1).alignment = { horizontal:'right', vertical:'middle', readingOrder:2, indent:1 };
+    rFinHdr.height = 26;
+
+    // جدول الملخص — كل سطر: وصف (A:H) | مبلغ (I:K)
+    const finRows = [
+      { lbl:`رصيد الخزنة في بداية اليوم (العهدة السابقة ${custPrev.toLocaleString('ar-EG')} + الجديدة ${custNew.toLocaleString('ar-EG')})`, val:openingBalance, bg:BLUE,                              prefix:'◈' },
+      { lbl:'( - ) إجمالي المصروفات والمدفوعات خلال اليوم',                                                                                  val:totalExpenses,  bg:DRED,                              prefix:'➖' },
+      { lbl:'( = ) رصيد الخزنة في نهاية اليوم',                                                                                              val:closingBalance, bg:closingBalance>=0?GRN:RED,          prefix:'◆' },
+    ];
+
+    finRows.forEach(({ lbl, val, bg, prefix }) => {
+      const sr = ws.addRow([prefix, lbl, '','','','','','', val,'','']);
+      merge(sr.number,'A','A');
+      merge(sr.number,'B','H');
+      merge(sr.number,'I',LC);
+      sc(sr.getCell(1), bg, WHT, true,  14, brdTk, cAl);
+      sc(sr.getCell(2), bg, WHT, true,  12, brdTk, rAl);
+      sr.getCell(2).alignment = { horizontal:'right', vertical:'middle', wrapText:true, readingOrder:2, indent:1 };
+      sc(sr.getCell(9), bg, WHT, true,  16, brdTk, cAl);
+      nFmt(sr.getCell(9));
+      sr.height = 36;
+    });
+
+    // ============================================================
+    // فوتر
+    // ============================================================
+    ws.addRow([]);
+    const rFtr = ws.addRow([`Designed by Eng. Kareem Ali Mousa     —     ${printDateAr}     —     ${schoolName}`]);
+    merge(rFtr.number,'A',LC);
+    rFtr.getCell(1).font      = { name:'Arial', size:9, italic:true, color:{ argb:'FF999999' } };
+    rFtr.getCell(1).alignment = cAl();
+    rFtr.height = 18;
+
+    // ============================================================
+    // تصدير
+    // ============================================================
+    const buf  = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `شيت_المصروفات_${schoolName}_${selectedDate}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  //  PDF Export 
+  function exportPDF() {
+    const school = SESSION.getSchool();
+    const { from, to } = getDateRange();
+    const total      = currentData.reduce((s, d) => s + (d.amount || 0), 0);
+    const remaining  = prevCustodian + newCustodian - total;
+
+    const rows = currentData.map((d, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${d.date}</td>
+        <td>${d.recipientName}</td>
+        <td>${d.categoryLabel || d.category}</td>
+        <td style="font-weight:800;color:#1a3a6b">${formatCurrency(d.amount)}</td>
+        <td>${d.notes || '—'}</td>
+      </tr>
+    `).join('');
+
+    const win = window.open('', '_blank');
+    win.document.write(`
+      <html dir="rtl"><head>
+        <meta charset="UTF-8">
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+        <style>
+          body{font-family:Cairo,sans-serif;padding:24px;font-size:12px;direction:rtl;color:#1a1a2e}
+          .header{display:flex;align-items:center;gap:16px;margin-bottom:16px;padding-bottom:12px;border-bottom:3px solid #1a3a6b}
+          .school-name{font-size:18px;font-weight:900;color:#1a3a6b}
+          .report-info{font-size:11px;color:#666;margin-top:4px}
+          .summary-bar{display:flex;gap:24px;flex-wrap:wrap;margin:12px 0;background:#1a3a6b;color:white;padding:12px 16px;border-radius:8px}
+          .sum-item .lbl{font-size:10px;opacity:0.7}
+          .sum-item .val{font-size:16px;font-weight:900}
+          table{width:100%;border-collapse:collapse;margin-top:12px}
+          th{background:#1a3a6b;color:white;padding:7px 8px;text-align:right;font-size:11px}
+          td{padding:6px 8px;border-bottom:1px solid #eee;font-size:11px}
+          tr:nth-child(even){background:#f8f9fa}
+          .foot-row{background:#e8f0fe;font-weight:900;color:#1a3a6b}
+          @media print{@page{size:A4 landscape}body{padding:12px}}
+        </style>
+      </head><body>
+        <div class="header">
+          <img src="${school?.logo}" width="56" height="56" style="object-fit:contain;border-radius:8px" onerror="this.style.display='none'" />
+          <div>
+            <div class="school-name">${school?.name || 'النظام'}</div>
+            <div class="report-info">بيان المصروفات | الفترة: ${from} إلى ${to}</div>
+            <div class="report-info">تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')} | بواسطة: ${session.email}</div>
+          </div>
+        </div>
+
+        <div class="summary-bar">
+          <div class="sum-item"><div class="lbl">العهدة السابقة</div><div class="val">${formatCurrency(prevCustodian)}</div></div>
+          <div class="sum-item"><div class="lbl">العهدة الجديدة</div><div class="val">${formatCurrency(newCustodian)}</div></div>
+          <div class="sum-item"><div class="lbl">إجمالي المصروفات</div><div class="val">${formatCurrency(total)}</div></div>
+          <div class="sum-item"><div class="lbl">الرصيد المتبقي</div><div class="val">${formatCurrency(remaining)}</div></div>
+          <div class="sum-item"><div class="lbl">عدد العمليات</div><div class="val">${currentData.length}</div></div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>التاريخ</th><th>اسم المستلم</th>
+              <th>المقابل / الفئة</th><th>المبلغ</th><th>ملاحظات</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+          <tfoot>
+            <tr class="foot-row">
+              <td colspan="4">الإجمالي (${currentData.length} عملية)</td>
+              <td>${formatCurrency(total)}</td><td></td>
+            </tr>
+            <tr class="foot-row" style="background:#d4e8ff">
+              <td colspan="4">العهدة السابقة</td>
+              <td>${formatCurrency(prevCustodian)}</td><td></td>
+            </tr>
+            <tr class="foot-row" style="background:#c8e6c9;color:#1b5e20">
+              <td colspan="4" style="font-size:13px">الرصيد المتبقي</td>
+              <td style="font-size:14px">${formatCurrency(remaining)}</td><td></td>
+            </tr>
+          </tfoot>
+        </table>
+        <script>window.print();setTimeout(()=>window.close(),900)<\/script>
+      </body></html>
+    `);
+  }
+
+  //  Responsive grid 
+  function checkGridResponsive() {
+    const grid = document.getElementById('mainGrid');
+    if (!grid) return;
+    grid.style.gridTemplateColumns = window.innerWidth <= 900 ? '1fr' : '2fr 1fr';
+  }
+  window.addEventListener('resize', checkGridResponsive);
+  checkGridResponsive();
+
+  //  INIT 
+  async function init() {
+    await loadPrevCustodian();
+    await loadReport();
+  }
+  init();
+
+  // ============================================================
+  // EDIT EXPENSE MODAL
+  // ============================================================
+  let editingExpenseId = null;
+
+  // ملء select التعديل من نفس قائمة الفئات
+  function populateEditCategory() {
+    const sel = document.getElementById('editExpCategory');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— اختر —</option>';
+    EXPENSE_CATEGORIES.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.value;
+      opt.textContent = `${c.icon} ${c.label}`;
+      sel.appendChild(opt);
+    });
+  }
+  populateEditCategory();
+
+  async function openEditExpenseModal(id) {
+    const doc = await db.collection('expenses').doc(id).get();
+    if (!doc.exists) return alert('لم يتم العثور على السجل');
+    const d = doc.data();
+    editingExpenseId = id;
+
+    document.getElementById('editExpRecipient').value  = d.recipientName || '';
+    document.getElementById('editExpAmount').value     = d.amount || '';
+    document.getElementById('editExpDate').value       = d.date || '';
+    document.getElementById('editExpCategory').value   = d.category || '';
+    document.getElementById('editExpNotes').value      = d.notes || '';
+
+    // حقل البيان
+    const cat = EXPENSE_CATEGORIES.find(c => c.value === d.category);
+    const grp = document.getElementById('editCustomLabelGroup');
+    const inp = document.getElementById('editExpCustomLabel');
+    if (cat?.customLabel) {
+      grp.style.display = 'flex';
+      inp.value = d.customLabel || d.categoryLabel || '';
+    } else {
+      grp.style.display = 'none';
+      inp.value = '';
+    }
+
+    document.getElementById('editExpenseModal').style.display = 'flex';
+  }
+
+  function closeEditExpenseModal() {
+    document.getElementById('editExpenseModal').style.display = 'none';
+    document.getElementById('editCustomLabelGroup').style.display = 'none';
+    document.getElementById('editExpCustomLabel').value = '';
+    editingExpenseId = null;
+  }
+
+  async function saveEditExpense() {
+    if (!editingExpenseId) return;
+    const recipientName = document.getElementById('editExpRecipient').value.trim();
+    const amount        = parseFloat(document.getElementById('editExpAmount').value);
+    const date          = document.getElementById('editExpDate').value;
+    const category      = document.getElementById('editExpCategory').value;
+    const notes         = document.getElementById('editExpNotes').value.trim();
+    const customLabel   = document.getElementById('editExpCustomLabel').value.trim();
+
+    if (!recipientName) return alert('ادخل اسم المستلم');
+    if (!amount || amount <= 0) return alert('ادخل مبلغ صحيح');
+    if (!date) return alert('اختر التاريخ');
+
+    const cat = EXPENSE_CATEGORIES.find(c => c.value === category);
+    if (cat?.customLabel && !customLabel) return alert('من فضلك اكتب البيان');
+
+    const finalLabel = cat?.customLabel ? customLabel : (cat?.label || category);
+
+    const btn = document.getElementById('editExpSaveBtn');
+    btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+    try {
+      await db.collection('expenses').doc(editingExpenseId).update({
+        recipientName, amount, date, category, notes,
+        categoryLabel: finalLabel,
+        customLabel:   cat?.customLabel ? customLabel : null,
+        editedBy: session.email,
+        editedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      closeEditExpenseModal();
+      loadReport();
+    } catch (err) {
+      alert('خطأ في التعديل: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'حفظ التعديلات';
+    }
+  }
+</script>
+
+<!-- EDIT EXPENSE MODAL -->
+<div id="editExpenseModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:white;border-radius:12px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;padding:1.5rem;direction:rtl;font-family:Cairo,sans-serif">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <h2 style="font-size:1.1rem;font-weight:800;color:var(--primary);margin:0">✏ تعديل المصروف</h2>
+      <button onclick="closeEditExpenseModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#999">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">اسم المستلم</label>
+        <input id="editExpRecipient" type="text" class="form-input form-input-ar" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">المبلغ (ج.م)</label>
+        <input id="editExpAmount" type="number" class="form-input" min="0" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">التاريخ</label>
+        <input id="editExpDate" type="date" class="form-input" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">المقابل</label>
+        <select id="editExpCategory" class="form-select" onchange="onExpCategoryChange('editExpCategory','editCustomLabelGroup')">
+          <option value="">— اختر —</option>
+        </select>
+      </div>
+      <!-- حقل البيان للتعديل -->
+      <div id="editCustomLabelGroup" style="grid-column:1/-1;display:none;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">البيان <span style="color:red">*</span></label>
+        <input id="editExpCustomLabel" type="text" class="form-input form-input-ar" placeholder="اكتب البيان هنا..." />
+      </div>
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:0.82rem;font-weight:700">ملاحظات</label>
+        <textarea id="editExpNotes" class="form-textarea" rows="2"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.25rem">
+      <button id="editExpSaveBtn" onclick="saveEditExpense()" class="btn btn-primary" style="flex:1">حفظ التعديلات</button>
+      <button onclick="closeEditExpenseModal()" class="btn btn-secondary">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

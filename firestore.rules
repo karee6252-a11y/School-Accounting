@@ -1,0 +1,276 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+    function email() {
+      return request.auth.token.email;
+    }
+    function hasSchoolId() {
+      return request.resource.data.schoolId is string
+          && request.resource.data.schoolId.size() > 0;
+    }
+    function schoolUnchanged() {
+      return request.resource.data.schoolId == resource.data.schoolId;
+    }
+    function isAdmin() {
+      return email() in [
+        'admin@schools-system.com',
+        'admin2@schools-system.com'
+      ];
+    }
+
+    // محاسبو كل مدرسة
+    function canWriteToSchool(sid) {
+      return isAdmin() || (
+        (sid == 'bristol'   && email() in ['acc1.bristol@bristol-school.com',   'acc2.bristol@bristol-school.com']) ||
+        (sid == 'cardiff'   && email() in ['acc1.cardiff@cardiff-school.com',   'acc2.cardiff@cardiff-school.com']) ||
+        (sid == 'stanford1' && email() in ['acc1.stanford1@stanford-school.com','acc2.stanford1@stanford-school.com']) ||
+        (sid == 'stanford2' && email() in ['acc1.stanford2@stanford-school.com','acc2.stanford2@stanford-school.com'])
+      );
+    }
+    function canReadSchool(sid) {
+      return isAdmin() || canWriteToSchool(sid);
+    }
+
+    // شئون الطلاب
+    function isShu2onForSchool(sid) {
+      return isAdmin() || (
+        (sid == 'bristol'   && email() in ['shu2on@bristol-school.com',  'shu2on2@bristol-school.com',  'shu2on3@bristol-school.com',  'shu2on4@bristol-school.com']) ||
+        (sid == 'cardiff'   && email() in ['shu2on@cardiff-school.com',  'shu2on2@cardiff-school.com',  'shu2on3@cardiff-school.com',  'shu2on4@cardiff-school.com']) ||
+        (sid == 'stanford1' && email() in ['shu2on@stanford1-school.com','shu2on2@stanford1-school.com','shu2on3@stanford1-school.com','shu2on4@stanford1-school.com']) ||
+        (sid == 'stanford2' && email() in ['shu2on@stanford2-school.com','shu2on2@stanford2-school.com','shu2on3@stanford2-school.com','shu2on4@stanford2-school.com'])
+      );
+    }
+
+    // المقاولات
+    function isContractorsForSchool(sid) {
+      return isAdmin() || (
+        (sid == 'bristol'   && email() in ['contractors@bristol-school.com']) ||
+        (sid == 'cardiff'   && email() in ['contractors@cardiff-school.com']) ||
+        (sid == 'stanford1' && email() in ['contractors@stanford1-school.com']) ||
+        (sid == 'stanford2' && email() in ['contractors@stanford2-school.com'])
+      );
+    }
+
+    // الموارد البشرية
+    function isHRForSchool(sid) {
+      return isAdmin() || (
+        (sid == 'bristol'   && email() in ['hr@bristol-school.com',  'hr2@bristol-school.com']) ||
+        (sid == 'cardiff'   && email() in ['hr@cardiff-school.com',  'hr2@cardiff-school.com']) ||
+        (sid == 'stanford1' && email() in ['hr@stanford1-school.com','hr2@stanford1-school.com']) ||
+        (sid == 'stanford2' && email() in ['hr@stanford2-school.com','hr2@stanford2-school.com'])
+      );
+    }
+
+    // ═══════════════════════════════════════════
+    // محاسبة
+    // ═══════════════════════════════════════════
+    match /transactions/{docId} {
+      allow read: if isAuth() && (
+        isAdmin() ||
+        canWriteToSchool(resource.data.schoolId) ||
+        isShu2onForSchool(resource.data.schoolId)
+      );
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && (
+        canWriteToSchool(resource.data.schoolId) ||
+        (isShu2onForSchool(resource.data.schoolId) &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['studentName','studentNameEn','grade','stage','stageName','updatedAt']))
+      );
+      allow delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
+    }
+
+    match /debts/{docId} {
+      allow read: if isAuth() && (
+        isAdmin() ||
+        canWriteToSchool(resource.data.schoolId) ||
+        isShu2onForSchool(resource.data.schoolId)
+      );
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && (
+        canWriteToSchool(resource.data.schoolId) ||
+        (isShu2onForSchool(resource.data.schoolId) &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['studentName','grade','updatedAt']))
+      );
+      allow delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
+    }
+
+    match /expenses/{docId} {
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+    }
+
+    match /custodians/{sid} {
+      allow read: if isAuth() && canReadSchool(sid);
+      allow write: if isAuth() && canWriteToSchool(sid);
+    }
+
+    match /custodianClosures/{docId} {
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+    }
+
+    // ═══════════════════════════════════════════
+    // باصات
+    // ═══════════════════════════════════════════
+    match /busCompanies/{sid} {
+      allow read: if isAuth() && canReadSchool(sid);
+      allow write: if isAuth() && canWriteToSchool(sid);
+      match /companies/{companyId} {
+        allow read: if isAuth() && canReadSchool(sid);
+        allow write: if isAuth() && canWriteToSchool(sid);
+        match /vehicles/{vehicleId} {
+          allow read: if isAuth() && canReadSchool(sid);
+          allow write: if isAuth() && canWriteToSchool(sid);
+        }
+      }
+    }
+    match /busData/{sid} {
+      allow read: if isAuth() && canReadSchool(sid);
+      allow write: if isAuth() && canWriteToSchool(sid);
+    }
+    match /busSubscriptions/{docId} {
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+    }
+    match /busExpenses/{docId} {
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+    }
+
+    // ═══════════════════════════════════════════
+    // مقاولات + عهدة المقاولات
+    // ═══════════════════════════════════════════
+    match /custody_settings/{sid} {
+      allow read: if isAuth() && (canReadSchool(sid) || isContractorsForSchool(sid));
+      allow write: if isAuth() && (canWriteToSchool(sid) || isContractorsForSchool(sid));
+    }
+    match /contractors_suppliers/{docId} {
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && (canWriteToSchool(request.resource.data.schoolId) || isContractorsForSchool(request.resource.data.schoolId));
+      allow update, delete: if isAuth() && schoolUnchanged() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+    }
+    match /contractors_purchases/{docId} {
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && (canWriteToSchool(request.resource.data.schoolId) || isContractorsForSchool(request.resource.data.schoolId));
+      allow update, delete: if isAuth() && schoolUnchanged() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+    }
+    match /contractors_contracts/{docId} {
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && (canWriteToSchool(request.resource.data.schoolId) || isContractorsForSchool(request.resource.data.schoolId));
+      allow update, delete: if isAuth() && schoolUnchanged() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+    }
+    match /custody_entries/{docId} {
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && (canWriteToSchool(request.resource.data.schoolId) || isContractorsForSchool(request.resource.data.schoolId));
+      allow update, delete: if isAuth() && schoolUnchanged() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+    }
+
+    // ═══════════════════════════════════════════
+    // حفلات / تذاكر
+    // get عام للتذكرة بالـ QR — list للكادر فقط
+    // الكتابة للمحاسب/الأدمن فقط (تسجيل الحضور من party.html)
+    // ═══════════════════════════════════════════
+    match /partyAttendees/{docId} {
+      allow get: if true;
+      allow list: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+    }
+
+    match /photoDirectStudents/{docId} {
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+    }
+
+    // ═══════════════════════════════════════════
+    // شئون الطلاب
+    // ═══════════════════════════════════════════
+    match /studentAffairs/{docId} {
+      allow read: if isAuth() && (
+        isAdmin() ||
+        isShu2onForSchool(resource.data.schoolId) ||
+        canWriteToSchool(resource.data.schoolId)
+      );
+      allow create: if isAuth() && hasSchoolId() && (
+        isShu2onForSchool(request.resource.data.schoolId) ||
+        canWriteToSchool(request.resource.data.schoolId)
+      );
+      allow update, delete: if isAuth() && schoolUnchanged() && (
+        isShu2onForSchool(resource.data.schoolId) ||
+        canWriteToSchool(resource.data.schoolId)
+      );
+    }
+
+    // ═══════════════════════════════════════════
+    // الموارد البشرية
+    // ═══════════════════════════════════════════
+    match /employees/{docId} {
+      allow read: if isAuth() && (
+        isHRForSchool(resource.data.schoolId) ||
+        canWriteToSchool(resource.data.schoolId)
+      );
+      allow create: if isAuth() && hasSchoolId() && isHRForSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+    }
+    match /schools/{schoolId}/employees/{docId} {
+      allow read: if isAuth() && (isHRForSchool(schoolId) || canWriteToSchool(schoolId));
+      allow write: if isAuth() && isHRForSchool(schoolId);
+    }
+    match /attendance/{docId} {
+      allow read: if isAuth() && (
+        isHRForSchool(resource.data.schoolId) ||
+        canWriteToSchool(resource.data.schoolId)
+      );
+      allow create: if isAuth() && hasSchoolId() && isHRForSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+    }
+    match /penalties/{docId} {
+      allow read: if isAuth() && (
+        isHRForSchool(resource.data.schoolId) ||
+        canWriteToSchool(resource.data.schoolId)
+      );
+      allow create: if isAuth() && hasSchoolId() && isHRForSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+    }
+    match /rewards/{docId} {
+      allow read: if isAuth() && (
+        isHRForSchool(resource.data.schoolId) ||
+        canWriteToSchool(resource.data.schoolId)
+      );
+      allow create: if isAuth() && hasSchoolId() && isHRForSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+    }
+    match /permissions/{docId} {
+      allow read: if isAuth() && isHRForSchool(resource.data.schoolId);
+      allow create: if isAuth() && hasSchoolId() && isHRForSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+    }
+    match /leaves/{docId} {
+      allow read: if isAuth() && isHRForSchool(resource.data.schoolId);
+      allow create: if isAuth() && hasSchoolId() && isHRForSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+    }
+
+    // ═══════════════════════════════════════════
+    // تحليل البيانات — إدخال يدوي للمحاسب/الأدمن
+    // ═══════════════════════════════════════════
+    match /analyticsEntries/{docId} {
+      allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
+      allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
+      allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+    }
+
+  } // end match /databases
+} // end service
+

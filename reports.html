@@ -1,0 +1,2318 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>التقارير - نظام المحاسبة</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .export-btn-group { display:flex; gap:0.5rem; flex-wrap:wrap; }
+    .filter-section { background:var(--card-bg); border-radius:var(--radius); padding:1.25rem; border:1px solid var(--border); margin-bottom:1rem; }
+    .summary-box { background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247)); color: white; border-radius: var(--radius); padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .summary-box .big-num { font-size: 2.5rem; font-weight: 900; }
+    .summary-box .sub { font-size: 0.8rem; opacity: 0.7; }
+    .table-footer-total { background: var(--accent); font-weight: 800; color: var(--primary); }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div id="topbarContainer"></div>
+    <div class="page-content">
+
+      <!-- Main Section Tabs -->
+      <div class="report-period-tabs animate-in" id="mainSectionTabs">
+        <button class="period-tab active" onclick="showSection('financial', this)"> تقارير مالية</button>
+        <button class="period-tab" onclick="showSection('payroll', this)"> كشف الرواتب</button>
+      </div>
+
+      <!-- ===== FINANCIAL SECTION ===== -->
+      <div id="section-financial">
+
+      <!-- Period Tabs -->
+      <div class="report-period-tabs animate-in">
+        <button class="period-tab active" onclick="setPeriod('daily', this)"> يومي</button>
+        <button class="period-tab" onclick="setPeriod('weekly', this)"> أسبوعي</button>
+        <button class="period-tab" onclick="setPeriod('monthly', this)"> شهري</button>
+        <button class="period-tab" onclick="setPeriod('custom', this)"> مخصص</button>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-section animate-in">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;align-items:end">
+          <div id="dailyFilter"><label class="form-label">التاريخ</label><input type="date" class="form-input" id="filterDate" onchange="loadReport()" /></div>
+          <div id="weeklyFilter" style="display:none"><label class="form-label">أسبوع من</label><input type="date" class="form-input" id="filterWeekStart" onchange="loadReport()" /></div>
+          <div id="monthlyFilter" style="display:none"><label class="form-label">الشهر</label><input type="month" class="form-input" id="filterMonth" onchange="loadReport()" /></div>
+          <div id="customFilter" style="display:none;grid-template-columns:1fr 1fr;gap:0.5rem;grid-column:span 2"><div><label class="form-label">من</label><input type="date" class="form-input" id="filterFrom" onchange="loadReport()" /></div><div><label class="form-label">إلى</label><input type="date" class="form-input" id="filterTo" onchange="loadReport()" /></div></div>
+          <div><label class="form-label">المرحلة</label><select class="form-select" id="filterStage" onchange="loadReport()"><option value="">كل المراحل</option><option value="pre_kg">Pre-KG</option><option value="kg">KG</option><option value="grade">Grade</option><option value="prep">Prep</option></select></div>
+          <div><label class="form-label">بند الدفع</label><select class="form-select" id="filterItem" onchange="loadReport()"><option value="">كل البنود</option><option value="مصروفات دراسية">مصروفات دراسية</option><option value="باص">باص</option><option value="يونيفورم">يونيفورم</option><option value="أبليكيشن">أبليكيشن</option><option value="فايل">فايل</option><option value="رحلات">رحلات</option><option value="امتحانات">امتحانات</option><option value="__other__">إيرادات أخرى</option></select></div>
+          <div><label class="form-label">طريقة الدفع</label><select class="form-select" id="filterPaymentType" onchange="loadReport()"><option value="">كل الطرق</option><option value="cash">نقدي</option><option value="bank_transfer">تحويل بنكي</option><option value="check">شيك</option><option value="instapay">إنستاباي</option></select></div>
+          <div><button class="btn btn-primary w-full" onclick="loadReport()"> بحث</button></div>
+        </div>
+      </div>
+
+      <!-- Summary Box -->
+      <div class="summary-box animate-in" id="summaryBox">
+        <div><div class="sub">إجمالي التحصيل</div><div class="big-num" id="summaryTotal">ج.م 0</div><div class="sub" id="summaryPeriod">التقرير اليومي</div></div>
+        <div><div style="font-size:2rem;font-weight:900" id="summaryCount">0</div><div class="sub">عملية</div></div>
+        <div><div style="font-size:2rem;font-weight:900" id="summaryStudents">0</div><div class="sub">طالب</div></div>
+        <div class="export-btn-group no-print"><button class="btn btn-secondary btn-sm" id="exportExcelBtn" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> Excel</button><button class="btn btn-secondary btn-sm" onclick="exportPDF()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> PDF</button><button class="btn btn-secondary btn-sm" onclick="window.print()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> طباعة</button><button class="btn btn-secondary btn-sm" onclick="exportCustomNamesSheet()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)" title="كشف بأسماء الأشخاص يتغير حسب بند الدفع المختار"> كشف مخصص بالأسامي</button><button class="btn btn-secondary btn-sm" id="revenueReviewBtn" onclick="handleRevenueReview()" style="background:rgba(255,215,0,0.25);color:#FFD700;border:1px solid rgba(255,215,0,0.6);font-weight:800" title="مراجعة الإيرادات الكاملة بالمراحل">📊 مراجعة الإيرادات</button>
+          <!-- زرار كشف الرواتب -->
+          <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap">
+            <input type="month" id="payrollMonthPicker" style="padding:0.3rem 0.5rem;border-radius:6px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);color:white;font-family:Cairo,sans-serif;font-size:0.78rem;max-width:140px" title="اختر الشهر"/>
+            <button class="btn btn-secondary btn-sm" onclick="exportPayrollExcelFromReports()" style="background:rgba(46,125,50,0.5);color:#fff;border:1px solid rgba(46,125,50,0.8);font-weight:800;white-space:nowrap" title="تصدير كشف الرواتب Excel"> كشف الرواتب</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Table -->
+      <div class="card animate-in">
+        <div class="card-header"><span class="card-title"> نتائج التقرير</span><span class="badge badge-primary" id="resultsCount">0 سجل</span></div>
+        <div class="table-wrapper">
+          <table class="data-table" id="reportTable">
+            <thead><tr><th>#</th><th>التاريخ</th><th class="col-daily">اسم الطالب</th><th>المرحلة</th><th>الصف</th><th>بند الدفع</th><th>المبلغ المدفوع</th><th class="col-daily">المديونية</th><th>طريقة الدفع</th><th>رقم الإيصال</th><th>ملاحظات</th><th class="no-print">إجراء</th></tr></thead>
+            <tbody id="reportTableBody"><tr><td colspan="10"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">اختر الفلتر وانقر بحث</div></div></td></tr></tbody>
+            <tfoot id="reportTableFoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="layout.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script>
+  renderLayout('reports', 'التقارير والشيتات');
+  const session = SESSION.get();
+  const schoolId = session.schoolId;
+  let currentPeriod = 'daily';
+  let currentData = [];
+  let currentDateRange = { from: '', to: '' };
+
+  function init() {
+    const today = localDateStr(new Date());
+    document.getElementById('filterDate').value = today;
+    const weekStart = new Date();
+    const day = weekStart.getDay(); // 0=Sun..6=Sat
+    const diffToSun = day === 0 ? 0 : day; // days since last Sunday (Sun=0, so no shift needed)
+    weekStart.setDate(weekStart.getDate() - diffToSun);
+    document.getElementById('filterWeekStart').value = localDateStr(weekStart);
+    document.getElementById('filterMonth').value = today.substring(0,7);
+    document.getElementById('filterFrom').value = today;
+    document.getElementById('filterTo').value = today;
+    loadReport();
+    document.getElementById('exportExcelBtn').onclick = exportExcel;
+  }
+
+  function setPeriod(period, btn) {
+    currentPeriod = period;
+    document.querySelectorAll('.period-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('dailyFilter').style.display = period === 'daily' ? 'block' : 'none';
+    document.getElementById('weeklyFilter').style.display = period === 'weekly' ? 'block' : 'none';
+    document.getElementById('monthlyFilter').style.display = period === 'monthly' ? 'block' : 'none';
+    document.getElementById('customFilter').style.display = period === 'custom' ? 'grid' : 'none';
+    loadReport();
+  }
+
+  function getDateRange() {
+    let from, to;
+    const today = new Date();
+    if (currentPeriod === 'daily') {
+      const d = document.getElementById('filterDate').value || localDateStr(today);
+      from = d; to = d;
+    } else if (currentPeriod === 'weekly') {
+      const start = new Date(document.getElementById('filterWeekStart').value + 'T00:00:00');
+      const end = new Date(start); end.setDate(end.getDate() + 6);
+      from = localDateStr(start);
+      to = localDateStr(end);
+    } else if (currentPeriod === 'monthly') {
+      const month = document.getElementById('filterMonth').value || localDateStr(today).substring(0,7);
+      const [y, m] = month.split('-').map(Number);
+      const lastDay = new Date(y, m, 0).getDate();
+      from = `${month}-01`;
+      to = `${month}-${String(lastDay).padStart(2,'0')}`;
+    } else {
+      from = document.getElementById('filterFrom').value;
+      to = document.getElementById('filterTo').value;
+      if (!from || !to) {
+        const today = localDateStr(new Date());
+        from = from || today;
+        to = to || today;
+      }
+    }
+    return { from, to };
+  }
+
+  async function loadReport() {
+    const { from, to } = getDateRange();
+    currentDateRange = { from, to };
+    const filterStage = document.getElementById('filterStage').value;
+    const filterItem = document.getElementById('filterItem').value;
+    const filterPaymentType = document.getElementById('filterPaymentType').value;
+    const tbody = document.getElementById('reportTableBody');
+    tbody.innerHTML = `<tr><td colspan="10"><div class="loading-spinner"></div></td></tr>`;
+    try {
+      const snap = await db.collection('transactions').where('schoolId','==',schoolId).where('date','>=',from).where('date','<=',to).get();
+      currentData = [];
+      snap.forEach(doc => {
+        const d = { id: doc.id, ...doc.data() };
+        if (filterStage && d.stage !== filterStage) return;
+        if (filterItem) {
+          if (filterItem === '__other__') {
+            // إيرادات أخرى = أي بند مش من البنود الأساسية وليس فايل
+            const mainItems = ['مصروفات دراسية','مصروفات','باص','يونيفورم','أبليكيشن','فايل'];
+            const hasOther = (d.paymentItem || '').split('+').map(s => s.trim()).some(p => !mainItems.includes(p) && !p.includes('فايل'))
+              || (Array.isArray(d.paymentItems) && d.paymentItems.some(pi => {
+                const n = (pi.item || '').trim();
+                return !mainItems.includes(n) && !n.includes('فايل');
+              }));
+            if (!hasOther) return;
+          } else {
+            const inString = (d.paymentItem || '').split('+').map(s => s.trim()).includes(filterItem);
+            const inArray  = Array.isArray(d.paymentItems) && d.paymentItems.some(pi => (pi.item || '').trim() === filterItem);
+            if (!inString && !inArray) return;
+          }
+        }
+        if (filterPaymentType && d.paymentType !== filterPaymentType) return;
+        currentData.push(d);
+      });
+      currentData.sort((a,b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
+      renderTable();
+    } catch(err) { tbody.innerHTML = `<tr><td colspan="10"><div class="alert alert-error">خطأ: ${err.message}</div><tr></tr>`; }
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('reportTableBody');
+    const tfoot = document.getElementById('reportTableFoot');
+    const isDaily = currentPeriod === 'daily';
+    const filterItem = document.getElementById('filterItem').value;
+    document.querySelectorAll('.col-daily').forEach(el => {
+      el.style.display = isDaily ? '' : 'none';
+    });
+    let total = 0, totalDebt = 0;
+    const students = new Set();
+    if (currentData.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="empty-state-title">لا توجد بيانات للفلتر المحدد</div></div></td></tr>`;
+      tfoot.innerHTML = '';
+    } else {
+      tbody.innerHTML = '';
+      currentData.forEach((d,i) => {
+        // لو فيه فلتر بند، احسب مبلغ البند ده بس
+        let displayAmount = d.amount || 0;
+        if (filterItem) {
+          const m = mapAmounts(d);
+          const key = filterItem === 'مصروفات دراسية' || filterItem === 'مصروفات' ? 'fees'
+                    : filterItem === 'يونيفورم'  ? 'uni'
+                    : filterItem === 'باص'        ? 'bus'
+                    : filterItem === 'أبليكيشن'  ? 'app'
+                    : filterItem === 'فايل'       ? 'file'
+                    : filterItem === '__other__'  ? 'other'
+                    : 'other';
+          displayAmount = m[key] || 0;
+        }
+        total += displayAmount;
+        totalDebt += d.debt || 0;
+        students.add(d.studentName);
+        const displayItem = filterItem || d.paymentItem;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="text-muted text-sm">${i+1}</td>
+          <td>${d.date}</td>
+          <td class="col-daily"><strong>${d.studentName}</strong></td>
+          <td><span class="badge badge-primary">${d.stageName || d.stage}</span></td>
+          <td>${d.grade}</td>
+          <td>${displayItem}</td>
+          <td class="text-bold text-primary">${formatCurrency(displayAmount)}</td>
+          <td class="col-daily" style="color:#c0392b;font-weight:700">${d.debt>0?formatCurrency(d.debt):'-'}</td>
+          <td>${d.paymentTypeName || d.paymentType}</td>
+          <td class="text-sm text-muted">${d.receiptNumber}</td>
+          <td class="text-sm text-muted">${d.notes || '-'}</td>
+          <td class="no-print">
+            <button onclick="openEditTxModal('${d.id}')" style="padding:3px 10px;font-size:0.75rem;font-weight:700;color:var(--primary);background:none;border:1.5px solid var(--primary);border-radius:6px;cursor:pointer;font-family:Cairo,sans-serif;white-space:nowrap">✏ تعديل</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      // daily   (12 عمود): # تاريخ اسم مرحلة صف بند | مبلغ | مديونية | دفع إيصال ملاحظات إجراء
+      //  → قبل المبلغ: 6 | المبلغ: 1 | المديونية: 1 | بعده: 4 = 12
+      // non-daily (10 عمود): # تاريخ مرحلة صف بند | مبلغ | دفع إيصال ملاحظات إجراء
+      //  → قبل المبلغ: 5 | المبلغ: 1 | بعده: 4 = 10
+      const labelColspan = isDaily ? 6 : 5;
+      tfoot.innerHTML = `<tr class="table-footer-total">
+        <td colspan="${labelColspan}" style="padding:0.75rem 1rem;font-weight:800;text-align:right">الإجمالي (${currentData.length} عملية)</td>
+        <td style="padding:0.75rem 1rem;font-weight:900;font-size:1.05rem;text-align:center">${formatCurrency(total)}</td>
+        ${isDaily ? `<td style="padding:0.75rem 1rem;font-weight:900;color:#c0392b;text-align:center">${totalDebt>0?formatCurrency(totalDebt):'-'}</td><td colspan="4" style="padding:0.75rem 1rem"></td>` : `<td colspan="4" style="padding:0.75rem 1rem"></td>`}
+      </tr>`;
+    }
+    document.getElementById('summaryTotal').textContent = formatCurrency(total);
+    document.getElementById('summaryCount').textContent = currentData.length;
+    document.getElementById('summaryStudents').textContent = students.size;
+    document.getElementById('resultsCount').textContent = currentData.length + ' سجل';
+    const { from, to } = currentDateRange;
+    const periodLabels = { daily:'يومي', weekly:'اسبوعي', monthly:'شهري', custom:'مخصص' };
+    document.getElementById('summaryPeriod').textContent = `${periodLabels[currentPeriod]} - من ${from} الى ${to}`;
+  }
+
+
+  function mapAmounts(d) {
+    const paidAmount = d.amount || 0;
+    let totalDiscount = 0;
+    if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
+      d.paymentItems.forEach(pi => {
+        if (typeof pi === 'object' && pi.item) {
+          totalDiscount += (Number(pi.price) || 0) * (Number(pi.discount) || 0) / 100;
+        }
+      });
+    }
+
+    const out = { fees:0, disc: Math.round(totalDiscount), uni:0, bus:0, app:0, file:0, other:0 };
+
+    function assignItem(itemName, itemAmt) {
+      const name = (itemName || '').trim();
+      if      (name === 'مصروفات دراسية' || name === 'مصروفات') { out.fees += itemAmt; }
+      else if (name === 'يونيفورم')                              { out.uni  += itemAmt; }
+      else if (name === 'باص')                                    { out.bus  += itemAmt; }
+      else if (name === 'أبليكيشن')                              { out.app  += itemAmt; }
+      else if (name.includes('مصروفات'))  { out.fees  += itemAmt; }
+      else if (name.includes('يونيفورم')) { out.uni   += itemAmt; }
+      else if (name.includes('باص'))      { out.bus   += itemAmt; }
+      else if (name.includes('أبليكيشن')) { out.app   += itemAmt; }
+      else if (name === 'فايل' || name.includes('فايل')) { out.file  += itemAmt; } // فايل
+      else { out.other += itemAmt; } // رحلات / امتحانات / إيرادات أخرى
+    }
+
+    if (Array.isArray(d.paymentItems) && d.paymentItems.length > 0) {
+      const itemNetPrices = d.paymentItems.map(pi => {
+        if (typeof pi === 'object' && pi.item) {
+          const price = Number(pi.price) || 0;
+          const disc  = Number(pi.discount) || 0;
+          return { item: pi.item, net: Number(pi.netPrice) || (price * (1 - disc / 100)) };
+        }
+        return { item: String(pi), net: 0 };
+      });
+      const totalNet = itemNetPrices.reduce((s, x) => s + x.net, 0);
+      if (totalNet > 0) {
+        let assignedTotal = 0;
+        itemNetPrices.forEach((x, idx) => {
+          const amt = idx === itemNetPrices.length - 1
+            ? paidAmount - assignedTotal
+            : Math.round(paidAmount * (x.net / totalNet));
+          if (idx < itemNetPrices.length - 1) assignedTotal += amt;
+          assignItem(x.item, amt);
+        });
+      } else {
+        itemNetPrices.forEach(x => assignItem(x.item, paidAmount / Math.max(itemNetPrices.length, 1)));
+      }
+    } else {
+      const itemStr = d.paymentItem || '';
+      if (itemStr.includes('+')) {
+        itemStr.split('+').map(s => s.trim()).filter(Boolean).forEach(p => assignItem(p, paidAmount / itemStr.split('+').length));
+      } else {
+        assignItem(itemStr, paidAmount);
+      }
+    }
+
+    return out;
+  }
+
+  async function exportCustomNamesSheet() {
+    if (currentData.length === 0) { alert('لا توجد بيانات للتصدير'); return; }
+
+    const school = SESSION.getSchool();
+    const { from, to } = getDateRange();
+    const filterItem = document.getElementById('filterItem').value;
+
+    if (typeof ExcelJS === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      document.head.appendChild(s);
+      s.onload = () => exportCustomNamesSheet();
+      return;
+    }
+
+    const schoolName = school?.name || 'المدرسة';
+    const YEAR = ACADEMIC_YEAR;
+
+    const rawPrimary = (school?.primaryColor || '#1E2D5A').replace('#','');
+    const rawSecond  = (school?.secondaryColor|| '#4A6FA5').replace('#','');
+    const rawAccent  = (school?.accentColor   || '#D6E4F0').replace('#','');
+
+    const PRI  = 'FF' + rawPrimary;
+    const SEC  = 'FF' + rawSecond;
+    const ACC  = 'FF' + rawAccent;
+    const WHT  = 'FFFFFFFF';
+    const BLK  = 'FF000000';
+    const TOTBG= 'FF' + rawPrimary;
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'School Accounting System — ' + schoolName;
+    wb.views = [{ x:0, y:0, width:10000, height:20000, firstSheet:0, activeTab:0, visibility:'visible', rightToLeft:true }];
+
+    function hFill(argb) { return { type:'pattern', pattern:'solid', fgColor:{ argb } }; }
+    function hBorder(style='medium', c='FF888888') {
+      const s = { style, color:{ argb: c } };
+      return { top:s, bottom:s, left:s, right:s };
+    }
+    function cAlign(wrap=false) { return { horizontal:'center', vertical:'middle', wrapText:wrap, readingOrder:2, textRotation:0 }; }
+    function rAlign() { return { horizontal:'right', vertical:'middle', readingOrder:2, textRotation:0 }; }
+
+    function styleRow(row, bg, fontArgb=BLK, bold=false, sz=10, wrap=false) {
+      row.eachCell({ includeEmpty:true }, cell => {
+        if (bg) cell.fill = hFill(bg);
+        cell.font = { name:'Arial', bold, size:sz, color:{ argb: fontArgb } };
+        cell.alignment = cAlign(wrap);
+        cell.border = hBorder('medium','FF888888');
+      });
+    }
+
+    function titleRow(ws, text, bg, fontArgb=WHT, sz=13, mergeEnd='') {
+      const r = ws.addRow([text]);
+      if (mergeEnd) ws.mergeCells(`A${r.number}:${mergeEnd}${r.number}`);
+      styleRow(r, bg, fontArgb, true, sz, true);
+      r.height = 28;
+      return r;
+    }
+
+    function hdrRow(ws, vals, bg) {
+      const r = ws.addRow(vals);
+      styleRow(r, bg, WHT, true, 10);
+      r.height = 24;
+      return r;
+    }
+
+    function dataRow(ws, vals, altBg=false) {
+      const r = ws.addRow(vals);
+      r.eachCell({ includeEmpty:true }, cell => {
+        cell.fill = hFill(altBg ? ACC : WHT);
+        cell.font = { name:'Arial', bold:false, size:10, color:{ argb: BLK } };
+        cell.alignment = cAlign();
+        cell.border = hBorder('medium','FF999999');
+      });
+      r.height = 20;
+      return r;
+    }
+
+    function totalRow(ws, vals, bg=TOTBG) {
+      const r = ws.addRow(vals);
+      r.eachCell({ includeEmpty:true }, cell => {
+        if (bg) cell.fill = hFill(bg);
+        cell.font = { name:'Arial', bold:true, size:11, color:{ argb: WHT } };
+        cell.alignment = cAlign();
+        cell.border = hBorder('thick','FF444444');
+      });
+      r.height = 24;
+      return r;
+    }
+
+    function numFmt(cell) { cell.numFmt = '#,##0;(#,##0);"-"'; }
+
+    const ws = wb.addWorksheet('كشف بالأسامي');
+    ws.views = [{ state:'normal', rightToLeft:true }];
+    ws.columns = [
+      {width:5},{width:28},{width:13},{width:12},{width:18},
+      {width:14},{width:14},{width:13},{width:22}
+    ];
+    const MCOL = 'I';
+
+    titleRow(ws, `كشف مخصص بالأسامي — ${schoolName}`, PRI, WHT, 14, MCOL);
+
+    const itemLabel = filterItem ? (filterItem === '__other__' ? 'إيرادات أخرى' : filterItem) : 'كل البنود';
+    const infoR = ws.addRow([`بند الدفع : ${itemLabel}          الفترة : من ${from}   إلى   ${to}          العام الدراسي : ${YEAR}`]);
+    ws.mergeCells(`A${infoR.number}:${MCOL}${infoR.number}`);
+    styleRow(infoR, SEC, WHT, true, 11); infoR.height = 22;
+
+    hdrRow(ws, ['م','الاسم','المرحلة','الصف','بند الدفع','المبلغ','طريقة الدفع','رقم الإيصال','ملاحظات'], SEC);
+
+    let total = 0;
+    currentData.forEach((d, i) => {
+      // المبلغ يتغير حسب بند الدفع المختار بالظبط زي منطق الجدول على الصفحة
+      let displayAmount = d.amount || 0;
+      if (filterItem) {
+        const m = mapAmounts(d);
+        const key = filterItem === 'مصروفات دراسية' || filterItem === 'مصروفات' ? 'fees'
+                  : filterItem === 'يونيفورم'  ? 'uni'
+                  : filterItem === 'باص'        ? 'bus'
+                  : filterItem === 'أبليكيشن'  ? 'app'
+                  : filterItem === 'فايل'       ? 'file'
+                  : filterItem === '__other__'  ? 'other'
+                  : 'other';
+        displayAmount = m[key] || 0;
+      }
+      total += displayAmount;
+      const displayItem = filterItem ? itemLabel : d.paymentItem;
+      const r = dataRow(ws,
+        [i+1, d.studentName, d.stageName || d.stage, d.grade, displayItem,
+         displayAmount, d.paymentTypeName || d.paymentType, d.receiptNumber || '', d.notes || ''],
+        i%2===1);
+      numFmt(r.getCell(6));
+    });
+
+    const tr = totalRow(ws, ['الإجمالي','','','','', total, '', '', '']);
+    ws.mergeCells(`A${tr.number}:E${tr.number}`);
+    ws.mergeCells(`G${tr.number}:I${tr.number}`);
+    numFmt(tr.getCell(6));
+
+    ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:4, activeCell:'A5' }];
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type:'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `كشف_مخصص_بالاسامي_${from}_${to}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  }
+
+  async function exportExcel() {
+    if (currentData.length === 0) { alert('لا توجد بيانات للتصدير'); return; }
+
+    const school = SESSION.getSchool();
+    const { from, to } = getDateRange();   // ← مرة واحدة بس
+
+    let expensesData = [];
+    try {
+      const expSnap = await db.collection('expenses')
+        .where('schoolId', '==', schoolId)
+        .where('date', '>=', from)
+        .where('date', '<=', to)
+        .get();
+      expSnap.forEach(doc => expensesData.push({ id: doc.id, ...doc.data() }));
+      expensesData.sort((a,b) => a.date.localeCompare(b.date));
+    } catch(e) { expensesData = []; }
+
+    // جلب بيانات العهدة
+    let custPrev = 0, custNew = 0;
+    try {
+      const cd = await db.collection('custodians').doc(schoolId).get();
+      if (cd.exists) { custPrev = cd.data().prevAmount || 0; custNew = cd.data().newAmount || 0; }
+    } catch(e) {}
+
+    // جلب كل المصروفات لحساب الرصيد المتبقي الصح (زي ما بيعمل expenses.html)
+    let allExpensesTotal = 0;
+    try {
+      const allExpSnap = await db.collection('expenses').where('schoolId','==',schoolId).get();
+      allExpSnap.forEach(doc => { allExpensesTotal += doc.data().amount || 0; });
+    } catch(e) {}
+    const custRemaining = custPrev + custNew - allExpensesTotal;
+
+    if (typeof ExcelJS === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      document.head.appendChild(s);
+      s.onload = () => exportExcel();
+      return;
+    }
+
+    const periodLabels = { daily:'يومي', weekly:'اسبوعي', monthly:'شهري', custom:'مخصص' };
+    const schoolName = school?.name || 'المدرسة';
+    const YEAR = ACADEMIC_YEAR;
+    const GRADES_LIST = ['Pre-KG','KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
+
+    const rawPrimary = (school?.primaryColor || '#1E2D5A').replace('#','');
+    const rawSecond  = (school?.secondaryColor|| '#4A6FA5').replace('#','');
+    const rawAccent  = (school?.accentColor   || '#D6E4F0').replace('#','');
+
+    const PRI  = 'FF' + rawPrimary;
+    const SEC  = 'FF' + rawSecond;
+    const ACC  = 'FF' + rawAccent;
+    const WHT  = 'FFFFFFFF';
+    const BLK  = 'FF000000';
+    const RED  = 'FFC00000';
+    const TOTBG= 'FF' + rawPrimary;
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'School Accounting System — ' + schoolName;
+    wb.views = [{ x:0, y:0, width:10000, height:20000, firstSheet:0, activeTab:0, visibility:'visible', rightToLeft:true }];
+
+    function hFill(argb) { return { type:'pattern', pattern:'solid', fgColor:{ argb } }; }
+    function hBorder(style='medium', c='FF888888') {
+      const s = { style, color:{ argb: c } };
+      return { top:s, bottom:s, left:s, right:s };
+    }
+    function medBorder() { return hBorder('medium','FF444444'); }
+    function thickBorder() { return hBorder('thick','FF222222'); }
+    function cAlign(wrap=false) { return { horizontal:'center', vertical:'middle', wrapText:wrap, readingOrder:2, textRotation:0 }; }
+    function rAlign() { return { horizontal:'right', vertical:'middle', readingOrder:2, textRotation:0 }; }
+    function lAlign() { return { horizontal:'left',  vertical:'middle', readingOrder:2, textRotation:0 }; }
+
+    function styleRow(row, bg, fontArgb=BLK, bold=false, sz=10, wrap=false) {
+      row.eachCell({ includeEmpty:true }, cell => {
+        if (bg) cell.fill = hFill(bg);
+        cell.font = { name:'Arial', bold, size:sz, color:{ argb: fontArgb } };
+        cell.alignment = cAlign(wrap);
+        cell.border = hBorder('medium','FF888888');
+      });
+    }
+
+    function titleRow(ws, text, bg, fontArgb=WHT, sz=13, mergeEnd='') {
+      const r = ws.addRow([text]);
+      if (mergeEnd) ws.mergeCells(`A${r.number}:${mergeEnd}${r.number}`);
+      styleRow(r, bg, fontArgb, true, sz, true);
+      r.height = 28;
+      return r;
+    }
+
+    function sectionRow(ws, num, text, bg, mergeEnd) {
+      const r = ws.addRow([num + '    ' + text]);
+      ws.mergeCells(`A${r.number}:${mergeEnd}${r.number}`);
+      r.getCell(1).fill = hFill(bg);
+      r.getCell(1).font = { name:'Arial', bold:true, size:12, color:{ argb: WHT } };
+      r.getCell(1).alignment = rAlign();
+      r.getCell(1).border = medBorder();
+      r.height = 26;
+      return r;
+    }
+
+    function hdrRow(ws, vals, bg, merges=[]) {
+      const r = ws.addRow(vals);
+      styleRow(r, bg, WHT, true, 10);
+      merges.forEach(([s,e]) => ws.mergeCells(`${s}${r.number}:${e}${r.number}`));
+      r.height = 24;
+      return r;
+    }
+
+    function dataRow(ws, vals, altBg=false, bold=false) {
+      const r = ws.addRow(vals);
+      r.eachCell({ includeEmpty:true }, cell => {
+        cell.fill = hFill(altBg ? ACC : WHT);
+        cell.font = { name:'Arial', bold:bold, size:10, color:{ argb: BLK } };
+        cell.alignment = cAlign();
+        cell.border = hBorder('medium','FF999999');
+      });
+      r.height = 20;
+      return r;
+    }
+
+    function totalRow(ws, vals, bg=TOTBG, merges=[]) {
+      const r = ws.addRow(vals);
+      r.eachCell({ includeEmpty:true }, cell => {
+        if (bg) cell.fill = hFill(bg);
+        cell.font = { name:'Arial', bold:true, size:11, color:{ argb: WHT } };
+        cell.alignment = cAlign();
+        cell.border = hBorder('thick','FF444444');
+      });
+      merges.forEach(([s,e]) => ws.mergeCells(`${s}${r.number}:${e}${r.number}`));
+      r.height = 24;
+      return r;
+    }
+
+    function numFmt(cell) { cell.numFmt = '#,##0;(#,##0);"-"'; }
+
+    if (currentPeriod === 'daily') {
+      const ws = wb.addWorksheet('يومي');
+      ws.views = [{ state:'normal', rightToLeft:true }];
+      ws.columns = [
+        {width:5},{width:28},{width:13},{width:15},{width:10},
+        {width:9},{width:14},{width:11},{width:12},{width:13},{width:10},
+        {width:16},{width:22}
+      ];
+      const MCOL = 'M'; // آخر عمود
+
+      const b1 = titleRow(ws, `إيراد ${schoolName} — العام الدراسي ${YEAR}`, PRI, WHT, 14, MCOL);
+      ws.getCell(`A${b1.number}`).alignment = cAlign(true);
+
+      const _d0 = new Date(from+'T00:00:00');
+      const _wkNum = Math.ceil(_d0.getDate() / 7);
+      const b2 = ws.addRow([`اليوم :  ${_d0.toLocaleDateString('ar-EG',{weekday:'long'})}     التاريخ :  ${from}     الأسبوع رقم : ${_wkNum}`]);
+      ws.mergeCells(`A${b2.number}:${MCOL}${b2.number}`);
+      styleRow(b2, SEC, WHT, true, 11); b2.height = 22;
+
+      hdrRow(ws,
+        ['م','الاسم','الصف','مصروفات دراسية','خصم','فايل','إيرادات أخرى','يونيفورم','أبليكيشن','باص','الإيصال','ملاحظات',''],
+        SEC, []);
+
+      const totals = {fees:0, disc:0, file:0, other:0, uni:0, app:0, bus:0};
+      currentData.forEach((d,i) => {
+        const m = mapAmounts(d);
+        Object.keys(totals).forEach(k => totals[k] += m[k]);
+        const r = dataRow(ws,
+          [i+1, d.studentName, d.grade, m.fees||'', m.disc||'', m.file||'',
+           m.other||'', m.uni||'', m.app||'', m.bus||'',
+           d.receiptNumber||'', d.notes||'', ''],
+          i%2===1);
+        [4,5,6,7,8,9,10].forEach(ci => { if(r.getCell(ci).value) numFmt(r.getCell(ci)); });
+      });
+
+      const tr = totalRow(ws,
+        ['الإجمالي','','',
+         totals.fees, totals.disc, totals.file,
+         totals.other, totals.uni, totals.app, totals.bus, '', '', ''],
+        TOTBG, [['A','C']]);
+      [4,5,6,7,8,9,10].forEach(ci => numFmt(tr.getCell(ci)));
+
+      const revTotal = totals.fees + totals.file + totals.other + totals.uni + totals.app + totals.bus - totals.disc;
+      const rr = ws.addRow(['إجمالي إيرادات اليوم', '', '', '', '', '', '', '', '', '', revTotal, '', '']);
+      ws.mergeCells(`A${rr.number}:J${rr.number}`);
+      ws.mergeCells(`K${rr.number}:${MCOL}${rr.number}`);
+      rr.getCell(1).fill = hFill(ACC); rr.getCell(1).font = {name:'Arial',bold:true,size:12,color:{argb:rawPrimary.length===6?'FF'+rawPrimary:BLK}};
+      rr.getCell(1).alignment = rAlign(); rr.getCell(1).border = medBorder();
+      rr.getCell(11).fill = hFill(SEC); rr.getCell(11).font = {name:'Arial',bold:true,size:14,color:{argb:WHT}};
+      rr.getCell(11).alignment = cAlign(); rr.getCell(11).border = medBorder();
+      numFmt(rr.getCell(11));
+      rr.height = 28;
+
+      ws.addRow([]);
+      sectionRow(ws, '②', 'المصروفات اليومية', SEC, MCOL);
+      hdrRow(ws, ['م','التاريخ','اسم المستلم','','المقابل / البيان','','المبلغ','','','','',''], SEC,
+        [['C','D'],['E','F'],['G','L']]);
+
+      const dayExps = expensesData.filter(e => e.date === from);
+      let expTotal = 0;
+      if (dayExps.length === 0) {
+        const er = dataRow(ws, ['-','-','لا توجد مصروفات في هذا اليوم','','','','','','','','','']);
+        ws.mergeCells(`C${er.number}:${MCOL}${er.number}`);
+      } else {
+        dayExps.forEach((e,i) => {
+          const r = dataRow(ws, [i+1, e.date, e.recipientName||'', '', e.categoryLabel||e.category||'', '', e.amount||0, '', '', '', e.notes||'', ''], i%2===1);
+          ws.mergeCells(`C${r.number}:D${r.number}`);
+          ws.mergeCells(`E${r.number}:F${r.number}`);
+          ws.mergeCells(`G${r.number}:${MCOL}${r.number}`);
+          r.getCell(7).font = {name:'Arial',bold:true,size:11,color:{argb:RED}};
+          numFmt(r.getCell(7));
+          expTotal += e.amount || 0;
+        });
+      }
+      const et = totalRow(ws, ['إجمالي المصروفات','','','','','',expTotal,'','','','',''], TOTBG, [['A','F'],['H',MCOL]]);
+      numFmt(et.getCell(7)); et.height = 22;
+
+      ws.addRow([]);
+      sectionRow(ws, '③', 'العهدة والرصيد', SEC, MCOL);
+
+      // صف التسميات — 4 خلايا متساوية
+      const custGross = custPrev + custNew;
+      const custFinal = custGross - allExpensesTotal;
+      const lblRow = ws.addRow(['العهدة السابقة', '', '', 'العهدة الجديدة', '', '', 'إجمالي العهدة', '', '', 'الرصيد المتبقي', '', '']);
+      lblRow.height = 22;
+      ws.mergeCells(`A${lblRow.number}:C${lblRow.number}`);
+      ws.mergeCells(`D${lblRow.number}:F${lblRow.number}`);
+      ws.mergeCells(`G${lblRow.number}:I${lblRow.number}`);
+      ws.mergeCells(`J${lblRow.number}:${MCOL}${lblRow.number}`);
+      [
+        [1,'FF1565C0',WHT],
+        [4,'FF2E7D32',WHT],
+        [7,'FF6A1B9A',WHT],
+        [10,PRI,WHT]
+      ].forEach(([ci,bg,fc]) => {
+        lblRow.getCell(ci).fill = hFill(bg);
+        lblRow.getCell(ci).font = {name:'Arial',bold:true,size:10,color:{argb:fc}};
+        lblRow.getCell(ci).alignment = cAlign();
+        lblRow.getCell(ci).border = medBorder();
+      });
+
+      // صف القيم
+      const valRow = ws.addRow([custPrev, '', '', custNew, '', '', custGross, '', '', custFinal, '', '']);
+      valRow.height = 32;
+      ws.mergeCells(`A${valRow.number}:C${valRow.number}`);
+      ws.mergeCells(`D${valRow.number}:F${valRow.number}`);
+      ws.mergeCells(`G${valRow.number}:I${valRow.number}`);
+      ws.mergeCells(`J${valRow.number}:${MCOL}${valRow.number}`);
+      [
+        [1,'FF0D47A1',WHT],
+        [4,'FF1B5E20',WHT],
+        [7,'FF4A148C',WHT],
+        [10, custFinal >= 0 ? 'FF1B5E20' : 'FFC00000', WHT]
+      ].forEach(([ci,bg,fc]) => {
+        valRow.getCell(ci).fill = hFill(bg);
+        valRow.getCell(ci).font = {name:'Arial',bold:true,size:14,color:{argb:fc}};
+        valRow.getCell(ci).alignment = cAlign();
+        valRow.getCell(ci).border = medBorder();
+        numFmt(valRow.getCell(ci));
+      });
+
+      ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:3, activeCell:'A4' }];
+
+    } else if (currentPeriod === 'weekly') {
+      const ws = wb.addWorksheet('أسبوعي');
+      ws.views = [{ state:'normal', rightToLeft:true }];
+      ws.columns = [
+        {width:5},{width:13},{width:5},{width:5},{width:14},
+        {width:16},{width:10},{width:9},{width:14},{width:11},{width:10},
+        {width:12},{width:18},{width:18},{width:5}
+      ];
+      const MCOL = 'O';
+
+      const _wkStart = new Date(from + 'T00:00:00');
+      const _wkNum = Math.ceil(_wkStart.getDate() / 7);
+      titleRow(ws, `التقرير المالي الأسبوعي  •  ${schoolName}`, PRI, WHT, 14, MCOL);
+      const infoR = ws.addRow([`الأسبوع رقم : ${_wkNum}          الفترة الزمنية : ${from}   ←   ${to}          العام الدراسي : ${YEAR}`]);
+      ws.mergeCells(`A${infoR.number}:${MCOL}${infoR.number}`);
+      styleRow(infoR, SEC, WHT, true, 11); infoR.height = 22;
+      ws.addRow([]);
+
+      sectionRow(ws, '①', 'أولاً : الإيراد الأسبوعي', SEC, MCOL);
+      hdrRow(ws,
+        ['م','اليوم','','','التاريخ','مصروفات دراسية','خصم','فايل','إيرادات أخرى','يونيفورم','باص','أبليكيشن','إجمالي الإيرادات','تراكمي',''],
+        SEC, [['B','D'],['N','O']]);
+
+      const dayMap = {};
+      DAYS_AR_W.forEach(d => dayMap[d] = { fees:0,disc:0,file:0,other:0,uni:0,bus:0,app:0, date:'' });
+      const DAY_MAP_IDX = SCHOOL_DAY_IDX;
+      currentData.forEach(d => {
+        const dDate = new Date(d.date + 'T00:00:00');
+        const jsDay = dDate.getDay();
+        const idx = DAY_MAP_IDX[jsDay];
+        if (idx === undefined) return; // الجمعة والسبت إجازة
+        const dayAr = DAYS_AR_W[idx];
+        if (dayMap[dayAr] !== undefined) {
+          const m = mapAmounts(d);
+          Object.keys(m).forEach(k => { if(dayMap[dayAr][k] !== undefined) dayMap[dayAr][k] += m[k]; });
+          if (!dayMap[dayAr].date) dayMap[dayAr].date = d.date;
+        }
+      });
+
+      const wkTotals = {fees:0,disc:0,file:0,other:0,uni:0,bus:0,app:0};
+      let cumulative = 0;
+      DAYS_AR_W.forEach((day, i) => {
+        const dm = dayMap[day];
+        const dayTotal = dm.fees + dm.file + dm.other + dm.uni + dm.bus + dm.app - dm.disc;
+        cumulative += dayTotal;
+        Object.keys(wkTotals).forEach(k => wkTotals[k] += dm[k]);
+        const r = dataRow(ws,
+          [i+1, day, '', '', dm.date||'',
+           dm.fees||'', dm.disc||'', dm.file||'',
+           dm.other||'', dm.uni||'', dm.bus||'', dm.app||'',
+           dayTotal||'', cumulative||'', ''],
+          i%2===1);
+        ws.mergeCells(`B${r.number}:D${r.number}`);
+        ws.mergeCells(`N${r.number}:O${r.number}`);
+        [6,7,8,9,10,11,12,13,14].forEach(ci => { if(r.getCell(ci).value) numFmt(r.getCell(ci)); });
+      });
+
+      const wkTotal = wkTotals.fees+wkTotals.file+wkTotals.other+wkTotals.uni+wkTotals.bus+wkTotals.app - wkTotals.disc;
+      const tr = totalRow(ws,
+        ['الإجمالي','','','','',
+         wkTotals.fees, wkTotals.disc, wkTotals.file,
+         wkTotals.other, wkTotals.uni, wkTotals.bus, wkTotals.app,
+         wkTotal, '', ''],
+        TOTBG, [['A','E'],['N','O']]);
+      [6,7,8,9,10,11,12,13].forEach(ci => numFmt(tr.getCell(ci)));
+
+      ws.addRow([]);
+
+      sectionRow(ws, '②', 'ثانياً : المصروفات الأسبوعية', SEC, MCOL);
+      hdrRow(ws, ['م','اليوم','','','التاريخ','إجمالي المصروفات','','','','','','','','','',''], SEC, [['B','D'],['F','P']]);
+
+      const expByDay = {};
+      DAYS_AR_W.forEach(d => expByDay[d] = 0);
+      expensesData.forEach(e => {
+        const di = new Date(e.date+'T00:00:00').getDay();
+        const idx = DAY_MAP_IDX[di];
+        if (idx === undefined) return;
+        const dayAr = DAYS_AR_W[idx];
+        if (expByDay[dayAr] !== undefined) expByDay[dayAr] += e.amount || 0;
+      });
+
+      let expGrandTotal = 0;
+      DAYS_AR_W.forEach((day,i) => {
+        const amt = expByDay[day] || 0;
+        expGrandTotal += amt;
+        const r = dataRow(ws, [i+1, day,'','','', amt||'','','','','','','','','','',''], i%2===1);
+        ws.mergeCells(`B${r.number}:D${r.number}`);
+        ws.mergeCells(`F${r.number}:P${r.number}`);
+        if (r.getCell(6).value) numFmt(r.getCell(6));
+      });
+
+      const et = totalRow(ws, ['الإجمالي','','','','',expGrandTotal,'','','','','','','','','',''], TOTBG, [['A','E'],['F','P']]);
+      numFmt(et.getCell(6));
+
+      ws.addRow([]);
+
+      sectionRow(ws, '③', 'ثالثاً : الموقف المالي — تحصيل المراحل', SEC, MCOL);
+      hdrRow(ws,
+        ['م','المرحلة','','','المديونية السابقة','','المحصل (مصروفات دراسية)','','خصومات أخوة/خاص','','المديونية الحالية','','ملاحظات','',''],
+        SEC, [['B','D'],['E','F'],['G','H'],['I','J'],['K','L'],['M','O']]);
+
+      const gradeFeesByGrade = {};
+      currentData.forEach(d => {
+        if (!gradeFeesByGrade[d.grade]) gradeFeesByGrade[d.grade] = 0;
+        gradeFeesByGrade[d.grade] += mapAmounts(d).fees || 0;
+      });
+
+      let stageCollected = 0;
+      GRADES_LIST.forEach((grade, i) => {
+        const collected = gradeFeesByGrade[grade] || 0;
+        stageCollected += collected;
+        const r = dataRow(ws,
+          [i+1, grade,'','', 0, '', collected||'', '', 0, '', 0, '', '', '', ''],
+          i%2===1);
+        ws.mergeCells(`B${r.number}:D${r.number}`);
+        ws.mergeCells(`E${r.number}:F${r.number}`);
+        ws.mergeCells(`G${r.number}:H${r.number}`);
+        ws.mergeCells(`I${r.number}:J${r.number}`);
+        ws.mergeCells(`K${r.number}:L${r.number}`);
+        ws.mergeCells(`M${r.number}:O${r.number}`);
+        if(r.getCell(7).value) numFmt(r.getCell(7));
+      });
+
+      const st = totalRow(ws, ['الإجمالي','','','', 0,'', stageCollected,'', 0,'', 0,'','','',''], TOTBG,
+        [['A','D'],['E','F'],['G','H'],['I','J'],['K','L'],['M','O']]);
+      numFmt(st.getCell(7));
+
+      ws.addRow([]);
+
+      sectionRow(ws, '④', 'رابعاً : الموقف المالي الإجمالي للأسبوع', SEC, MCOL);
+      hdrRow(ws,
+        ['المديونية السابقة','','','الإيراد الأسبوعي','','','المصروفات','','خصومات','','صافي الأسبوع','','المديونية الفعلية','',''],
+        SEC, [['A','C'],['D','F'],['G','H'],['I','J'],['K','L'],['M','O']]);
+
+      const wkNetRevenue = wkTotal;  // صافي الأسبوع = الإيراد فقط بدون خصم المصروفات
+      const mfRow = ws.addRow([0,'','', wkTotal,'','', expGrandTotal,'', 0,'', wkNetRevenue,'', 0,'','']);
+      mfRow.height = 30;
+      ws.mergeCells(`A${mfRow.number}:C${mfRow.number}`);
+      ws.mergeCells(`D${mfRow.number}:F${mfRow.number}`);
+      ws.mergeCells(`G${mfRow.number}:H${mfRow.number}`);
+      ws.mergeCells(`I${mfRow.number}:J${mfRow.number}`);
+      ws.mergeCells(`K${mfRow.number}:L${mfRow.number}`);
+      ws.mergeCells(`M${mfRow.number}:O${mfRow.number}`);
+      [[1,ACC,BLK],[4,ACC,BLK],[7,ACC,BLK],[9,ACC,BLK],[13,ACC,BLK]].forEach(([ci,bg,fc]) => {
+        mfRow.getCell(ci).fill = hFill(bg);
+        mfRow.getCell(ci).font = {name:'Arial',bold:true,size:13,color:{argb:fc}};
+        mfRow.getCell(ci).alignment = cAlign();
+        mfRow.getCell(ci).border = medBorder();
+        numFmt(mfRow.getCell(ci));
+      });
+      mfRow.getCell(11).fill = hFill('FF1B5E20');
+      mfRow.getCell(11).font = {name:'Arial',bold:true,size:14,color:{argb:WHT}};
+      mfRow.getCell(11).alignment = cAlign();
+      mfRow.getCell(11).border = medBorder();
+      numFmt(mfRow.getCell(11));
+
+      // صف العهدة الأسبوعية
+      const wkCustTotal = custPrev + custNew;
+      const wkCustRemain = wkCustTotal - expGrandTotal;
+      const wkCr = ws.addRow(['','','', wkCustTotal,'','المصروفات من العهدة', expGrandTotal,'', '','', wkCustRemain,'المتبقي من العهدة', '','','']);
+      wkCr.height = 26;
+      ws.mergeCells(`A${wkCr.number}:C${wkCr.number}`);
+      ws.mergeCells(`D${wkCr.number}:E${wkCr.number}`);
+      ws.mergeCells(`K${wkCr.number}:L${wkCr.number}`);
+      ws.mergeCells(`M${wkCr.number}:O${wkCr.number}`);
+      [[4,'FF1565C0',WHT],[7,SEC,WHT]].forEach(([ci,bg,fc]) => {
+        wkCr.getCell(ci).fill = hFill(bg);
+        wkCr.getCell(ci).font = {name:'Arial',bold:true,size:12,color:{argb:fc}};
+        wkCr.getCell(ci).alignment = cAlign();
+        wkCr.getCell(ci).border = medBorder();
+        numFmt(wkCr.getCell(ci));
+      });
+      wkCr.getCell(6).fill = hFill(ACC); wkCr.getCell(6).font = {name:'Arial',bold:true,size:10,color:{argb:BLK}}; wkCr.getCell(6).alignment = cAlign(); wkCr.getCell(6).border = medBorder();
+      wkCr.getCell(11).fill = hFill(wkCustRemain >= 0 ? 'FF1565C0' : 'FFC00000');
+      wkCr.getCell(11).font = {name:'Arial',bold:true,size:14,color:{argb:WHT}};
+      wkCr.getCell(11).alignment = cAlign();
+      wkCr.getCell(11).border = medBorder();
+      numFmt(wkCr.getCell(11));
+      wkCr.getCell(12).fill = hFill(ACC); wkCr.getCell(12).font = {name:'Arial',bold:true,size:10,color:{argb:BLK}}; wkCr.getCell(12).alignment = cAlign(); wkCr.getCell(12).border = medBorder();
+
+      ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:4, activeCell:'A5' }];
+
+    } else if (currentPeriod === 'monthly' || currentPeriod === 'custom') {
+      const ws = wb.addWorksheet('شهري');
+      ws.views = [{ state:'normal', rightToLeft:true }];
+      ws.columns = [
+        {width:5},{width:25},{width:16},{width:10},{width:13},
+        {width:14},{width:13},{width:10},{width:13},{width:18},{width:12},{width:5}
+      ];
+      const MCOL = 'L';
+      const monthLabel = currentPeriod === 'monthly'
+        ? document.getElementById('filterMonth').value
+        : `${from} — ${to}`;
+
+      titleRow(ws, `التقرير المالي الشهري  •  ${schoolName}`, PRI, WHT, 14, MCOL);
+      const infoR = ws.addRow([`الشهر : ${monthLabel}          العام الدراسي : ${YEAR}          تاريخ التصدير : ${new Date().toLocaleDateString('ar-EG')}`]);
+      ws.mergeCells(`A${infoR.number}:${MCOL}${infoR.number}`);
+      styleRow(infoR, SEC, WHT, true, 11); infoR.height = 22;
+      ws.addRow([]);
+
+      sectionRow(ws, '①', 'أولاً : ملخص الإيرادات', SEC, MCOL);
+      hdrRow(ws,
+        ['م','الأسبوع','مصروفات دراسية','خصم','فايل','إيرادات أخرى','يونيفورم','باص','أبليكيشن','إجمالي الإيرادات','المصروفات',''],
+        SEC, []);
+
+      const WEEK_RANGES = [
+        { key:'الأسبوع الأول  (1-7)',    from:1,  to:7  },
+        { key:'الأسبوع الثاني (8-14)',   from:8,  to:14 },
+        { key:'الأسبوع الثالث (15-21)', from:15, to:21 },
+        { key:'الأسبوع الرابع (22-نهاية)', from:22, to:31 },
+      ];
+      const weekBuckets = {};
+      WEEK_RANGES.forEach(w => { weekBuckets[w.key] = {fees:0,disc:0,file:0,other:0,uni:0,bus:0,app:0}; });
+
+      currentData.forEach(d => {
+        const day = new Date(d.date+'T00:00:00').getDate();
+        const wr = WEEK_RANGES.find(w => day >= w.from && day <= w.to);
+        if (!wr) return;
+        const m = mapAmounts(d);
+        Object.keys(m).forEach(k => {
+          if (weekBuckets[wr.key][k] !== undefined) weekBuckets[wr.key][k] += m[k];
+        });
+      });
+
+      const expWeekBuckets = {};
+      WEEK_RANGES.forEach(w => { expWeekBuckets[w.key] = 0; });
+      expensesData.forEach(e => {
+        const day = new Date(e.date+'T00:00:00').getDate();
+        const wr = WEEK_RANGES.find(w => day >= w.from && day <= w.to);
+        if (!wr) return;
+        expWeekBuckets[wr.key] += e.amount || 0;
+      });
+
+      const monthTotals = {fees:0,disc:0,file:0,other:0,uni:0,bus:0,app:0};
+      let monthExpTotal = 0;
+      const weeks = WEEK_RANGES.map(w => w.key);
+      weeks.forEach((wk,i) => {
+        const wkData = weekBuckets[wk] || {};
+        const wkExp = expWeekBuckets[wk] || 0;
+        const wkRev = (wkData.fees||0)+(wkData.file||0)+(wkData.other||0)+(wkData.uni||0)+(wkData.bus||0)+(wkData.app||0)-(wkData.disc||0);
+        Object.keys(monthTotals).forEach(k => monthTotals[k] += wkData[k]||0);
+        monthExpTotal += wkExp;
+        const r = dataRow(ws,
+          [i+1, wk, wkData.fees||'', wkData.disc||'', wkData.file||'',
+           wkData.other||'', wkData.uni||'', wkData.bus||'', wkData.app||'', wkRev||'', wkExp||'', ''],
+          i%2===1);
+        [3,4,5,6,7,8,9,10,11].forEach(ci => { if(r.getCell(ci).value) numFmt(r.getCell(ci)); });
+      });
+
+      const monthRevTotal = monthTotals.fees+monthTotals.file+monthTotals.other+monthTotals.uni+monthTotals.bus+monthTotals.app - monthTotals.disc;
+      const mtr = totalRow(ws,
+        ['إجمالي الشهر','',
+         monthTotals.fees, monthTotals.disc, monthTotals.file,
+         monthTotals.other, monthTotals.uni, monthTotals.bus, monthTotals.app,
+         monthRevTotal, monthExpTotal, ''],
+        TOTBG, [['A','B']]);
+      [3,4,5,6,7,8,9,10,11].forEach(ci => numFmt(mtr.getCell(ci)));
+
+      ws.addRow([]);
+
+      sectionRow(ws, '②', 'ثانياً : تحصيل المراحل الشهري', SEC, MCOL);
+      hdrRow(ws,
+        ['م','المرحلة','المديونية السابقة','المحصل (مصروفات دراسية)','خصومات','المديونية الحالية','ملاحظات','','','','',''],
+        SEC, [['G','L']]);
+
+      const gradeTotalsM = {};
+      currentData.forEach(d => {
+        if (!gradeTotalsM[d.grade]) gradeTotalsM[d.grade] = 0;
+        gradeTotalsM[d.grade] += mapAmounts(d).fees || 0;
+      });
+      let totalCollected = 0;
+      GRADES_LIST.forEach((grade,i) => {
+        const collected = gradeTotalsM[grade] || 0;
+        totalCollected += collected;
+        const r = dataRow(ws, [i+1, grade, '—', collected||0, '—', '—', '', '', '', '', '', ''], i%2===1);
+        ws.mergeCells(`G${r.number}:L${r.number}`);
+        if(r.getCell(4).value) numFmt(r.getCell(4));
+        if (collected > 0) {
+          r.getCell(4).font = {name:'Arial',bold:true,size:10,color:{argb:'FF1B5E20'}};
+        }
+      });
+
+      const str = totalRow(ws, ['الإجمالي','', '—', totalCollected, '—', '—','','','','','',''], TOTBG, [['A','B'],['G','L']]);
+      numFmt(str.getCell(4));
+
+      ws.addRow([]);
+
+      sectionRow(ws, '③', 'ثالثاً : الملخص المالي الشهري الإجمالي', SEC, MCOL);
+
+      const summaryItems = [
+        ['إجمالي الإيرادات الشهرية', monthRevTotal, SEC, WHT],
+        ['إجمالي المصروفات الشهرية', monthExpTotal, SEC, WHT],
+        ['صافي الإيراد الشهري', monthRevTotal, 'FF1B5E20', WHT],
+        ['عدد العمليات', currentData.length, ACC, BLK],
+        ['عدد الطلاب', new Set(currentData.map(d=>d.studentName)).size, ACC, BLK],
+      ];
+      summaryItems.forEach(([lbl, val, bg, fc]) => {
+        const sr = ws.addRow([lbl,'','','','','','','','',val,'','']);
+        sr.height = 26;
+        ws.mergeCells(`A${sr.number}:I${sr.number}`);
+        ws.mergeCells(`J${sr.number}:L${sr.number}`);
+        sr.getCell(1).fill = hFill(ACC);
+        sr.getCell(1).font = {name:'Arial',bold:true,size:12,color:{argb:BLK}};
+        sr.getCell(1).alignment = rAlign();
+        sr.getCell(1).border = medBorder();
+        sr.getCell(10).fill = hFill(bg);
+        sr.getCell(10).font = {name:'Arial',bold:true,size:14,color:{argb:fc}};
+        sr.getCell(10).alignment = cAlign();
+        sr.getCell(10).border = medBorder();
+        if (typeof val === 'number') numFmt(sr.getCell(10));
+      });
+
+      // صف العهدة الشهرية
+      const moCustTotal = custPrev + custNew;
+      const moCustRemain = moCustTotal - monthExpTotal;
+      const moLabels = [
+        ['إجمالي العهدة', moCustTotal, 'FF1565C0', WHT],
+        ['المتبقي من العهدة', moCustRemain, moCustRemain >= 0 ? 'FF1565C0' : 'FFC00000', WHT],
+      ];
+      moLabels.forEach(([lbl, val, bg, fc]) => {
+        const sr = ws.addRow([lbl,'','','','','','','','',val,'','']);
+        sr.height = 26;
+        ws.mergeCells(`A${sr.number}:I${sr.number}`);
+        ws.mergeCells(`J${sr.number}:L${sr.number}`);
+        sr.getCell(1).fill = hFill(ACC);
+        sr.getCell(1).font = {name:'Arial',bold:true,size:12,color:{argb:BLK}};
+        sr.getCell(1).alignment = rAlign();
+        sr.getCell(1).border = medBorder();
+        sr.getCell(10).fill = hFill(bg);
+        sr.getCell(10).font = {name:'Arial',bold:true,size:14,color:{argb:fc}};
+        sr.getCell(10).alignment = cAlign();
+        sr.getCell(10).border = medBorder();
+        numFmt(sr.getCell(10));
+      });
+
+      ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:4, activeCell:'A5' }];
+    }
+
+    const periodName = periodLabels[currentPeriod];
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${periodName}_تقرير_${school?.name || 'المدرسة'}_${from}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function exportPDF() {
+    if (currentData.length === 0) { alert('لا توجد بيانات للتصدير'); return; }
+
+    async function loadScript(src) {
+      return new Promise((res, rej) => {
+        if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
+        const s = document.createElement('script');
+        s.src = src; s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+
+    const { jsPDF } = window.jspdf;
+    const school      = SESSION.getSchool();
+    const { from, to } = getDateRange();
+    const periodLabels = { daily:'يومي', weekly:'أسبوعي', monthly:'شهري', custom:'مخصص' };
+    const schoolName   = school?.name || 'المدرسة';
+    const YEAR         = ACADEMIC_YEAR;
+
+    function hexToRgb(hex) {
+      hex = (hex || '#1E2D5A').replace('#','');
+      return [parseInt(hex.substring(0,2),16), parseInt(hex.substring(2,4),16), parseInt(hex.substring(4,6),16)];
+    }
+    const PRI = hexToRgb(school?.primaryColor);
+    const SEC = hexToRgb(school?.secondaryColor || '#4A6FA5');
+    const ACC = hexToRgb(school?.accentColor    || '#D6E4F0');
+    const priCss = `rgb(${PRI.join(',')})`;
+    const secCss = `rgb(${SEC.join(',')})`;
+    const accCss = `rgb(${ACC.join(',')})`;
+
+    const total     = currentData.reduce((s,d) => s+(d.amount||0), 0);
+    const totalDebt = currentData.reduce((s,d) => s+(d.debt  ||0), 0);
+
+    // ── بناء HTML مؤقت ونرسمه بـ html2canvas ──
+    function buildTable(headers, rows, foot) {
+      const headHtml = `<tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr>`;
+      const bodyHtml = rows.map((r,i)=>`<tr class="${i%2===1?'alt':''}">${r.map(c=>`<td>${c??'-'}</td>`).join('')}</tr>`).join('');
+      const footHtml = foot ? `<tfoot><tr>${foot.map(c=>`<td>${c??''}</td>`).join('')}</tr></tfoot>` : '';
+      return `<table>${headHtml}<tbody>${bodyHtml}</tbody>${footHtml}</table>`;
+    }
+
+    function buildSection(title, tableHtml) {
+      return `<div class="section-title">${title}</div>${tableHtml}`;
+    }
+
+    // ── جمع البيانات حسب الفترة ──
+    let sectionsHtml = '';
+
+    if (currentPeriod === 'daily') {
+      const totC = {fees:0,file:0,uni:0,bus:0,app:0,other:0};
+      const rows = currentData.map((d,i) => {
+        const m = mapAmounts(d);
+        totC.fees+=m.fees; totC.file+=m.file; totC.uni+=m.uni; totC.bus+=m.bus; totC.app+=m.app; totC.other+=m.other;
+        return [i+1, d.date, d.studentName, d.grade,
+                m.fees||'-', m.file||'-', m.uni||'-', m.bus||'-', m.app||'-', m.other||'-',
+                formatCurrency(d.amount), d.debt>0?formatCurrency(d.debt):'-',
+                d.paymentTypeName||d.paymentType, d.receiptNumber||'-', d.notes||'-'];
+      });
+      const revTotal = totC.fees+totC.file+totC.uni+totC.bus+totC.app+totC.other;
+      const foot = ['الإجمالي','','','',
+        totC.fees||'-', totC.file||'-', totC.uni||'-', totC.bus||'-', totC.app||'-', totC.other||'-',
+        formatCurrency(revTotal), formatCurrency(totalDebt),'','',''];
+      sectionsHtml += buildSection('① الإيرادات اليومية',
+        buildTable(['#','التاريخ','الطالب','الصف','مصروفات','فايل','يونيفورم','باص','أبليكيشن','إيرادات أخرى','الإجمالي','المديونية','الدفع','الإيصال','ملاحظات'], rows, foot));
+
+      let expTotal = 0;
+      let pdfCustPrev = 0, pdfCustNew = 0;
+      try {
+        const snap = await db.collection('expenses').where('schoolId','==',schoolId).where('date','==',from).get();
+        snap.forEach(d => expTotal+=d.data().amount||0);
+        const cd = await db.collection('custodians').doc(schoolId).get();
+        if (cd.exists) { pdfCustPrev = cd.data().prevAmount||0; pdfCustNew = cd.data().newAmount||0; }
+      } catch(e) {}
+      const pdfCustRemain = (pdfCustPrev + pdfCustNew) - expTotal;
+      sectionsHtml += buildSection('② الموقف المالي اليومي',
+        buildTable(['البيان','القيمة'],[
+          ['إجمالي الإيرادات', formatCurrency(revTotal)],
+          ['إجمالي المصروفات', formatCurrency(expTotal)],
+          ['صافي اليوم', formatCurrency(revTotal)],
+          ['إجمالي العهدة', formatCurrency(pdfCustPrev + pdfCustNew)],
+          ['المصروفات من العهدة', formatCurrency(expTotal)],
+          ['المتبقي من العهدة', formatCurrency(pdfCustRemain)],
+        ], null));
+
+    } else if (currentPeriod === 'weekly') {
+      const DAYS_AR = DAYS_AR_W;
+      const DAY_MAP = SCHOOL_DAY_IDX;
+      const dayMap = {};
+      DAYS_AR.forEach(d => dayMap[d]={fees:0,file:0,uni:0,bus:0,app:0,other:0,date:''});
+      currentData.forEach(d => {
+        const idx = DAY_MAP[new Date(d.date+'T00:00:00').getDay()];
+        if (idx===undefined) return;
+        const day = DAYS_AR[idx];
+        const m = mapAmounts(d);
+        Object.keys(m).forEach(k => { if(dayMap[day][k]!==undefined) dayMap[day][k]+=m[k]; });
+        if (!dayMap[day].date) dayMap[day].date = d.date;
+      });
+      const wkT={fees:0,file:0,uni:0,bus:0,app:0,other:0}; let cum=0;
+      const wkRows = DAYS_AR.map((day,i)=>{
+        const dm=dayMap[day]; const dt=dm.fees+dm.file+dm.uni+dm.bus+dm.app+(dm.other||0);
+        cum+=dt; Object.keys(wkT).forEach(k=>wkT[k]+=dm[k]||0);
+        return [i+1,day,dm.date||'-',dm.fees||'-',dm.file||'-',dm.uni||'-',dm.bus||'-',dm.app||'-',dm.other||'-',dt?formatCurrency(dt):'-',formatCurrency(cum)];
+      });
+      const wkTotal=wkT.fees+wkT.file+wkT.uni+wkT.bus+wkT.app+wkT.other;
+      sectionsHtml += buildSection('① الإيراد الأسبوعي',
+        buildTable(['#','اليوم','التاريخ','مصروفات','فايل','يونيفورم','باص','أبليكيشن','إيرادات أخرى','إجمالي اليوم','تراكمي'],
+          wkRows, ['الإجمالي','','',wkT.fees||'-',wkT.file||'-',wkT.uni||'-',wkT.bus||'-',wkT.app||'-',wkT.other||'-',formatCurrency(wkTotal),'']));
+
+      const gradeFees={};
+      currentData.forEach(d=>{ const m=mapAmounts(d); gradeFees[d.grade]=(gradeFees[d.grade]||0)+(m.fees||0); });
+      let st2=0;
+      const GRADES=['Pre-KG','KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
+      const gradeRows=GRADES.map((g,i)=>{ const c=gradeFees[g]||0; st2+=c; return [i+1,g,'-',c?formatCurrency(c):'-','-','-']; });
+      sectionsHtml += buildSection('② تحصيل المراحل الأسبوعي',
+        buildTable(['#','المرحلة','المديونية السابقة','المحصل (مصروفات)','خصومات','ملاحظات'],
+          gradeRows, ['الإجمالي','','-',formatCurrency(st2),'-','']));
+
+    } else {
+      const weekBuckets={};
+      currentData.forEach(d=>{
+        const wk=`الأسبوع ${Math.ceil(new Date(d.date+'T00:00:00').getDate()/7)}`;
+        if(!weekBuckets[wk]) weekBuckets[wk]={fees:0,disc:0,file:0,uni:0,bus:0,app:0,other:0};
+        const m=mapAmounts(d);
+        Object.keys(m).forEach(k=>{ if(weekBuckets[wk][k]!==undefined) weekBuckets[wk][k]+=m[k]; });
+      });
+      const mT={fees:0,file:0,uni:0,bus:0,app:0,other:0};
+      const wkRows3=Object.entries(weekBuckets).map(([wk,wb],i)=>{
+        const rev=wb.fees+wb.file+wb.uni+wb.bus+wb.app+(wb.other||0);
+        Object.keys(mT).forEach(k=>mT[k]+=wb[k]||0);
+        return [i+1,wk,wb.fees||'-',wb.file||'-',wb.uni||'-',wb.bus||'-',wb.app||'-',wb.other||'-',rev?formatCurrency(rev):'-'];
+      });
+      const mRev=mT.fees+mT.file+mT.uni+mT.bus+mT.app+mT.other;
+      sectionsHtml += buildSection('① ملخص الإيرادات الشهرية بالأسابيع',
+        buildTable(['#','الأسبوع','مصروفات','فايل','يونيفورم','باص','أبليكيشن','إيرادات أخرى','إجمالي الأسبوع'],
+          wkRows3, ['الإجمالي','',mT.fees||'-',mT.file||'-',mT.uni||'-',mT.bus||'-',mT.app||'-',mT.other||'-',formatCurrency(mRev)]));
+
+      const GRADES3=['Pre-KG','KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3'];
+      const gF3={}; currentData.forEach(d=>{ const m=mapAmounts(d); gF3[d.grade]=(gF3[d.grade]||0)+(m.fees||0); });
+      let tc3=0;
+      const gRows3=GRADES3.map((g,i)=>{ const c=gF3[g]||0; tc3+=c; return [i+1,g,'-',c?formatCurrency(c):'-','-','']; });
+      sectionsHtml += buildSection('② تحصيل المراحل الشهري',
+        buildTable(['#','المرحلة','المديونية السابقة','المحصل (مصروفات)','خصومات','ملاحظات'],
+          gRows3, ['الإجمالي','','-',formatCurrency(tc3),'-','']));
+
+      let mExpTotal=0;
+      let pdfMoCustPrev=0, pdfMoCustNew=0;
+      try {
+        const eSnap=await db.collection('expenses').where('schoolId','==',schoolId).where('date','>=',from).where('date','<=',to).get(); eSnap.forEach(d=>mExpTotal+=d.data().amount||0);
+        const cd=await db.collection('custodians').doc(schoolId).get();
+        if(cd.exists){ pdfMoCustPrev=cd.data().prevAmount||0; pdfMoCustNew=cd.data().newAmount||0; }
+      } catch(e){}
+      const pdfMoCustRemain = (pdfMoCustPrev + pdfMoCustNew) - mExpTotal;
+      sectionsHtml += buildSection('③ الملخص المالي الشهري',
+        buildTable(['البيان','القيمة'],[
+          ['إجمالي الإيرادات الشهرية',formatCurrency(mRev)],
+          ['إجمالي المصروفات الشهرية',formatCurrency(mExpTotal)],
+          ['صافي الإيراد الشهري',formatCurrency(mRev)],
+          ['إجمالي العهدة',formatCurrency(pdfMoCustPrev + pdfMoCustNew)],
+          ['المصروفات من العهدة',formatCurrency(mExpTotal)],
+          ['المتبقي من العهدة',formatCurrency(pdfMoCustRemain)],
+          ['عدد العمليات',String(currentData.length)],
+          ['عدد الطلاب',String(new Set(currentData.map(d=>d.studentName)).size)],
+        ], null));
+    }
+
+    // ── بناء الصفحة المؤقتة ──
+    const summaryHtml = `
+      <div class="summary-row">
+        <div class="sum-box" style="background:${priCss}"><div class="sum-label">إجمالي التحصيل</div><div class="sum-val">${formatCurrency(total)}</div></div>
+        <div class="sum-box" style="background:${secCss}"><div class="sum-label">عدد العمليات</div><div class="sum-val">${currentData.length}</div></div>
+        <div class="sum-box" style="background:${secCss}"><div class="sum-label">عدد الطلاب</div><div class="sum-val">${new Set(currentData.map(d=>d.studentName)).size}</div></div>
+        ${totalDebt>0?`<div class="sum-box" style="background:#c0392b"><div class="sum-label">إجمالي المديونيات</div><div class="sum-val">${formatCurrency(totalDebt)}</div></div>`:''}
+      </div>`;
+
+    const printDiv = document.createElement('div');
+    printDiv.style.cssText = 'position:fixed;left:-9999px;top:0;width:1122px;background:#fff;font-family:Cairo,Arial,sans-serif;direction:rtl;';
+    printDiv.innerHTML = `
+      <style>
+        * { font-family: Cairo, Arial, sans-serif !important; direction: rtl; }
+        .pdf-header { background:${priCss}; color:#fff; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; }
+        .pdf-header h1 { margin:0; font-size:16px; }
+        .pdf-header .sub { font-size:11px; opacity:.8; }
+        .pdf-info { background:${secCss}; color:#fff; padding:5px 16px; font-size:11px; text-align:right; }
+        .summary-row { display:flex; gap:8px; padding:10px 16px; }
+        .sum-box { flex:1; color:#fff; border-radius:6px; padding:8px 12px; text-align:center; }
+        .sum-label { font-size:11px; opacity:.8; }
+        .sum-val { font-size:18px; font-weight:900; }
+        .section-title { background:${secCss}; color:#fff; padding:5px 16px; font-size:12px; font-weight:700; margin-top:10px; }
+        table { width:100%; border-collapse:collapse; font-size:10px; }
+        th { background:${priCss}; color:#fff; padding:5px 8px; text-align:center; border:1px solid #ccc; }
+        td { padding:4px 8px; text-align:center; border:1px solid #ddd; }
+        tr.alt td { background:${accCss}; }
+        tfoot td { background:${priCss}; color:#fff; font-weight:700; padding:5px 8px; border:1px solid #ccc; }
+      </style>
+      <div class="pdf-header">
+        <div class="sub">الفترة: ${from} → ${to} | ${session.email} | ${new Date().toLocaleDateString('ar-EG')}</div>
+        <h1>${schoolName}  |  كشف تحصيل ${periodLabels[currentPeriod]}  |  ${YEAR}</h1>
+      </div>
+      <div class="pdf-info">تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}</div>
+      ${summaryHtml}
+      <div style="padding:0 16px 16px">
+        ${sectionsHtml}
+      </div>
+    `;
+    document.body.appendChild(printDiv);
+
+    try {
+      const canvas = await html2canvas(printDiv, { scale:2, useCORS:true, logging:false });
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const doc2 = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+      const PW = doc2.internal.pageSize.getWidth();
+      const PH = doc2.internal.pageSize.getHeight();
+      const imgW = PW - 10;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      let posY = 5;
+      let remainH = imgH;
+      let srcY = 0;
+      const pageH = PH - 10;
+
+      while (remainH > 0) {
+        const sliceH = Math.min(remainH, pageH);
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = (sliceH * canvas.width) / imgW;
+        const ctx = sliceCanvas.getContext('2d');
+        ctx.drawImage(canvas, 0, srcY * canvas.width / imgW, canvas.width, sliceCanvas.height, 0, 0, canvas.width, sliceCanvas.height);
+        const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.95);
+        if (srcY > 0) doc2.addPage();
+        doc2.addImage(sliceData, 'JPEG', 5, posY, imgW, sliceH);
+        srcY += sliceH;
+        remainH -= sliceH;
+      }
+
+      const fname = `${periodLabels[currentPeriod]}_تقرير_${schoolName}_${from}.pdf`;
+      doc2.save(fname);
+    } finally {
+      document.body.removeChild(printDiv);
+    }
+  }
+
+
+  async function handleRevenueReview() {
+    const btn = document.getElementById('revenueReviewBtn');
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ جاري التحميل...';
+    try {
+      await exportRevenueReview();
+    } catch(e) {
+      alert('خطأ في مراجعة الإيرادات: ' + e.message);
+      console.error(e);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  }
+
+  async function exportRevenueReview() {
+    // تحميل ExcelJS أولاً لو مش موجود
+    if (typeof ExcelJS === 'undefined') {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+
+    const school  = SESSION.getSchool();
+    const schoolName = school?.name || 'المدرسة';
+
+    const rawPrimary = ((school?.primaryColor  || '#1E2D5A').replace('#','')).toUpperCase();
+    const rawSecond  = ((school?.secondaryColor || '#4A6FA5').replace('#','')).toUpperCase();
+    const rawAccent  = ((school?.accentColor    || '#D6E4F0').replace('#','')).toUpperCase();
+    const PRI  = 'FF' + (rawPrimary.length === 6 ? rawPrimary : '1E2D5A');
+    const SEC  = 'FF' + (rawSecond.length  === 6 ? rawSecond  : '4A6FA5');
+    const ACC  = 'FF' + (rawAccent.length  === 6 ? rawAccent  : 'D6E4F0');
+    const WHT  = 'FFFFFFFF';
+    const BLK  = 'FF1A1A1A';
+    const RED  = 'FFC0392B';
+    const GRN  = 'FF1B5E20';
+    const GOLD = 'FFB8860B';
+
+    let allTx = [];
+    let allDebts = [];
+    try {
+      const [txSnap, debtSnap] = await Promise.all([
+        db.collection('transactions').where('schoolId','==',schoolId).where('date','>=',ACADEMIC_YEAR_START).get(),
+        db.collection('debts').where('schoolId','==',schoolId).get()
+      ]);
+      txSnap.forEach(doc => allTx.push({ id: doc.id, ...doc.data() }));
+      debtSnap.forEach(doc => allDebts.push({ id: doc.id, ...doc.data() }));
+    } catch(e) {
+      alert('خطأ في تحميل البيانات: ' + e.message);
+      return;
+    }
+
+    if (allTx.length === 0) {
+      alert('لا توجد بيانات في هذا العام الدراسي');
+      return;
+    }
+
+    const ALL_ITEMS = ['مصروفات دراسية','باص','يونيفورم','أبليكيشن','فايل','رحلات','امتحانات','إيرادات أخرى'];
+
+    const STAGE_ORDER = [
+      { stageId: 'pre_kg',        stageName: 'Pre-KG',       grades: ['Pre-KG'] },
+      { stageId: 'kg',            stageName: 'KG',           grades: ['KG1','KG2'] },
+      { stageId: 'grade',         stageName: 'Grade',        grades: ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6'] },
+      { stageId: 'prep',          stageName: 'Prep',         grades: ['Prep 1','Prep 2','Prep 3'] },
+      { stageId: 'international', stageName: 'American Section', grades: ['KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 10','Grade 11'] },
+      { stageId: 'semi_international', stageName: 'Semi-International', grades: ['KG1','KG2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5'] },
+    ];
+
+    // توحيد الاسم لتجنب تكرار الطالب بأشكال كتابة مختلفة
+    function normalizeName(name) {
+      return (name || '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replace(/أ|إ|آ/g, 'ا')
+        .replace(/ة/g, 'ه')
+        .replace(/ى/g, 'ي')
+        .toLowerCase();
+    }
+
+
+    const studentMap = {};
+    // بناء map بـ key = الاسم الكامل المعياري بدون دمج أسامي مختلفة
+    allTx.forEach(tx => {
+      const canonKey = normalizeName(tx.studentName);
+
+      if (!studentMap[canonKey]) {
+        studentMap[canonKey] = {
+          studentName: tx.studentName,
+          stage: tx.stage || '',
+          stageName: tx.stageName || tx.stage || '',
+          grade: tx.grade || '',
+          payments: [],
+          items: {},
+          installments: [],
+        };
+        ALL_ITEMS.forEach(it => studentMap[canonKey].items[it] = 0);
+      }
+
+      // لو نفس الطالب بيظهر بمرحلة/صف مختلف، ناخد البيانات من آخر معاملة كحل بسيط
+      studentMap[canonKey].stage     = tx.stage     || studentMap[canonKey].stage;
+      studentMap[canonKey].stageName = tx.stageName || studentMap[canonKey].stageName;
+      studentMap[canonKey].grade     = tx.grade     || studentMap[canonKey].grade;
+      studentMap[canonKey].payments.push(tx);
+    });
+
+    const KNOWN_ITEMS_SET = new Set(ALL_ITEMS);
+    const MAIN_ITEMS_SET  = new Set(['مصروفات دراسية','باص','يونيفورم','أبليكيشن','رحلات','امتحانات']);
+
+    // دالة تحدد الـ bucket الصحيح لأي بند
+    function resolveItemBucket(name) {
+      if (!name) return 'إيرادات أخرى';
+      if (MAIN_ITEMS_SET.has(name))        return name;        // بند معروف
+      if (name === 'فايل' || name.includes('فايل')) return 'فايل'; // فايل
+      if (name.includes('مصروفات'))        return 'مصروفات دراسية';
+      if (name.includes('يونيفورم'))        return 'يونيفورم';
+      if (name.includes('باص'))             return 'باص';
+      if (name.includes('أبليكيشن'))        return 'أبليكيشن';
+      return 'إيرادات أخرى'; // أي حاجة تانية
+    }
+
+    Object.values(studentMap).forEach(s => {
+      s.payments.sort((a,b) => a.date.localeCompare(b.date));
+
+      s.payments.forEach(tx => {
+        const items = tx.paymentItems;
+        if (Array.isArray(items) && items.length > 0) {
+          items.forEach(pi => {
+            const rawName = (pi.item || '').trim();
+            const bucket  = resolveItemBucket(rawName);
+            s.items[bucket] = (s.items[bucket] || 0) + Number(pi.netPrice || pi.price || 0);
+          });
+        } else {
+          const itemStr = tx.paymentItem || '';
+          const parts = itemStr.split('+').map(x => x.trim()).filter(Boolean);
+          const share = (tx.amount || 0) / Math.max(parts.length, 1);
+          parts.forEach(p => {
+            const bucket = resolveItemBucket(p);
+            s.items[bucket] = (s.items[bucket] || 0) + share;
+          });
+        }
+      });
+
+      // الأقساط بتتحسب من معاملات المصروفات الدراسية فقط
+      const feePayments = s.payments.filter(tx => {
+        if (Array.isArray(tx.paymentItems) && tx.paymentItems.length > 0) {
+          return tx.paymentItems.some(pi => (pi.item || '').includes('مصروفات'));
+        }
+        return (tx.paymentItem || '').includes('مصروفات دراسية');
+      });
+      s.installments = feePayments.slice(0, 3).map(tx => {
+        if (Array.isArray(tx.paymentItems) && tx.paymentItems.length > 0) {
+          const feeItem = tx.paymentItems.find(pi => (pi.item||'').includes('مصروفات'));
+          return feeItem ? Number(feeItem.netPrice || feeItem.price || 0) : 0;
+        }
+        return tx.amount || 0;
+      });
+
+      s.totalDue = s.payments.reduce((sum, tx) => sum + (tx.totalDue || 0), 0);
+      if (s.totalDue === 0) {
+        s.totalDue = s.payments.reduce((sum, tx) => {
+          const d = tx.debt || 0;
+          return sum + (tx.amount || 0) + d;
+        }, 0);
+      }
+      s.totalPaid = s.payments.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+
+      const studentDebts = allDebts.filter(d =>
+        d.studentName === s.studentName && d.grade === s.grade
+      );
+      s.totalRemaining = studentDebts.reduce((sum, d) => sum + (d.remaining || 0), 0);
+      if (s.totalRemaining === 0) {
+        s.totalRemaining = s.payments.reduce((sum, tx) => sum + (tx.debt || 0), 0);
+      }
+
+      s.totalDiscount = s.payments.reduce((sum, tx) => {
+        if (Array.isArray(tx.paymentItems)) {
+          return sum + tx.paymentItems.reduce((ds, pi) => {
+            const price = Number(pi.price || 0);
+            const disc  = Number(pi.discount || 0);
+            return ds + (price * disc / 100);
+          }, 0);
+        }
+        return sum;
+      }, 0);
+    });
+
+    const existingStages = new Set(Object.values(studentMap).map(s => s.stage));
+    // لو في فلتر مرحلة محدد، خليه يفلتر بيه
+    const selectedStage = document.getElementById('filterStage').value;
+    const stagesToShow = STAGE_ORDER.filter(st =>
+      existingStages.has(st.stageId) &&
+      (selectedStage === '' || st.stageId === selectedStage)
+    );
+    const unknownStudents = selectedStage === '' ? Object.values(studentMap).filter(s =>
+      !STAGE_ORDER.find(st => st.stageId === s.stage)
+    ) : [];
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'School Accounting System';
+    wb.views = [{ rightToLeft: true }];
+
+    const hFill = (argb) => ({ type:'pattern', pattern:'solid', fgColor:{ argb } });
+    const hBord = (style='medium', c='FF888888') => {
+      const s = { style, color:{ argb: c } };
+      return { top:s, bottom:s, left:s, right:s };
+    };
+    const thinBord  = () => hBord('thin',  'FFCCCCCC');
+    const medBord   = () => hBord('medium','FF666666');
+    const thickBord = () => hBord('thick', 'FF333333');
+    const cAlign  = (wrap=false) => ({ horizontal:'center', vertical:'middle', wrapText:wrap, readingOrder:2 });
+    const rAlign  = ()           => ({ horizontal:'right',  vertical:'middle', readingOrder:2 });
+    const lAlign  = ()           => ({ horizontal:'left',   vertical:'middle', readingOrder:2 });
+
+    function applyCell(cell, { fill, font, alignment, border, numFmt: nf } = {}) {
+      if (fill)      cell.fill      = fill;
+      if (font)      cell.font      = font;
+      if (alignment) cell.alignment = alignment;
+      if (border)    cell.border    = border;
+      if (nf)        cell.numFmt    = nf;
+    }
+
+    const NUM_FMT = '#,##0;[Red](#,##0);"-"';
+
+    // ── اكتشاف البنود الفعلية من الداتا ديناميكياً (بس اللي فيها قيم فعلية) ──
+    const dynamicItemsSet = new Set();
+    Object.values(studentMap).forEach(s => {
+      Object.keys(s.items).forEach(k => { if (k && (s.items[k] || 0) > 0) dynamicItemsSet.add(k); });
+    });
+    // ترتيب البنود: الموجودة في ALL_ITEMS أولاً بنفس ترتيبها، ثم أي بنود إضافية
+    const DYNAMIC_ITEMS = [
+      ...ALL_ITEMS.filter(it => dynamicItemsSet.has(it)),
+      ...[...dynamicItemsSet].filter(it => !ALL_ITEMS.includes(it)).sort()
+    ];
+
+    // ── الأعمدة الثابتة + البنود الديناميكية ──
+    const FIXED_COLS = [
+      { header: 'م',               key: 'idx',        width: 5  },
+      { header: 'اسم الطالب',      key: 'name',       width: 28 },
+      { header: 'الصف',            key: 'grade',      width: 12 },
+      { header: 'مصروفات دراسية', key: 'fees',       width: 16 },
+      { header: 'القسط الأول',     key: 'inst1',      width: 13 },
+      { header: 'القسط الثاني',    key: 'inst2',      width: 13 },
+      { header: 'خصم',             key: 'disc',       width: 10 },
+    ];
+    // استبعاد مصروفات دراسية من البنود لأنه عمود ثابت
+    const OTHER_ITEMS = DYNAMIC_ITEMS.filter(it => it !== 'مصروفات دراسية');
+    const ITEM_COLS = OTHER_ITEMS.map((it, i) => ({
+      header: it,
+      key: `item${i}`,
+      width: Math.max(10, Math.min(it.length * 1.8, 18))
+    }));
+    // إضافة عمودي الإجمالي في النهاية
+    const TOTAL_COLS = [
+      { header: 'إجمالي المدفوع', key: 'totalPaid',  width: 15 },
+      { header: 'إجمالي المتبقي', key: 'remaining',  width: 15 },
+    ];
+    const COL_DEFS = [...FIXED_COLS, ...ITEM_COLS, ...TOTAL_COLS];
+    const NUM_COLS = COL_DEFS.length;
+    const totalPaidColIdx = COL_DEFS.findIndex(c => c.key === 'totalPaid') + 1;
+    const remainingColIdx = COL_DEFS.findIndex(c => c.key === 'remaining') + 1;
+
+    // دالة مساعدة: تحويل رقم عمود (1-based) لحرف Excel
+    function colLetter(n) {
+      let s = '';
+      while (n > 0) { s = String.fromCharCode(65 + (n-1)%26) + s; n = Math.floor((n-1)/26); }
+      return s;
+    }
+    const LAST_COL_LETTER = colLetter(NUM_COLS);
+
+    // ── شيت واحد لكل المراحل ──
+    const ws = wb.addWorksheet('مراجعة الإيرادات');
+    ws.views = [{ state:'frozen', rightToLeft:true, xSplit:0, ySplit:4, activeCell:'A5' }];
+    ws.columns = COL_DEFS.map(c => ({ width: c.width }));
+
+    const mainTitle = ws.addRow([`مراجعة إيرادات ${schoolName}  —  العام الدراسي 2026/2027`]);
+    ws.mergeCells(`A1:${LAST_COL_LETTER}1`);
+    applyCell(mainTitle.getCell(1), {
+      fill: hFill(PRI),
+      font: { name:'Arial', bold:true, size:15, color:{ argb: WHT } },
+      alignment: cAlign(false),
+      border: thickBord(),
+    });
+    mainTitle.height = 36;
+
+    const now0 = new Date();
+    const allStudentsCount = Object.values(studentMap).length;
+    const allPaid = Object.values(studentMap).reduce((s,st)=>s+st.totalPaid,0);
+    const mainSub = ws.addRow([`تاريخ التصدير: ${now0.toLocaleDateString('ar-EG')}          إجمالي الطلاب: ${allStudentsCount} طالب          إجمالي التحصيل: ${formatCurrency(allPaid)}`]);
+    ws.mergeCells(`A2:${LAST_COL_LETTER}2`);
+    applyCell(mainSub.getCell(1), {
+      fill: hFill(SEC),
+      font: { name:'Arial', bold:true, size:10, color:{ argb: WHT } },
+      alignment: cAlign(),
+      border: medBord(),
+    });
+    mainSub.height = 20;
+
+    const mainSep = ws.addRow(['']);
+    ws.mergeCells(`A3:${LAST_COL_LETTER}3`);
+    applyCell(mainSep.getCell(1), { fill: hFill('FFCCCCCC'), border: thinBord() });
+    mainSep.height = 4;
+
+    // رأس الأعمدة (صف 4 ثابت)
+    const mainHeader = ws.addRow(COL_DEFS.map(c => c.header));
+    mainHeader.eachCell((cell, ci) => {
+      const colKey = COL_DEFS[ci-1]?.key || '';
+      const isFin = ['inst1','inst2','totalPaid','remaining'].includes(colKey);
+      const isItem = colKey.startsWith('item') || colKey === 'disc';
+      const isFees = colKey === 'fees';
+      applyCell(cell, {
+        fill: hFill(isFees ? 'FF2C3E50' : isFin ? SEC : isItem ? 'FF2C3E50' : PRI),
+        font: { name:'Arial', bold:true, size:10, color:{ argb: WHT } },
+        alignment: cAlign(true),
+        border: medBord(),
+      });
+    });
+    mainHeader.height = 30;
+
+    let globalRowCounter = 0;
+
+    // دالة مساعدة: السعر الثابت للمصروفات الدراسية حسب المرحلة والصف
+    function getFixedTuitionFee(stageId, grade) {
+      // Cardiff: American Section
+      if (stageId === 'international') {
+        const gf = CARDIFF_STAGES.international?.gradeFees?.[grade];
+        return gf ? gf.total : 0;
+      }
+      // Cardiff: Semi-International
+      if (stageId === 'semi_international') {
+        const grp = CARDIFF_STAGES.semi_international?.getGradeGroup?.(grade) || 'Grade';
+        const gf = CARDIFF_STAGES.semi_international?.gradeFees?.normal?.[grp];
+        return gf ? gf.total : 0;
+      }
+      // Bristol / Stanford: STAGES
+      const stage = STAGES[stageId];
+      if (stage) return stage.prices['مصروفات دراسية'] || 0;
+      return 0;
+    }
+
+    function buildSheet(stageName, stageStudents) {
+
+      const stageHeader = ws.addRow([`📚  ${stageName}  —  ${stageStudents.length} طالب`]);
+      ws.mergeCells(`A${stageHeader.number}:${LAST_COL_LETTER}${stageHeader.number}`);
+      applyCell(stageHeader.getCell(1), {
+        fill: hFill(PRI),
+        font: { name:'Arial', bold:true, size:12, color:{ argb: WHT } },
+        alignment: rAlign(),
+        border: thickBord(),
+      });
+      stageHeader.height = 28;
+
+      const stageTotals = {
+        fees: 0, inst1: 0, inst2: 0,
+        disc: 0, totalPaid: 0, remaining: 0,
+        items: Object.fromEntries(OTHER_ITEMS.map(it => [it, 0]))
+      };
+
+      stageStudents.forEach((stu, i) => {
+        const isAlt = i % 2 === 1;
+        globalRowCounter++;
+        const feesAmt  = getFixedTuitionFee(stu.stage, stu.grade);
+        const inst1Amt = stu.installments[0] || 0;
+        const inst2Amt = stu.installments[1] || 0;
+        const discAmt  = Math.round(stu.totalDiscount) || 0;
+        const totalPaidAmt = Math.round(stu.totalPaid) || 0;
+        const feesPaid = Math.round(stu.items['مصروفات دراسية'] || 0);
+        const remainingAmt = Math.max(0, feesAmt - feesPaid - discAmt);
+
+        const rowVals = [
+          globalRowCounter,
+          stu.studentName,
+          stu.grade,
+          feesAmt,
+          inst1Amt,
+          inst2Amt,
+          discAmt,
+          ...OTHER_ITEMS.map(it => Math.round(stu.items[it] || 0)),
+          totalPaidAmt,
+          remainingAmt,
+        ];
+
+        const otherItemsStartIdx = 7;
+        stageTotals.fees      += feesAmt;
+        stageTotals.inst1     += inst1Amt;
+        stageTotals.inst2     += inst2Amt;
+        stageTotals.disc      += discAmt;
+        stageTotals.totalPaid += totalPaidAmt;
+        stageTotals.remaining += remainingAmt;
+        OTHER_ITEMS.forEach((it, ii) => { stageTotals.items[it] += rowVals[otherItemsStartIdx + ii]; });
+
+        const dr = ws.addRow(rowVals);
+        dr.height = 20;
+
+        dr.eachCell((cell, ci) => {
+          const colKey = COL_DEFS[ci-1]?.key || '';
+          const isNum = ci >= 4; // كل الأعمدة من 4 لآخر أرقام
+          const isRemaining = colKey === 'remaining';
+          const isTotalPaid = colKey === 'totalPaid';
+          const isName = colKey === 'name';
+          const isFees2 = colKey === 'fees';
+
+          // لون خلفية
+          let bgArgb = isAlt ? ACC : WHT;
+          if (isRemaining && (cell.value || 0) > 0) bgArgb = 'FFFFF0F0'; // أحمر فاتح لو فيه متبقي
+          if (isTotalPaid) bgArgb = isAlt ? 'FFE8F5E9' : 'FFF0FAF0'; // أخضر فاتح للمدفوع
+
+          applyCell(cell, {
+            fill: hFill(bgArgb),
+            font: {
+              name: 'Arial',
+              bold: isName || isTotalPaid || isRemaining,
+              size: 10,
+              color: {
+                argb: isRemaining && (cell.value || 0) > 0
+                  ? RED
+                  : isTotalPaid
+                    ? GRN
+                    : BLK
+              }
+            },
+            alignment: isName ? rAlign() : cAlign(),
+            border: thinBord(),
+            numFmt: isNum && ci > 2 ? NUM_FMT : undefined,
+          });
+        });
+      });
+
+      const totVals = [
+        `الإجمالي (${stageStudents.length} طالب)`,
+        '',
+        '',
+        stageTotals.fees,
+        stageTotals.inst1,
+        stageTotals.inst2,
+        stageTotals.disc,
+        ...OTHER_ITEMS.map(it => stageTotals.items[it]),
+        stageTotals.totalPaid,
+        stageTotals.remaining,
+      ];
+      const tr = ws.addRow(totVals);
+      tr.height = 26;
+      ws.mergeCells(`A${tr.number}:C${tr.number}`);
+
+      tr.eachCell((cell, ci) => {
+        const isRed = ci === remainingColIdx && (cell.value || 0) > 0;
+        const isGrn = ci === totalPaidColIdx;
+        applyCell(cell, {
+          fill: hFill(isRed ? RED : isGrn ? GRN : PRI),
+          font: { name:'Arial', bold:true, size:11, color:{ argb: WHT } },
+          alignment: ci === 1 ? rAlign() : cAlign(),
+          border: thickBord(),
+          numFmt: ci >= 4 ? NUM_FMT : undefined,
+        });
+      });
+
+      ws.addRow([]);
+      const summaryPct = stageTotals.fees > 0 ? Math.round(stageTotals.totalPaid / stageTotals.fees * 100) : 0;
+      const summaryVals = Array(NUM_COLS).fill('');
+      summaryVals[0] = 'ملخص المرحلة:';
+      summaryVals[1] = `إجمالي التحصيل: ${formatCurrency(stageTotals.totalPaid)}`;
+      summaryVals[3] = `إجمالي المتبقي: ${formatCurrency(stageTotals.remaining)}`;
+      summaryVals[5] = `نسبة التحصيل: ${summaryPct}%`;
+      const summaryR = ws.addRow(summaryVals);
+      // تقسيم صف الملخص لـ 3 أجزاء متساوية غير متداخلة
+      const third1End = colLetter(Math.max(2, Math.floor(NUM_COLS / 3)));
+      const third2Start = colLetter(Math.floor(NUM_COLS / 3) + 1);
+      const third2End = colLetter(Math.max(Math.floor(NUM_COLS / 3) + 1, Math.floor(NUM_COLS * 2 / 3)));
+      const third3Start = colLetter(Math.floor(NUM_COLS * 2 / 3) + 1);
+      ws.mergeCells(`A${summaryR.number}:${third1End}${summaryR.number}`);
+      if (third2Start !== third2End)
+        ws.mergeCells(`${third2Start}${summaryR.number}:${third2End}${summaryR.number}`);
+      if (third3Start !== LAST_COL_LETTER)
+        ws.mergeCells(`${third3Start}${summaryR.number}:${LAST_COL_LETTER}${summaryR.number}`);
+      summaryR.height = 24;
+      [[1, PRI, WHT], [Math.floor(NUM_COLS/3)+1, ACC, BLK], [Math.floor(NUM_COLS*2/3)+1, ACC, BLK]].forEach(([ci, bg, fc]) => {
+        if (ci > NUM_COLS) return;
+        applyCell(summaryR.getCell(ci), {
+          fill: hFill(bg),
+          font: { name:'Arial', bold:true, size:11, color:{ argb: fc } },
+          alignment: ci === 1 ? cAlign() : rAlign(),
+          border: medBord(),
+        });
+      });
+
+      // فراغ فاصل بين المراحل
+      const sepRow = ws.addRow(['']);
+      ws.mergeCells(`A${sepRow.number}:${LAST_COL_LETTER}${sepRow.number}`);
+      applyCell(sepRow.getCell(1), { fill: hFill('FFEEEEEE') });
+      sepRow.height = 10;
+    }
+
+    stagesToShow.forEach(stageInfo => {
+      const stageStudents = Object.values(studentMap)
+        .filter(s => s.stage === stageInfo.stageId)
+        .sort((a, b) => {
+          const gradeA = stageInfo.grades.indexOf(a.grade);
+          const gradeB = stageInfo.grades.indexOf(b.grade);
+          if (gradeA !== gradeB) return gradeA - gradeB;
+          return a.studentName.localeCompare(b.studentName, 'ar');
+        });
+      if (stageStudents.length === 0) return;
+      buildSheet(stageInfo.stageName, stageStudents);
+    });
+
+    if (unknownStudents.length > 0) {
+      buildSheet('فايل', unknownStudents.sort((a,b) => a.studentName.localeCompare(b.studentName,'ar')));
+    }
+
+    const allStudents = Object.values(studentMap);
+    const grandTotalPaid = allStudents.reduce((s,st)=>s+st.totalPaid,0);
+    const grandTotalRem  = allStudents.reduce((s,st)=>s+st.totalRemaining,0);
+
+    const grandSepRow = ws.addRow(['']);
+    ws.mergeCells(`A${grandSepRow.number}:${LAST_COL_LETTER}${grandSepRow.number}`);
+    applyCell(grandSepRow.getCell(1), { fill: hFill('FF333333'), border: thickBord() });
+    grandSepRow.height = 4;
+
+    const grandTotalFees = allStudents.reduce((s,st)=>s+getFixedTuitionFee(st.stage, st.grade),0);
+    const grandInst1 = allStudents.reduce((s,st)=>s+(st.installments[0]||0),0);
+    const grandInst2 = allStudents.reduce((s,st)=>s+(st.installments[1]||0),0);
+    const grandDisc  = allStudents.reduce((s,st)=>s+Math.round(st.totalDiscount||0),0);
+    const grandOtherItems = OTHER_ITEMS.map(it => allStudents.reduce((s,st)=>s+Math.round(st.items[it]||0),0));
+    const grandRow = ws.addRow([
+      `الإجمالي الكلي (${allStudents.length} طالب)`, '', '',
+      grandTotalFees, grandInst1, grandInst2, grandDisc,
+      ...grandOtherItems,
+      grandTotalPaid, grandTotalRem,
+    ]);
+    ws.mergeCells(`A${grandRow.number}:C${grandRow.number}`);
+    grandRow.height = 30;
+    grandRow.eachCell((cell, ci) => {
+      const isRed = ci === remainingColIdx && grandTotalRem > 0;
+      const isGrn = ci === totalPaidColIdx;
+      applyCell(cell, {
+        fill: hFill(isRed ? RED : isGrn ? GRN : GOLD),
+        font: { name:'Arial', bold:true, size:12, color:{ argb: WHT } },
+        alignment: ci === 1 ? rAlign() : cAlign(),
+        border: thickBord(),
+        numFmt: ci >= 4 ? NUM_FMT : undefined,
+      });
+    });
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `مراجعة_الإيرادات_${schoolName}_${ACADEMIC_YEAR.replace('/','_')}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  init();
+
+  let editingTxId = null;
+
+  async function openEditTxModal(id) {
+    try {
+      const docSnap = await db.collection('transactions').doc(id).get();
+      if (!docSnap.exists) return alert('لم يتم العثور على السجل');
+      const d = docSnap.data();
+      editingTxId = id;
+
+      document.getElementById('etStudentName').value    = d.studentName   || '';
+      document.getElementById('etGrade').value          = d.grade         || '';
+      document.getElementById('etDate').value           = d.date          || '';
+      document.getElementById('etAmount').value         = d.amount        || '';
+      document.getElementById('etPaymentType').value    = d.paymentType   || '';
+      document.getElementById('etPaymentItem').value    = d.paymentItem   || '';
+      document.getElementById('etReceiptNumber').value  = d.receiptNumber || '';
+      document.getElementById('etNotes').value          = d.notes         || '';
+
+      document.getElementById('etModalTitle').textContent = `✏ تعديل: ${d.studentName} — ${d.date}`;
+
+      document.getElementById('editTxModal').style.display = 'flex';
+    } catch(err) {
+      alert('خطأ في تحميل البيانات: ' + err.message);
+    }
+  }
+
+  function closeEditTxModal() {
+    document.getElementById('editTxModal').style.display = 'none';
+    editingTxId = null;
+  }
+
+  async function saveEditTx() {
+    if (!editingTxId) return;
+
+    const studentName   = document.getElementById('etStudentName').value.trim();
+    const grade         = document.getElementById('etGrade').value.trim();
+    const date          = document.getElementById('etDate').value;
+    const amount        = parseFloat(document.getElementById('etAmount').value);
+    const paymentType   = document.getElementById('etPaymentType').value;
+    const paymentItem   = document.getElementById('etPaymentItem').value.trim();
+    const receiptNumber = document.getElementById('etReceiptNumber').value.trim();
+    const notes         = document.getElementById('etNotes').value.trim();
+
+    if (!studentName)          return showEtAlert('ادخل اسم الطالب');
+    if (!amount || amount <= 0) return showEtAlert('ادخل مبلغ صحيح');
+    if (!date)                  return showEtAlert('اختر التاريخ');
+    if (!paymentType)           return showEtAlert('اختر طريقة الدفع');
+    if (!receiptNumber)         return showEtAlert('ادخل رقم الإيصال');
+
+    const btn = document.getElementById('etSaveBtn');
+    btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+    try {
+      const origSnap = await db.collection('transactions').doc(editingTxId).get();
+      const orig = origSnap.data();
+
+      let totalDue;
+      if (orig.totalDue && orig.totalDue > 0) {
+        totalDue = orig.totalDue;
+      } else if ((orig.debt || 0) > 0) {
+        totalDue = (orig.amount || 0) + (orig.debt || 0);
+      } else {
+        totalDue = amount;
+      }
+      const newDebt = Math.max(0, totalDue - amount);
+      const hadDebt = orig.debt || 0;
+
+      let updatedPaymentItems = orig.paymentItems || null;
+      if (paymentItem !== orig.paymentItem) {
+        const parts = paymentItem.split('+').map(s => s.trim()).filter(Boolean);
+        const share = amount / Math.max(parts.length, 1);
+        updatedPaymentItems = parts.map(item => ({ item, price: share, discount: 0, netPrice: share }));
+      } else if (Array.isArray(orig.paymentItems) && orig.paymentItems.length > 0 && amount !== orig.amount) {
+        const totalOrigNet = orig.paymentItems.reduce((s, pi) => s + (Number(pi.netPrice) || Number(pi.price) || 0), 0);
+        if (totalOrigNet > 0) {
+          updatedPaymentItems = orig.paymentItems.map(pi => {
+            const origNet = Number(pi.netPrice) || Number(pi.price) || 0;
+            return { ...pi, netPrice: Math.round(amount * (origNet / totalOrigNet)) };
+          });
+        }
+      }
+
+      const updateData = {
+        studentName, grade, date, amount, paymentType,
+        paymentTypeName: PAYMENT_TYPES.find(p => p.value === paymentType)?.label || paymentType,
+        paymentItem, receiptNumber, notes,
+        debt: newDebt,
+        hasDebt: newDebt > 0,
+        editedBy: session.email,
+        editedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      if (updatedPaymentItems) updateData.paymentItems = updatedPaymentItems;
+      await db.collection('transactions').doc(editingTxId).update(updateData);
+
+      // مزامنة debts
+      if (newDebt > 0) {
+        const existingDebtSnap = await db.collection('debts')
+          .where('schoolId',    '==', schoolId)
+          .where('studentName', '==', studentName)
+          .where('paymentItem', '==', paymentItem)
+          .get();
+
+        const openDebts = existingDebtSnap.docs.filter(d => (d.data().remaining || 0) > 0);
+
+        if (openDebts.length > 0) {
+          const existingDebt = openDebts[0];
+          const prevData = existingDebt.data();
+          const diff = newDebt - hadDebt;
+          await db.collection('debts').doc(existingDebt.id).update({
+            paid:      Math.max(0, (prevData.paid      || 0) - diff),
+            remaining: Math.max(0, (prevData.remaining || 0) + diff),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        } else {
+          await db.collection('debts').add({
+            schoolId,
+            studentName,
+            grade,
+            stage:       orig.stage       || '',
+            stageName:   orig.stageName   || '',
+            paymentItem,
+            totalDue,
+            paid:        amount,
+            remaining:   newDebt,
+            date,
+            hasDebt:     true,
+            createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt:   firebase.firestore.FieldValue.serverTimestamp(),
+            sourceEditedTx: editingTxId
+          });
+        }
+      } else if (hadDebt > 0 && newDebt === 0) {
+        const existingDebtSnap = await db.collection('debts')
+          .where('schoolId',    '==', schoolId)
+          .where('studentName', '==', studentName)
+          .where('paymentItem', '==', paymentItem)
+          .get();
+        const openDebts = existingDebtSnap.docs.filter(d => (d.data().remaining || 0) > 0);
+        if (openDebts.length > 0) {
+          await db.collection('debts').doc(openDebts[0].id).update({
+            remaining: 0,
+            paid: totalDue,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+      }
+
+      // تحديث currentData في الذاكرة
+      const idx = currentData.findIndex(d => d.id === editingTxId);
+      if (idx !== -1) {
+        currentData[idx] = { ...currentData[idx], studentName, grade, date, amount, paymentType,
+          paymentTypeName: PAYMENT_TYPES.find(p => p.value === paymentType)?.label || paymentType,
+          paymentItem, receiptNumber, notes, debt: newDebt, hasDebt: newDebt > 0 };
+      }
+
+      closeEditTxModal();
+      renderTable();
+    } catch(err) {
+      showEtAlert('خطأ في الحفظ: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'حفظ التعديلات';
+    }
+  }
+
+  function showEtAlert(msg) {
+    const el = document.getElementById('etAlert');
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 4000);
+  }
+
+</script>
+
+<!-- xlsx-js-style لكشف الرواتب -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════
+// كشف الرواتب — تصدير Excel من صفحة التقارير
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const picker = document.getElementById('payrollMonthPicker');
+  if (picker && !picker.value) {
+    const now = new Date();
+    picker.value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  }
+});
+
+async function exportPayrollExcelFromReports() {
+  const btn = document.querySelector('button[onclick="exportPayrollExcelFromReports()"]');
+  try {
+    const monthVal = document.getElementById('payrollMonthPicker').value;
+    if (!monthVal) { alert('اختار الشهر أولاً من حقل الشهر بجوار الزرار'); return; }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'جاري التحميل...'; }
+
+    const [year, month] = monthVal.split('-');
+    const dateFrom = year + '-' + month + '-01';
+    const lastDay  = new Date(parseInt(year), parseInt(month), 0).getDate();
+    const dateTo   = year + '-' + month + '-' + String(lastDay).padStart(2,'0');
+    const inMonth  = function(d) { return d >= dateFrom && d <= dateTo; };
+
+    // جلب الموظفين
+    const empSnap = await db.collection('employees').where('schoolId','==',schoolId).get();
+    const allEmps = empSnap.docs.map(function(d) { return Object.assign({id: d.id}, d.data()); });
+    const activeEmps = allEmps.filter(function(e) { return e.status !== 'resigned'; });
+    if (!activeEmps.length) { alert('لا يوجد موظفون نشطون'); return; }
+
+    // جلب الحضور
+    var attMap = {};
+    try {
+      const attSnap = await db.collection('attendance').where('schoolId','==',schoolId).get();
+      const recordedDates = new Set();
+      attSnap.docs.forEach(function(d) {
+        const r = d.data();
+        if (!inMonth(r.date)) return;
+        recordedDates.add(r.date);
+        if (!attMap[r.empId]) attMap[r.empId] = { present:0, absent:0, excused:0 };
+        attMap[r.empId][r.status] = (attMap[r.empId][r.status]||0) + 1;
+      });
+    } catch(e) { console.warn('attendance:', e.message); }
+
+    // جلب الجزاءات
+    var penMap = {};
+    try {
+      const penSnap = await db.collection('penalties').where('schoolId','==',schoolId).get();
+      penSnap.docs.forEach(function(d) {
+        const r = d.data();
+        if (!inMonth(r.date)) return;
+        if (!penMap[r.empId]) penMap[r.empId] = { deductionDays:0, penaltyCount:0, warningCount:0, lateCount:0 };
+        if (r.type === 'deduction') penMap[r.empId].deductionDays += (r.deductionDays||0);
+        if (r.type === 'penalty')   penMap[r.empId].penaltyCount++;
+        if (r.type === 'warning')   penMap[r.empId].warningCount++;
+        if (r.type === 'late')      penMap[r.empId].lateCount++;
+      });
+    } catch(e) { console.warn('penalties:', e.message); }
+
+    // جلب المكافآت
+    var rewMap = {};
+    try {
+      const rewSnap = await db.collection('rewards').where('schoolId','==',schoolId).get();
+      rewSnap.docs.forEach(function(d) {
+        const r = d.data();
+        if (!inMonth(r.date)) return;
+        rewMap[r.empId] = (rewMap[r.empId]||0) + (r.amount||0);
+      });
+    } catch(e) { console.warn('rewards:', e.message); }
+
+    // حساب الكشف
+    const payrollData = activeEmps.map(function(emp) {
+      const salary    = emp.salary || 0;
+      const att       = attMap[emp.id] || { present:0, absent:0, excused:0 };
+      const pen       = penMap[emp.id] || { deductionDays:0, penaltyCount:0, warningCount:0, lateCount:0 };
+      const reward    = rewMap[emp.id] || 0;
+      const advance   = emp.advance || 0;
+      const insurance = emp.insuranceAmount || 0;
+      const dayRate         = salary / 30;
+      const actualPresent   = att.present;
+      const adjustedPresent = att.present + att.excused;
+      const absent          = att.absent;
+      const penaltyDays     = pen.penaltyCount;
+      const lateDays        = pen.lateCount;
+      const penaltyDeduct   = (penaltyDays + pen.deductionDays + lateDays) * dayRate;
+      const netPresent      = adjustedPresent - pen.deductionDays - penaltyDays - lateDays;
+      const netAbsent30     = 30 - adjustedPresent;
+      const totalDeduct     = (absent * dayRate) + penaltyDeduct + advance + insurance;
+      const netSalary       = salary + reward - totalDeduct;
+      const netRounded      = Math.ceil(netSalary / 5) * 5;
+      return { emp, salary, insuranceStatus: emp.insuranceStatus || 'مؤمن عليه', insurance, advance, actualPresent, adjustedPresent, absent, penaltyDays, lateDays, netPresent, netAbsent30, dayRate, totalDeduct, reward, netSalary, netRounded };
+    });
+
+    // اسم الشهر
+    var monthName = monthVal;
+    if (monthVal.includes('-')) {
+      const parts = monthVal.split('-');
+      monthName = new Date(parseInt(parts[0]), parseInt(parts[1])-1, 1).toLocaleDateString('ar-EG', { month:'long', year:'numeric' });
+    }
+
+    const school = SESSION.getSchool();
+    const schoolName = school ? (school.name || 'المدرسة') : 'المدرسة';
+    const pc = (school && school.primaryColor ? school.primaryColor : '#1e2d5a').replace('#','');
+
+    const r2x = function(n) { return Math.round((n||0) * 100) / 100; };
+    const sumX = function(key) { return r2x(payrollData.reduce(function(s,r) { return s + r2x(r[key]); }, 0)); };
+
+    const titleRow = ['كشف رواتب ' + monthName + ' — ' + schoolName];
+    const headerRow = ['لأقرب 5','صافي الراتب','مكافأة','إجمالي الخصم','قيمة اليوم','تأمينات','سلف','غياب/30','صافي الحضور','تأخير','جزاءات','غياب','حضور معدل','حضور','مبلغ التأمين','الراتب','التأمين','الوظيفة','الاسم','#'];
+
+    const dataRows = payrollData.map(function(r, i) {
+      return [r2x(r.netRounded),r2x(r.netSalary),r2x(r.reward),r2x(r.totalDeduct),r2x(r.dayRate),r2x(r.insurance),r2x(r.advance),r.netAbsent30,r2x(r.netPresent),r.lateDays,r.penaltyDays,r.absent,r.adjustedPresent,r.actualPresent,r2x(r.insurance),r2x(r.salary),r.insuranceStatus,r.emp.jobTitle||'',r.emp.nameAr,i+1];
+    });
+
+    const totRow = [sumX('netRounded'),sumX('netSalary'),sumX('reward'),sumX('totalDeduct'),'—',sumX('insurance'),sumX('advance'),'—','—',payrollData.reduce(function(s,r){return s+r.lateDays;},0),payrollData.reduce(function(s,r){return s+r.penaltyDays;},0),payrollData.reduce(function(s,r){return s+r.absent;},0),payrollData.reduce(function(s,r){return s+r.adjustedPresent;},0),payrollData.reduce(function(s,r){return s+r.actualPresent;},0),sumX('insurance'),sumX('salary'),'','','','الإجمالي'];
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([titleRow, headerRow].concat(dataRows).concat([totRow]));
+
+    ws['!cols'] = [{wch:10},{wch:13},{wch:9},{wch:13},{wch:11},{wch:9},{wch:9},{wch:9},{wch:11},{wch:7},{wch:7},{wch:7},{wch:11},{wch:9},{wch:13},{wch:12},{wch:13},{wch:18},{wch:28},{wch:4}];
+    ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:headerRow.length-1} }];
+    ws['!rows'] = [{hpt:30},{hpt:30}].concat(dataRows.map(function(){return {hpt:22};})).concat([{hpt:26}]);
+
+    var A1 = ws['A1'];
+    if (A1) A1.s = { font:{bold:true,sz:13,color:{rgb:'FFFFFF'}}, fill:{patternType:'solid',fgColor:{rgb:pc}}, alignment:{horizontal:'center',vertical:'center',readingOrder:2} };
+
+    headerRow.forEach(function(_,ci) {
+      var addr = XLSX.utils.encode_cell({r:1,c:ci});
+      if (!ws[addr]) ws[addr] = {v:headerRow[ci],t:'s'};
+      ws[addr].s = { font:{bold:true,sz:10,color:{rgb:'FFFFFF'}}, fill:{patternType:'solid',fgColor:{rgb:pc}}, alignment:{horizontal:'center',vertical:'center',wrapText:true,readingOrder:2}, border:{top:{style:'thin',color:{rgb:'CCCCCC'}},bottom:{style:'thin',color:{rgb:'CCCCCC'}},left:{style:'thin',color:{rgb:'CCCCCC'}},right:{style:'thin',color:{rgb:'CCCCCC'}}} };
+    });
+
+    dataRows.forEach(function(row,ri) {
+      row.forEach(function(_,ci) {
+        var addr = XLSX.utils.encode_cell({r:ri+2,c:ci});
+        if (!ws[addr]) ws[addr] = {v:'',t:'s'};
+        var even = ri%2===0;
+        var bg = even ? 'F7F7F7' : 'FFFFFF';
+        var fc = '222222';
+        if (ci===3){bg='FFF5F5';fc='C62828';}
+        if (ci===2){bg='E3F2FD';fc='1565C0';}
+        if (ci===1){bg='E8F5E9';fc='2E7D32';}
+        if (ci===0){bg='2E7D32';fc='FFFFFF';}
+        var isTextCol = (ci===18||ci===17||ci===16);
+        ws[addr].s = { font:{sz:9,bold:ci===0,color:{rgb:fc}}, fill:{patternType:'solid',fgColor:{rgb:bg}}, alignment:{horizontal:isTextCol?'right':'center',vertical:'center',readingOrder:2}, border:{bottom:{style:'thin',color:{rgb:'DDDDDD'}},left:{style:'thin',color:{rgb:'DDDDDD'}},right:{style:'thin',color:{rgb:'DDDDDD'}}} };
+      });
+    });
+
+    var totIdx = dataRows.length + 2;
+    totRow.forEach(function(_,ci) {
+      var addr = XLSX.utils.encode_cell({r:totIdx,c:ci});
+      if (!ws[addr]) ws[addr] = {v:'',t:'s'};
+      ws[addr].s = { font:{bold:true,sz:10,color:{rgb:'FFFFFF'}}, fill:{patternType:'solid',fgColor:{rgb:pc}}, alignment:{horizontal:'center',vertical:'center',readingOrder:2} };
+    });
+
+    XLSX.utils.book_append_sheet(wb, ws, 'كشف الرواتب');
+    ws['!sheetViews'] = [{ rightToLeft:true }];
+    wb.Sheets['كشف الرواتب']['!sheetViews'] = [{ rightToLeft:true }];
+    if (!wb.Workbook) wb.Workbook = {};
+    if (!wb.Workbook.Sheets) wb.Workbook.Sheets = [];
+    if (!wb.Workbook.Sheets[0]) wb.Workbook.Sheets[0] = {};
+    wb.Workbook.Sheets[0].RTL = true;
+
+    const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array', cellStyles:true });
+    const blob = new Blob([wbout], { type:'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'كشف_رواتب_' + monthVal + '.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() { URL.revokeObjectURL(url); a.remove(); }, 1000);
+
+  } catch(err) {
+    console.error('Payroll Export error:', err);
+    alert('خطأ في تصدير الرواتب: ' + err.message);
+  } finally {
+    if (btn) { btn.disabled=false; btn.textContent='كشف الرواتب'; }
+  }
+}
+</script>
+
+<!-- ====== EDIT TRANSACTION MODAL ====== -->
+<div id="editTxModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:580px;max-height:92vh;overflow-y:auto;padding:1.75rem;direction:rtl;font-family:Cairo,sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;padding-bottom:0.75rem;border-bottom:2px solid var(--border)">
+      <h2 id="etModalTitle" style="font-size:1.05rem;font-weight:800;color:var(--primary);margin:0"></h2>
+      <button onclick="closeEditTxModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#aaa;line-height:1">✕</button>
+    </div>
+
+    <!-- Alert -->
+    <div id="etAlert" style="display:none;background:#fdecea;color:#c0392b;border:1px solid #f5c6cb;border-radius:6px;padding:0.6rem 0.9rem;font-size:0.85rem;margin-bottom:1rem"></div>
+
+    <!-- Fields -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem">
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">اسم الطالب <span style="color:#e74c3c">*</span></label>
+        <input id="etStudentName" type="text" class="form-input form-input-ar" placeholder="الاسم كاملاً" />
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">الصف</label>
+        <input id="etGrade" type="text" class="form-input" placeholder="مثال: Grade 3" />
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">التاريخ <span style="color:#e74c3c">*</span></label>
+        <input id="etDate" type="date" class="form-input" />
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">المبلغ المدفوع (ج.م) <span style="color:#e74c3c">*</span></label>
+        <input id="etAmount" type="number" class="form-input" placeholder="0" min="0" step="0.01" />
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">طريقة الدفع <span style="color:#e74c3c">*</span></label>
+        <select id="etPaymentType" class="form-select">
+          <option value="">اختر</option>
+          <option value="cash">نقدي</option>
+          <option value="bank_transfer">تحويل بنكي</option>
+          <option value="check">شيك</option>
+          <option value="instapay">إنستاباي</option>
+        </select>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">رقم الإيصال <span style="color:#e74c3c">*</span></label>
+        <input id="etReceiptNumber" type="text" class="form-input" placeholder="REC-2026-001" />
+      </div>
+
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">بند الدفع</label>
+        <input id="etPaymentItem" type="text" class="form-input form-input-ar" placeholder="مثال: مصروفات دراسية + باص" />
+        <div style="font-size:0.73rem;color:#888">لو بنود متعددة اكتبها بـ + بينهم</div>
+      </div>
+
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:5px">
+        <label style="font-size:0.82rem;font-weight:700;color:#333">ملاحظات</label>
+        <textarea id="etNotes" class="form-textarea" rows="2" placeholder="أي ملاحظات إضافية..."></textarea>
+      </div>
+
+    </div>
+
+    <!-- Buttons -->
+    <div style="display:flex;gap:0.75rem;margin-top:1.4rem">
+      <button id="etSaveBtn" onclick="saveEditTx()" class="btn btn-primary" style="flex:1;font-size:0.95rem">💾 حفظ التعديلات</button>
+      <button onclick="closeEditTxModal()" class="btn btn-secondary" style="padding:0 1.5rem">إلغاء</button>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

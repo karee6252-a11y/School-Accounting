@@ -1,0 +1,28 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
+*.tmp
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies / build
+node_modules/
+.vercel/
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+*.log
+
+# Local caches
+.cache/
+*.local

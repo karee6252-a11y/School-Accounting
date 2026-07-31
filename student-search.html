@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#1a3a6b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="المحاسبة" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<title>بحث الطلاب - نظام المحاسبة</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── Search Bar ── */
+    .search-hero {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      border-radius: var(--radius);
+      padding: 2rem 2rem 1.5rem;
+      margin-bottom: 1.5rem;
+      color: white;
+      position: relative;
+      overflow: visible;
+    }
+    .search-hero::before {
+      content: '';
+      position: absolute;
+      top: -40px; left: -40px;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+    }
+    .search-hero-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      margin-bottom: 0.35rem;
+    }
+    .search-hero-sub {
+      font-size: 0.82rem;
+      opacity: 0.75;
+      margin-bottom: 1.25rem;
+    }
+    .search-input-wrap {
+      position: relative;
+    }
+    .search-input-wrap input {
+      width: 100%;
+      padding: 0.85rem 1rem 0.85rem 3rem;
+      border-radius: var(--radius);
+      border: 2px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.12);
+      color: white;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+    .search-input-wrap input::placeholder { color: rgba(255,255,255,0.55); }
+    .search-input-wrap input:focus { border-color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.18); }
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.1rem;
+      opacity: 0.7;
+    }
+    .suggestions-dropdown {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0; left: 0;
+      background: white;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+      z-index: 9999;
+      max-height: 300px;
+      overflow-y: auto;
+      display: none;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    .suggestions-dropdown.show { display: block; }
+    .suggestion-item {
+      padding: 0.7rem 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background 0.15s;
+      color: var(--text-dark);
+    }
+    .suggestion-item:last-child { border: none; }
+    .suggestion-item:hover { background: var(--accent); }
+    .suggestion-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; font-weight: 800;
+      flex-shrink: 0;
+    }
+    .suggestion-name { font-weight: 700; font-size: 0.9rem; }
+    .suggestion-meta { font-size: 0.75rem; color: var(--text-light); }
+
+    /* ── Profile Card ── */
+    .profile-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+    .profile-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      color: white;
+    }
+    .profile-avatar {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      border: 3px solid rgba(255,255,255,0.4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; font-weight: 900;
+      flex-shrink: 0;
+    }
+    .profile-name { font-size: 1.3rem; font-weight: 900; }
+    .profile-meta { font-size: 0.82rem; opacity: 0.8; margin-top: 0.2rem; }
+    .profile-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0;
+      border-top: 1px solid var(--border);
+    }
+    .profile-stat {
+      padding: 1rem 1.25rem;
+      border-left: 1px solid var(--border);
+      text-align: center;
+    }
+    .profile-stat:last-child { border-left: none; }
+    .profile-stat-value { font-size: 1.25rem; font-weight: 900; color: var(--primary); }
+    .profile-stat-label { font-size: 0.72rem; color: var(--text-light); font-weight: 600; margin-top: 2px; }
+
+    /* ── Summary Boxes ── */
+    .summary-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .sum-box {
+      border-radius: var(--radius);
+      padding: 1.2rem 1.5rem;
+      color: white;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .sum-box::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,0.06);
+      pointer-events: none;
+    }
+    .sum-box.blue   { background: linear-gradient(135deg, var(--primary), #0d2247); }
+    .sum-box.green  { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
+    .sum-box.orange { background: linear-gradient(135deg, #e65100, #bf360c); }
+    .sum-box.purple { background: linear-gradient(135deg, #6a1b9a, #4a148c); }
+    .sum-box-icon { font-size: 1.8rem; opacity: 0.2; position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); }
+    .sum-box-label { font-size: 0.78rem; opacity: 0.8; font-weight: 600; }
+    .sum-box-value { font-size: 1.6rem; font-weight: 900; line-height: 1.1; margin-top: 2px; }
+    .sum-box-sub { font-size: 0.7rem; opacity: 0.65; margin-top: 3px; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 1.25rem;
+    }
+    .tab-btn {
+      padding: 0.65rem 1.25rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      font-family: inherit;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      color: var(--text-light);
+      transition: all 0.2s;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-btn:hover:not(.active) { color: var(--text-dark); }
+    .tab-badge {
+      background: var(--accent);
+      color: var(--primary);
+      border-radius: 10px;
+      padding: 0.1rem 0.45rem;
+      font-size: 0.7rem;
+      font-weight: 800;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Transactions Table ── */
+    .tx-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .tx-row:last-child { border: none; }
+    .tx-row:hover { background: var(--accent); }
+    .tx-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .tx-info { flex: 1; }
+    .tx-item { font-weight: 700; font-size: 0.88rem; color: var(--text-dark); }
+    .tx-meta { font-size: 0.75rem; color: var(--text-light); margin-top: 2px; }
+    .tx-amount { font-weight: 900; font-size: 1rem; color: var(--primary); white-space: nowrap; }
+    .tx-date { font-size: 0.75rem; color: var(--text-light); text-align: left; white-space: nowrap; }
+
+    /* ── Debt Items ── */
+    .debt-item {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      transition: box-shadow 0.2s;
+    }
+    .debt-item:hover { box-shadow: var(--shadow); }
+    .debt-item.settled { opacity: 0.6; }
+    .debt-label { font-weight: 700; font-size: 0.9rem; }
+    .debt-sub { font-size: 0.75rem; color: var(--text-light); margin-top: 3px; }
+    .debt-amounts { text-align: left; }
+    .debt-total { font-size: 0.75rem; color: var(--text-light); }
+    .debt-remaining { font-size: 1rem; font-weight: 900; color: #c62828; }
+    .debt-remaining.settled { color: #2e7d32; }
+    .debt-progress { margin-top: 6px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; width: 120px; }
+    .debt-progress-fill { height: 100%; border-radius: 3px; background: var(--primary); transition: width 0.5s; }
+    .debt-progress-fill.done { background: #4caf50; }
+
+    /* ── Payment Methods ── */
+    .method-pill {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 20px;
+      font-size: 0.75rem; font-weight: 700;
+      background: var(--accent);
+      color: var(--primary);
+      border: 1px solid var(--border);
+    }
+
+    /* ── Empty / Loading ── */
+    .result-empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-light);
+    }
+    .result-empty-icon { font-size: 3rem; margin-bottom: 0.75rem; }
+    .result-empty-title { font-size: 1rem; font-weight: 700; }
+    .result-empty-sub { font-size: 0.82rem; margin-top: 0.35rem; }
+
+    /* ── Initial state ── */
+    #initialState {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: var(--text-light);
+    }
+    .initial-icon { font-size: 4rem; margin-bottom: 1rem; opacity: 0.4; }
+    .initial-title { font-size: 1.1rem; font-weight: 700; color: var(--text-dark); }
+    .initial-sub { font-size: 0.85rem; margin-top: 0.5rem; }
+
+    @media (max-width: 768px) {
+      .profile-header { flex-direction: column; text-align: center; }
+      .summary-row { grid-template-columns: 1fr 1fr; }
+      .tabs { overflow-x: auto; flex-wrap: nowrap; }
+      .tab-btn { white-space: nowrap; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div id="topbarContainer"></div>
+
+    <div class="page-content">
+
+      <!-- Search Hero -->
+      <div class="search-hero animate-in">
+        <div class="search-hero-title"> بحث الطلاب</div>
+        <div class="search-hero-sub">ابحث بأي جزء من اسم الطالب لعرض كامل بياناته ومدفوعاته</div>
+        <div class="search-input-wrap" id="searchWrap">
+          <span class="search-icon"></span>
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="اكتب اسم الطالب..."
+            autocomplete="off"
+            oninput="onSearchInput()"
+          />
+          <div class="suggestions-dropdown" id="suggestionsDropdown"></div>
+        </div>
+      </div>
+
+      <!-- Initial / Result Area -->
+      <div id="initialState">
+        <div class="initial-icon"></div>
+        <div class="initial-title">ابحث عن طالب لعرض بياناته</div>
+        <div class="initial-sub">سيظهر هنا كل شيء يخصه — المدفوعات، المديونيات، الملخص المالي</div>
+      </div>
+
+      <div id="loadingState" style="display:none;text-align:center;padding:3rem">
+        <div class="loading-spinner"></div>
+        <div style="margin-top:1rem;color:var(--text-light);font-size:0.85rem">جاري تحميل بيانات الطالب...</div>
+      </div>
+
+      <div id="resultArea" style="display:none">
+
+        <!-- Duplicate Name Warning -->
+        <div id="duplicateWarning" style="display:none; background:#fff3cd; border:1.5px solid #ffc107; border-radius:10px; padding:1rem 1.25rem; margin-bottom:1rem; direction:rtl">
+          <div style="font-weight:800; font-size:0.95rem; color:#856404; margin-bottom:0.5rem">⚠️ تحذير: الاسم مكرر بأشكال مختلفة في الداتابيز!</div>
+          <div style="font-size:0.82rem; color:#856404; margin-bottom:0.75rem">الأسماء التالية موجودة في السجلات — ممكن بعض المعاملات تكون متسجلة تحت اسم مختلف شوية:</div>
+          <div id="duplicateNamesList" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem"></div>
+          <div style="font-size:0.78rem; color:#856404">اضغط على أي اسم لعرض معاملاته، أو استخدم زر "دمج الكل" لرؤية كل المعاملات معاً</div>
+          <div style="margin-top:0.75rem; display:flex; gap:0.5rem; flex-wrap:wrap">
+            <button id="mergeAllBtn" onclick="mergeAllDuplicates()" style="background:#856404; color:white; border:none; border-radius:7px; padding:0.4rem 1rem; font-family:inherit; font-size:0.82rem; font-weight:700; cursor:pointer">🔗 دمج الكل وعرض كل المعاملات</button>
+          </div>
+        </div>
+
+        <!-- Profile Card -->
+        <div class="profile-card animate-in">
+          <div class="profile-header">
+            <div class="profile-avatar" id="profileAvatar">—</div>
+            <div>
+              <div class="profile-name" id="profileName">—</div>
+              <div class="profile-meta" id="profileMeta">—</div>
+            </div>
+          </div>
+          <div class="profile-stats">
+            <div class="profile-stat">
+              <div class="profile-stat-value" id="psTotal">—</div>
+              <div class="profile-stat-label">إجمالي المدفوع</div>
+            </div>
+            <div class="profile-stat">
+              <div class="profile-stat-value" id="psTxCount">—</div>
+              <div class="profile-stat-label">عدد المعاملات</div>
+            </div>
+            <div class="profile-stat">
+              <div class="profile-stat-value" id="psDebt">—</div>
+              <div class="profile-stat-label">متبقي مديونيات</div>
+            </div>
+            <div class="profile-stat">
+              <div class="profile-stat-value" id="psLastDate">—</div>
+              <div class="profile-stat-label">آخر دفعة</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary Boxes -->
+        <div class="summary-row animate-in">
+          <div class="sum-box blue">
+            <div class="sum-box-icon"></div>
+            <div class="sum-box-label">إجمالي المدفوع (السنة الدراسية)</div>
+            <div class="sum-box-value" id="sbPaid">—</div>
+            <div class="sum-box-sub" id="sbPaidSub"></div>
+          </div>
+          <div class="sum-box green">
+            <div class="sum-box-icon"></div>
+            <div class="sum-box-label">المدفوع هذا الشهر</div>
+            <div class="sum-box-value" id="sbMonth">—</div>
+            <div class="sum-box-sub" id="sbMonthSub"></div>
+          </div>
+          <div class="sum-box orange">
+            <div class="sum-box-icon"></div>
+            <div class="sum-box-label">إجمالي المديونيات</div>
+            <div class="sum-box-value" id="sbDebtTotal">—</div>
+            <div class="sum-box-sub" id="sbDebtSub"></div>
+          </div>
+          <div class="sum-box purple">
+            <div class="sum-box-icon"></div>
+            <div class="sum-box-label">طريقة الدفع الأكثر استخداماً</div>
+            <div class="sum-box-value" id="sbFavMethod" style="font-size:1.1rem">—</div>
+            <div class="sum-box-sub" id="sbFavMethodSub"></div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="card animate-in">
+          <div style="padding:1rem 1.25rem 0">
+            <div class="tabs">
+              <button class="tab-btn active" onclick="switchTab('payments', this)">
+                 المدفوعات
+                <span class="tab-badge" id="tabBadgePayments">0</span>
+              </button>
+              <button class="tab-btn" onclick="switchTab('debts', this)">
+                 المديونيات
+                <span class="tab-badge" id="tabBadgeDebts">0</span>
+              </button>
+              <button class="tab-btn" onclick="switchTab('breakdown', this)">
+                 توزيع البنود
+              </button>
+            </div>
+          </div>
+
+          <!-- Payments Tab -->
+          <div class="tab-panel active" id="tab-payments">
+            <div id="paymentsContent">
+              <div class="result-empty">
+                <div class="result-empty-icon"></div>
+                <div class="result-empty-title">لا توجد مدفوعات</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Debts Tab -->
+          <div class="tab-panel" id="tab-debts">
+            <div style="padding:1.25rem" id="debtsContent">
+              <div class="result-empty">
+                <div class="result-empty-icon"></div>
+                <div class="result-empty-title">لا توجد مديونيات</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Breakdown Tab -->
+          <div class="tab-panel" id="tab-breakdown">
+            <div style="padding:1.25rem" id="breakdownContent">
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="layout.js"></script>
+<script>
+  renderLayout('student-search', 'بحث الطلاب');
+
+  const session = SESSION.get();
+  const schoolId = session.schoolId;
+
+  const PAYMENT_ICONS = {
+    'مصروفات دراسية': '',
+    'باص': '',
+    'يونيفورم': '',
+    'فايل': '',
+    'أبليكيشن': '',
+    'امتحانات': '',
+    'رحلات': ''
+  };
+  const METHOD_LABELS = {
+    cash: 'نقدي',
+    bank_transfer: 'تحويل بنكي',
+    check: 'شيك',
+    instapay: 'إنستاباي'
+  };
+
+  // ── Autocomplete ─────────────────────────────
+  let allStudentNames = [];
+  let searchTimeout = null;
+
+  // ── Load distinct student names — مع cache 30 دقيقة في sessionStorage ──
+  // التحسين: بدل ما نجيب كل الـ transactions (آلاف reads)،
+  //   نجيب بس آخر 3 أشهر + نحفظ النتيجة في cache
+  let namesLoaded = false;
+  async function loadStudentNames() {
+    if (namesLoaded) return;
+    const NAMES_KEY = `student_names_${schoolId}`;
+    const NAMES_TTL = 30 * 60 * 1000; // 30 دقيقة
+    try {
+      // جرب الـ cache الأول
+      const raw = sessionStorage.getItem(NAMES_KEY);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        if (Date.now() - obj.ts < NAMES_TTL) {
+          allStudentNames = obj.names;
+          namesLoaded = true;
+          return; // ✅ صفر reads
+        }
+      }
+      // جيب من Firebase — آخر 3 أشهر بس بدل كل السجلات
+      // جيب من بداية السنة الدراسية الحالية
+      const names = new Set();
+      const [snap, dSnap] = await Promise.all([
+        db.collection('transactions')
+          .where('schoolId', '==', schoolId)
+          .where('date', '>=', ACADEMIC_YEAR_START)
+          .get(),
+        db.collection('debts')
+          .where('schoolId', '==', schoolId)
+          .get()
+          .catch(() => null)
+      ]);
+      snap.forEach(doc => { if (doc.data().studentName) names.add(doc.data().studentName); });
+      if (dSnap) dSnap.forEach(doc => { if (doc.data().studentName) names.add(doc.data().studentName); });
+      allStudentNames = [...names].sort();
+      namesLoaded = true;
+      // احفظ في cache
+      try { sessionStorage.setItem(NAMES_KEY, JSON.stringify({ names: allStudentNames, ts: Date.now() })); }
+      catch(e) {}
+    } catch(e) {
+      console.warn('loadStudentNames error:', e);
+    }
+  }
+  loadStudentNames();
+
+  function onSearchInput() {
+    clearTimeout(searchTimeout);
+    const val = document.getElementById('searchInput').value.trim();
+    if (val.length < 1) {
+      hideSuggestions();
+      return;
+    }
+    // Show loading in dropdown while waiting
+    if (allStudentNames.length === 0) {
+      const dd = document.getElementById('suggestionsDropdown');
+      dd.innerHTML = '';
+      const loadEl = document.createElement('div');
+      loadEl.className = 'suggestion-item';
+      loadEl.style.cssText = 'color:var(--text-light);cursor:default;justify-content:center';
+      loadEl.textContent = 'جاري التحميل...';
+      dd.appendChild(loadEl);
+      dd.classList.add('show');
+      // Wait for names then search
+      loadStudentNames().then(() => showSuggestions(val));
+      return;
+    }
+    searchTimeout = setTimeout(() => showSuggestions(val), 200);
+  }
+
+  function showSuggestions(q) {
+    const dd = document.getElementById('suggestionsDropdown');
+    // If names still not loaded, search Firestore directly
+    if (allStudentNames.length === 0) {
+      searchFirestoreDirectly(q);
+      return;
+    }
+    const matches = allStudentNames.filter(n =>
+      n.toLowerCase().includes(q.toLowerCase())
+    ).slice(0, 10);
+
+    dd.innerHTML = '';
+    if (matches.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'suggestion-item';
+      empty.style.cssText = 'color:var(--text-light);cursor:default';
+      empty.textContent = ' لا توجد نتائج لـ "' + q + '"';
+      dd.appendChild(empty);
+    } else {
+      matches.forEach(name => {
+        const item = document.createElement('div');
+        item.className = 'suggestion-item';
+        const avatar = document.createElement('div');
+        avatar.className = 'suggestion-avatar';
+        avatar.textContent = name.charAt(0);
+        const nameDiv = document.createElement('div');
+        const nameInner = document.createElement('div');
+        nameInner.className = 'suggestion-name';
+        nameInner.innerHTML = highlightMatch(name, q);
+        nameDiv.appendChild(nameInner);
+        item.appendChild(avatar);
+        item.appendChild(nameDiv);
+        item.addEventListener('click', function() { selectStudent(name); });
+        dd.appendChild(item);
+      });
+    }
+    dd.classList.add('show');
+  }
+
+  function highlightMatch(name, q) {
+    const idx = name.toLowerCase().indexOf(q.toLowerCase());
+    if (idx < 0) return name;
+    return name.substring(0, idx) +
+      `<mark style="background:rgba(255,220,0,0.4);border-radius:2px">${name.substring(idx, idx + q.length)}</mark>` +
+      name.substring(idx + q.length);
+  }
+
+  async function searchFirestoreDirectly(q) {
+    const dd = document.getElementById('suggestionsDropdown');
+    dd.innerHTML = '';
+    const loadEl = document.createElement('div');
+    loadEl.className = 'suggestion-item';
+    loadEl.style.cssText = 'color:var(--text-light);cursor:default;justify-content:center';
+    loadEl.textContent = 'جاري البحث...';
+    dd.appendChild(loadEl);
+    dd.classList.add('show');
+    try {
+      await loadStudentNames();
+      showSuggestions(q);
+    } catch(e) {
+      dd.innerHTML = '';
+      const errEl = document.createElement('div');
+      errEl.className = 'suggestion-item';
+      errEl.style.cssText = 'color:red;cursor:default';
+      errEl.textContent = 'خطأ في البحث';
+      dd.appendChild(errEl);
+    }
+  }
+
+  function hideSuggestions() {
+    document.getElementById('suggestionsDropdown').classList.remove('show');
+  }
+
+  document.addEventListener('click', e => {
+    if (!document.getElementById('searchWrap').contains(e.target)) {
+      hideSuggestions();
+    }
+  });
+
+  function selectStudent(name) {
+    document.getElementById('searchInput').value = name;
+    hideSuggestions();
+    loadStudentData(name);
+  }
+
+  // ── Duplicate detection helpers ──────────────────
+  let currentDuplicateNames = [];
+
+  function normalize(name) {
+    return (name || '')
+      .trim()
+      .replace(/\s+/g, ' ')           // مسافات متعددة → مسافة واحدة
+      .replace(/أ|إ|آ/g, 'ا')         // توحيد الألف
+      .replace(/ة/g, 'ه')             // تاء مربوطة → هاء
+      .replace(/ى/g, 'ي')             // ألف مقصورة → ياء
+      .toLowerCase();
+  }
+
+  function findSimilarNames(targetName) {
+    const normTarget = normalize(targetName);
+    return allStudentNames.filter(n => {
+      if (n === targetName) return false;
+      const normN = normalize(n);
+      // نفس الاسم بعد التوحيد
+      if (normN === normTarget) return true;
+      // فرق مسافة فقط
+      if (normN.replace(/\s/g,'') === normTarget.replace(/\s/g,'')) return true;
+      return false;
+    });
+  }
+
+  // ── Load Student Data ──────────────────────────
+  async function loadStudentData(name, extraNames = []) {
+    document.getElementById('initialState').style.display = 'none';
+    document.getElementById('resultArea').style.display = 'none';
+    document.getElementById('loadingState').style.display = 'block';
+    document.getElementById('duplicateWarning').style.display = 'none';
+
+    try {
+      // كل الأسماء اللي هنجيب بياناتها (الاسم الأصلي + أي duplicates محددة)
+      const allNames = [name, ...extraNames.filter(n => n !== name)];
+
+      // جيب transactions لكل الأسماء
+      const txPromises = allNames.map(n =>
+        db.collection('transactions')
+          .where('schoolId', '==', schoolId)
+          .where('studentName', '==', n)
+          .get()
+      );
+      const debtPromises = allNames.map(n =>
+        db.collection('debts')
+          .where('schoolId', '==', schoolId)
+          .where('studentName', '==', n)
+          .get()
+          .catch(() => null)
+      );
+
+      const [txSnaps, debtSnaps] = await Promise.all([
+        Promise.all(txPromises),
+        Promise.all(debtPromises)
+      ]);
+
+      const transactions = [];
+      const seenTxIds = new Set();
+      txSnaps.forEach(snap => {
+        snap.forEach(doc => {
+          if (!seenTxIds.has(doc.id)) {
+            seenTxIds.add(doc.id);
+            transactions.push({ id: doc.id, ...doc.data() });
+          }
+        });
+      });
+      transactions.sort((a, b) => {
+        const ta = a.createdAt?.seconds || 0;
+        const tb = b.createdAt?.seconds || 0;
+        return tb - ta;
+      });
+
+      const debts = [];
+      const seenDebtIds = new Set();
+      debtSnaps.forEach(snap => {
+        if (!snap) return;
+        snap.forEach(doc => {
+          if (!seenDebtIds.has(doc.id)) {
+            seenDebtIds.add(doc.id);
+            debts.push({ id: doc.id, ...doc.data() });
+          }
+        });
+      });
+
+      // كشف الأسماء المتشابهة (بس لو مش بندمج بالفعل)
+      if (extraNames.length === 0) {
+        const similarNames = findSimilarNames(name);
+        currentDuplicateNames = [name, ...similarNames];
+        if (similarNames.length > 0) {
+          const warningEl = document.getElementById('duplicateWarning');
+          const listEl = document.getElementById('duplicateNamesList');
+          listEl.innerHTML = currentDuplicateNames.map(n => `
+            <span onclick="loadStudentData('${n.replace(/'/g,"\\'")}'')"
+              style="background:white; border:1.5px solid #ffc107; border-radius:20px;
+                     padding:0.3rem 0.85rem; font-size:0.82rem; font-weight:700;
+                     color:#856404; cursor:pointer; white-space:nowrap"
+              title="اضغط لعرض معاملات هذا الاسم بس">
+              ${n === name ? '✓ ' : ''}${n}
+            </span>
+          `).join('');
+          warningEl.style.display = 'block';
+        }
+      } else {
+        // وضع الدمج — وضح إن الداتا مدموجة
+        const warningEl = document.getElementById('duplicateWarning');
+        const listEl = document.getElementById('duplicateNamesList');
+        listEl.innerHTML = `<span style="background:#d4edda; border:1.5px solid #4caf50; border-radius:20px; padding:0.3rem 0.85rem; font-size:0.82rem; font-weight:700; color:#2e7d32">✅ يتم عرض كل المعاملات من ${allNames.length} أسماء مدموجة</span>`;
+        document.getElementById('mergeAllBtn').style.display = 'none';
+        warningEl.style.display = 'block';
+      }
+
+      renderStudentProfile(name, transactions, debts);
+
+    } catch(err) {
+      console.error(err);
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('initialState').style.display = 'block';
+      document.getElementById('initialState').innerHTML = `
+        <div class="initial-icon"></div>
+        <div class="initial-title">حدث خطأ أثناء التحميل</div>
+        <div class="initial-sub">${err.message}</div>
+      `;
+    }
+  }
+
+  function mergeAllDuplicates() {
+    if (currentDuplicateNames.length < 2) return;
+    const primary = currentDuplicateNames[0];
+    const extras  = currentDuplicateNames.slice(1);
+    document.getElementById('mergeAllBtn').style.display = 'none';
+    loadStudentData(primary, extras);
+  }
+
+  function renderStudentProfile(name, transactions, debts) {
+    document.getElementById('loadingState').style.display = 'none';
+
+    // ── Compute Stats ──
+    const totalPaid = transactions.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+
+    const now = new Date();
+    const thisMonthStr = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0')
+    ].join('-');
+    const monthPaid = transactions
+      .filter(t => t.date && t.date.startsWith(thisMonthStr))
+      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const monthTxCount = transactions.filter(t => t.date && t.date.startsWith(thisMonthStr)).length;
+
+    const totalDebt = debts.reduce((s, d) => s + (Number(d.remaining) || 0), 0);
+    const pendingDebts = debts.filter(d => (Number(d.remaining) || 0) > 0).length;
+
+    const lastTx = transactions[0];
+    const lastDate = lastTx?.date || '—';
+
+    // Grade & Stage from latest tx
+    const latestTx = transactions[0] || debts[0] || {};
+    const grade = latestTx.grade || '—';
+    const stageRaw = latestTx.stage || '';
+    const stage = stageRaw ? (STAGES[stageRaw]?.labelAr || (typeof stageRaw === 'string' ? stageRaw : '—')) : '—';
+
+    // Favorite payment method
+    const methodCount = {};
+    transactions.forEach(t => {
+      const m = t.paymentType || t.paymentMethod || 'cash';
+      methodCount[m] = (methodCount[m] || 0) + 1;
+    });
+    const favMethodKey = Object.entries(methodCount).sort((a,b)=>b[1]-a[1])[0]?.[0] || '';
+    const favMethod = METHOD_LABELS[favMethodKey] || favMethodKey || '—';
+
+    // ── Profile Header ──
+    document.getElementById('profileAvatar').textContent = name.charAt(0);
+    document.getElementById('profileName').textContent = name;
+    document.getElementById('profileMeta').textContent = `${stage} — ${grade} | ${schoolId}`;
+    document.getElementById('psTotal').textContent = formatCurrency(totalPaid);
+    document.getElementById('psTxCount').textContent = transactions.length;
+    document.getElementById('psDebt').textContent = totalDebt > 0 ? formatCurrency(totalDebt) : 'لا يوجد';
+    document.getElementById('psLastDate').textContent = lastDate;
+
+    // ── Summary Boxes ──
+    document.getElementById('sbPaid').textContent = formatCurrency(totalPaid);
+    document.getElementById('sbPaidSub').textContent = `${transactions.length} معاملة خلال السنة الدراسية`;
+    document.getElementById('sbMonth').textContent = formatCurrency(monthPaid);
+    document.getElementById('sbMonthSub').textContent = `${monthTxCount} معاملة هذا الشهر`;
+    document.getElementById('sbDebtTotal').textContent = totalDebt > 0 ? formatCurrency(totalDebt) : 'لا توجد مديونيات';
+    document.getElementById('sbDebtSub').textContent = pendingDebts > 0 ? `${pendingDebts} مديونية قائمة` : 'الحساب سليم';
+    document.getElementById('sbFavMethod').textContent = favMethod;
+    document.getElementById('sbFavMethodSub').textContent = favMethodKey ? `${methodCount[favMethodKey]} مرة` : 'لا توجد بيانات';
+
+    // Tab badges
+    document.getElementById('tabBadgePayments').textContent = transactions.length;
+    document.getElementById('tabBadgeDebts').textContent = debts.length;
+
+    // ── Payments Tab ──
+    const paymentsEl = document.getElementById('paymentsContent');
+    if (transactions.length === 0) {
+      paymentsEl.innerHTML = `
+        <div class="result-empty">
+          <div class="result-empty-icon"></div>
+          <div class="result-empty-title">لا توجد مدفوعات مسجلة</div>
+          <div class="result-empty-sub">لم يتم تسجيل أي دفعة لهذا الطالب بعد</div>
+        </div>`;
+    } else {
+      paymentsEl.innerHTML = transactions.map(t => {
+        const method = METHOD_LABELS[t.paymentType || t.paymentMethod] || 'نقدي';
+        // paymentItems is array of objects {item, price, discount, netPrice}
+        const itemNames = Array.isArray(t.paymentItems)
+          ? t.paymentItems.map(i => typeof i === 'object' ? i.item : i).filter(Boolean)
+          : [];
+        const itemsDisplay = itemNames.length > 0 ? itemNames.join(' + ') : (t.paymentItem || '—');
+        const firstItem = itemNames[0] || t.paymentItem || '';
+        const icon = PAYMENT_ICONS[firstItem] || '💳';
+        return `
+          <div class="tx-row">
+            <div class="tx-icon">${icon}</div>
+            <div class="tx-info">
+              <div class="tx-item">${itemsDisplay}</div>
+              <div class="tx-meta">
+                <span class="method-pill">${method}</span>
+                ${t.receiptNumber ? `<span style="margin-right:0.4rem;font-size:0.72rem;color:var(--text-light)"> إيصال #${t.receiptNumber}</span>` : ''}
+                ${t.notes ? `<span style="margin-right:0.4rem;font-size:0.72rem;color:var(--text-light)">${t.notes}</span>` : ''}
+              </div>
+            </div>
+            <div>
+              <div class="tx-amount">${formatCurrency(Number(t.amount) || 0)}</div>
+              <div class="tx-date">${t.date || '—'}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Debts Tab ──
+    const debtsEl = document.getElementById('debtsContent');
+    if (debts.length === 0) {
+      debtsEl.innerHTML = `
+        <div class="result-empty">
+          <div class="result-empty-icon"></div>
+          <div class="result-empty-title">لا توجد مديونيات</div>
+          <div class="result-empty-sub">الطالب ليس عليه أي مديونيات مسجلة</div>
+        </div>`;
+    } else {
+      debtsEl.innerHTML = debts.map(d => {
+        const total   = Number(d.totalDue)  || 0;
+        const paid    = Number(d.paid)       || 0;
+        const remain  = Number(d.remaining)  || 0;
+        const pct     = total > 0 ? Math.round(paid / total * 100) : 0;
+        const settled = remain <= 0;
+        const statusLabel = settled ? 'مسدد' : (paid > 0 ? 'جزئي' : 'معلق');
+        const statusClass = settled ? 'settled' : (paid > 0 ? 'partial' : 'pending');
+        return `
+          <div class="debt-item ${settled ? 'settled' : ''}">
+            <div>
+              <div class="debt-label">${(() => {
+                if (d.paymentItem) return d.paymentItem;
+                const src = d.paymentItems || d.items;
+                if (Array.isArray(src)) return src.map(i => typeof i === 'object' ? i.item : i).filter(Boolean).join(' + ');
+                return src || '—';
+              })()}</div>
+              <div class="debt-sub">
+                <span class="debt-status-badge ${statusClass}">${statusLabel}</span>
+                ${d.date ? ` · ${d.date}` : ''}
+                ${d.notes ? ` · ${d.notes}` : ''}
+              </div>
+              <div class="debt-progress">
+                <div class="debt-progress-fill ${settled ? 'done' : ''}" style="width:${pct}%"></div>
+              </div>
+            </div>
+            <div class="debt-amounts">
+              <div class="debt-total">المطلوب: ${formatCurrency(total)}</div>
+              <div class="debt-total">مدفوع: ${formatCurrency(paid)}</div>
+              <div class="debt-remaining ${settled ? 'settled' : ''}">
+                ${settled ? ' مسدد' : 'متبقي: ' + formatCurrency(remain)}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Breakdown Tab ──
+    const itemMap = {};
+    transactions.forEach(t => {
+      const paidAmount = Number(t.amount) || 0;
+      if (Array.isArray(t.paymentItems) && t.paymentItems.length > 0) {
+        // وزّع المبلغ المدفوع نسبياً على البنود (نفس منطق mapAmounts)
+        const nets = t.paymentItems.map(pi => ({
+          item: typeof pi === 'object' ? pi.item : String(pi),
+          net:  typeof pi === 'object' ? (Number(pi.netPrice) || Number(pi.price) || 0) : 0
+        }));
+        const totalNet = nets.reduce((s, x) => s + x.net, 0);
+        nets.forEach((x, idx) => {
+          if (!x.item) return;
+          let amt = totalNet > 0
+            ? (idx === nets.length - 1
+                ? paidAmount - nets.slice(0, idx).reduce((s, n) => s + Math.round(paidAmount * n.net / totalNet), 0)
+                : Math.round(paidAmount * x.net / totalNet))
+            : paidAmount / Math.max(nets.length, 1);
+          if (!itemMap[x.item]) itemMap[x.item] = { total: 0, count: 0 };
+          itemMap[x.item].total += amt;
+          itemMap[x.item].count++;
+        });
+      } else {
+        const itemName = t.paymentItem || '—';
+        if (!itemMap[itemName]) itemMap[itemName] = { total: 0, count: 0 };
+        itemMap[itemName].total += paidAmount;
+        itemMap[itemName].count++;
+      }
+    });
+
+    const breakdownEl = document.getElementById('breakdownContent');
+    if (Object.keys(itemMap).length === 0) {
+      breakdownEl.innerHTML = `<div class="result-empty"><div class="result-empty-icon"></div><div class="result-empty-title">لا توجد بيانات</div></div>`;
+    } else {
+      const maxVal = Math.max(...Object.values(itemMap).map(v => v.total));
+      breakdownEl.innerHTML = `
+        <div style="margin-bottom:1rem;font-size:0.82rem;color:var(--text-light)">توزيع المدفوعات على بنود مختلفة</div>
+        ${Object.entries(itemMap).sort((a,b)=>b[1].total-a[1].total).map(([item, data]) => `
+          <div style="margin-bottom:1rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <span style="font-weight:700;font-size:0.88rem">${PAYMENT_ICONS[item] || ''} ${item}</span>
+              <div style="text-align:left">
+                <span style="font-weight:900;color:var(--primary)">${formatCurrency(data.total)}</span>
+                <span style="font-size:0.72rem;color:var(--text-light);margin-right:0.5rem">${data.count} مرة</span>
+              </div>
+            </div>
+            <div style="height:10px;background:var(--border);border-radius:5px;overflow:hidden">
+              <div style="height:100%;width:${Math.round(data.total/maxVal*100)}%;background:var(--primary);border-radius:5px;transition:width 1s ease"></div>
+            </div>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    // ── Show Result ──
+    document.getElementById('resultArea').style.display = 'block';
+
+    // Reset to first tab
+    switchTab('payments', document.querySelector('.tab-btn'));
+  }
+
+  // ── Tab Switching ──
+  function switchTab(tabId, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+
+<style>
+  /* Reuse debt badge styles from debts.html */
+  .debt-status-badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.15rem 0.55rem; border-radius: 20px;
+    font-size: 0.72rem; font-weight: 700;
+  }
+  .debt-status-badge.pending  { background:#fff3cd; color:#856404; border:1px solid #ffc107; }
+  .debt-status-badge.partial  { background:#fff0e0; color:#bf5600; border:1px solid #ff9800; }
+  .debt-status-badge.settled  { background:#e8f5e9; color:#2e7d32; border:1px solid #4caf50; }
+</style>
+
+</body>
+</html>

@@ -1,0 +1,2240 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head> <meta charset="UTF-8" /> <meta name="viewport" content="width=device-width, initial-scale=1.0" />   <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#1a3a6b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="المحاسبة" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<title>الموارد البشرية</title> <link rel="stylesheet" href="styles.css?v=1.1" />
+<style> .hr-tabs {
+ display: flex; gap: 0.4rem; margin-bottom: 1.5rem;
+ border-bottom: 2px solid var(--border); padding-bottom: 0; flex-wrap: wrap;
+ }
+ .hr-tab {
+ padding: 0.55rem 1rem; font-family: 'Cairo', sans-serif;
+ font-size: 0.82rem; font-weight: 700; cursor: pointer;
+ border: none; background: none; color: var(--text-light);
+ border-bottom: 3px solid transparent; margin-bottom: -2px;
+ transition: var(--transition); border-radius: 8px 8px 0 0; white-space: nowrap;
+ }
+ .hr-tab:hover { color: var(--primary); background: var(--accent); }
+ .hr-tab.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--accent); }
+ .tab-pane { display: none; }
+ .tab-pane.active { display: block; animation: fadeInUp 0.3s ease; }
+
+ .emp-card {
+ background: var(--card-bg); border: 1px solid var(--border);
+ border-radius: var(--radius); padding: 1rem 1.25rem;
+ display: flex; align-items: center; gap: 1rem;
+ transition: var(--transition); cursor: pointer; margin-bottom: 0.75rem;
+ }
+ .emp-card:hover { border-color: var(--primary); box-shadow: var(--shadow); transform: translateY(-1px); }
+ .emp-avatar {
+ width: 52px; height: 52px; border-radius: 50%;
+ border: 3px solid var(--primary-light); flex-shrink: 0;
+ background: var(--accent); display: flex; align-items: center; justify-content: center;
+ font-size: 1.3rem; font-weight: 800; color: var(--primary); overflow: hidden;
+ }
+ .emp-avatar img { width: 100%; height: 100%; object-fit: cover; }
+ .emp-info { flex: 1; min-width: 0; }
+ .emp-name { font-size: 0.95rem; font-weight: 800; color: var(--text-dark); }
+ .emp-meta { font-size: 0.78rem; color: var(--text-light); margin-top: 0.15rem; }
+ .emp-badges { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem; }
+
+ .status-badge {
+ display: inline-flex; align-items: center; gap: 0.3rem;
+ padding: 0.2rem 0.65rem; border-radius: 20px;
+ font-size: 0.72rem; font-weight: 700;
+ }
+ .status-active { background: #e8f5e9; color: #2e7d32; }
+ .status-resigned { background: #fdecea; color: #c62828; }
+ .status-expired { background: #fff3e0; color: #e65100; }
+
+ .doc-checklist { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 0.75rem; }
+ .doc-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--text-mid); }
+ .doc-item input[type=checkbox] { accent-color: var(--primary); width: 16px; height: 16px; flex-shrink: 0; }
+
+ .photo-upload-area {
+ width: 100px; height: 100px; border: 2px dashed var(--border); border-radius: 50%;
+ display: flex; flex-direction: column; align-items: center; justify-content: center;
+ cursor: pointer; margin: 0 auto 1rem; background: var(--bg);
+ overflow: hidden; position: relative; transition: var(--transition);
+ }
+ .photo-upload-area:hover { border-color: var(--primary); background: var(--accent); }
+ .photo-upload-area img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+ .photo-upload-area span { font-size: 0.7rem; color: var(--text-light); text-align: center; line-height: 1.3; }
+
+ .form-section-title {
+ font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
+ letter-spacing: 1px; color: var(--primary);
+ border-bottom: 2px solid var(--primary-light);
+ padding-bottom: 0.4rem; margin: 1.25rem 0 0.75rem;
+ }
+
+ .hr-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+ .hr-stat-card {
+ background: var(--card-bg); border: 1px solid var(--border);
+ border-radius: var(--radius); padding: 1rem; text-align: center;
+ }
+ .hr-stat-num { font-size: 1.8rem; font-weight: 900; color: var(--primary); }
+ .hr-stat-label { font-size: 0.75rem; color: var(--text-light); font-weight: 600; margin-top: 0.2rem; }
+
+ .search-filter-row {
+ display: flex; gap: 0.75rem; flex-wrap: wrap;
+ align-items: center; margin-bottom: 1rem;
+ }
+ .search-filter-row .form-input { max-width: 280px; }
+ .search-filter-row select.form-input { direction: rtl; text-align: right; max-width: 180px; }
+
+ .emp-detail-section { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+ .emp-detail-item { font-size: 0.85rem; }
+ .emp-detail-item .lbl { color: var(--text-light); font-size: 0.75rem; font-weight: 600; margin-bottom: 0.15rem; }
+ .emp-detail-item .val { font-weight: 700; color: var(--text-dark); }
+ .large-modal { max-width: 820px; }
+
+ .dept-badge {
+ padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700;
+ background: var(--accent); color: var(--primary); border: 1px solid var(--primary-light);
+ }
+
+ /* ATTENDANCE */
+ .attend-row {
+ display: flex; align-items: center; gap: 0.75rem;
+ padding: 0.7rem 1rem; border: 1px solid var(--border);
+ border-radius: var(--radius); margin-bottom: 0.5rem;
+ background: var(--card-bg); transition: var(--transition);
+ }
+ .attend-row:hover { border-color: var(--primary); }
+ .status-toggle { display: flex; gap: 0.35rem; flex-shrink: 0; flex-wrap: wrap; }
+ .status-btn {
+ padding: 0.3rem 0.7rem; border-radius: 20px; border: 2px solid var(--border);
+ font-size: 0.75rem; font-weight: 700; cursor: pointer;
+ font-family: 'Cairo', sans-serif; transition: var(--transition);
+ background: var(--bg); color: var(--text-mid);
+ }
+ .status-btn.active-present { background: #e8f5e9; color: #2e7d32; border-color: #66bb6a; }
+ .status-btn.active-absent { background: #fdecea; color: #c62828; border-color: #ef5350; }
+ .status-btn.active-excused { background: #fff3e0; color: #e65100; border-color: #ffa726; }
+
+ /* ABSENT-ONLY MODE */
+ .absent-mode-emp {
+ display: flex; align-items: center; gap: 0.75rem;
+ padding: 0.6rem 1rem; border: 1px solid var(--border);
+ border-radius: var(--radius); background: var(--card-bg);
+ margin-bottom: 0.4rem; transition: var(--transition);
+ }
+ .absent-mode-emp.is-absent { border-color: #ef5350; background: #fff5f5; }
+ .absent-mode-emp.is-excused { border-color: #ffa726; background: #fffbf0; }
+ .absent-toggle { display: flex; gap: 0.35rem; margin-right: auto; flex-shrink: 0; }
+ .absent-btn {
+ padding: 0.28rem 0.75rem; border-radius: 20px; border: 2px solid var(--border);
+ font-size: 0.75rem; font-weight: 700; cursor: pointer;
+ font-family: 'Cairo', sans-serif; transition: var(--transition);
+ background: var(--bg); color: var(--text-mid);
+ }
+ .absent-btn.sel-absent { background: #fdecea; color: #c62828; border-color: #ef5350; }
+ .absent-btn.sel-excused { background: #fff3e0; color: #e65100; border-color: #ffa726; }
+
+ .attend-log-row {
+ display: flex; align-items: center; gap: 0.5rem;
+ padding: 0.45rem 0.75rem; border-radius: 8px; font-size: 0.8rem;
+ margin-bottom: 0.3rem; background: var(--bg); border: 1px solid var(--border);
+ cursor: pointer; transition: var(--transition);
+ }
+ .attend-log-row:hover { border-color: var(--primary); background: var(--accent); }
+
+ /* RECORDS */
+ .record-card {
+ background: var(--card-bg); border: 1px solid var(--border);
+ border-radius: var(--radius); padding: 0.9rem 1.1rem;
+ margin-bottom: 0.6rem; transition: var(--transition);
+ }
+ .record-card:hover { border-color: var(--primary); box-shadow: var(--shadow); }
+ .record-card-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+ .record-card-title { font-size: 0.9rem; font-weight: 800; color: var(--text-dark); }
+ .record-card-meta { font-size: 0.76rem; color: var(--text-light); margin-top: 0.25rem; }
+ .record-card-badges { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem; }
+
+ .tag { display: inline-flex; align-items: center; padding: 0.18rem 0.6rem; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
+ .tag-blue { background: #e3f2fd; color: #1565c0; }
+ .tag-green { background: #e8f5e9; color: #2e7d32; }
+ .tag-orange { background: #fff3e0; color: #e65100; }
+ .tag-red { background: #fdecea; color: #c62828; }
+ .tag-purple { background: #f3e5f5; color: #6a1b9a; }
+ .tag-gold { background: #fffde7; color: #f57f17; border: 1px solid #ffe082; }
+
+ .emp-search-results {
+ max-height: 220px; overflow-y: auto;
+ border: 1px solid var(--border); border-radius: 8px; margin-top: 0.5rem;
+ }
+ .emp-search-item {
+ display: flex; align-items: center; gap: 0.6rem;
+ padding: 0.55rem 0.9rem; cursor: pointer;
+ transition: var(--transition); border-bottom: 1px solid var(--border);
+ }
+ .emp-search-item:last-child { border-bottom: none; }
+ .emp-search-item:hover { background: var(--accent); }
+ .emp-search-item .mini-avatar {
+ width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
+ display: flex; align-items: center; justify-content: center;
+ font-size: 0.9rem; font-weight: 800; color: var(--primary);
+ flex-shrink: 0; overflow: hidden;
+ }
+ .emp-search-item .mini-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+ .profile-header {
+ display: flex; align-items: center; gap: 1.25rem; padding: 1.25rem;
+ background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+ border-radius: var(--radius); color: #fff; margin-bottom: 1.25rem;
+ }
+ .profile-avatar {
+ width: 72px; height: 72px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.4);
+ display: flex; align-items: center; justify-content: center;
+ font-size: 1.8rem; font-weight: 900; background: rgba(255,255,255,0.15);
+ flex-shrink: 0; overflow: hidden;
+ }
+ .profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+ .profile-name { font-size: 1.1rem; font-weight: 900; }
+ .profile-sub { font-size: 0.82rem; opacity: 0.85; margin-top: 0.2rem; }
+ .profile-tabs { display: flex; gap: 0.4rem; margin-bottom: 1rem; flex-wrap: wrap; }
+ .profile-tab {
+ padding: 0.4rem 0.9rem; border-radius: 20px; font-size: 0.78rem; font-weight: 700;
+ cursor: pointer; font-family: 'Cairo', sans-serif;
+ background: var(--bg); color: var(--text-mid); border: 1px solid var(--border);
+ transition: var(--transition);
+ }
+ .profile-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+/* PAYROLL TABLE */
+ /* PAYROLL TAB — الجدول يشتغل مع scroll بدون ما ياخد الصفحة */
+ .tab-pane#tab-payroll {
+   min-width: 0;
+   width: 100%;
+   box-sizing: border-box;
+   overflow: hidden;
+ }
+ #payrollStats { overflow: hidden; box-sizing: border-box; }
+ #payrollStats .hr-stat-num {
+   font-size: 1.1rem !important;
+   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+ }
+ #payrollContent {
+   width: 100%;
+   box-sizing: border-box;
+   overflow: hidden;
+ }
+ .payroll-scroll {
+   display: block;
+   width: 100%;
+   max-width: 100%;
+   overflow-x: auto;
+   overflow-y: auto;
+   max-height: 62vh;
+   border: 1px solid var(--border);
+   border-radius: var(--radius);
+   box-sizing: border-box;
+   -webkit-overflow-scrolling: touch;
+ }
+ .payroll-table {
+   width: 100%;
+   border-collapse: collapse;
+   font-size: 0.75rem;
+   min-width: 900px;
+ }
+ .payroll-table th {
+   padding: 0.4rem 0.4rem; text-align: center; white-space: normal;
+   word-break: keep-all; line-height: 1.25;
+   background: var(--primary); color: #fff; font-weight: 700;
+   border-left: 1px solid rgba(255,255,255,0.15);
+   position: sticky; top: 0; z-index: 2;
+   max-width: 90px;
+ }
+ .payroll-table th:nth-child(1) { max-width: 32px; min-width: 28px; }
+ .payroll-table th:nth-child(2) { text-align: right; min-width: 130px; max-width: 150px; white-space: nowrap; }
+ .payroll-table th:nth-child(3) { min-width: 90px; max-width: 110px; }
+ .payroll-table th:nth-child(4) { min-width: 70px; max-width: 80px; }
+ .payroll-table td {
+   padding: 0.35rem 0.4rem; text-align: center;
+   border-bottom: 1px solid var(--border);
+   border-left: 1px solid var(--border);
+   white-space: nowrap;
+   max-width: 90px;
+   overflow: hidden;
+   text-overflow: ellipsis;
+ }
+ .payroll-table td:nth-child(2) { text-align: right; font-weight: 800; color: var(--text-dark); }
+ .payroll-table tbody tr:nth-child(even) { background: var(--bg); }
+ .payroll-table tbody tr:hover { background: var(--accent); }
+ .payroll-table tfoot td {
+   background: var(--primary); color: #fff; font-weight: 800;
+   padding: 0.55rem 0.6rem;
+   border-left: 1px solid rgba(255,255,255,0.15);
+ }
+ .payroll-table .col-deduct { background: #fff5f5 !important; color: #c62828; font-weight: 700; }
+ .payroll-table .col-reward { background: #e3f2fd !important; color: #1565c0; font-weight: 700; }
+ .payroll-table .col-net    { background: #e8f5e9 !important; color: #2e7d32; font-weight: 700; }
+ .payroll-table .col-net5   { background: #2e7d32 !important; color: #fff;    font-weight: 900; }
+
+ @media (max-width: 768px) {
+ .hr-stats { grid-template-columns: repeat(2, 1fr); }
+ .doc-checklist { grid-template-columns: 1fr; }
+ .emp-detail-section { grid-template-columns: 1fr; }
+ .search-filter-row .form-input { max-width: 100%; width: 100%; }
+ .attend-row { flex-wrap: wrap; }
+ .profile-header { flex-direction: column; text-align: center; }
+ }
+</style>
+</head>
+<body>
+<div class="app-layout"> <div class="main-content" style="margin-right: var(--sidebar-width); min-width: 0; overflow: hidden;"> <div id="topbarContainer"></div> <div class="page-content"> <div class="hr-tabs" id="hrTabsBar"> <button class="hr-tab active" onclick="switchTab('register')">تسجيل موظف</button> <button class="hr-tab" onclick="switchTab('list')">سجل الموظفين</button> <button class="hr-tab" onclick="switchTab('resigned')">تاركو العمل</button> <button class="hr-tab" onclick="switchTab('attendance')">الحضور والغياب</button> <button class="hr-tab" onclick="switchTab('permissions')">الإذونات</button> <button class="hr-tab" onclick="switchTab('leaves')">الإجازات</button> <button class="hr-tab" onclick="switchTab('penalties')">الجزاءات</button> <button class="hr-tab" onclick="switchTab('rewards')">المكافآت</button> <button class="hr-tab" onclick="switchTab('search')">بحث الموظف</button> <button class="hr-tab" onclick="switchTab('payroll')">كشف الرواتب</button></div> <!-- TAB 1: REGISTER --> <div class="tab-pane active" id="tab-register"> <div class="card"> <div class="card-header"><h2 class="card-title">تسجيل موظف جديد</h2></div> <div class="card-body"> <div class="alert alert-error hidden" id="regAlert"><span id="regAlertMsg"></span></div> <div class="alert alert-success hidden" id="regSuccess"><span id="regSuccessMsg"></span></div> <div class="photo-upload-area" id="photoArea" onclick="document.getElementById('photoInput').click()"> <img id="photoPreview" src="" alt="" style="display:none"/> <span id="photoPlaceholder"><br/>صورة شخصية</span></div> <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="previewPhoto(event)"/> <div class="form-section-title">البيانات الشخصية</div> <div class="form-grid-2"> <div class="form-group"> <label class="form-label">الاسم بالعربية <span class="required">*</span></label> <input type="text" class="form-input form-input-ar" id="nameAr" placeholder="الاسم الرباعي بالعربية"/></div> <div class="form-group"> <label class="form-label">الاسم بالإنجليزية <span class="required">*</span></label> <input type="text" class="form-input" id="nameEn" placeholder="Full Name in English" style="direction:ltr;text-align:left"/></div> <div class="form-group"> <label class="form-label">الرقم القومي <span class="required">*</span></label> <input type="text" class="form-input" id="nationalId" placeholder="14 رقم" maxlength="14" style="direction:ltr;text-align:left"/></div> <div class="form-group"> <label class="form-label">تاريخ الميلاد <span class="required">*</span></label> <input type="date" class="form-input" id="birthDate"/></div> <div class="form-group"> <label class="form-label">رقم الهاتف <span class="required">*</span></label> <input type="tel" class="form-input" id="phone" placeholder="01XXXXXXXXX" style="direction:ltr;text-align:left"/></div> <div class="form-group"> <label class="form-label">البريد الإلكتروني</label> <input type="email" class="form-input" id="email" placeholder="email@example.com" style="direction:ltr;text-align:left"/></div> <div class="form-group" style="grid-column:1/-1"> <label class="form-label">العنوان</label> <input type="text" class="form-input form-input-ar" id="address" placeholder="المدينة، الحي، الشارع"/></div></div> <div class="form-section-title">بيانات الوظيفة</div> <div class="form-grid-2"> <div class="form-group"> <label class="form-label">القسم <span class="required">*</span></label> <select class="form-input" id="dept" onchange="updateJobTitles()"> <option value="">-- اختر القسم --</option> <option value="administrative">إدارية</option> <option value="academic">أكاديمية</option></select></div> <div class="form-group"> <label class="form-label">الوظيفة <span class="required">*</span></label> <select class="form-input" id="jobTitle"> <option value="">-- اختر الوظيفة --</option></select></div> <div class="form-group"> <label class="form-label">تاريخ بداية التعيين <span class="required">*</span></label> <input type="date" class="form-input" id="startDate"/></div> <div class="form-group"> <label class="form-label">تاريخ انتهاء التعيين</label> <input type="date" class="form-input" id="endDate"/> <div class="form-group"> <label class="form-label">الراتب الأساسي (جنيه) <span class="required">*</span></label> <input type="number" class="form-input" id="salary" placeholder="0" min="0"/></div> <div class="form-group"> <label class="form-label">حالة التأمين</label> <select class="form-input" id="insuranceStatus"> <option value="مؤمن عليه">مؤمن عليه</option> <option value="غير مؤمن عليه">غير مؤمن عليه</option></select></div> <div class="form-group"> <label class="form-label">المبلغ التأميني (جنيه)</label> <input type="number" class="form-input" id="insuranceAmount" placeholder="0" min="0"/></div> <div class="form-group"> <label class="form-label">سلفة (جنيه)</label> <input type="number" class="form-input" id="advance" placeholder="0" min="0"/></div></div></div> <div class="form-section-title">المستندات المسلّمة</div> <div class="doc-checklist"> <label class="doc-item"><input type="checkbox" id="doc_cert"/>أصل شهادة المؤهل</label> <label class="doc-item"><input type="checkbox" id="doc_birth"/>أصل شهادة الميلاد</label> <label class="doc-item"><input type="checkbox" id="doc_military"/>خدمة عامة / جيش</label> <label class="doc-item"><input type="checkbox" id="doc_id"/>بطاقة شخصية سارية</label> <label class="doc-item"><input type="checkbox" id="doc_criminal"/>فيش جنائي</label> <label class="doc-item"><input type="checkbox" id="doc_medical"/>كشف طبي</label> <label class="doc-item"><input type="checkbox" id="doc_heel"/>كعب عمل</label></div> <div style="margin-top:1.5rem;display:flex;justify-content:flex-end;gap:0.75rem"> <button class="btn btn-secondary" onclick="resetForm()">مسح</button> <button class="btn btn-primary" onclick="saveEmployee()" id="saveBtn" style="width:auto;padding:0.75rem 2rem"> <span id="saveBtnText">حفظ الموظف</span></button></div></div></div></div> <!-- TAB 2: LIST --> <div class="tab-pane" id="tab-list"> <div class="hr-stats"> <div class="hr-stat-card"><div class="hr-stat-num" id="statTotal">0</div><div class="hr-stat-label">إجمالي الموظفين</div></div> <div class="hr-stat-card"><div class="hr-stat-num" id="statActive" style="color:var(--success)">0</div><div class="hr-stat-label">موظفون نشطون</div></div> <div class="hr-stat-card"><div class="hr-stat-num" id="statAdmin" style="color:var(--info)">0</div><div class="hr-stat-label">قسم إداري</div></div> <div class="hr-stat-card"><div class="hr-stat-num" id="statAcademic" style="color:var(--warning)">0</div><div class="hr-stat-label">قسم أكاديمي</div></div></div> <div class="search-filter-row"> <input type="text" class="form-input" id="searchInput" placeholder=" ابحث بالاسم أو الرقم القومي..." oninput="filterEmployees()" style="flex:1;max-width:320px"/> <select class="form-input" id="filterDept" onchange="filterEmployees()"> <option value="">كل الأقسام</option> <option value="administrative">إداري</option> <option value="academic">أكاديمي</option></select> <select class="form-input" id="filterJob" onchange="filterEmployees()"> <option value="">كل الوظائف</option></select> <select class="form-input" id="filterStatus" onchange="filterEmployees()"> <option value="">كل الحالات</option> <option value="active">نشط</option> <option value="expired">منتهي التعيين</option></select> <button class="btn btn-outline btn-sm" onclick="exportAllEmployeesExcel()" style="width:auto;padding:0.45rem 1rem"> تصدير Excel</button></div> <div id="empList"> <div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">جاري التحميل...</div></div></div></div> <!-- TAB 3: RESIGNED --> <div class="tab-pane" id="tab-resigned"> <div class="search-filter-row"> <input type="text" class="form-input" id="searchResigned" placeholder=" ابحث في تاركي العمل..." oninput="filterResigned()" style="flex:1;max-width:320px"/></div> <div id="resignedList"> <div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد موظفون تاركو العمل</div></div></div></div> <!-- TAB 4: ATTENDANCE — سجل غائب والباقي حاضر أوتوماتيك --> <div class="tab-pane" id="tab-attendance"> <div class="card" style="margin-bottom:1rem"> <div class="card-body" style="padding:1rem 1.25rem"> <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.75rem"> <div style="display:flex;align-items:center;gap:0.5rem;flex:1;min-width:200px"> <label class="form-label" style="margin:0;white-space:nowrap;font-weight:700"> تاريخ الجلسة:</label> <input type="date" class="form-input" id="attendDate" style="max-width:180px" onchange="loadAttendanceForDate()"/></div> <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap"> <span style="font-size:0.82rem;color:var(--text-light)" id="attendSummaryBadge"></span> <button class="btn btn-primary btn-sm" onclick="saveAttendance()" id="saveAttendBtn" style="width:auto;padding:0.55rem 1.25rem"> <span id="saveAttendBtnText">حفظ السجل</span></button> <button class="btn btn-outline btn-sm" onclick="exportAttendanceExcel()" style="width:auto;padding:0.55rem 1rem"> تصدير Excel</button></div></div></div></div> <!-- إرشادات وضع التسجيل --> <div style="background:var(--accent);border:1px solid var(--primary-light);border-radius:var(--radius);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.82rem;color:var(--primary);font-weight:600"> <strong>طريقة التسجيل:</strong> ابحث عن الغائبين وسجلهم فقط — الباقون يُحسبون حاضرين تلقائياً. كل موظف يمكن تسجيله غائب أو إجازة/إذن.
+</div> <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-bottom:1rem"> <div class="hr-stat-card"><div class="hr-stat-num" id="attStatTotal" style="font-size:1.4rem">0</div><div class="hr-stat-label">إجمالي الموظفين</div></div> <div class="hr-stat-card"><div class="hr-stat-num" id="attStatPresent" style="font-size:1.4rem;color:var(--success)">0</div><div class="hr-stat-label">حاضرون</div></div> <div class="hr-stat-card"><div class="hr-stat-num" id="attStatAbsent" style="font-size:1.4rem;color:#e53935">0</div><div class="hr-stat-label">غائبون</div></div> <div class="hr-stat-card"><div class="hr-stat-num" id="attStatExcused" style="font-size:1.4rem;color:var(--warning)">0</div><div class="hr-stat-label">إجازة/إذن</div></div></div> <!-- بحث الغائبين --> <div class="search-filter-row"> <input type="text" class="form-input" id="attendSearch"
+ placeholder=" ابحث عن موظف لتسجيل غيابه أو إجازته..."
+ oninput="renderAbsentModeList()"
+ style="flex:1;max-width:360px"/> <select class="form-input" id="attendFilterDept" onchange="renderAbsentModeList()"> <option value="">كل الأقسام</option> <option value="administrative">إداري</option> <option value="academic">أكاديمي</option></select> <select class="form-input" id="attendFilterStatus" onchange="renderAbsentModeList()"> <option value="">الكل</option> <option value="absent">غائبون فقط</option> <option value="excused">إجازة/إذن فقط</option> <option value="present">حاضرون فقط</option></select></div> <div id="attendanceList"> <div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">اختر تاريخ لبدء التسجيل</div></div></div> <div style="margin-top:1.5rem"> <div class="form-section-title"> آخر سجلات الحضور</div> <div id="recentAttendanceLogs"><div style="font-size:0.82rem;color:var(--text-light)">جاري التحميل...</div></div></div></div> <!-- TAB 5: PERMISSIONS --> <div class="tab-pane" id="tab-permissions"> <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;justify-content:space-between"> <div style="font-size:1rem;font-weight:800;color:var(--text-dark)">سجل الإذونات</div> <div style="display:flex;gap:0.5rem;flex-wrap:wrap"> <button class="btn btn-primary btn-sm" onclick="openPermModal()" style="width:auto;padding:0.5rem 1.1rem"> إذن جديد</button> <button class="btn btn-outline btn-sm" onclick="exportPermissionsExcel()" style="width:auto;padding:0.5rem 1rem"> تصدير Excel</button></div></div> <div class="search-filter-row"> <input type="text" class="form-input" id="permSearch" placeholder=" ابحث بالاسم..." oninput="renderPermissions()" style="flex:1;max-width:280px"/> <select class="form-input" id="permFilterType" onchange="renderPermissions()"> <option value="">كل الأنواع</option> <option value="route">خط سير</option> <option value="exit">إذن خروج</option></select> <input type="date" class="form-input" id="permFilterDate" onchange="renderPermissions()" style="max-width:160px"/></div> <div id="permissionsList"> <div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد إذونات مسجلة</div></div></div></div> <!-- TAB 6: LEAVES --> <div class="tab-pane" id="tab-leaves"> <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;justify-content:space-between"> <div style="font-size:1rem;font-weight:800;color:var(--text-dark)">سجل الإجازات</div> <div style="display:flex;gap:0.5rem;flex-wrap:wrap"> <button class="btn btn-primary btn-sm" onclick="openLeaveModal()" style="width:auto;padding:0.5rem 1.1rem"> إجازة جديدة</button> <button class="btn btn-outline btn-sm" onclick="exportLeavesExcel()" style="width:auto;padding:0.5rem 1rem"> تصدير Excel</button></div></div> <div class="search-filter-row"> <input type="text" class="form-input" id="leaveSearch" placeholder=" ابحث بالاسم..." oninput="renderLeaves()" style="flex:1;max-width:280px"/> <select class="form-input" id="leaveFilterType" onchange="renderLeaves()"> <option value="">كل الأنواع</option> <option value="emergency">عارضة (6 أيام)</option> <option value="annual">اعتيادية (15 يوم)</option> <option value="open">عرضة مفتوحة</option> <option value="private">خاصة مفتوحة</option></select></div> <div id="leavesList"> <div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد إجازات مسجلة</div></div></div></div> <!-- TAB 7: PENALTIES --> <div class="tab-pane" id="tab-penalties"> <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;justify-content:space-between"> <div style="font-size:1rem;font-weight:800;color:var(--text-dark)">سجل الجزاءات</div> <div style="display:flex;gap:0.5rem;flex-wrap:wrap"> <button class="btn btn-primary btn-sm" onclick="openPenaltyModal()" style="width:auto;padding:0.5rem 1.1rem"> جزاء جديد</button> <button class="btn btn-outline btn-sm" onclick="exportPenaltiesExcel()" style="width:auto;padding:0.5rem 1rem"> تصدير Excel</button></div></div> <div class="search-filter-row"> <input type="text" class="form-input" id="penaltySearch" placeholder=" ابحث بالاسم..." oninput="renderPenalties()" style="flex:1;max-width:280px"/> <select class="form-input" id="penaltyFilterType" onchange="renderPenalties()"> <option value="">كل الأنواع</option> <option value="penalty">جزاء</option> <option value="warning">إنذار</option> <option value="deduction">خصم</option></select></div> <div id="penaltiesList"> <div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد جزاءات مسجلة</div></div></div></div> <!-- TAB 8: REWARDS --> <div class="tab-pane" id="tab-rewards"> <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;justify-content:space-between"> <div style="font-size:1rem;font-weight:800;color:var(--text-dark)">سجل المكافآت</div> <div style="display:flex;gap:0.5rem;flex-wrap:wrap"> <button class="btn btn-primary btn-sm" onclick="openRewardModal()" style="width:auto;padding:0.5rem 1.1rem"> مكافأة جديدة</button> <button class="btn btn-outline btn-sm" onclick="exportRewardsExcel()" style="width:auto;padding:0.5rem 1rem"> تصدير Excel</button></div></div> <div class="search-filter-row"> <input type="text" class="form-input" id="rewardSearch" placeholder=" ابحث بالاسم..." oninput="renderRewards()" style="flex:1;max-width:280px"/></div> <div id="rewardsList"> <div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد مكافآت مسجلة</div></div></div></div> <!-- TAB 9: SEARCH/PROFILE --> <div class="tab-pane" id="tab-search"> <div class="card" style="margin-bottom:1rem"> <div class="card-body" style="padding:1rem 1.25rem"> <div style="font-size:0.9rem;font-weight:800;margin-bottom:0.75rem;color:var(--text-dark)"> بحث عن موظف</div> <input type="text" class="form-input" id="profileSearchInput"
+ placeholder="اكتب اسم الموظف أو الرقم القومي..."
+ oninput="searchForProfile()" style="max-width:100%"/> <div id="profileSearchResults" style="margin-top:0.5rem"></div></div></div> <div id="employeeProfileSection" style="display:none"> <div class="profile-header" id="profileHeader"></div> <div class="profile-tabs"> <button class="profile-tab active" onclick="switchProfileTab('overview')">نظرة عامة</button> <button class="profile-tab" onclick="switchProfileTab('attendance')">الحضور</button> <button class="profile-tab" onclick="switchProfileTab('permissions')">الإذونات</button> <button class="profile-tab" onclick="switchProfileTab('leaves')">الإجازات</button> <button class="profile-tab" onclick="switchProfileTab('penalties')">الجزاءات</button> <button class="profile-tab" onclick="switchProfileTab('rewards')">المكافآت</button></div> <div class="profile-tab-pane active" id="ptab-overview"><div id="profileOverviewContent"></div></div> <div class="profile-tab-pane" id="ptab-attendance"> <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem"> <div style="font-size:0.85rem;font-weight:700">سجل الحضور والغياب</div> <button class="btn btn-outline btn-sm" onclick="exportProfileExcel()" style="width:auto;padding:0.4rem 0.9rem"> تصدير Excel كامل</button></div> <div id="profileAttendContent"></div></div> <div class="profile-tab-pane" id="ptab-permissions"><div id="profilePermContent"></div></div> <div class="profile-tab-pane" id="ptab-leaves"><div id="profileLeaveContent"></div></div> <div class="profile-tab-pane" id="ptab-penalties"><div id="profilePenaltyContent"></div></div> <div class="profile-tab-pane" id="ptab-rewards"><div id="profileRewardContent"></div></div></div></div>
+<!-- TAB 10: PAYROLL — داخل page-content -->
+<div class="tab-pane" id="tab-payroll" style="width:100%;box-sizing:border-box;min-width:0;">
+  <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;justify-content:space-between">
+    <div style="font-size:1rem;font-weight:800;color:var(--text-dark)">كشف الرواتب الشهري</div>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+      <label class="form-label" style="margin:0;font-weight:700;white-space:nowrap">الشهر:</label>
+      <input type="month" class="form-input" id="payrollMonth" style="max-width:160px" onchange="loadPayroll()"/>
+      <select class="form-input" id="payrollFilterDept" onchange="renderPayrollTable()" style="max-width:150px">
+        <option value="">كل الأقسام</option>
+        <option value="administrative">إداري</option>
+        <option value="academic">أكاديمي</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="loadPayroll()" style="width:auto;padding:0.5rem 1.1rem">تحميل</button>
+      <button class="btn btn-outline btn-sm" onclick="exportPayrollExcel()" style="width:auto;padding:0.5rem 1rem">تصدير Excel</button>
+    </div>
+  </div>
+  <div class="hr-stats" style="margin-bottom:1rem" id="payrollStats">
+    <div class="hr-stat-card"><div class="hr-stat-num" id="prStatCount" style="font-size:1.3rem">0</div><div class="hr-stat-label">عدد الموظفين</div></div>
+    <div class="hr-stat-card"><div class="hr-stat-num" id="prStatTotal" style="font-size:1.3rem;color:var(--primary)">0</div><div class="hr-stat-label">إجمالي الرواتب</div></div>
+    <div class="hr-stat-card"><div class="hr-stat-num" id="prStatDeduct" style="font-size:1.3rem;color:#e53935">0</div><div class="hr-stat-label">إجمالي الخصومات</div></div>
+    <div class="hr-stat-card"><div class="hr-stat-num" id="prStatNet" style="font-size:1.3rem;color:var(--success)">0</div><div class="hr-stat-label">إجمالي صافي الرواتب</div></div>
+  </div>
+  <div id="payrollContent">
+    <div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">اختر الشهر واضغط تحميل</div></div>
+  </div>
+</div>
+</div></div></div>
+<!-- MODALS -->
+<div class="modal-overlay hidden" id="detailModal"> <div class="modal large-modal"> <div class="modal-header"> <span class="modal-title" id="detailModalTitle">بيانات الموظف</span> <button class="btn-close" onclick="closeDetailModal()"></button></div> <div class="modal-body" id="detailModalBody"></div> <div class="modal-footer"> <button class="btn btn-danger btn-sm" onclick="resignEmployee()" id="resignBtn">تسجيل ترك العمل</button> <button class="btn btn-secondary btn-sm" onclick="openEditModal()"> تعديل</button> <button class="btn btn-outline btn-sm" onclick="closeDetailModal()">إغلاق</button></div></div>
+</div> <div class="modal-overlay hidden" id="editModal"> <div class="modal large-modal"> <div class="modal-header"> <span class="modal-title">تعديل بيانات الموظف</span> <button class="btn-close" onclick="closeEditModal()"></button></div> <div class="modal-body" id="editModalBody"></div> <div class="modal-footer"> <button class="btn btn-primary" onclick="saveEdit()" style="width:auto;padding:0.75rem 2rem"> حفظ التعديلات</button> <button class="btn btn-outline btn-sm" onclick="closeEditModal()">إلغاء</button></div></div>
+</div> <div class="modal-overlay hidden" id="permModal"> <div class="modal" style="max-width:520px"> <div class="modal-header"> <span class="modal-title">إضافة إذن جديد</span> <button class="btn-close" onclick="closePermModal()"></button></div> <div class="modal-body"> <div class="form-group"> <label class="form-label">الموظف <span class="required">*</span></label> <input type="text" class="form-input" id="permEmpSearch" placeholder="ابحث بالاسم..." oninput="searchEmpForModal('perm')"/> <div class="emp-search-results hidden" id="permEmpResults"></div> <input type="hidden" id="permEmpId"/> <div id="permEmpSelected" style="margin-top:0.4rem;font-size:0.82rem;color:var(--primary);font-weight:700"></div></div> <div class="form-grid-2" style="margin-top:0.75rem"> <div class="form-group"> <label class="form-label">نوع الإذن <span class="required">*</span></label> <select class="form-input" id="permType"> <option value="route">خط سير</option> <option value="exit">إذن خروج</option></select></div> <div class="form-group"> <label class="form-label">التاريخ <span class="required">*</span></label> <input type="date" class="form-input" id="permDate"/></div> <div class="form-group"> <label class="form-label">من الساعة <span class="required">*</span></label> <input type="time" class="form-input" id="permFrom"/></div> <div class="form-group"> <label class="form-label">إلى الساعة <span class="required">*</span></label> <input type="time" class="form-input" id="permTo"/></div> <div class="form-group" style="grid-column:1/-1"> <label class="form-label">الوجهة / السبب</label> <input type="text" class="form-input form-input-ar" id="permDestination" placeholder="مثال: المستشفى، المنزل..."/></div></div></div> <div class="modal-footer"> <button class="btn btn-primary" onclick="savePermission()" style="width:auto;padding:0.65rem 1.5rem"> حفظ</button> <button class="btn btn-outline btn-sm" onclick="closePermModal()">إلغاء</button></div></div>
+</div> <div class="modal-overlay hidden" id="leaveModal"> <div class="modal" style="max-width:520px"> <div class="modal-header"> <span class="modal-title">إضافة إجازة</span> <button class="btn-close" onclick="closeLeaveModal()"></button></div> <div class="modal-body"> <div class="form-group"> <label class="form-label">الموظف <span class="required">*</span></label> <input type="text" class="form-input" id="leaveEmpSearch" placeholder="ابحث بالاسم..." oninput="searchEmpForModal('leave')"/> <div class="emp-search-results hidden" id="leaveEmpResults"></div> <input type="hidden" id="leaveEmpId"/> <div id="leaveEmpSelected" style="margin-top:0.4rem;font-size:0.82rem;color:var(--primary);font-weight:700"></div></div> <div id="leaveBalanceInfo" style="display:none;margin-top:0.5rem;padding:0.6rem;background:var(--accent);border-radius:8px;font-size:0.8rem;color:var(--primary);font-weight:700"></div> <div class="form-grid-2" style="margin-top:0.75rem"> <div class="form-group"> <label class="form-label">نوع الإجازة <span class="required">*</span></label> <select class="form-input" id="leaveType" onchange="onLeaveTypeChange()"> <option value="emergency">عارضة (رصيد 6 أيام)</option> <option value="annual">اعتيادية (رصيد 15 يوم)</option> <option value="open">عرضة مفتوحة</option> <option value="private">خاصة مفتوحة</option></select></div> <div class="form-group"> <label class="form-label">التاريخ <span class="required">*</span></label> <input type="date" class="form-input" id="leaveDate"/></div> <div class="form-group" id="leaveDaysGroup"> <label class="form-label">عدد الأيام <span class="required">*</span></label> <input type="number" class="form-input" id="leaveDays" min="1" value="1"/></div> <div class="form-group" style="grid-column:1/-1"> <label class="form-label">ملاحظات</label> <input type="text" class="form-input form-input-ar" id="leaveNote" placeholder="اختياري"/></div></div></div> <div class="modal-footer"> <button class="btn btn-primary" onclick="saveLeave()" style="width:auto;padding:0.65rem 1.5rem"> حفظ</button> <button class="btn btn-outline btn-sm" onclick="closeLeaveModal()">إلغاء</button></div></div>
+</div> <div class="modal-overlay hidden" id="penaltyModal"> <div class="modal" style="max-width:520px"> <div class="modal-header"> <span class="modal-title">إضافة جزاء / إنذار / خصم</span> <button class="btn-close" onclick="closePenaltyModal()"></button></div> <div class="modal-body"> <div class="form-group"> <label class="form-label">الموظف <span class="required">*</span></label> <input type="text" class="form-input" id="penaltyEmpSearch" placeholder="ابحث بالاسم..." oninput="searchEmpForModal('penalty')"/> <div class="emp-search-results hidden" id="penaltyEmpResults"></div> <input type="hidden" id="penaltyEmpId"/> <div id="penaltyEmpSelected" style="margin-top:0.4rem;font-size:0.82rem;color:var(--primary);font-weight:700"></div></div> <div class="form-grid-2" style="margin-top:0.75rem"> <div class="form-group"> <label class="form-label">نوع الجزاء <span class="required">*</span></label> <select class="form-input" id="penaltyType" onchange="onPenaltyTypeChange()"> <option value="warning">إنذار</option> <option value="penalty">جزاء</option> <option value="deduction">خصم</option></select></div> <div class="form-group"> <label class="form-label">التاريخ <span class="required">*</span></label> <input type="date" class="form-input" id="penaltyDate"/></div> <div class="form-group" id="deductionGroup" style="display:none"> <label class="form-label">مقدار الخصم <span class="required">*</span></label> <select class="form-input" id="deductionAmount" onchange="onDeductionAmountChange()"> <option value="0.25">ربع يوم</option> <option value="0.5">نصف يوم</option> <option value="1">يوم واحد</option> <option value="2">يومان</option> <option value="custom">أكثر (تحديد يدوي)</option></select></div> <div class="form-group" id="deductionCustomGroup" style="display:none"> <label class="form-label">عدد الأيام</label> <input type="number" class="form-input" id="deductionCustom" min="1" placeholder="مثال: 3"/></div> <div class="form-group" style="grid-column:1/-1"> <label class="form-label">المخالفة / السبب <span class="required">*</span></label> <input type="text" class="form-input form-input-ar" id="penaltyReason" placeholder="وصف المخالفة أو السبب"/></div></div></div> <div class="modal-footer"> <button class="btn btn-primary" onclick="savePenalty()" style="width:auto;padding:0.65rem 1.5rem"> حفظ</button> <button class="btn btn-outline btn-sm" onclick="closePenaltyModal()">إلغاء</button></div></div>
+</div> <div class="modal-overlay hidden" id="rewardModal"> <div class="modal" style="max-width:520px"> <div class="modal-header"> <span class="modal-title">إضافة مكافأة</span> <button class="btn-close" onclick="closeRewardModal()"></button></div> <div class="modal-body"> <div class="form-group"> <label class="form-label">الموظف <span class="required">*</span></label> <input type="text" class="form-input" id="rewardEmpSearch" placeholder="ابحث بالاسم..." oninput="searchEmpForModal('reward')"/> <div class="emp-search-results hidden" id="rewardEmpResults"></div> <input type="hidden" id="rewardEmpId"/> <div id="rewardEmpSelected" style="margin-top:0.4rem;font-size:0.82rem;color:var(--primary);font-weight:700"></div></div> <div class="form-grid-2" style="margin-top:0.75rem"> <div class="form-group"> <label class="form-label">التاريخ <span class="required">*</span></label> <input type="date" class="form-input" id="rewardDate"/></div> <div class="form-group"> <label class="form-label">قيمة المكافأة (جنيه) <span class="required">*</span></label> <input type="number" class="form-input" id="rewardAmount" min="0" placeholder="0"/></div> <div class="form-group" style="grid-column:1/-1"> <label class="form-label">السبب <span class="required">*</span></label> <input type="text" class="form-input form-input-ar" id="rewardReason" placeholder="سبب المكافأة"/></div></div></div> <div class="modal-footer"> <button class="btn btn-primary" onclick="saveReward()" style="width:auto;padding:0.65rem 1.5rem"> حفظ</button> <button class="btn btn-outline btn-sm" onclick="closeRewardModal()">إلغاء</button></div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="layout.js"></script>
+<script> // ══════════════════════════════════════════════════════════════
+// FALLBACK: localDateStr — في حالة layout.js ما عرفهاش
+// ══════════════════════════════════════════════════════════════
+if (typeof localDateStr === 'undefined') {
+ window.localDateStr = function() {
+ const d = new Date();
+ const y = d.getFullYear();
+ const m = String(d.getMonth() + 1).padStart(2, '0');
+ const day = String(d.getDate()).padStart(2, '0');
+ return `${y}-${m}-${day}`;
+ };
+}
+
+// ══════════════════════════════════════════════════════════════
+// JOB TITLES
+// ══════════════════════════════════════════════════════════════
+const JOB_TITLES = {
+ administrative: [
+ "مديرة المدرسة","وكيل المدرسة","مديرة رياض اطفال","مساعد مدير رياض أطفال",
+ "ش.عاملين","ش. طلاب","محاسب","سكرتارية مديرة المدرسة",
+ "علاقات عامة","أمن","IT","مشرفة دور","أخصائي نفسي","أخصائي اجتماعي",
+ "اخصائي مكتبات","مشرفة باص","زائره صحية","مسؤول تشغيل","مسؤول ميديا",
+ "عاملة","0.05"
+ ],
+ academic: [
+ "مشرف اللغة الانجليزية","مشرفة اللغة العربية",
+ "معلم لغة عربية","معلمة لغة عربية",
+ "معلم لغة انجليزية","معلمة لغة انجليزية",
+ "معلم لغة فرنسية","معلمة لغة فرنسية",
+ "معلمة لغة ألمانية",
+ "معلم دراسات اجتماعية","معلمة دراسات اجتماعية",
+ "معلم علوم","معلمة علوم",
+ "معلمة رياضيات",
+ "معلم تربية رياضية","معلمة تربية رياضية",
+ "معلم تربية فنية","معلمة تربية فنية",
+ "معلمة تربية إسلامية","محفظ قرآن كريم",
+ "معلمة Discover","معلمة ICT",
+ "لغة عربية رياض أطفال","لغة انجليزية رياض أطفال","رياضيات رياض أطفال"
+ ]
+};
+
+const ACADEMIC_JOBS = ['معلم','معلمة','مشرف اللغة','مشرفة اللغة','محفظ قرآن','مدرس','مدرسة','لغة عربية رياض','لغة انجليزية رياض','رياضيات رياض','معلمة Discover','معلمة ICT'];
+const ADMIN_JOBS = ['مدير','مديرة','وكيل','ش.عاملين','ش. طلاب','محاسب','سكرتارية','علاقات عامة','أمن','IT','مشرفة دور','مشرف دور','أخصائي نفسي','أخصائي اجتماعي','اخصائي مكتبات','مشرفة باص','زائره صحية','مسؤول','ميديا','عاملة','مساعد مدير','0.05'];
+
+const LEAVE_LIMITS = { emergency: 6, annual: 15, open: null, private: null };
+const LEAVE_LABELS = { emergency: 'عارضة', annual: 'اعتيادية', open: 'عرضة مفتوحة', private: 'خاصة مفتوحة' };
+const PERM_LABELS = { route: 'خط سير', exit: 'إذن خروج' };
+const PENALTY_LABELS = { warning: 'إنذار', penalty: 'جزاء', deduction: 'خصم' };
+const DEDUCTION_LABELS = { '0.25':'ربع يوم', '0.5':'نصف يوم', '1':'يوم', '2':'يومان' };
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+let currentSession = null;
+let currentSchoolId = null;
+let allEmployees = [];
+let selectedEmployee = null;
+let photoBase64 = null;
+
+// Attendance — يخزن فقط الغائبين والإجازات؛ الباقي = حاضر
+// attendanceMap: { empId: 'absent' | 'excused' } (حاضر = غير موجود في الـ map)
+let attendanceMap = {};
+let attendActiveEmps = [];
+
+let allPermissions = [];
+let allLeaves = [];
+let allPenalties = [];
+let allRewards = [];
+let profileEmployee = null;
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+ const session = SESSION.get();
+ if (!session) { window.location.href = 'index.html'; return; }
+ if (session.role !== 'hr' && session.role !== 'admin') { window.location.href = 'index.html'; return; }
+
+ currentSession = session;
+ currentSchoolId = session.schoolId;
+
+ if (SESSION.isAdmin()) {
+    renderLayout('hr', 'الموارد البشرية');
+  } else {
+    renderHRLayout(session);
+  }
+ loadEmployees();
+ populateFilterJobs();
+
+ document.getElementById('startDate').value = localDateStr();
+});
+
+// ══════════════════════════════════════════════════════════════
+// SIDEBAR LAYOUT
+// ══════════════════════════════════════════════════════════════
+function renderHRLayout(session) {
+ const school = SESSION.getSchool();
+ if (school) applySchoolTheme(school);
+
+ auth.onAuthStateChanged(user => {
+ if (!user) { SESSION.clear(); window.location.href = 'index.html'; }
+ });
+
+ const logoSrc = school?.logo || '';
+ const schoolName = school?.name || 'النظام';
+
+ const sidebarHTML = `
+ <aside class="sidebar" id="sidebar"> <div class="sidebar-header"> <img class="sidebar-logo" id="school-logo" src="${logoSrc}" alt="${schoolName}"
+ onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ffffff33%22/></svg>'"
+ /> <div class="sidebar-school-name" id="school-name">${schoolName}</div> <div class="sidebar-user">${session.email}</div></div> <nav class="sidebar-nav"> <div class="nav-section-title">الموارد البشرية</div> <a class="nav-item active" href="hr.html"> <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> <span>الموارد البشرية</span></a></nav> <div class="sidebar-footer"> <div class="user-info-mini"> <div class="user-avatar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div> <div class="user-details-mini"> <div class="user-name-mini">${session.name || session.email.split('@')[0]}</div> <div class="user-role-mini">موارد بشرية</div></div></div> <button class="btn btn-outline w-full btn-sm" onclick="logout()" style="justify-content:center"> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:6px"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> تسجيل الخروج
+</button></div></aside>`;
+
+ const topbarHTML = `
+ <div class="topbar"> <div class="d-flex align-center gap-1"> <button class="btn btn-icon" id="sidebarToggle" onclick="toggleSidebar()" style="display:none"> <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button> <h1 class="topbar-title">الموارد البشرية</h1></div> <div class="topbar-actions"> <div class="badge badge-primary">${schoolName}</div> <div style="font-size:0.8rem;color:var(--text-light)">${new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div></div></div>`;
+
+ document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
+ document.getElementById('topbarContainer').innerHTML = topbarHTML;
+ const tb = document.getElementById('sidebarToggle');
+ if (tb) tb.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+}
+
+function toggleSidebar() {
+ document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════════════
+function switchTab(name) {
+ const tabs = ['register','list','resigned','attendance','permissions','leaves','penalties','rewards','search','payroll'];
+ document.querySelectorAll('.hr-tab').forEach((t, i) => t.classList.toggle('active', tabs[i] === name));
+ document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+ const pane = document.getElementById('tab-' + name);
+ if (pane) pane.classList.add('active');
+
+ if (name === 'list' || name === 'resigned') renderEmployeeLists();
+ if (name === 'attendance') initAttendanceTab();
+ if (name === 'permissions') loadPermissions();
+ if (name === 'leaves') loadLeaves();
+ if (name === 'penalties') loadPenalties();
+ if (name === 'rewards') loadRewards();
+ if (name === 'payroll') initPayrollTab();
+}
+
+// ══════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════
+function resolveDept(emp) {
+ // لو الـ dept محفوظ صريحاً في البيانات — استخدمه مباشرة
+ if (emp.dept === 'administrative' || emp.dept === 'academic') return emp.dept;
+ // fallback: استنتج من الوظيفة (academic أولاً لأن keywords أكثر تحديداً)
+ const title = emp.jobTitle || '';
+ if (ACADEMIC_JOBS.some(k => title.includes(k))) return 'academic';
+ if (ADMIN_JOBS.some(k => title.includes(k))) return 'administrative';
+ return 'administrative';
+}
+
+function updateJobTitles(selectId = 'jobTitle', deptId = 'dept') {
+ const dept = document.getElementById(deptId).value;
+ const sel = document.getElementById(selectId);
+ sel.innerHTML = '<option value="">-- اختر الوظيفة --</option>';
+ (JOB_TITLES[dept] || []).forEach(j => {
+ const o = document.createElement('option');
+ o.value = j; o.textContent = j;
+ sel.appendChild(o);
+ });
+}
+
+function populateFilterJobs() {
+ const sel = document.getElementById('filterJob');
+ [...JOB_TITLES.administrative, ...JOB_TITLES.academic].forEach(j => {
+ const o = document.createElement('option');
+ o.value = j; o.textContent = j;
+ sel.appendChild(o);
+ });
+}
+
+function getEmployeeStatus(emp) {
+ if (emp.status === 'resigned') return { label:'تارك العمل', cls:'status-resigned' };
+ const today = localDateStr();
+ if (emp.endDate && emp.endDate < today) return { label:'منتهي التعيين', cls:'status-expired' };
+ return { label:'نشط', cls:'status-active' };
+}
+
+// escape لحماية من XSS في onclick attributes
+function esc(str) {
+ return String(str || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+}
+
+// ══════════════════════════════════════════════════════════════
+// PHOTO PREVIEW
+// ══════════════════════════════════════════════════════════════
+function previewPhoto(e) {
+ const file = e.target.files[0];
+ if (!file) return;
+ const reader = new FileReader();
+ reader.onload = ev => {
+ photoBase64 = ev.target.result;
+ document.getElementById('photoPreview').src = photoBase64;
+ document.getElementById('photoPreview').style.display = 'block';
+ document.getElementById('photoPlaceholder').style.display = 'none';
+ };
+ reader.readAsDataURL(file);
+}
+
+// ══════════════════════════════════════════════════════════════
+// SAVE EMPLOYEE
+// ══════════════════════════════════════════════════════════════
+async function saveEmployee() {
+ const nameAr = document.getElementById('nameAr').value.trim();
+ const nameEn = document.getElementById('nameEn').value.trim();
+ const nationalId = document.getElementById('nationalId').value.trim();
+ const birthDate = document.getElementById('birthDate').value;
+ const phone = document.getElementById('phone').value.trim();
+ const email = document.getElementById('email').value.trim();
+ const address = document.getElementById('address').value.trim();
+ const dept = document.getElementById('dept').value;
+ const jobTitle = document.getElementById('jobTitle').value;
+ const startDate = document.getElementById('startDate').value;
+ const endDate = document.getElementById('endDate').value;
+ const salary = parseFloat(document.getElementById('salary')?.value) || 0;
+ const insuranceStatus = document.getElementById('insuranceStatus')?.value || 'مؤمن عليه';
+ const insuranceAmount = parseFloat(document.getElementById('insuranceAmount')?.value) || 0;
+ const advance = parseFloat(document.getElementById('advance')?.value) || 0;
+ const docs = {
+ cert: document.getElementById('doc_cert').checked,
+ birth: document.getElementById('doc_birth').checked,
+ military: document.getElementById('doc_military').checked,
+ idCard: document.getElementById('doc_id').checked,
+ criminal: document.getElementById('doc_criminal').checked,
+ medical: document.getElementById('doc_medical').checked,
+ heel: document.getElementById('doc_heel').checked
+ };
+
+ if (!nameAr || !nameEn || !nationalId || !birthDate || !phone || !dept || !jobTitle || !startDate) {
+ showRegAlert('من فضلك أكمل الحقول المطلوبة (*)'); return;
+ }
+ if (nationalId.length !== 14 || isNaN(nationalId)) {
+ showRegAlert('الرقم القومي لازم يكون 14 رقم'); return;
+ }
+
+ const btn = document.getElementById('saveBtn');
+ const btnText = document.getElementById('saveBtnText');
+ btn.disabled = true; btnText.textContent = 'جاري الحفظ...';
+
+ try {
+ const existing = await db.collection('employees')
+ .where('schoolId', '==', currentSchoolId)
+ .where('nationalId', '==', nationalId)
+ .get();
+ if (!existing.empty) { showRegAlert('هذا الرقم القومي مسجل بالفعل'); return; }
+ await db.collection('employees').add({
+ nameAr, nameEn, nationalId, birthDate, phone, email, address,
+ dept, jobTitle, startDate, endDate: endDate || null, docs,
+ photo: photoBase64 || null, status: 'active', salary, insuranceStatus, insuranceAmount, advance,
+ schoolId: currentSchoolId,
+ createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+ createdBy: currentSession.email,
+ resignedAt: null, resignedNote: null
+ });
+
+ showRegSuccess(` تم حفظ بيانات "${nameAr}" بنجاح`);
+ resetForm();
+ loadEmployees();
+ } catch (err) {
+ showRegAlert('حدث خطأ أثناء الحفظ: ' + err.message);
+ } finally {
+ btn.disabled = false; btnText.textContent = ' حفظ الموظف';
+ }
+}
+
+function showRegAlert(msg) {
+ const a = document.getElementById('regAlert');
+ document.getElementById('regAlertMsg').textContent = msg;
+ a.classList.remove('hidden');
+ setTimeout(() => a.classList.add('hidden'), 5000);
+}
+function showRegSuccess(msg) {
+ const a = document.getElementById('regSuccess');
+ document.getElementById('regSuccessMsg').textContent = msg;
+ a.classList.remove('hidden');
+ setTimeout(() => a.classList.add('hidden'), 5000);
+}
+
+function resetForm() {
+ ['nameAr','nameEn','nationalId','birthDate','phone','email','address','startDate','endDate']
+ .forEach(id => { document.getElementById(id).value = ''; });
+ document.getElementById('dept').value = '';
+ document.getElementById('jobTitle').innerHTML = '<option value="">-- اختر الوظيفة --</option>';
+ ['doc_cert','doc_birth','doc_military','doc_id','doc_criminal','doc_medical','doc_heel']
+ .forEach(id => { document.getElementById(id).checked = false; });
+ photoBase64 = null;
+ document.getElementById('photoPreview').style.display = 'none';
+ document.getElementById('photoPlaceholder').style.display = '';
+ document.getElementById('startDate').value = localDateStr();
+}
+
+// ══════════════════════════════════════════════════════════════
+// LOAD & RENDER EMPLOYEES
+// ══════════════════════════════════════════════════════════════
+async function loadEmployees() {
+ try {
+ const snap = await db.collection('employees').where('schoolId', '==', currentSchoolId).get();
+ allEmployees = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+ renderEmployeeLists();
+ updateStats();
+ } catch (e) { console.error(e); }
+}
+
+function updateStats() {
+ const today = localDateStr();
+ const active = allEmployees.filter(e => e.status === 'active');
+ const resigned = allEmployees.filter(e => e.status === 'resigned');
+ // statTotal يُظهر الموظفين الحاليين فقط (بدون تاركو العمل)
+ document.getElementById('statTotal').textContent = allEmployees.length - resigned.length;
+ document.getElementById('statActive').textContent = active.filter(e => !e.endDate || e.endDate >= today).length;
+ document.getElementById('statAdmin').textContent = active.filter(e => resolveDept(e) === 'administrative').length;
+ document.getElementById('statAcademic').textContent = active.filter(e => resolveDept(e) === 'academic').length;
+}
+
+function renderEmployeeLists() {
+ const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+ const deptF = document.getElementById('filterDept')?.value || '';
+ const jobF = document.getElementById('filterJob')?.value || '';
+ const statusF = document.getElementById('filterStatus')?.value || '';
+ const searchRes = (document.getElementById('searchResigned')?.value || '').toLowerCase();
+ const today = localDateStr();
+
+ const activeEmps = allEmployees.filter(e => {
+ if (e.status === 'resigned') return false;
+ if (deptF && resolveDept(e) !== deptF) return false;
+ if (jobF && e.jobTitle !== jobF) return false;
+ if (statusF === 'active' && e.endDate && e.endDate < today) return false;
+ if (statusF === 'expired' && (!e.endDate || e.endDate >= today)) return false;
+ if (search && !e.nameAr?.toLowerCase().includes(search) &&
+ !e.nameEn?.toLowerCase().includes(search) && !e.nationalId?.includes(search)) return false;
+ return true;
+ });
+
+ const listEl = document.getElementById('empList');
+ if (listEl) {
+ listEl.innerHTML = activeEmps.length
+ ? activeEmps.map(e => empCardHTML(e)).join('')
+ : `<div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد موظفون مطابقون</div></div>`;
+ }
+
+ const resignedEmps = allEmployees.filter(e => {
+ if (e.status !== 'resigned') return false;
+ if (searchRes && !e.nameAr?.toLowerCase().includes(searchRes) &&
+ !e.nameEn?.toLowerCase().includes(searchRes) && !e.nationalId?.includes(searchRes)) return false;
+ return true;
+ });
+
+ const resignedEl = document.getElementById('resignedList');
+ if (resignedEl) {
+ resignedEl.innerHTML = resignedEmps.length
+ ? resignedEmps.map(e => empCardHTML(e)).join('')
+ : `<div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد موظفون تاركو العمل</div></div>`;
+ }
+}
+
+function empCardHTML(emp) {
+ const st = getEmployeeStatus(emp);
+ const initial = emp.nameAr ? emp.nameAr.charAt(0) : '?';
+ const photoHTML = emp.photo
+ ? `<img src="${emp.photo}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`
+ : initial;
+ const deptLabel = resolveDept(emp) === 'administrative' ? 'إداري' : 'أكاديمي';
+ return `
+ <div class="emp-card" onclick="openDetail('${emp.id}')"> <div class="emp-avatar">${photoHTML}</div> <div class="emp-info"> <div class="emp-name">${emp.nameAr} <span style="font-size:0.78rem;color:var(--text-light);font-weight:400">${emp.nameEn}</span></div> <div class="emp-meta">${emp.jobTitle} &nbsp;|&nbsp; ${emp.phone}</div> <div class="emp-badges"> <span class="status-badge ${st.cls}">${st.label}</span> <span class="dept-badge">${deptLabel}</span> ${emp.startDate ? `<span style="font-size:0.72rem;color:var(--text-light)">منذ ${emp.startDate}</span>` : ''}
+</div></div> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-light);flex-shrink:0"><polyline points="15 18 9 12 15 6"/></svg></div>`;
+}
+
+function filterEmployees() { renderEmployeeLists(); }
+function filterResigned() { renderEmployeeLists(); }
+
+// ══════════════════════════════════════════════════════════════
+// DETAIL MODAL
+// ══════════════════════════════════════════════════════════════
+function openDetail(empId) {
+ selectedEmployee = allEmployees.find(e => e.id === empId);
+ if (!selectedEmployee) return;
+ const emp = selectedEmployee, st = getEmployeeStatus(emp);
+
+ const photoHTML = emp.photo
+ ? `<img src="${emp.photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--primary-light);display:block;margin:0 auto 1rem"/>`
+ : `<div style="width:80px;height:80px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;color:var(--primary);margin:0 auto 1rem">${emp.nameAr?.charAt(0) || '?'}</div>`;
+
+ const docsMap = {cert:'أصل شهادة المؤهل',birth:'أصل شهادة الميلاد',military:'خدمة عامة/جيش',idCard:'بطاقة شخصية سارية',criminal:'فيش جنائي',medical:'كشف طبي',heel:'كعب عمل'};
+ const docsHTML = Object.entries(docsMap).map(([k,v]) => `<label class="doc-item" style="pointer-events:none"><input type="checkbox" ${emp.docs?.[k] ? 'checked' : ''} disabled/>${v}</label>`
+ ).join('');
+
+ document.getElementById('detailModalTitle').textContent = emp.nameAr;
+ document.getElementById('detailModalBody').innerHTML = `
+ ${photoHTML}
+ <div style="text-align:center;margin-bottom:1rem"><span class="status-badge ${st.cls}" style="font-size:0.85rem">${st.label}</span></div> <div class="form-section-title">البيانات الشخصية</div> <div class="emp-detail-section"> <div class="emp-detail-item"><div class="lbl">الاسم عربي</div><div class="val">${emp.nameAr||'-'}</div></div> <div class="emp-detail-item"><div class="lbl">الاسم إنجليزي</div><div class="val">${emp.nameEn||'-'}</div></div> <div class="emp-detail-item"><div class="lbl">الرقم القومي</div><div class="val">${emp.nationalId||'-'}</div></div> <div class="emp-detail-item"><div class="lbl">تاريخ الميلاد</div><div class="val">${emp.birthDate||'-'}</div></div> <div class="emp-detail-item"><div class="lbl">الهاتف</div><div class="val">${emp.phone||'-'}</div></div> <div class="emp-detail-item"><div class="lbl">البريد الإلكتروني</div><div class="val">${emp.email||'-'}</div></div> <div class="emp-detail-item" style="grid-column:1/-1"><div class="lbl">العنوان</div><div class="val">${emp.address||'-'}</div></div></div> <div class="form-section-title">بيانات الوظيفة</div> <div class="emp-detail-section"> <div class="emp-detail-item"><div class="lbl">القسم</div><div class="val">${resolveDept(emp)==='administrative'?'إداري':'أكاديمي'}</div></div> <div class="emp-detail-item"><div class="lbl">الوظيفة</div><div class="val">${emp.jobTitle||'-'}</div></div> <div class="emp-detail-item"><div class="lbl">تاريخ التعيين</div><div class="val">${emp.startDate||'-'}</div></div> <div class="emp-detail-item"><div class="lbl">تاريخ انتهاء التعيين</div><div class="val">${emp.endDate||'غير محدد'}</div></div> ${emp.resignedAt ? `<div class="emp-detail-item"><div class="lbl">تاريخ ترك العمل</div><div class="val">${emp.resignedAt}</div></div>` : ''}
+ ${emp.resignedNote ? `<div class="emp-detail-item"><div class="lbl">سبب الترك</div><div class="val">${emp.resignedNote}</div></div>` : ''}
+</div> <div class="form-section-title">المستندات</div> <div class="doc-checklist">${docsHTML}</div>`;
+
+ document.getElementById('resignBtn').style.display = emp.status === 'resigned' ? 'none' : '';
+ document.getElementById('detailModal').classList.remove('hidden');
+}
+
+function closeDetailModal() {
+ document.getElementById('detailModal').classList.add('hidden');
+ // لا نُصفّر selectedEmployee هنا لأن openEditModal بتُفعَّل بعدها مباشرةً
+ // التصفير يحصل في closeEditModal بعد اكتمال التعديل أو الإلغاء
+}
+
+async function resignEmployee() {
+ if (!selectedEmployee) return;
+ const note = prompt('سبب ترك العمل (اختياري):') || '';
+ if (!confirm(`هل تأكد تسجيل ترك عمل "${selectedEmployee.nameAr}"؟`)) return;
+ try {
+ await db.collection('employees').doc(selectedEmployee.id).update({
+ status: 'resigned', resignedAt: localDateStr(), resignedNote: note
+ });
+ selectedEmployee = null;
+ closeDetailModal(); await loadEmployees(); alert(' تم تسجيل ترك العمل');
+ } catch (e) { alert('خطأ: ' + e.message); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// EDIT MODAL
+// ══════════════════════════════════════════════════════════════
+function openEditModal() {
+ if (!selectedEmployee) return;
+ const emp = selectedEmployee;
+ closeDetailModal();
+
+ const deptOptions = ['administrative','academic'].map(d => `<option value="${d}" ${emp.dept === d ? 'selected' : ''}>${d === 'administrative' ? 'إداري' : 'أكاديمي'}</option>`
+ ).join('');
+ const jobOptions = [...(JOB_TITLES[emp.dept] || [])].map(j => `<option value="${j}" ${emp.jobTitle === j ? 'selected' : ''}>${j}</option>`
+ ).join('');
+
+ // escape قيم الـ attributes لتفادي كسر HTML لو الاسم فيه " أو '
+ function escAttr(v) { return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+
+ document.getElementById('editModalBody').innerHTML = `
+ <div class="form-grid-2"> <div class="form-group"><label class="form-label">الاسم عربي *</label><input class="form-input form-input-ar" id="e_nameAr" value="${escAttr(emp.nameAr)}"/></div> <div class="form-group"><label class="form-label">الاسم إنجليزي *</label><input class="form-input" id="e_nameEn" value="${escAttr(emp.nameEn)}" style="direction:ltr;text-align:left"/></div> <div class="form-group"><label class="form-label">الرقم القومي *</label><input class="form-input" id="e_nationalId" value="${escAttr(emp.nationalId)}" style="direction:ltr;text-align:left"/></div> <div class="form-group"><label class="form-label">تاريخ الميلاد</label><input type="date" class="form-input" id="e_birthDate" value="${escAttr(emp.birthDate)}"/></div> <div class="form-group"><label class="form-label">الهاتف</label><input class="form-input" id="e_phone" value="${escAttr(emp.phone)}" style="direction:ltr;text-align:left"/></div> <div class="form-group"><label class="form-label">البريد الإلكتروني</label><input class="form-input" id="e_email" value="${escAttr(emp.email)}" style="direction:ltr;text-align:left"/></div> <div class="form-group" style="grid-column:1/-1"><label class="form-label">العنوان</label><input class="form-input form-input-ar" id="e_address" value="${escAttr(emp.address)}"/></div> <div class="form-group"><label class="form-label">القسم</label><select class="form-input" id="e_dept" onchange="updateJobTitles('e_jobTitle','e_dept')">${deptOptions}</select></div> <div class="form-group"><label class="form-label">الوظيفة</label><select class="form-input" id="e_jobTitle">${jobOptions}</select></div> <div class="form-group"><label class="form-label">تاريخ التعيين</label><input type="date" class="form-input" id="e_startDate" value="${escAttr(emp.startDate)}"/></div> <div class="form-group"><label class="form-label">تاريخ انتهاء التعيين</label><input type="date" class="form-input" id="e_endDate" value="${escAttr(emp.endDate)}"/></div> <div class="form-group"><label class="form-label">الراتب الأساسي (جنيه)</label><input type="number" class="form-input" id="e_salary" value="${emp.salary||0}"/></div> <div class="form-group"><label class="form-label">حالة التأمين</label><select class="form-input" id="e_insuranceStatus"><option value="مؤمن عليه" ${emp.insuranceStatus==='مؤمن عليه'?'selected':''}>مؤمن عليه</option><option value="غير مؤمن عليه" ${emp.insuranceStatus==='غير مؤمن عليه'?'selected':''}>غير مؤمن عليه</option></select></div> <div class="form-group"><label class="form-label">المبلغ التأميني (جنيه)</label><input type="number" class="form-input" id="e_insuranceAmount" value="${emp.insuranceAmount||0}"/></div> <div class="form-group"><label class="form-label">سلفة (جنيه)</label><input type="number" class="form-input" id="e_advance" value="${emp.advance||0}"/></div></div> <div class="form-section-title">المستندات</div> <div class="doc-checklist"> <label class="doc-item"><input type="checkbox" id="e_doc_cert" ${emp.docs?.cert?'checked':''}/>أصل شهادة المؤهل</label> <label class="doc-item"><input type="checkbox" id="e_doc_birth" ${emp.docs?.birth?'checked':''}/>أصل شهادة الميلاد</label> <label class="doc-item"><input type="checkbox" id="e_doc_military" ${emp.docs?.military?'checked':''}/>خدمة عامة/جيش</label> <label class="doc-item"><input type="checkbox" id="e_doc_id" ${emp.docs?.idCard?'checked':''}/>بطاقة شخصية سارية</label> <label class="doc-item"><input type="checkbox" id="e_doc_criminal" ${emp.docs?.criminal?'checked':''}/>فيش جنائي</label> <label class="doc-item"><input type="checkbox" id="e_doc_medical" ${emp.docs?.medical?'checked':''}/>كشف طبي</label> <label class="doc-item"><input type="checkbox" id="e_doc_heel" ${emp.docs?.heel?'checked':''}/>كعب عمل</label></div>`;
+
+ document.getElementById('editModal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+ document.getElementById('editModal').classList.add('hidden');
+ selectedEmployee = null;
+}
+
+async function saveEdit() {
+ if (!selectedEmployee) return;
+ const updated = {
+ nameAr: document.getElementById('e_nameAr').value.trim(),
+ nameEn: document.getElementById('e_nameEn').value.trim(),
+ nationalId:document.getElementById('e_nationalId').value.trim(),
+ birthDate: document.getElementById('e_birthDate').value,
+ phone: document.getElementById('e_phone').value.trim(),
+ email: document.getElementById('e_email').value.trim(),
+ address: document.getElementById('e_address').value.trim(),
+ dept: document.getElementById('e_dept').value,
+ jobTitle: document.getElementById('e_jobTitle').value,
+ startDate: document.getElementById('e_startDate').value,
+ endDate: document.getElementById('e_endDate').value || null,
+ salary: parseFloat(document.getElementById('e_salary')?.value) || 0,
+ insuranceStatus: document.getElementById('e_insuranceStatus')?.value || 'مؤمن عليه',
+ insuranceAmount: parseFloat(document.getElementById('e_insuranceAmount')?.value) || 0,
+ advance: parseFloat(document.getElementById('e_advance')?.value) || 0,
+ docs: {
+ cert: document.getElementById('e_doc_cert').checked,
+ birth: document.getElementById('e_doc_birth').checked,
+ military:document.getElementById('e_doc_military').checked,
+ idCard: document.getElementById('e_doc_id').checked,
+ criminal:document.getElementById('e_doc_criminal').checked,
+ medical: document.getElementById('e_doc_medical').checked,
+ heel: document.getElementById('e_doc_heel').checked
+ },
+ updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+ updatedBy: currentSession.email
+ };
+
+ if (!updated.nameAr || !updated.nameEn || !updated.nationalId || !updated.dept || !updated.jobTitle || !updated.startDate) {
+ alert('من فضلك أكمل الحقول المطلوبة (*)'); return;
+ }
+
+ try {
+ // تحقق من الرقم القومي فقط لو اتغير
+ if (updated.nationalId !== selectedEmployee.nationalId) {
+ const existing = await db.collection('employees')
+ .where('schoolId', '==', currentSchoolId)
+ .where('nationalId', '==', updated.nationalId)
+ .get();
+ if (!existing.empty) { alert('هذا الرقم القومي مسجل لموظف آخر'); return; }
+ }
+ await db.collection('employees').doc(selectedEmployee.id).update(updated);
+ closeEditModal(); await loadEmployees(); alert(' تم حفظ التعديلات بنجاح');
+ } catch (e) { alert('خطأ: ' + e.message); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// EMPLOYEE SEARCH IN MODALS — موحّد بـ prefix
+// ══════════════════════════════════════════════════════════════
+function searchEmpForModal(prefix) {
+ const inputId = prefix + 'EmpSearch';
+ const resultsId = prefix + 'EmpResults';
+ const q = (document.getElementById(inputId)?.value || '').toLowerCase().trim();
+ const el = document.getElementById(resultsId);
+ if (!el) return;
+ if (!q) { el.classList.add('hidden'); return; }
+
+ const today = localDateStr();
+ const matches = allEmployees.filter(e => e.status !== 'resigned' && (!e.endDate || e.endDate >= today) &&
+ (e.nameAr?.toLowerCase().includes(q) || e.nameEn?.toLowerCase().includes(q))
+ ).slice(0, 6);
+
+ if (!matches.length) {
+ el.innerHTML = '<div style="padding:0.6rem;font-size:0.82rem;color:var(--text-light)">لا يوجد نتائج</div>';
+ el.classList.remove('hidden');
+ return;
+ }
+
+ el.classList.remove('hidden');
+ el.innerHTML = matches.map(e => {
+ const ini = e.nameAr?.charAt(0) || '?';
+ const photoHTML = e.photo ? `<img src="${e.photo}"/>` : ini;
+ // نستخدم data-id بدل onclick مباشرة لتجنب XSS
+ return `<div class="emp-search-item" data-id="${e.id}" data-prefix="${prefix}"> <div class="mini-avatar">${photoHTML}</div> <div> <div style="font-size:0.82rem;font-weight:700">${e.nameAr}</div> <div style="font-size:0.72rem;color:var(--text-light)">${e.jobTitle || ''}</div></div></div>`;
+ }).join('');
+
+ // أضف event listeners بدل onclick في HTML
+ el.querySelectorAll('.emp-search-item').forEach(item => {
+ item.addEventListener('click', () => {
+ const empId = item.dataset.id;
+ const pfx = item.dataset.prefix;
+ const emp = allEmployees.find(e => e.id === empId);
+ if (!emp) return;
+ document.getElementById(pfx + 'EmpId').value = empId;
+ document.getElementById(pfx + 'EmpSearch').value = emp.nameAr;
+ document.getElementById(pfx + 'EmpSelected').textContent = ` ${emp.nameAr} — ${emp.jobTitle || ''}`;
+ document.getElementById(pfx + 'EmpResults').classList.add('hidden');
+ if (pfx === 'leave') loadLeaveBalance(empId);
+ });
+ });
+}
+
+// ══════════════════════════════════════════════════════════════
+// ATTENDANCE — وضع "سجّل الغائبين فقط"
+// attendanceMap يخزن فقط { empId: 'absent'|'excused' }
+// من مش في الـ map = حاضر تلقائياً
+// ══════════════════════════════════════════════════════════════
+function initAttendanceTab() {
+ const dateInput = document.getElementById('attendDate');
+ if (!dateInput.value) dateInput.value = localDateStr();
+
+ // أعد بناء قائمة الموظفين النشطين في كل مرة (قد يكون تم تسجيل موظف جديد)
+ const today = localDateStr();
+ attendActiveEmps = allEmployees.filter(e => {
+ if (e.status === 'resigned') return false;
+ if (e.endDate && e.endDate < today) return false;
+ return true;
+ });
+
+ loadAttendanceForDate();
+ loadRecentAttendanceLogs();
+}
+
+async function loadAttendanceForDate() {
+ const date = document.getElementById('attendDate').value;
+ if (!date) return;
+
+ // ابدأ بكل الموظفين حاضرين (map فاضية = الكل حاضر)
+ attendanceMap = {};
+
+ try {
+ const snap = await db.collection('attendance')
+ .where('schoolId', '==', currentSchoolId)
+ .where('date', '==', date)
+ .get();
+ // حمّل الغائبين والإجازات فقط
+ snap.docs.forEach(d => {
+ const data = d.data();
+ if (data.status === 'absent' || data.status === 'excused') {
+ attendanceMap[data.empId] = data.status;
+ }
+ // حاضر = مش محتاج يتحفظ في الـ map
+ });
+ } catch (e) { console.error(e); }
+
+ renderAbsentModeList();
+ updateAttendStats();
+}
+
+function renderAbsentModeList() {
+ const search = (document.getElementById('attendSearch')?.value || '').toLowerCase();
+ const deptF = (document.getElementById('attendFilterDept')?.value || '');
+ const statusF = (document.getElementById('attendFilterStatus')?.value || '');
+
+ let emps = attendActiveEmps.filter(e => {
+ if (deptF && resolveDept(e) !== deptF) return false;
+ const empStatus = attendanceMap[e.id] || 'present';
+ if (statusF && empStatus !== statusF) return false;
+ if (search && !e.nameAr?.toLowerCase().includes(search) &&
+ !e.nameEn?.toLowerCase().includes(search) &&
+ !e.jobTitle?.toLowerCase().includes(search)) return false;
+ return true;
+ });
+
+ const container = document.getElementById('attendanceList');
+
+ if (!attendActiveEmps.length) {
+ container.innerHTML = `<div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد موظفون نشطون</div></div>`;
+ return;
+ }
+
+ // ملخص
+ const absentCount = Object.values(attendanceMap).filter(v => v === 'absent').length;
+ const excusedCount = Object.values(attendanceMap).filter(v => v === 'excused').length;
+ const summaryHTML = absentCount || excusedCount
+ ? `<div style="background:#fff5f5;border:1px solid #ffcdd2;border-radius:var(--radius);padding:0.65rem 1rem;margin-bottom:0.75rem;font-size:0.82rem;font-weight:700;color:#c62828"> غائبون: ${absentCount} &nbsp;|&nbsp; إجازة/إذن: ${excusedCount} &nbsp;|&nbsp; حاضرون: ${attendActiveEmps.length - absentCount - excusedCount}
+</div>`
+ : `<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:var(--radius);padding:0.65rem 1rem;margin-bottom:0.75rem;font-size:0.82rem;font-weight:700;color:#2e7d32"> الكل حاضر — يمكنك البحث وتسجيل الغائبين
+</div>`;
+
+ if (!emps.length && (search || statusF || deptF)) {
+ container.innerHTML = summaryHTML + `<div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد موظفون مطابقون للبحث</div></div>`;
+ return;
+ }
+
+ // لو مفيش فلتر أو بحث — اعرض الغائبين أولاً ثم حاضرين بحد 20
+ if (!search && !statusF && !deptF) {
+ const absent = emps.filter(e => attendanceMap[e.id]);
+ const present = emps.filter(e => !attendanceMap[e.id]).slice(0, 20);
+ emps = [...absent, ...present];
+ }
+
+ container.innerHTML = summaryHTML + emps.map(e => {
+ const empStatus = attendanceMap[e.id] || 'present';
+ const photoHTML = e.photo
+ ? `<img src="${e.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`
+ : (e.nameAr?.charAt(0) || '?');
+ const deptLabel = resolveDept(e) === 'administrative' ? 'إداري' : 'أكاديمي';
+
+ const rowClass = empStatus === 'absent' ? 'absent-mode-emp is-absent'
+ : empStatus === 'excused' ? 'absent-mode-emp is-excused'
+ : 'absent-mode-emp';
+
+ return `
+ <div class="${rowClass}" id="arow-${e.id}"> <div class="emp-avatar" style="width:40px;height:40px;font-size:1rem;flex-shrink:0">${photoHTML}</div> <div class="emp-info"> <div class="emp-name">${e.nameAr}</div> <div class="emp-meta">${e.jobTitle || ''} · ${deptLabel}</div></div> <div class="absent-toggle"> <button class="absent-btn ${empStatus === 'absent' ? 'sel-absent' : ''}"
+ onclick="toggleAbsent('${e.id}','absent')"> غائب</button> <button class="absent-btn ${empStatus === 'excused' ? 'sel-excused' : ''}"
+ onclick="toggleAbsent('${e.id}','excused')"> إجازة/إذن</button></div></div>`;
+ }).join('');
+
+ updateAttendSummaryBadge();
+}
+
+function toggleAbsent(empId, status) {
+ const current = attendanceMap[empId];
+
+ if (current === status) {
+ delete attendanceMap[empId];
+ } else {
+ attendanceMap[empId] = status;
+ }
+
+ const newStatus = attendanceMap[empId] || 'present';
+
+ // أعد رسم الصف فقط
+ const row = document.getElementById(`arow-${empId}`);
+ if (row) {
+ row.className = newStatus === 'absent' ? 'absent-mode-emp is-absent'
+ : newStatus === 'excused' ? 'absent-mode-emp is-excused'
+ : 'absent-mode-emp';
+ row.querySelectorAll('.absent-btn').forEach(b => b.classList.remove('sel-absent','sel-excused'));
+ if (newStatus === 'absent') row.querySelector('.absent-btn:first-child').classList.add('sel-absent');
+ if (newStatus === 'excused') row.querySelector('.absent-btn:last-child').classList.add('sel-excused');
+ }
+
+ // احسب مرة واحدة فقط
+ const absentCount = Object.values(attendanceMap).filter(v => v === 'absent').length;
+ const excusedCount = Object.values(attendanceMap).filter(v => v === 'excused').length;
+ const presentCount = attendActiveEmps.length - absentCount - excusedCount;
+
+ // حدّث الـ stat cards
+ document.getElementById('attStatTotal').textContent = attendActiveEmps.length;
+ document.getElementById('attStatPresent').textContent = presentCount;
+ document.getElementById('attStatAbsent').textContent = absentCount;
+ document.getElementById('attStatExcused').textContent = excusedCount;
+
+ // حدّث الـ badge في شريط التاريخ
+ const badge = document.getElementById('attendSummaryBadge');
+ if (badge) {
+ badge.textContent = (absentCount || excusedCount)
+ ? `${absentCount} غائب · ${excusedCount} إجازة`
+ : 'الكل حاضر ';
+ badge.style.color = (absentCount || excusedCount) ? '#e53935' : 'var(--success)';
+ }
+
+ // حدّث الـ summary bar بدون إعادة رسم القائمة
+ const summaryEl = document.querySelector('#attendanceList > div:first-child');
+ if (summaryEl) {
+ if (absentCount || excusedCount) {
+ summaryEl.style.cssText = 'background:#fff5f5;border:1px solid #ffcdd2;border-radius:var(--radius);padding:0.65rem 1rem;margin-bottom:0.75rem;font-size:0.82rem;font-weight:700;color:#c62828';
+ summaryEl.innerHTML = ` غائبون: ${absentCount} &nbsp;|&nbsp; إجازة/إذن: ${excusedCount} &nbsp;|&nbsp; حاضرون: ${presentCount}`;
+ } else {
+ summaryEl.style.cssText = 'background:#e8f5e9;border:1px solid #a5d6a7;border-radius:var(--radius);padding:0.65rem 1rem;margin-bottom:0.75rem;font-size:0.82rem;font-weight:700;color:#2e7d32';
+ summaryEl.innerHTML = ' الكل حاضر — يمكنك البحث وتسجيل الغائبين';
+ }
+ }
+}
+
+function filterAttendanceList() { renderAbsentModeList(); }
+
+// مستخدمتان فقط عند التحميل الأولي من loadAttendanceForDate
+function updateAttendStats() {
+ const absentCount = Object.values(attendanceMap).filter(v => v === 'absent').length;
+ const excusedCount = Object.values(attendanceMap).filter(v => v === 'excused').length;
+ const presentCount = attendActiveEmps.length - absentCount - excusedCount;
+ document.getElementById('attStatTotal').textContent = attendActiveEmps.length;
+ document.getElementById('attStatPresent').textContent = presentCount;
+ document.getElementById('attStatAbsent').textContent = absentCount;
+ document.getElementById('attStatExcused').textContent = excusedCount;
+}
+
+function updateAttendSummaryBadge() {
+ const absentCount = Object.values(attendanceMap).filter(v => v === 'absent').length;
+ const excusedCount = Object.values(attendanceMap).filter(v => v === 'excused').length;
+ const badge = document.getElementById('attendSummaryBadge');
+ if (badge) {
+ badge.textContent = absentCount || excusedCount
+ ? `${absentCount} غائب · ${excusedCount} إجازة`
+ : 'الكل حاضر ';
+ badge.style.color = (absentCount || excusedCount) ? '#e53935' : 'var(--success)';
+ }
+}
+
+// FIX: saveAttendance — batch مع دعم chunking (Firestore limit = 500 op/batch)
+async function saveAttendance() {
+ const date = document.getElementById('attendDate').value;
+ if (!date) { alert('اختار تاريخ أولاً'); return; }
+ const btn = document.getElementById('saveAttendBtn');
+ const btnText = document.getElementById('saveAttendBtnText');
+ btn.disabled = true; btnText.textContent = 'جاري الحفظ...';
+
+ try {
+ const oldSnap = await db.collection('attendance')
+ .where('schoolId', '==', currentSchoolId)
+ .where('date', '==', date)
+ .get();
+
+ // بناء قائمة العمليات الكاملة
+ const deleteRefs = oldSnap.docs.map(d => d.ref);
+ const newDocs = attendActiveEmps.map(emp => ({
+ ref: db.collection('attendance').doc(),
+ data: {
+ empId: emp.id,
+ empName: emp.nameAr,
+ jobTitle: emp.jobTitle || '',
+ dept: resolveDept(emp),
+ status: attendanceMap[emp.id] || 'present',
+ date,
+ schoolId: currentSchoolId,
+ savedBy: currentSession.email,
+ savedAt: firebase.firestore.FieldValue.serverTimestamp()
+ }
+ }));
+
+ // دمج العمليات وتقسيمها لـ chunks بحد أقصى 500
+ const CHUNK = 500;
+ const allOps = [
+ ...deleteRefs.map(r => ({ type: 'delete', ref: r })),
+ ...newDocs.map(d => ({ type: 'set', ref: d.ref, data: d.data }))
+ ];
+
+ for (let i = 0; i < allOps.length; i += CHUNK) {
+ const chunk = allOps.slice(i, i + CHUNK);
+ const batch = db.batch();
+ chunk.forEach(op => {
+ if (op.type === 'delete') batch.delete(op.ref);
+ else batch.set(op.ref, op.data);
+ });
+ await batch.commit();
+ }
+
+ btnText.textContent = ' تم الحفظ!';
+ setTimeout(() => { btnText.textContent = ' حفظ السجل'; btn.disabled = false; }, 2000);
+ loadRecentAttendanceLogs();
+ } catch (e) {
+ alert('خطأ في الحفظ: ' + e.message);
+ btnText.textContent = ' حفظ السجل';
+ btn.disabled = false;
+ }
+}
+
+async function loadRecentAttendanceLogs() {
+ try {
+ const snap = await db.collection('attendance')
+ .where('schoolId', '==', currentSchoolId)
+ .orderBy('date', 'desc')
+ .limit(70)
+ .get();
+
+ const dateMap = {};
+ snap.docs.forEach(d => {
+ const data = d.data();
+ if (!dateMap[data.date]) dateMap[data.date] = { present: 0, absent: 0, excused: 0 };
+ dateMap[data.date][data.status] = (dateMap[data.date][data.status] || 0) + 1;
+ });
+
+ const dates = Object.keys(dateMap).sort((a,b) => b.localeCompare(a)).slice(0, 7);
+ const el = document.getElementById('recentAttendanceLogs');
+ if (!dates.length) {
+ el.innerHTML = '<div style="font-size:0.82rem;color:var(--text-light)">لا يوجد سجلات سابقة</div>';
+ return;
+ }
+ el.innerHTML = dates.map(d => {
+ const s = dateMap[d];
+ return `<div class="attend-log-row" onclick="jumpToDate('${d}')"> <span style="font-weight:700;color:var(--primary);min-width:110px">${d}</span> <span style="color:var(--success);font-size:0.78rem"> ${s.present || 0}</span> <span style="color:#e53935;font-size:0.78rem"> ${s.absent || 0}</span> <span style="color:var(--warning);font-size:0.78rem"> ${s.excused || 0}</span> <span style="margin-right:auto;font-size:0.72rem;color:var(--text-light)">اضغط للاطلاع</span></div>`;
+ }).join('');
+ } catch (e) { console.error(e); }
+}
+
+function jumpToDate(d) {
+ document.getElementById('attendDate').value = d;
+ loadAttendanceForDate();
+ window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function exportAttendanceExcel() {
+ const date = document.getElementById('attendDate').value;
+ if (!date) { alert('اختار تاريخ أولاً'); return; }
+ if (!attendActiveEmps.length) { alert('لا يوجد موظفون'); return; }
+
+ const statusMap = { present: 'حاضر', absent: 'غائب', excused: 'إجازة/إذن' };
+ const headers = ['الاسم','الوظيفة','القسم','الحالة','التاريخ'];
+ const rows = attendActiveEmps.map(e => [
+ e.nameAr,
+ e.jobTitle || '',
+ resolveDept(e) === 'administrative' ? 'إداري' : 'أكاديمي',
+ statusMap[attendanceMap[e.id] || 'present'],
+ date
+ ]);
+ downloadCSV(headers, rows, `حضور_${date}`);
+}
+
+// ══════════════════════════════════════════════════════════════
+// PERMISSIONS
+// ══════════════════════════════════════════════════════════════
+function openPermModal() {
+ document.getElementById('permEmpSearch').value = '';
+ document.getElementById('permEmpId').value = '';
+ document.getElementById('permEmpSelected').textContent = '';
+ document.getElementById('permEmpResults').classList.add('hidden');
+ document.getElementById('permDate').value = localDateStr();
+ document.getElementById('permFrom').value = '';
+ document.getElementById('permTo').value = '';
+ document.getElementById('permDestination').value = '';
+ document.getElementById('permType').value = 'exit';
+ document.getElementById('permModal').classList.remove('hidden');
+}
+function closePermModal() { document.getElementById('permModal').classList.add('hidden'); }
+
+async function savePermission() {
+ const empId = document.getElementById('permEmpId').value;
+ const type = document.getElementById('permType').value;
+ const date = document.getElementById('permDate').value;
+ const from = document.getElementById('permFrom').value;
+ const to = document.getElementById('permTo').value;
+ const dest = document.getElementById('permDestination').value.trim();
+ const emp = allEmployees.find(e => e.id === empId);
+
+ if (!empId || !date || !from || !to) { alert('أكمل الحقول المطلوبة'); return; }
+
+ try {
+ await db.collection('permissions').add({
+ empId, empName: emp?.nameAr || '', jobTitle: emp?.jobTitle || '',
+ dept: resolveDept(emp || {}), type, date, from, to, destination: dest,
+ schoolId: currentSchoolId, createdBy: currentSession.email,
+ createdAt: firebase.firestore.FieldValue.serverTimestamp()
+ });
+ closePermModal(); await loadPermissions(); alert(' تم حفظ الإذن');
+ } catch (e) { alert('خطأ: ' + e.message); }
+}
+
+async function loadPermissions() {
+ try {
+ const snap = await db.collection('permissions')
+ .where('schoolId', '==', currentSchoolId).orderBy('date', 'desc').get();
+ allPermissions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+ renderPermissions();
+ } catch (e) { console.error(e); }
+}
+
+function renderPermissions() {
+ const search = (document.getElementById('permSearch')?.value || '').toLowerCase();
+ const typeF = document.getElementById('permFilterType')?.value || '';
+ const dateF = document.getElementById('permFilterDate')?.value || '';
+
+ const list = allPermissions.filter(p => {
+ if (typeF && p.type !== typeF) return false;
+ if (dateF && p.date !== dateF) return false;
+ if (search && !p.empName?.toLowerCase().includes(search)) return false;
+ return true;
+ });
+
+ const el = document.getElementById('permissionsList');
+ if (!list.length) {
+ el.innerHTML = `<div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد إذونات مطابقة</div></div>`;
+ return;
+ }
+ el.innerHTML = list.map(p => `
+ <div class="record-card"> <div class="record-card-header"> <div> <div class="record-card-title">${p.empName}</div> <div class="record-card-meta">${p.jobTitle} · ${p.date}</div> <div class="record-card-badges"> <span class="tag ${p.type === 'exit' ? 'tag-orange' : 'tag-blue'}">${PERM_LABELS[p.type] || p.type}</span> <span class="tag tag-green">من ${p.from} إلى ${p.to}</span> ${p.destination ? `<span class="tag tag-purple"> ${p.destination}</span>` : ''}
+</div></div> <button class="btn btn-outline btn-sm" onclick="deleteRecord('permissions','${p.id}',loadPermissions)"
+ style="width:auto;padding:0.3rem 0.7rem;color:#e53935;border-color:#e53935"></button></div></div>`).join('');
+}
+
+function exportPermissionsExcel() {
+ if (!allPermissions.length) { alert('لا يوجد بيانات للتصدير'); return; }
+ const headers = ['الاسم','الوظيفة','القسم','النوع','التاريخ','من','إلى','الوجهة'];
+ const rows = allPermissions.map(p => [
+ p.empName, p.jobTitle || '',
+ p.dept === 'administrative' ? 'إداري' : 'أكاديمي',
+ PERM_LABELS[p.type] || p.type, p.date, p.from, p.to, p.destination || ''
+ ]);
+ downloadCSV(headers, rows, 'الإذونات');
+}
+
+// ══════════════════════════════════════════════════════════════
+// LEAVES
+// ══════════════════════════════════════════════════════════════
+function openLeaveModal() {
+ document.getElementById('leaveEmpSearch').value = '';
+ document.getElementById('leaveEmpId').value = '';
+ document.getElementById('leaveEmpSelected').textContent = '';
+ document.getElementById('leaveEmpResults').classList.add('hidden');
+ document.getElementById('leaveDate').value = localDateStr();
+ document.getElementById('leaveDays').value = '1';
+ document.getElementById('leaveNote').value = '';
+ document.getElementById('leaveType').value = 'emergency';
+ document.getElementById('leaveBalanceInfo').style.display = 'none';
+ document.getElementById('leaveModal').classList.remove('hidden');
+}
+function closeLeaveModal() { document.getElementById('leaveModal').classList.add('hidden'); }
+
+function onLeaveTypeChange() {
+ // إذا كان موظف محدد، أعد حساب الرصيد للنوع الجديد
+ const empId = document.getElementById('leaveEmpId').value;
+ if (empId) loadLeaveBalance(empId);
+}
+
+async function loadLeaveBalance(empId) {
+ const type = document.getElementById('leaveType')?.value || 'emergency';
+ const limit = LEAVE_LIMITS[type];
+ const infoEl = document.getElementById('leaveBalanceInfo');
+
+ if (!limit) { infoEl.style.display = 'none'; return; }
+
+ try {
+ const snap = await db.collection('leaves')
+ .where('schoolId', '==', currentSchoolId)
+ .where('empId', '==', empId)
+ .where('type', '==', type)
+ .get();
+ const used = snap.docs.reduce((sum, d) => sum + (d.data().days || 0), 0);
+ const remaining = limit - used;
+ infoEl.style.display = '';
+ infoEl.textContent = `رصيد ${LEAVE_LABELS[type]}: مستخدم ${used} يوم / متبقي ${remaining} يوم من أصل ${limit}`;
+ infoEl.style.color = remaining <= 0 ? '#c62828' : 'var(--primary)';
+ } catch (e) { console.error(e); }
+}
+
+async function saveLeave() {
+ const empId = document.getElementById('leaveEmpId').value;
+ const type = document.getElementById('leaveType').value;
+ const date = document.getElementById('leaveDate').value;
+ const days = parseInt(document.getElementById('leaveDays').value) || 1;
+ const note = document.getElementById('leaveNote').value.trim();
+ const emp = allEmployees.find(e => e.id === empId);
+
+ if (!empId || !date || !days) { alert('أكمل الحقول المطلوبة'); return; }
+
+ try {
+ const limit = LEAVE_LIMITS[type];
+ if (limit) {
+ const snap = await db.collection('leaves')
+ .where('schoolId', '==', currentSchoolId)
+ .where('empId', '==', empId)
+ .where('type', '==', type)
+ .get();
+ const used = snap.docs.reduce((sum, d) => sum + (d.data().days || 0), 0);
+ if (used + days > limit) {
+ if (!confirm(`تحذير: الرصيد المتبقي ${limit - used} يوم فقط، هل تريد المتابعة؟`)) return;
+ }
+ }
+
+ await db.collection('leaves').add({
+ empId, empName: emp?.nameAr || '', jobTitle: emp?.jobTitle || '',
+ dept: resolveDept(emp || {}), type, date, days, note,
+ schoolId: currentSchoolId, createdBy: currentSession.email,
+ createdAt: firebase.firestore.FieldValue.serverTimestamp()
+ });
+ closeLeaveModal(); await loadLeaves(); alert(' تم حفظ الإجازة');
+ } catch (e) { alert('خطأ: ' + e.message); }
+}
+
+async function loadLeaves() {
+ try {
+ const snap = await db.collection('leaves')
+ .where('schoolId', '==', currentSchoolId).orderBy('date', 'desc').get();
+ allLeaves = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+ renderLeaves();
+ } catch (e) { console.error(e); }
+}
+
+function renderLeaves() {
+ const search = (document.getElementById('leaveSearch')?.value || '').toLowerCase();
+ const typeF = document.getElementById('leaveFilterType')?.value || '';
+
+ const list = allLeaves.filter(l => {
+ if (typeF && l.type !== typeF) return false;
+ if (search && !l.empName?.toLowerCase().includes(search)) return false;
+ return true;
+ });
+
+ const el = document.getElementById('leavesList');
+ if (!list.length) {
+ el.innerHTML = `<div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد إجازات مطابقة</div></div>`;
+ return;
+ }
+ el.innerHTML = list.map(l => `
+ <div class="record-card"> <div class="record-card-header"> <div> <div class="record-card-title">${l.empName}</div> <div class="record-card-meta">${l.jobTitle} · ${l.date}</div> <div class="record-card-badges"> <span class="tag tag-green">${LEAVE_LABELS[l.type] || l.type}</span> <span class="tag tag-blue">${l.days} يوم</span> ${l.note ? `<span class="tag tag-purple">${l.note}</span>` : ''}
+</div></div> <button class="btn btn-outline btn-sm" onclick="deleteRecord('leaves','${l.id}',loadLeaves)"
+ style="width:auto;padding:0.3rem 0.7rem;color:#e53935;border-color:#e53935"></button></div></div>`).join('');
+}
+
+function exportLeavesExcel() {
+ if (!allLeaves.length) { alert('لا يوجد بيانات للتصدير'); return; }
+ const headers = ['الاسم','الوظيفة','القسم','نوع الإجازة','عدد الأيام','التاريخ','ملاحظات'];
+ const rows = allLeaves.map(l => [
+ l.empName, l.jobTitle || '',
+ l.dept === 'administrative' ? 'إداري' : 'أكاديمي',
+ LEAVE_LABELS[l.type] || l.type, l.days, l.date, l.note || ''
+ ]);
+ downloadCSV(headers, rows, 'الإجازات');
+}
+
+// ══════════════════════════════════════════════════════════════
+// PENALTIES
+// ══════════════════════════════════════════════════════════════
+function openPenaltyModal() {
+ document.getElementById('penaltyEmpSearch').value = '';
+ document.getElementById('penaltyEmpId').value = '';
+ document.getElementById('penaltyEmpSelected').textContent = '';
+ document.getElementById('penaltyEmpResults').classList.add('hidden');
+ document.getElementById('penaltyDate').value = localDateStr();
+ document.getElementById('penaltyReason').value = '';
+ document.getElementById('penaltyType').value = 'warning';
+ document.getElementById('deductionGroup').style.display = 'none';
+ document.getElementById('deductionCustomGroup').style.display = 'none';
+ document.getElementById('penaltyModal').classList.remove('hidden');
+}
+function closePenaltyModal() { document.getElementById('penaltyModal').classList.add('hidden'); }
+
+function onPenaltyTypeChange() {
+ const type = document.getElementById('penaltyType').value;
+ document.getElementById('deductionGroup').style.display = type === 'deduction' ? '' : 'none';
+ document.getElementById('deductionCustomGroup').style.display = 'none';
+}
+
+// FIX: كانت event delegation على document بتتضارب — استبدلنا بـ onchange مباشر في الـ select
+function onDeductionAmountChange() {
+ const val = document.getElementById('deductionAmount').value;
+ document.getElementById('deductionCustomGroup').style.display = val === 'custom' ? '' : 'none';
+}
+
+async function savePenalty() {
+ const empId = document.getElementById('penaltyEmpId').value;
+ const type = document.getElementById('penaltyType').value;
+ const date = document.getElementById('penaltyDate').value;
+ const reason = document.getElementById('penaltyReason').value.trim();
+ const emp = allEmployees.find(e => e.id === empId);
+
+ if (!empId || !date || !reason) { alert('أكمل الحقول المطلوبة'); return; }
+
+ let deductionDays = null;
+ if (type === 'deduction') {
+ const sel = document.getElementById('deductionAmount').value;
+ deductionDays = sel === 'custom'
+ ? (parseFloat(document.getElementById('deductionCustom').value) || 0)
+ : parseFloat(sel);
+ if (!deductionDays) { alert('حدد مقدار الخصم'); return; }
+ }
+
+ try {
+ await db.collection('penalties').add({
+ empId, empName: emp?.nameAr || '', jobTitle: emp?.jobTitle || '',
+ dept: resolveDept(emp || {}), type, date, reason, deductionDays,
+ schoolId: currentSchoolId, createdBy: currentSession.email,
+ createdAt: firebase.firestore.FieldValue.serverTimestamp()
+ });
+ closePenaltyModal(); await loadPenalties(); alert(' تم حفظ الجزاء');
+ } catch (e) { alert('خطأ: ' + e.message); }
+}
+
+async function loadPenalties() {
+ try {
+ const snap = await db.collection('penalties')
+ .where('schoolId', '==', currentSchoolId).orderBy('date', 'desc').get();
+ allPenalties = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+ renderPenalties();
+ } catch (e) { console.error(e); }
+}
+
+function renderPenalties() {
+ const search = (document.getElementById('penaltySearch')?.value || '').toLowerCase();
+ const typeF = document.getElementById('penaltyFilterType')?.value || '';
+
+ const list = allPenalties.filter(p => {
+ if (typeF && p.type !== typeF) return false;
+ if (search && !p.empName?.toLowerCase().includes(search)) return false;
+ return true;
+ });
+
+ const el = document.getElementById('penaltiesList');
+ if (!list.length) {
+ el.innerHTML = `<div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد جزاءات مطابقة</div></div>`;
+ return;
+ }
+ el.innerHTML = list.map(p => {
+ const tagCls = p.type === 'warning' ? 'tag-orange' : p.type === 'penalty' ? 'tag-red' : 'tag-purple';
+ const deductTxt = p.deductionDays
+ ? ` — خصم ${DEDUCTION_LABELS[String(p.deductionDays)] || p.deductionDays + ' يوم'}` : '';
+ return `
+ <div class="record-card"> <div class="record-card-header"> <div> <div class="record-card-title">${p.empName}</div> <div class="record-card-meta">${p.jobTitle} · ${p.date}</div> <div class="record-card-badges"> <span class="tag ${tagCls}">${PENALTY_LABELS[p.type] || p.type}${deductTxt}</span> <span class="tag tag-blue">${p.reason}</span></div></div> <button class="btn btn-outline btn-sm" onclick="deleteRecord('penalties','${p.id}',loadPenalties)"
+ style="width:auto;padding:0.3rem 0.7rem;color:#e53935;border-color:#e53935"></button></div></div>`;
+ }).join('');
+}
+
+function exportPenaltiesExcel() {
+ if (!allPenalties.length) { alert('لا يوجد بيانات للتصدير'); return; }
+ const headers = ['الاسم','الوظيفة','القسم','نوع الجزاء','المخالفة','الخصم (أيام)','التاريخ'];
+ const rows = allPenalties.map(p => [
+ p.empName, p.jobTitle || '',
+ p.dept === 'administrative' ? 'إداري' : 'أكاديمي',
+ PENALTY_LABELS[p.type] || p.type, p.reason, p.deductionDays || '', p.date
+ ]);
+ downloadCSV(headers, rows, 'الجزاءات');
+}
+
+// ══════════════════════════════════════════════════════════════
+// REWARDS
+// ══════════════════════════════════════════════════════════════
+function openRewardModal() {
+ document.getElementById('rewardEmpSearch').value = '';
+ document.getElementById('rewardEmpId').value = '';
+ document.getElementById('rewardEmpSelected').textContent = '';
+ document.getElementById('rewardEmpResults').classList.add('hidden');
+ document.getElementById('rewardDate').value = localDateStr();
+ document.getElementById('rewardAmount').value = '';
+ document.getElementById('rewardReason').value = '';
+ document.getElementById('rewardModal').classList.remove('hidden');
+}
+function closeRewardModal() { document.getElementById('rewardModal').classList.add('hidden'); }
+
+async function saveReward() {
+ const empId = document.getElementById('rewardEmpId').value;
+ const date = document.getElementById('rewardDate').value;
+ const amount = parseFloat(document.getElementById('rewardAmount').value) || 0;
+ const reason = document.getElementById('rewardReason').value.trim();
+ const emp = allEmployees.find(e => e.id === empId);
+
+ if (!empId || !date || !reason || !amount) { alert('أكمل الحقول المطلوبة'); return; }
+
+ try {
+ await db.collection('rewards').add({
+ empId, empName: emp?.nameAr || '', jobTitle: emp?.jobTitle || '',
+ dept: resolveDept(emp || {}), date, amount, reason,
+ schoolId: currentSchoolId, createdBy: currentSession.email,
+ createdAt: firebase.firestore.FieldValue.serverTimestamp()
+ });
+ closeRewardModal(); await loadRewards(); alert(' تم حفظ المكافأة');
+ } catch (e) { alert('خطأ: ' + e.message); }
+}
+
+async function loadRewards() {
+ try {
+ const snap = await db.collection('rewards')
+ .where('schoolId', '==', currentSchoolId).orderBy('date', 'desc').get();
+ allRewards = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+ renderRewards();
+ } catch (e) { console.error(e); }
+}
+
+function renderRewards() {
+ const search = (document.getElementById('rewardSearch')?.value || '').toLowerCase();
+ const list = allRewards.filter(r => !search || r.empName?.toLowerCase().includes(search));
+
+ const el = document.getElementById('rewardsList');
+ if (!list.length) {
+ el.innerHTML = `<div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد مكافآت مطابقة</div></div>`;
+ return;
+ }
+ el.innerHTML = list.map(r => `
+ <div class="record-card"> <div class="record-card-header"> <div> <div class="record-card-title">${r.empName}</div> <div class="record-card-meta">${r.jobTitle} · ${r.date}</div> <div class="record-card-badges"> <span class="tag tag-gold"> ${Number(r.amount).toLocaleString('ar-EG')} جنيه</span> <span class="tag tag-green">${r.reason}</span></div></div> <button class="btn btn-outline btn-sm" onclick="deleteRecord('rewards','${r.id}',loadRewards)"
+ style="width:auto;padding:0.3rem 0.7rem;color:#e53935;border-color:#e53935"></button></div></div>`).join('');
+}
+
+function exportRewardsExcel() {
+ if (!allRewards.length) { alert('لا يوجد بيانات للتصدير'); return; }
+ const headers = ['الاسم','الوظيفة','القسم','السبب','قيمة المكافأة (جنيه)','التاريخ'];
+ const rows = allRewards.map(r => [
+ r.empName, r.jobTitle || '',
+ r.dept === 'administrative' ? 'إداري' : 'أكاديمي',
+ r.reason, r.amount, r.date
+ ]);
+ downloadCSV(headers, rows, 'المكافآت');
+}
+
+// ══════════════════════════════════════════════════════════════
+// EMPLOYEE PROFILE (بحث الموظف)
+// ══════════════════════════════════════════════════════════════
+function searchForProfile() {
+ const q = (document.getElementById('profileSearchInput').value || '').toLowerCase().trim();
+ const el = document.getElementById('profileSearchResults');
+ if (!q) { el.innerHTML = ''; return; }
+
+ const matches = allEmployees.filter(e => e.nameAr?.toLowerCase().includes(q) ||
+ e.nameEn?.toLowerCase().includes(q) ||
+ e.nationalId?.includes(q)
+ ).slice(0, 8);
+
+ if (!matches.length) {
+ el.innerHTML = '<div style="font-size:0.82rem;color:var(--text-light);padding:0.5rem">لا يوجد نتائج</div>';
+ return;
+ }
+
+ el.innerHTML = `<div class="emp-search-results" style="margin-top:0.5rem">` +
+ matches.map(e => {
+ const st = getEmployeeStatus(e);
+ const photoHTML = e.photo ? `<img src="${e.photo}"/>` : (e.nameAr?.charAt(0) || '?');
+ return `<div class="emp-search-item" data-empid="${e.id}"> <div class="mini-avatar">${photoHTML}</div> <div> <div style="font-size:0.85rem;font-weight:700">${e.nameAr}</div> <div style="font-size:0.72rem;color:var(--text-light)">${e.jobTitle || ''} · <span class="status-badge ${st.cls}" style="font-size:0.68rem">${st.label}</span></div></div></div>`;
+ }).join('') + `</div>`;
+
+ el.querySelectorAll('.emp-search-item').forEach(item => {
+ item.addEventListener('click', () => loadEmployeeProfile(item.dataset.empid));
+ });
+}
+
+async function loadEmployeeProfile(empId) {
+ profileEmployee = allEmployees.find(e => e.id === empId);
+ if (!profileEmployee) return;
+ document.getElementById('profileSearchResults').innerHTML = '';
+ document.getElementById('employeeProfileSection').style.display = '';
+
+ const emp = profileEmployee;
+ const st = getEmployeeStatus(emp);
+ const photoHTML = emp.photo ? `<img src="${emp.photo}"/>` : (emp.nameAr?.charAt(0) || '?');
+
+ document.getElementById('profileHeader').innerHTML = `
+ <div class="profile-avatar">${photoHTML}</div> <div> <div class="profile-name">${emp.nameAr}</div> <div class="profile-sub">${emp.nameEn}</div> <div class="profile-sub">${emp.jobTitle || ''} · ${resolveDept(emp) === 'administrative' ? 'إداري' : 'أكاديمي'}</div> <div style="margin-top:0.4rem"><span class="status-badge ${st.cls}">${st.label}</span></div></div>`;
+
+ switchProfileTab('overview');
+}
+
+function switchProfileTab(tab) {
+ const tabs = ['overview','attendance','permissions','leaves','penalties','rewards'];
+ document.querySelectorAll('.profile-tab').forEach((t, i) => t.classList.toggle('active', tabs[i] === tab)
+ );
+ document.querySelectorAll('.profile-tab-pane').forEach(p => p.classList.remove('active'));
+ document.getElementById('ptab-' + tab)?.classList.add('active');
+
+ if (!profileEmployee) return;
+ const empId = profileEmployee.id;
+
+ if (tab === 'overview') renderProfileOverview();
+ if (tab === 'attendance') renderProfileAttendance(empId);
+ if (tab === 'permissions') renderProfileRecords(empId, 'permissions', renderProfilePerms);
+ if (tab === 'leaves') renderProfileRecords(empId, 'leaves', renderProfileLeaves2);
+ if (tab === 'penalties') renderProfileRecords(empId, 'penalties', renderProfilePenalties2);
+ if (tab === 'rewards') renderProfileRecords(empId, 'rewards', renderProfileRewards2);
+}
+
+function renderProfileOverview() {
+ const emp = profileEmployee;
+ const docsMap = {cert:'شهادة المؤهل',birth:'شهادة الميلاد',military:'خدمة عامة/جيش',idCard:'بطاقة شخصية',criminal:'فيش جنائي',medical:'كشف طبي',heel:'كعب عمل'};
+ const docsHTML = Object.entries(docsMap).map(([k,v]) => `
+ <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem"> ${emp.docs?.[k] ? '<span style="color:var(--success)"></span>' : '<span style="color:#e53935"></span>'}
+ ${v}
+</div>`).join('');
+
+ document.getElementById('profileOverviewContent').innerHTML = `
+ <div class="emp-detail-section" style="margin-bottom:1rem"> <div class="emp-detail-item"><div class="lbl">الرقم القومي</div><div class="val">${emp.nationalId||'-'}</div></div> <div class="emp-detail-item"><div class="lbl">تاريخ الميلاد</div><div class="val">${emp.birthDate||'-'}</div></div> <div class="emp-detail-item"><div class="lbl">الهاتف</div><div class="val">${emp.phone||'-'}</div></div> <div class="emp-detail-item"><div class="lbl">البريد الإلكتروني</div><div class="val">${emp.email||'-'}</div></div> <div class="emp-detail-item"><div class="lbl">تاريخ التعيين</div><div class="val">${emp.startDate||'-'}</div></div> <div class="emp-detail-item"><div class="lbl">تاريخ انتهاء التعيين</div><div class="val">${emp.endDate||'غير محدد'}</div></div> <div class="emp-detail-item" style="grid-column:1/-1"><div class="lbl">العنوان</div><div class="val">${emp.address||'-'}</div></div></div> <div class="form-section-title">المستندات</div> <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.5rem">${docsHTML}</div>`;
+}
+
+async function renderProfileAttendance(empId) {
+ const el = document.getElementById('profileAttendContent');
+ el.innerHTML = '<div style="font-size:0.82rem;color:var(--text-light)">جاري التحميل...</div>';
+ try {
+ const snap = await db.collection('attendance')
+ .where('schoolId', '==', currentSchoolId)
+ .where('empId', '==', empId)
+ .orderBy('date', 'desc')
+ .get();
+ const records = snap.docs.map(d => d.data());
+ const present = records.filter(r => r.status === 'present').length;
+ const absent = records.filter(r => r.status === 'absent').length;
+ const excused = records.filter(r => r.status === 'excused').length;
+
+ el.innerHTML = `
+ <div style="display:flex;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap"> <div class="hr-stat-card" style="min-width:100px;flex:1"><div class="hr-stat-num" style="font-size:1.3rem">${records.length}</div><div class="hr-stat-label">إجمالي الأيام</div></div> <div class="hr-stat-card" style="min-width:100px;flex:1"><div class="hr-stat-num" style="font-size:1.3rem;color:var(--success)">${present}</div><div class="hr-stat-label">حاضر</div></div> <div class="hr-stat-card" style="min-width:100px;flex:1"><div class="hr-stat-num" style="font-size:1.3rem;color:#e53935">${absent}</div><div class="hr-stat-label">غائب</div></div> <div class="hr-stat-card" style="min-width:100px;flex:1"><div class="hr-stat-num" style="font-size:1.3rem;color:var(--warning)">${excused}</div><div class="hr-stat-label">إجازة</div></div></div> ${records.length > 60 ? `<div style="font-size:0.78rem;color:var(--text-light);margin-bottom:0.5rem">يُعرض آخر 60 يوم من أصل ${records.length}</div>` : ''}
+ ${records.length
+ ? records.slice(0, 60).map(r => {
+ const sMap = { present:{label:'حاضر',cls:'tag-green'}, absent:{label:'غائب',cls:'tag-red'}, excused:{label:'إجازة',cls:'tag-orange'} };
+ const s = sMap[r.status] || { label: r.status, cls: 'tag-blue' };
+ return `<div class="attend-log-row"><span style="font-weight:700;min-width:110px">${r.date}</span><span class="tag ${s.cls}">${s.label}</span></div>`;
+ }).join('')
+ : `<div class="empty-state"><div class="empty-state-title">لا يوجد سجلات حضور</div></div>`}`;
+ } catch (e) { console.error(e); el.innerHTML = '<div style="color:#e53935">خطأ في التحميل</div>'; }
+}
+
+async function renderProfileRecords(empId, collection, renderFn) {
+ try {
+ const snap = await db.collection(collection)
+ .where('schoolId', '==', currentSchoolId)
+ .where('empId', '==', empId)
+ .orderBy('date', 'desc')
+ .get();
+ renderFn(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+ } catch (e) { console.error(e); }
+}
+
+function renderProfilePerms(list) {
+ const el = document.getElementById('profilePermContent');
+ el.innerHTML = list.length
+ ? list.map(p => `
+ <div class="record-card"> <div class="record-card-title">${p.date}</div> <div class="record-card-badges" style="margin-top:0.4rem"> <span class="tag ${p.type === 'exit' ? 'tag-orange' : 'tag-blue'}">${PERM_LABELS[p.type] || p.type}</span> <span class="tag tag-green">من ${p.from} إلى ${p.to}</span> ${p.destination ? `<span class="tag tag-purple"> ${p.destination}</span>` : ''}
+</div></div>`).join('')
+ : `<div class="empty-state"><div class="empty-state-title">لا يوجد إذونات</div></div>`;
+}
+
+function renderProfileLeaves2(list) {
+ const used = { emergency: 0, annual: 0 };
+ list.forEach(l => { if (used.hasOwnProperty(l.type)) used[l.type] += (l.days || 0); });
+ const balanceHTML = `
+ <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem"> <div class="hr-stat-card" style="flex:1;min-width:120px"> <div class="hr-stat-num" style="font-size:1.1rem;color:#e65100">${used.emergency}/${LEAVE_LIMITS.emergency}</div> <div class="hr-stat-label">عارضة مستخدمة</div></div> <div class="hr-stat-card" style="flex:1;min-width:120px"> <div class="hr-stat-num" style="font-size:1.1rem;color:#1565c0">${used.annual}/${LEAVE_LIMITS.annual}</div> <div class="hr-stat-label">اعتيادية مستخدمة</div></div></div>`;
+ const el = document.getElementById('profileLeaveContent');
+ el.innerHTML = balanceHTML + (list.length
+ ? list.map(l => `
+ <div class="record-card"> <div class="record-card-title">${l.date} — ${LEAVE_LABELS[l.type] || l.type}</div> <div class="record-card-badges" style="margin-top:0.4rem"> <span class="tag tag-blue">${l.days} يوم</span> ${l.note ? `<span class="tag tag-purple">${l.note}</span>` : ''}
+</div></div>`).join('')
+ : `<div class="empty-state"><div class="empty-state-title">لا يوجد إجازات</div></div>`);
+}
+
+function renderProfilePenalties2(list) {
+ const el = document.getElementById('profilePenaltyContent');
+ el.innerHTML = list.length
+ ? list.map(p => {
+ const tagCls = p.type === 'warning' ? 'tag-orange' : p.type === 'penalty' ? 'tag-red' : 'tag-purple';
+ return `<div class="record-card"> <div class="record-card-title">${p.date} — ${p.reason}</div> <div class="record-card-badges" style="margin-top:0.4rem"> <span class="tag ${tagCls}">${PENALTY_LABELS[p.type] || p.type}</span> ${p.deductionDays ? `<span class="tag tag-red">خصم ${DEDUCTION_LABELS[String(p.deductionDays)] || p.deductionDays + ' يوم'}</span>` : ''}
+</div></div>`;
+ }).join('')
+ : `<div class="empty-state"><div class="empty-state-title">لا يوجد جزاءات</div></div>`;
+}
+
+function renderProfileRewards2(list) {
+ const total = list.reduce((s, r) => s + (r.amount || 0), 0);
+ const el = document.getElementById('profileRewardContent');
+ el.innerHTML = (list.length
+ ? `<div style="margin-bottom:0.75rem;font-weight:800;color:var(--primary)">إجمالي المكافآت: ${Number(total).toLocaleString('ar-EG')} جنيه</div>`
+ : '') + (list.length
+ ? list.map(r => `
+ <div class="record-card"> <div class="record-card-title">${r.date} — ${r.reason}</div> <div class="record-card-badges" style="margin-top:0.4rem"> <span class="tag tag-gold"> ${Number(r.amount).toLocaleString('ar-EG')} جنيه</span></div></div>`).join('')
+ : `<div class="empty-state"><div class="empty-state-title">لا يوجد مكافآت</div></div>`);
+}
+
+// تصدير Excel كامل للموظف الواحد
+async function exportProfileExcel() {
+ if (!profileEmployee) return;
+ const empId = profileEmployee.id;
+ const emp = profileEmployee;
+ const rows = [];
+
+ try {
+ const snap = await db.collection('attendance')
+ .where('schoolId','==',currentSchoolId).where('empId','==',empId).orderBy('date','desc').get();
+ const sMap = { present:'حاضر', absent:'غائب', excused:'إجازة/إذن' };
+ snap.docs.forEach(d => {
+ const r = d.data();
+ rows.push([emp.nameAr, emp.jobTitle||'', 'حضور', r.date, sMap[r.status]||r.status, '', '']);
+ });
+ } catch(e){}
+
+ try {
+ const snap = await db.collection('permissions')
+ .where('schoolId','==',currentSchoolId).where('empId','==',empId).get();
+ snap.docs.forEach(d => {
+ const r = d.data();
+ rows.push([emp.nameAr, emp.jobTitle||'', 'إذن', r.date, PERM_LABELS[r.type]||r.type, `${r.from} - ${r.to}`, r.destination||'']);
+ });
+ } catch(e){}
+
+ try {
+ const snap = await db.collection('leaves')
+ .where('schoolId','==',currentSchoolId).where('empId','==',empId).get();
+ snap.docs.forEach(d => {
+ const r = d.data();
+ rows.push([emp.nameAr, emp.jobTitle||'', 'إجازة', r.date, LEAVE_LABELS[r.type]||r.type, r.days+' يوم', r.note||'']);
+ });
+ } catch(e){}
+
+ try {
+ const snap = await db.collection('penalties')
+ .where('schoolId','==',currentSchoolId).where('empId','==',empId).get();
+ snap.docs.forEach(d => {
+ const r = d.data();
+ rows.push([emp.nameAr, emp.jobTitle||'', 'جزاء', r.date, PENALTY_LABELS[r.type]||r.type, r.reason, r.deductionDays||'']);
+ });
+ } catch(e){}
+
+ try {
+ const snap = await db.collection('rewards')
+ .where('schoolId','==',currentSchoolId).where('empId','==',empId).get();
+ snap.docs.forEach(d => {
+ const r = d.data();
+ rows.push([emp.nameAr, emp.jobTitle||'', 'مكافأة', r.date, r.reason, r.amount+' جنيه', '']);
+ });
+ } catch(e){}
+
+ if (!rows.length) { alert('لا يوجد بيانات لهذا الموظف'); return; }
+ const headers = ['الاسم','الوظيفة','النوع','التاريخ','التفاصيل','قيمة/مدة','ملاحظات'];
+ downloadCSV(headers, rows, `سجل_${emp.nameAr}`);
+}
+
+// ══════════════════════════════════════════════════════════════
+// EXPORT ALL EMPLOYEES
+// ══════════════════════════════════════════════════════════════
+function exportAllEmployeesExcel() {
+ if (!allEmployees.length) { alert('لا يوجد بيانات للتصدير'); return; }
+ const headers = ['الاسم عربي','الاسم إنجليزي','الرقم القومي','تاريخ الميلاد','الهاتف','البريد','العنوان','القسم','الوظيفة','تاريخ التعيين','تاريخ الانتهاء','الحالة'];
+ const rows = allEmployees.map(e => {
+ const st = getEmployeeStatus(e);
+ return [
+ e.nameAr, e.nameEn, e.nationalId, e.birthDate, e.phone,
+ e.email||'', e.address||'',
+ resolveDept(e) === 'administrative' ? 'إداري' : 'أكاديمي',
+ e.jobTitle, e.startDate, e.endDate||'', st.label
+ ];
+ });
+ downloadCSV(headers, rows, 'الموظفون');
+}
+
+// ══════════════════════════════════════════════════════════════
+// DELETE RECORD
+// ══════════════════════════════════════════════════════════════
+async function deleteRecord(collection, docId, reloadFn) {
+ if (!confirm('هل تريد حذف هذا السجل؟')) return;
+ try {
+ await db.collection(collection).doc(docId).delete();
+ if (typeof reloadFn === 'function') await reloadFn();
+ } catch (e) { alert('خطأ في الحذف: ' + e.message); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// CSV DOWNLOAD — يفتح مباشرة في Excel بسبب BOM + UTF-8
+// ══════════════════════════════════════════════════════════════
+function downloadCSV(headers, rows, filename) {
+ const csvContent = '\uFEFF' + [headers, ...rows]
+ .map(r => r.map(c => `"${String(c || '').replace(/"/g, '""')}"`).join(','))
+ .join('\n');
+ const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ a.href = url;
+ a.download = `${filename}.csv`;
+ document.body.appendChild(a);
+ a.click();
+ document.body.removeChild(a);
+ URL.revokeObjectURL(url);
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// PAYROLL — كشف الرواتب
+// ══════════════════════════════════════════════════════════════
+let payrollData = []; // بيانات الكشف المحسوبة
+
+function initPayrollTab() {
+  const monthInput = document.getElementById('payrollMonth');
+  if (!monthInput.value) {
+    const now = new Date();
+    monthInput.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  }
+  // لو الموظفون لسه بيتحملوا — استنى ثانيتين وحاول تاني
+  if (!allEmployees || allEmployees.length === 0) {
+    document.getElementById('payrollContent').innerHTML =
+      '<div style="text-align:center;padding:2rem;color:var(--text-light);font-weight:700">⏳ جاري تحميل بيانات الموظفين...</div>';
+    setTimeout(() => {
+      if (allEmployees && allEmployees.length > 0) {
+        loadPayroll();
+      } else {
+        document.getElementById('payrollContent').innerHTML =
+          '<div class="empty-state"><div class="empty-state-title">لم يتم العثور على موظفين — تأكد من تحميل الصفحة بشكل صحيح</div></div>';
+      }
+    }, 2000);
+    return;
+  }
+  loadPayroll();
+}
+
+async function loadPayroll() {
+  const monthVal = document.getElementById('payrollMonth').value;
+  if (!monthVal) { alert('اختار الشهر أولاً'); return; }
+
+  document.getElementById('payrollContent').innerHTML =
+    '<div style="text-align:center;padding:2rem;color:var(--text-light);font-weight:700">⏳ جاري تحميل البيانات...</div>';
+
+  const [year, month] = monthVal.split('-');
+  const dateFrom = `${year}-${month}-01`;
+  const lastDay  = new Date(parseInt(year), parseInt(month), 0).getDate();
+  const dateTo   = `${year}-${month}-${String(lastDay).padStart(2,'0')}`;
+  const inMonth  = d => d >= dateFrom && d <= dateTo;
+
+  try {
+    const activeEmps = allEmployees.filter(e => e.status !== 'resigned');
+    if (!activeEmps.length) {
+      document.getElementById('payrollContent').innerHTML =
+        '<div class="empty-state"><div class="empty-state-title">لا يوجد موظفون نشطون</div></div>';
+      updatePayrollStats([]);
+      return;
+    }
+
+    // ── جلب الحضور (graceful fallback لو permissions مرفوضة) ──
+    let attMap = {};
+    let workDays = lastDay;
+    try {
+      const attSnap = await db.collection('attendance')
+        .where('schoolId','==',currentSchoolId).get();
+      const recordedDates = new Set();
+      attSnap.docs.forEach(d => {
+        const r = d.data();
+        if (!inMonth(r.date)) return;
+        recordedDates.add(r.date);
+        if (!attMap[r.empId]) attMap[r.empId] = { present:0, absent:0, excused:0 };
+        attMap[r.empId][r.status] = (attMap[r.empId][r.status]||0) + 1;
+      });
+      if (recordedDates.size) workDays = recordedDates.size;
+    } catch(e) {
+      console.warn('attendance: permission denied — بيانات الحضور مش متاحة:', e.message);
+    }
+
+    // ── جلب الجزاءات ──
+    let penMap = {};
+    try {
+      const penSnap = await db.collection('penalties')
+        .where('schoolId','==',currentSchoolId).get();
+      penSnap.docs.forEach(d => {
+        const r = d.data();
+        if (!inMonth(r.date)) return;
+        if (!penMap[r.empId]) penMap[r.empId] = { deductionDays:0, penaltyCount:0, warningCount:0, lateCount:0 };
+        if (r.type === 'deduction') penMap[r.empId].deductionDays += (r.deductionDays||0);
+        if (r.type === 'penalty')   penMap[r.empId].penaltyCount++;
+        if (r.type === 'warning')   penMap[r.empId].warningCount++;
+        if (r.type === 'late')      penMap[r.empId].lateCount++;
+      });
+    } catch(e) {
+      console.warn('penalties: permission denied — بيانات الجزاءات مش متاحة:', e.message);
+    }
+
+    // ── جلب المكافآت ──
+    let rewMap = {};
+    try {
+      const rewSnap = await db.collection('rewards')
+        .where('schoolId','==',currentSchoolId).get();
+      rewSnap.docs.forEach(d => {
+        const r = d.data();
+        if (!inMonth(r.date)) return;
+        rewMap[r.empId] = (rewMap[r.empId]||0) + (r.amount||0);
+      });
+    } catch(e) {
+      console.warn('rewards: permission denied — بيانات المكافآت مش متاحة:', e.message);
+    }
+
+    // ── حساب الكشف ──
+    payrollData = activeEmps.map(emp => {
+      const salary   = emp.salary || 0;
+      const att      = attMap[emp.id] || { present:0, absent:0, excused:0 };
+      const pen      = penMap[emp.id] || { deductionDays:0, penaltyCount:0, warningCount:0, lateCount:0 };
+      const reward   = rewMap[emp.id] || 0;
+      const advance  = emp.advance || 0;
+      const insurance= emp.insuranceAmount || 0;
+
+      const dayRate        = salary / 30;
+      const actualPresent  = att.present;
+      const adjustedPresent= att.present + att.excused;
+      const absent         = att.absent;
+      const penaltyDays    = pen.penaltyCount;
+      const lateDays       = pen.lateCount;
+      const penaltyDeduct  = (penaltyDays + pen.deductionDays + lateDays) * dayRate;
+      const netPresent     = adjustedPresent - pen.deductionDays - penaltyDays - lateDays;
+      const netAbsent30    = 30 - adjustedPresent;
+      const totalDeduct    = (absent * dayRate) + penaltyDeduct + advance + insurance;
+      const netSalary      = salary + reward - totalDeduct;
+      const netRounded     = Math.ceil(netSalary / 5) * 5;
+
+      return {
+        emp, salary,
+        insuranceStatus: emp.insuranceStatus || 'مؤمن عليه',
+        insurance, advance,
+        actualPresent, adjustedPresent, absent,
+        penaltyDays, lateDays, penaltyDeduct,
+        netPresent, netAbsent30, dayRate,
+        totalDeduct, reward, netSalary, netRounded, workDays
+      };
+    });
+
+    renderPayrollTable();
+
+  } catch(e) {
+    console.error(e);
+    document.getElementById('payrollContent').innerHTML =
+      `<div class="empty-state"><div class="empty-state-title">خطأ في تحميل البيانات: ${e.message}</div></div>`;
+  }
+}
+
+function renderPayrollTable() {
+  const deptF = document.getElementById('payrollFilterDept')?.value || '';
+  let rows = payrollData;
+  if (deptF) rows = rows.filter(r => resolveDept(r.emp) === deptF);
+
+  if (!rows.length) {
+    document.getElementById('payrollContent').innerHTML =
+      '<div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا يوجد بيانات للعرض</div></div>';
+    updatePayrollStats([]);
+    return;
+  }
+
+  updatePayrollStats(rows);
+
+  const fmt = n => Number(n||0).toLocaleString('en-US', {maximumFractionDigits:2});
+  const round2 = n => Math.round((n||0) * 100) / 100;
+  const sumOf  = (arr, key) => round2(arr.reduce((s,r) => s + round2(r[key]), 0));
+
+  const thead = `<thead><tr>
+    <th>#</th><th>الاسم</th><th>الوظيفة</th><th>التأمين</th>
+    <th>الراتب</th><th>مبلغ التأمين</th><th>حضور</th><th>حضور معدل</th>
+    <th>غياب</th><th>جزاءات</th><th>تأخير</th><th>صافي الحضور</th><th>غياب/30</th>
+    <th>سلف</th><th>تأمينات</th><th>اليوم</th>
+    <th class="col-deduct">إجمالي الخصم</th>
+    <th class="col-reward">مكافأة</th>
+    <th class="col-net">صافي الراتب</th>
+    <th class="col-net5">لأقرب 5</th>
+  </tr></thead>`;
+
+  const tbody = '<tbody>' + rows.map((r,i) => `<tr>
+    <td>${i+1}</td>
+    <td>${r.emp.nameAr}</td>
+    <td style="color:var(--text-mid)">${r.emp.jobTitle||'-'}</td>
+    <td><span class="tag ${r.insuranceStatus==='مؤمن عليه'?'tag-green':'tag-orange'}">${r.insuranceStatus}</span></td>
+    <td style="font-weight:700">${fmt(r.salary)}</td>
+    <td>${fmt(r.insurance)}</td>
+    <td>${r.actualPresent}</td>
+    <td>${r.adjustedPresent}</td>
+    <td style="color:${r.absent>0?'#e53935':'inherit'};font-weight:${r.absent>0?700:400}">${r.absent}</td>
+    <td style="color:${r.penaltyDays>0?'#e53935':'inherit'};font-weight:${r.penaltyDays>0?700:400}">${r.penaltyDays}</td>
+    <td style="color:${r.lateDays>0?'#e65100':'inherit'}">${r.lateDays}</td>
+    <td style="color:var(--success);font-weight:700">${r.netPresent.toFixed(1)}</td>
+    <td>${r.netAbsent30}</td>
+    <td style="color:${r.advance>0?'#c62828':'inherit'}">${fmt(r.advance)}</td>
+    <td>${fmt(r.insurance)}</td>
+    <td style="color:var(--text-mid)">${fmt(r.dayRate)}</td>
+    <td class="col-deduct">${fmt(r.totalDeduct)}</td>
+    <td class="col-reward">${fmt(r.reward)}</td>
+    <td class="col-net">${fmt(r.netSalary)}</td>
+    <td class="col-net5">${fmt(r.netRounded)}</td>
+  </tr>`).join('') + '</tbody>';
+
+  const tfoot = `<tfoot><tr>
+    <td colspan="4">الإجمالي</td>
+    <td>${fmt(sumOf(rows,'salary'))}</td>
+    <td>${fmt(sumOf(rows,'insurance'))}</td>
+    <td>${rows.reduce((s,r)=>s+r.actualPresent,0)}</td>
+    <td>${rows.reduce((s,r)=>s+r.adjustedPresent,0)}</td>
+    <td>${rows.reduce((s,r)=>s+r.absent,0)}</td>
+    <td>${rows.reduce((s,r)=>s+r.penaltyDays,0)}</td>
+    <td>${rows.reduce((s,r)=>s+r.lateDays,0)}</td>
+    <td>—</td><td>—</td>
+    <td>${fmt(sumOf(rows,'advance'))}</td>
+    <td>${fmt(sumOf(rows,'insurance'))}</td>
+    <td>—</td>
+    <td>${fmt(sumOf(rows,'totalDeduct'))}</td>
+    <td>${fmt(sumOf(rows,'reward'))}</td>
+    <td>${fmt(sumOf(rows,'netSalary'))}</td>
+    <td>${fmt(sumOf(rows,'netRounded'))}</td>
+  </tr></tfoot>`;
+
+  document.getElementById('payrollContent').innerHTML =
+    `<div class="payroll-scroll"><table class="payroll-table">${thead}${tbody}${tfoot}</table></div>`;
+}
+
+function updatePayrollStats(rows) {
+  const fmt = n => Number(n||0).toLocaleString('en-US', {maximumFractionDigits:0});
+  const r2 = n => Math.round((n||0) * 100) / 100;
+  const sum = (key) => r2(rows.reduce((s,r) => s + r2(r[key]), 0));
+  document.getElementById('prStatCount').textContent = rows.length;
+  document.getElementById('prStatTotal').textContent = fmt(sum('salary'));
+  document.getElementById('prStatDeduct').textContent = fmt(sum('totalDeduct'));
+  document.getElementById('prStatNet').textContent = fmt(sum('netRounded'));
+}
+
+function exportPayrollExcel() {
+  try {
+    const monthVal = document.getElementById('payrollMonth')?.value || '';
+    const deptF = document.getElementById('payrollFilterDept')?.value || '';
+    let rows = payrollData;
+    if (deptF) rows = rows.filter(r => resolveDept(r.emp) === deptF);
+    if (!rows.length) { alert('لا يوجد بيانات للتصدير — اضغط تحميل أولاً'); return; }
+
+    // اسم الشهر
+    let monthName = monthVal;
+    if (monthVal && monthVal.includes('-')) {
+      const [yr, mn] = monthVal.split('-');
+      monthName = new Date(parseInt(yr), parseInt(mn)-1, 1)
+        .toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+    }
+
+    const school = SESSION.getSchool();
+    const schoolName = school?.name || 'المدرسة';
+    const pc = (school?.primaryColor || '#1e2d5a').replace('#','');
+
+    const r2x = n => Math.round((n||0) * 100) / 100;
+    const sumX = key => r2x(rows.reduce((s,r) => s + r2x(r[key]), 0));
+
+    // ─── الصفوف (معكوسة عشان RTL — العمود الأول يظهر على اليمين) ───
+    const titleRow = [`كشف رواتب ${monthName} — ${schoolName}`];
+    const headerRow = [
+      'لأقرب 5','صافي الراتب','مكافأة','إجمالي الخصم',
+      'قيمة اليوم','تأمينات','سلف',
+      'غياب/30','صافي الحضور',
+      'تأخير','جزاءات','غياب','حضور معدل','حضور',
+      'مبلغ التأمين','الراتب',
+      'التأمين','الوظيفة','الاسم','#'
+    ];
+
+    const dataRows = rows.map((r, i) => [
+      r2x(r.netRounded),
+      r2x(r.netSalary),
+      r2x(r.reward),
+      r2x(r.totalDeduct),
+      r2x(r.dayRate),
+      r2x(r.insurance),
+      r2x(r.advance),
+      r.netAbsent30,
+      r2x(r.netPresent),
+      r.lateDays,
+      r.penaltyDays,
+      r.absent,
+      r.adjustedPresent,
+      r.actualPresent,
+      r2x(r.insurance),
+      r2x(r.salary),
+      r.insuranceStatus,
+      r.emp.jobTitle || '',
+      r.emp.nameAr,
+      i + 1
+    ]);
+
+    const totRow = [
+      sumX('netRounded'),
+      sumX('netSalary'),
+      sumX('reward'),
+      sumX('totalDeduct'),
+      '—',
+      sumX('insurance'),
+      sumX('advance'),
+      '—','—',
+      rows.reduce((s,r)=>s+r.lateDays,0),
+      rows.reduce((s,r)=>s+r.penaltyDays,0),
+      rows.reduce((s,r)=>s+r.absent,0),
+      rows.reduce((s,r)=>s+r.adjustedPresent,0),
+      rows.reduce((s,r)=>s+r.actualPresent,0),
+      sumX('insurance'),
+      sumX('salary'),
+      '','','','الإجمالي'
+    ];
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([titleRow, headerRow, ...dataRows, totRow]);
+
+    // أعرض الأعمدة
+    ws['!cols'] = [
+      {wch:10},{wch:13},{wch:9},{wch:13},
+      {wch:11},{wch:9},{wch:9},
+      {wch:9},{wch:11},
+      {wch:7},{wch:7},{wch:7},{wch:11},{wch:9},
+      {wch:13},{wch:12},
+      {wch:13},{wch:18},{wch:28},{wch:4}
+    ];
+
+    // دمج العنوان
+    ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:headerRow.length-1} }];
+
+    // RTL — يتضبط بعد الـ append
+
+    // ارتفاع الصفوف
+    ws['!rows'] = [
+      {hpt:30}, {hpt:30},
+      ...dataRows.map(()=>({hpt:22})),
+      {hpt:26}
+    ];
+
+    // ── تنسيق العنوان ──
+    const A1 = ws['A1'];
+    if (A1) A1.s = {
+      font: {bold:true, sz:13, color:{rgb:'FFFFFF'}},
+      fill: {patternType:'solid', fgColor:{rgb:pc}},
+      alignment: {horizontal:'center', vertical:'center', readingOrder:2}
+    };
+
+    // ── تنسيق الرأس ──
+    headerRow.forEach((_,ci) => {
+      const addr = XLSX.utils.encode_cell({r:1, c:ci});
+      if (!ws[addr]) ws[addr] = {v:headerRow[ci], t:'s'};
+      ws[addr].s = {
+        font: {bold:true, sz:10, color:{rgb:'FFFFFF'}},
+        fill: {patternType:'solid', fgColor:{rgb:pc}},
+        alignment: {horizontal:'center', vertical:'center', wrapText:true, readingOrder:2},
+        border: {
+          top:{style:'thin',color:{rgb:'CCCCCC'}},
+          bottom:{style:'thin',color:{rgb:'CCCCCC'}},
+          left:{style:'thin',color:{rgb:'CCCCCC'}},
+          right:{style:'thin',color:{rgb:'CCCCCC'}}
+        }
+      };
+    });
+
+    // ── تنسيق البيانات ──
+    dataRows.forEach((row, ri) => {
+      row.forEach((_, ci) => {
+        const addr = XLSX.utils.encode_cell({r:ri+2, c:ci});
+        if (!ws[addr]) ws[addr] = {v:'', t:'s'};
+        const even = ri%2===0;
+        let bg = even ? 'F7F7F7' : 'FFFFFF';
+        let fc = '222222';
+        if (ci===3) { bg='FFF5F5'; fc='C62828'; }
+        if (ci===2) { bg='E3F2FD'; fc='1565C0'; }
+        if (ci===1) { bg='E8F5E9'; fc='2E7D32'; }
+        if (ci===0) { bg='2E7D32'; fc='FFFFFF'; }
+        // عمود الاسم (ci=18) والوظيفة (ci=17) والتأمين (ci=16) محاذاة يمين
+        const isTextCol = (ci===18||ci===17||ci===16);
+        ws[addr].s = {
+          font: {sz:9, bold:ci===0, color:{rgb:fc}},
+          fill: {patternType:'solid', fgColor:{rgb:bg}},
+          alignment: {horizontal: isTextCol ? 'right' : 'center', vertical:'center', readingOrder:2},
+          border: {
+            bottom:{style:'thin',color:{rgb:'DDDDDD'}},
+            left:  {style:'thin',color:{rgb:'DDDDDD'}},
+            right: {style:'thin',color:{rgb:'DDDDDD'}}
+          }
+        };
+      });
+    });
+
+    // ── تنسيق الإجماليات ──
+    const totIdx = dataRows.length + 2;
+    totRow.forEach((_,ci) => {
+      const addr = XLSX.utils.encode_cell({r:totIdx, c:ci});
+      if (!ws[addr]) ws[addr] = {v:'', t:'s'};
+      ws[addr].s = {
+        font: {bold:true, sz:10, color:{rgb:'FFFFFF'}},
+        fill: {patternType:'solid', fgColor:{rgb:pc}},
+        alignment: {horizontal:'center', vertical:'center', readingOrder:2}
+      };
+    });
+
+    XLSX.utils.book_append_sheet(wb, ws, 'كشف الرواتب');
+
+    // RTL — كل الطرق الممكنة عشان نضمن الاتجاه
+    ws['!sheetViews'] = [{ rightToLeft: true }];
+    wb.Sheets['كشف الرواتب']['!sheetViews'] = [{ rightToLeft: true }];
+    if (!wb.Workbook) wb.Workbook = {};
+    if (!wb.Workbook.Sheets) wb.Workbook.Sheets = [];
+    if (!wb.Workbook.Sheets[0]) wb.Workbook.Sheets[0] = {};
+    wb.Workbook.Sheets[0].RTL = true;
+
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `كشف_رواتب_${monthVal || 'export'}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+
+  } catch(err) {
+    console.error('Export error:', err);
+    alert('خطأ في التصدير: ' + err.message);
+  }
+}
+
+</script>
+</body>
+</html> 

@@ -1,0 +1,1677 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#1a3a6b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="المحاسبة" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<title>شئون الطلاب</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── تابات ── */
+    .shu2on-tabs {
+      display: flex; gap: 0.4rem; margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--border); padding-bottom: 0;
+    }
+    .shu2on-tab {
+      padding: 0.55rem 1.25rem; font-family: 'Cairo', sans-serif;
+      font-size: 0.85rem; font-weight: 700; cursor: pointer;
+      border: none; background: none; color: var(--text-light);
+      border-bottom: 3px solid transparent; margin-bottom: -2px;
+      transition: var(--transition); border-radius: 8px 8px 0 0;
+    }
+    .shu2on-tab:hover { color: var(--primary); background: var(--accent); }
+    .shu2on-tab.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--accent); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; animation: fadeInUp 0.3s ease; }
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+    /* ── بطاقة الطالب ── */
+    .student-pending-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem 1.25rem;
+      display: flex; align-items: center; gap: 1rem;
+      transition: var(--transition); margin-bottom: 0.75rem;
+    }
+    .student-pending-card:hover { border-color: var(--primary); box-shadow: var(--shadow); }
+    .student-avatar {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: var(--accent); display: flex; align-items: center;
+      justify-content: center; font-size: 1.2rem; font-weight: 800;
+      color: var(--primary); flex-shrink: 0;
+    }
+    .student-info { flex: 1; min-width: 0; }
+    .student-name { font-size: 0.95rem; font-weight: 800; color: var(--text-dark); }
+    .student-meta { font-size: 0.78rem; color: var(--text-light); margin-top: 0.15rem; }
+    .student-badges { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.35rem; }
+
+    .grade-badge {
+      display: inline-flex; padding: 0.18rem 0.65rem; border-radius: 20px;
+      font-size: 0.72rem; font-weight: 700;
+      background: var(--accent); color: var(--primary);
+      border: 1px solid var(--primary-light);
+    }
+    .gender-badge-m { background: #e3f2fd; color: #1565c0; border-color: #90caf9 !important; }
+    .gender-badge-f { background: #fce4ec; color: #c62828; border-color: #f48fb1 !important; }
+
+    /* ── فورم ── */
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+    @media (max-width: 768px) { .form-grid-2 { grid-template-columns: 1fr; } }
+
+    /* ── إحصائيات ── */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+    @media (max-width: 768px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+    .stat-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem; text-align: center;
+    }
+    .stat-num { font-size: 1.8rem; font-weight: 900; color: var(--primary); }
+    .stat-label { font-size: 0.75rem; color: var(--text-light); font-weight: 600; margin-top: 0.2rem; }
+
+    /* ── فلتر ── */
+    .filter-row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+
+    /* ── زر التحويل ── */
+    .btn-transfer {
+      padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.78rem;
+      font-weight: 700; cursor: pointer; font-family: 'Cairo', sans-serif;
+      background: var(--primary); color: #fff; border: none;
+      transition: var(--transition); white-space: nowrap;
+    }
+    .btn-transfer:hover { opacity: 0.85; }
+
+    /* ── عمر ── */
+    .age-display { font-size: 0.78rem; color: var(--text-light); margin-top: 0.3rem; font-weight: 600; }
+
+    /* ── section title ── */
+    .section-title {
+      font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--primary);
+      border-bottom: 2px solid var(--primary-light);
+      padding-bottom: 0.4rem; margin-bottom: 0.85rem;
+    }
+
+    /* ── empty ── */
+    .empty-msg { text-align: center; padding: 3rem 1rem; color: var(--text-light); font-size: 0.9rem; }
+    .empty-msg .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+    /* ── preview table ── */
+    #previewTable tr:hover td { background: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div id="topbarContainer"></div>
+    <div class="page-content">
+
+      <!-- التابات -->
+      <div class="shu2on-tabs">
+        <button class="shu2on-tab active" id="tabRegisterBtn" onclick="switchTab('register')">تسجيل طالب جديد</button>
+        <button class="shu2on-tab" onclick="switchTab('pending')">
+          الطلاب المنتظرون
+          <span id="pendingBadge" style="background:var(--primary);color:#fff;border-radius:20px;padding:1px 8px;font-size:0.7rem;margin-right:4px">0</span>
+        </button>
+        <button class="shu2on-tab" id="tabImportBtn" onclick="switchTab('import')">📥 استيراد من Excel</button>
+        <button class="shu2on-tab" id="tabActiveBtn" onclick="switchTab('active')">
+          الطلاب المسجلون
+          <span id="activeBadge" style="background:#2e7d32;color:#fff;border-radius:20px;padding:1px 8px;font-size:0.7rem;margin-right:4px">0</span>
+        </button>
+      </div>
+
+      <!-- ══ TAB 1: تسجيل طالب جديد ══ -->
+      <div class="tab-pane active" id="tab-register">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">تسجيل طالب جديد</h2>
+            <span class="badge badge-primary">شئون الطلاب</span>
+          </div>
+          <div class="card-body">
+            <div class="alert hidden" id="regAlert"></div>
+            <div class="alert alert-success hidden" id="regSuccess"></div>
+
+            <!-- ══ بيانات الطالب ══ -->
+            <div class="section-title">بيانات الطالب</div>
+            <div class="form-grid-2" style="margin-bottom:0.85rem">
+              <div class="form-group">
+                <label class="form-label">اسم الطالب (عربي) <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="studentName" placeholder="الاسم رباعياً بالعربي" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">اسم الطالب (إنجليزي) <span class="required">*</span></label>
+                <input type="text" class="form-input" id="studentNameEn" placeholder="Full Name in English"
+                  style="direction:ltr;text-align:left" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">الرقم القومي للطالب <span class="required">*</span></label>
+                <input type="text" class="form-input" id="studentNid" placeholder="14 رقم"
+                  style="direction:ltr;text-align:left" maxlength="14" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">النوع <span class="required">*</span></label>
+                <select class="form-input" id="gender">
+                  <option value="">-- اختر --</option>
+                  <option value="ذكر">ذكر</option>
+                  <option value="أنثى">أنثى</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">الجنسية <span class="required">*</span></label>
+                <select class="form-input" id="nationality">
+                  <option value="">-- اختر --</option>
+                  <option value="مصرية">مصرية</option>
+                  <option value="سعودية">سعودية</option>
+                  <option value="إماراتية">إماراتية</option>
+                  <option value="كويتية">كويتية</option>
+                  <option value="أردنية">أردنية</option>
+                  <option value="سورية">سورية</option>
+                  <option value="لبنانية">لبنانية</option>
+                  <option value="فلسطينية">فلسطينية</option>
+                  <option value="يمنية">يمنية</option>
+                  <option value="سودانية">سودانية</option>
+                  <option value="ليبية">ليبية</option>
+                  <option value="تونسية">تونسية</option>
+                  <option value="جزائرية">جزائرية</option>
+                  <option value="مغربية">مغربية</option>
+                  <option value="عراقية">عراقية</option>
+                  <option value="أخرى">أخرى</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">الديانة <span class="required">*</span></label>
+                <select class="form-input" id="religion">
+                  <option value="">-- اختر --</option>
+                  <option value="مسلم">مسلم</option>
+                  <option value="مسيحي">مسيحي</option>
+                  <option value="أخرى">أخرى</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">تاريخ الميلاد <span class="required">*</span></label>
+                <input type="date" class="form-input" id="birthDate" onchange="calcAge()" />
+                <div class="age-display" id="ageDisplay"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">الصف <span class="required">*</span></label>
+                <select class="form-input" id="grade" onchange="populateClassroomOptions()">
+                  <option value="">-- اختر الصف --</option>
+                  <optgroup label="ما قبل المدرسة">
+                    <option value="Pre-KG">Pre-KG</option>
+                    <option value="KG1">KG 1</option>
+                    <option value="KG2">KG 2</option>
+                  </optgroup>
+                  <optgroup label="الابتدائية">
+                    <option value="Grade 1">Grade 1</option>
+                    <option value="Grade 2">Grade 2</option>
+                    <option value="Grade 3">Grade 3</option>
+                    <option value="Grade 4">Grade 4</option>
+                    <option value="Grade 5">Grade 5</option>
+                    <option value="Grade 6">Grade 6</option>
+                  </optgroup>
+                  <optgroup label="الإعدادية">
+                    <option value="Prep 1">Prep 1</option>
+                    <option value="Prep 2">Prep 2</option>
+                    <option value="Prep 3">Prep 3</option>
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+
+            <!-- ══ اللغة الثانية والفصل ══ -->
+            <div class="section-title" style="margin-top:1.25rem">بيانات إضافية</div>
+            <div class="form-grid-2" style="margin-bottom:0.85rem">
+              <div class="form-group">
+                <label class="form-label">اللغة الثانية <span style="font-size:0.75rem;color:var(--text-light);font-weight:600">(اختياري)</span></label>
+                <select class="form-input" id="secondLang">
+                  <option value="">-- اختر --</option>
+                  <option value="فرنسي">فرنسي</option>
+                  <option value="ألماني">ألماني</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">الفصل <span style="font-size:0.75rem;color:var(--text-light);font-weight:600" id="classroomHint">(اختياري)</span></label>
+                <input type="text" class="form-input" id="classroom" placeholder="مثال: 3B ، أو الفصل الثالث" />
+              </div>
+            </div>
+
+            <!-- ══ بيانات الأب ══ -->
+            <div class="section-title" style="margin-top:1.25rem">بيانات الأب</div>
+            <div class="form-grid-2" style="margin-bottom:0.85rem">
+              <div class="form-group">
+                <label class="form-label">اسم الأب (عربي) <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="fatherName" placeholder="الاسم كاملاً بالعربي" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">اسم الأب (إنجليزي) <span class="required">*</span></label>
+                <input type="text" class="form-input" id="fatherNameEn" placeholder="Full Name in English"
+                  style="direction:ltr;text-align:left" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">الرقم القومي للأب <span class="required">*</span></label>
+                <input type="text" class="form-input" id="fatherNid" placeholder="14 رقم"
+                  style="direction:ltr;text-align:left" maxlength="14" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">تليفون الأب <span class="required">*</span></label>
+                <input type="tel" class="form-input" id="fatherPhone" placeholder="01XXXXXXXXX"
+                  style="direction:ltr;text-align:left" maxlength="11" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">وظيفة الأب <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="fatherJob" placeholder="مثال: مهندس، طبيب، موظف حكومي..." />
+              </div>
+              <div class="form-group">
+                <label class="form-label">العنوان <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="address" placeholder="العنوان بالتفصيل" />
+              </div>
+            </div>
+
+            <!-- ══ بيانات الأم ══ -->
+            <div class="section-title" style="margin-top:1.25rem">بيانات الأم</div>
+            <div class="form-grid-2" style="margin-bottom:0.85rem">
+              <div class="form-group">
+                <label class="form-label">اسم الأم (عربي) <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="motherName" placeholder="الاسم كاملاً بالعربي" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">اسم الأم (إنجليزي) <span class="required">*</span></label>
+                <input type="text" class="form-input" id="motherNameEn" placeholder="Full Name in English"
+                  style="direction:ltr;text-align:left" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">الرقم القومي للأم <span class="required">*</span></label>
+                <input type="text" class="form-input" id="motherNid" placeholder="14 رقم"
+                  style="direction:ltr;text-align:left" maxlength="14" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">تليفون الأم</label>
+                <input type="tel" class="form-input" id="motherPhone" placeholder="01XXXXXXXXX"
+                  style="direction:ltr;text-align:left" maxlength="11" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">وظيفة الأم <span class="required">*</span></label>
+                <input type="text" class="form-input form-input-ar" id="motherJob" placeholder="مثال: ربة منزل، معلمة، طبيبة..." />
+              </div>
+            </div>
+
+            <!-- أزرار -->
+            <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1rem">
+              <button class="btn btn-secondary" onclick="resetForm()">مسح</button>
+              <button class="btn btn-primary" onclick="saveStudent()" id="saveBtn" style="width:auto;padding:0.75rem 2rem">
+                <span id="saveBtnText">حفظ البيانات</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ TAB 2: الطلاب المنتظرون ══ -->
+      <div class="tab-pane" id="tab-pending">
+
+        <!-- إحصائيات -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-num" id="statTotal">0</div>
+            <div class="stat-label">إجمالي المنتظرين</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statMale" style="color:#1565c0">0</div>
+            <div class="stat-label">ذكور</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statFemale" style="color:#c62828">0</div>
+            <div class="stat-label">إناث</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statGrades" style="color:var(--success)">0</div>
+            <div class="stat-label">صفوف مختلفة</div>
+          </div>
+          <div class="stat-card" id="statClassroomCard" style="display:none">
+            <div class="stat-num" id="statClassroom" style="color:#e65100">0</div>
+            <div class="stat-label" id="statClassroomLabel">الفصل</div>
+          </div>
+        </div>
+
+        <!-- فلتر -->
+        <div class="filter-row">
+          <input type="text" class="form-input" id="searchInput"
+            placeholder="ابحث بالاسم أو اسم الأب..."
+            oninput="filterStudents()" style="flex:1;max-width:300px" />
+          <select class="form-input" id="filterGrade" onchange="filterStudents()" style="max-width:160px">
+            <option value="">كل الصفوف</option>
+            <optgroup label="ما قبل المدرسة">
+              <option value="Pre-KG">Pre-KG</option>
+              <option value="KG1">KG 1</option>
+              <option value="KG2">KG 2</option>
+            </optgroup>
+            <optgroup label="الابتدائية">
+              <option value="Grade 1">Grade 1</option>
+              <option value="Grade 2">Grade 2</option>
+              <option value="Grade 3">Grade 3</option>
+              <option value="Grade 4">Grade 4</option>
+              <option value="Grade 5">Grade 5</option>
+              <option value="Grade 6">Grade 6</option>
+            </optgroup>
+            <optgroup label="الإعدادية">
+              <option value="Prep 1">Prep 1</option>
+              <option value="Prep 2">Prep 2</option>
+              <option value="Prep 3">Prep 3</option>
+            </optgroup>
+          </select>
+          <select class="form-input" id="filterClassroom" onchange="filterStudents()" style="max-width:140px">
+            <option value="">كل الفصول</option>
+          </select>
+          <select class="form-input" id="filterGender" onchange="filterStudents()" style="max-width:130px">
+            <option value="">كل النوع</option>
+            <option value="ذكر">ذكور</option>
+            <option value="أنثى">إناث</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="loadPendingStudents()" style="width:auto;padding:0.45rem 1rem">
+            ↻ تحديث
+          </button>
+        </div>
+
+        <!-- قائمة الطلاب -->
+        <div id="pendingList">
+          <div class="empty-msg">
+            <div class="empty-icon">👨‍🎓</div>
+            جاري التحميل...
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ TAB 4: الطلاب المسجلون (active) ══ -->
+      <div class="tab-pane" id="tab-active">
+
+        <!-- إحصائيات -->
+        <div class="stats-row" style="margin-bottom:1rem">
+          <div class="stat-card">
+            <div class="stat-num" id="statActiveTotal">0</div>
+            <div class="stat-label">إجمالي المسجلين</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statActiveMale">0</div>
+            <div class="stat-label">ذكور</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statActiveFemale">0</div>
+            <div class="stat-label">إناث</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statActiveGrades">0</div>
+            <div class="stat-label">صفوف مختلفة</div>
+          </div>
+        </div>
+
+        <!-- فلاتر -->
+        <div class="filter-row" style="margin-bottom:1rem">
+          <input type="text" class="form-input" id="searchActiveInput" placeholder="🔍 بحث بالاسم أو الأب أو التليفون..."
+            oninput="filterActiveStudents()" style="max-width:280px" />
+          <select class="form-input" id="filterActiveGrade" onchange="filterActiveStudents()" style="max-width:160px">
+            <option value="">كل الصفوف</option>
+            <optgroup label="ما قبل المدرسة">
+              <option value="Pre-KG">Pre-KG</option>
+              <option value="KG1">KG 1</option>
+              <option value="KG2">KG 2</option>
+            </optgroup>
+            <optgroup label="الابتدائية">
+              <option value="Grade 1">Grade 1</option>
+              <option value="Grade 2">Grade 2</option>
+              <option value="Grade 3">Grade 3</option>
+              <option value="Grade 4">Grade 4</option>
+              <option value="Grade 5">Grade 5</option>
+              <option value="Grade 6">Grade 6</option>
+            </optgroup>
+            <optgroup label="الإعدادية">
+              <option value="Prep 1">Prep 1</option>
+              <option value="Prep 2">Prep 2</option>
+              <option value="Prep 3">Prep 3</option>
+            </optgroup>
+          </select>
+          <select class="form-input" id="filterActiveGender" onchange="filterActiveStudents()" style="max-width:130px">
+            <option value="">كل النوع</option>
+            <option value="ذكر">ذكور</option>
+            <option value="أنثى">إناث</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="loadActiveStudents()" style="width:auto;padding:0.45rem 1rem">↻ تحديث</button>
+        </div>
+
+        <!-- قائمة الطلاب المسجلين -->
+        <div id="activeList">
+          <div class="empty-msg">
+            <div class="empty-icon">🎓</div>
+            جاري التحميل...
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ TAB 3: استيراد من Excel ══ -->
+      <div class="tab-pane" id="tab-import">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">استيراد الطلاب من Excel</h2>
+            <span class="badge badge-primary">شئون الطلاب</span>
+          </div>
+          <div class="card-body">
+
+            <!-- منطقة رفع الملف -->
+            <div id="importDropZone" style="
+              border: 2px dashed var(--primary-light); border-radius: var(--radius);
+              padding: 2.5rem; text-align: center; cursor: pointer;
+              background: var(--accent); transition: var(--transition); margin-bottom: 1.25rem;
+            " onclick="document.getElementById('xlsxFileInput').click()"
+               ondragover="event.preventDefault();this.style.borderColor='var(--primary)'"
+               ondragleave="this.style.borderColor='var(--primary-light)'"
+               ondrop="handleFileDrop(event)">
+              <div style="font-size:2.5rem;margin-bottom:0.5rem">📊</div>
+              <div style="font-weight:800;color:var(--primary);font-size:1rem;margin-bottom:0.25rem">
+                اسحب ملف Excel هنا أو اضغط للاختيار
+              </div>
+              <div style="font-size:0.78rem;color:var(--text-light)">يدعم ملفات .xlsx فقط</div>
+              <input type="file" id="xlsxFileInput" accept=".xlsx" style="display:none" onchange="handleFileSelect(this)" />
+            </div>
+
+            <!-- معلومات الملف بعد الرفع -->
+            <div id="importFileInfo" style="display:none;margin-bottom:1rem">
+              <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:0.85rem 1rem;display:flex;align-items:center;gap:0.75rem">
+                <span style="font-size:1.4rem">✅</span>
+                <div>
+                  <div style="font-weight:800;color:#2e7d32" id="importFileName"></div>
+                  <div style="font-size:0.78rem;color:#388e3c" id="importFileStats"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- معاينة -->
+            <div id="importPreview" style="display:none;margin-bottom:1.25rem">
+              <div class="section-title">معاينة البيانات</div>
+              <div style="overflow-x:auto">
+                <table style="width:100%;border-collapse:collapse;font-size:0.78rem" id="previewTable">
+                  <thead id="previewHead"></thead>
+                  <tbody id="previewBody"></tbody>
+                </table>
+              </div>
+              <div style="font-size:0.75rem;color:var(--text-light);margin-top:0.5rem" id="previewNote"></div>
+            </div>
+
+            <!-- أزرار -->
+            <div id="importActions" style="display:none;display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1rem">
+              <button class="btn btn-secondary" onclick="resetImport()">إلغاء</button>
+              <button class="btn btn-primary" id="importBtn" onclick="startImport()" style="width:auto;padding:0.75rem 2rem">
+                <span id="importBtnText">🚀 استيراد الطلاب</span>
+              </button>
+            </div>
+
+            <!-- شريط التقدم -->
+            <div id="importProgress" style="display:none;margin-top:1.25rem">
+              <div style="display:flex;justify-content:space-between;font-size:0.78rem;font-weight:700;margin-bottom:0.4rem">
+                <span id="progressLabel">جاري الاستيراد...</span>
+                <span id="progressPct">0%</span>
+              </div>
+              <div style="background:var(--border);border-radius:20px;height:10px;overflow:hidden">
+                <div id="progressBar" style="height:100%;background:var(--primary);border-radius:20px;transition:width 0.3s;width:0%"></div>
+              </div>
+              <div style="font-size:0.75rem;color:var(--text-light);margin-top:0.4rem" id="progressDetail"></div>
+            </div>
+
+            <!-- نتيجة الاستيراد -->
+            <div id="importResult" style="display:none;margin-top:1.25rem"></div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- SheetJS for Excel parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="layout.js"></script>
+
+<script>
+  // ══════════════════════════════════════════════
+  // INIT — حماية الصفحة + sidebar حسب الدور
+  // ══════════════════════════════════════════════
+  (function () {
+    const session = guardShu2onPage();
+    if (!session) return;
+    // renderLayout تبني السايد بار تلقائي حسب الدور:
+    // محاسب/أدمن → كل الصفحات | shu2on → شئون الطلاب بس
+    renderLayout('student-affairs', 'شئون الطلاب');
+  })();
+
+  // ══════════════════════════════════════════════
+  // متغيرات عامة
+  // ══════════════════════════════════════════════
+  const session  = SESSION.get();
+  const schoolId = session?.schoolId;
+  let allStudents = [];
+
+  // ══════════════════════════════════════════════
+  // ربط "شئون الطلاب" بمنصة Bristol LMS
+  // ══════════════════════════════════════════════
+  // بعد تسجيل أي طالب هنا (لمدرسة Bristol فقط)، بنعمل حساب طالب + حساب ولي
+  // أمر على المنصة أوتوماتيك، وبعدين بنفتح واتساب على رقم الأب المسجل
+  // ومعانا رسالة جاهزة فيها بيانات الحسابين. لو حصل أي خطأ في الربط، تسجيل
+  // الطالب هنا (في الفايرستور) بيفضل ناجح — بس هيظهر تنبيه واضح إن الحساب
+  // على المنصة محتاج يتضاف يدوي.
+  const LMS_INTEGRATION = {
+    // غيّر ده لرابط سيرفر المنصة الحقيقي بعد رفعها (مثال: https://api.bristol-lms.com/api)
+    apiBase: 'http://localhost:4000/api',
+    // لازم يطابق STUDENT_AFFAIRS_API_KEY في ملف .env بتاع سيرفر المنصة
+    apiKey: '',
+    // هذا الربط خاص بمدرسة Bristol فقط حالياً
+    enabledSchoolId: 'bristol',
+  };
+
+  function formatEgyptPhoneForWhatsapp(phone) {
+    const digits = String(phone || '').replace(/\D/g, '');
+    if (!digits) return '';
+    return digits.startsWith('0') ? '20' + digits.slice(1) : digits;
+  }
+
+  function buildLmsCredentialsMessage({ studentName, student, parent }) {
+    return [
+      `أهلاً بيكم في Bristol Language School 🎓`,
+      ``,
+      `تم إنشاء حساب الطالب/ة "${studentName}" على منصة التعليم الإلكتروني.`,
+      ``,
+      `👤 حساب الطالب:`,
+      `اسم المستخدم: ${student.username}`,
+      `كلمة المرور: ${student.password}`,
+      `كود الطالب: ${student.studentCode}`,
+      ``,
+      `👨‍👩‍👧 حساب ولي الأمر:`,
+      `اسم المستخدم: ${parent.username}`,
+      `كلمة المرور: ${parent.password}`,
+      ``,
+      `يمكنكم تسجيل الدخول من خلال بوابة المنصة. برجاء عدم مشاركة كلمة المرور مع أي شخص آخر.`,
+    ].join('\n');
+  }
+
+  /**
+   * ينشئ حساب على منصة Bristol LMS (نفس الحساب اللي بيتعمل بالظبط لو سجّلت
+   * الطالب يدوياً من صفحة "تسجيل سريع" في لوحة تحكم المنصة — نفس السيرفس
+   * ونفس صيغة الإيميل username@student.bristol.edu.eg)، وبعدين يفتح واتساب
+   * على رقم الأب برسالة جاهزة فيها بيانات الحسابين.
+   *
+   * بيرجع { ok, student, parent } لو نجح — عشان الداتا دي تتسجل وتتخزن مع
+   * سجل الطالب في شئون الطلاب (بند lmsAccount)، أو { ok:false, error } لو فشل
+   * الربط مع المنصة. تسجيل الطالب في شئون الطلاب لا يعتمد على النتيجة دي.
+   */
+  async function createLmsAccountAndNotify({ studentName, grade, classroom, fatherName, fatherPhone }) {
+    try {
+      const res = await fetch(`${LMS_INTEGRATION.apiBase}/integrations/student-affairs/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(LMS_INTEGRATION.apiKey ? { 'x-api-key': LMS_INTEGRATION.apiKey } : {}),
+        },
+        body: JSON.stringify({ studentName, grade, classroom, fatherName, fatherPhone }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'فشل إنشاء الحساب على المنصة');
+
+      const waPhone = formatEgyptPhoneForWhatsapp(fatherPhone);
+      const message = buildLmsCredentialsMessage({ studentName, student: data.student, parent: data.parent });
+      if (waPhone) {
+        window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
+      }
+      return { ok: true, student: data.student, parent: data.parent };
+    } catch (err) {
+      console.error('LMS integration error:', err);
+      alert(
+        `⚠️ تم تسجيل الطالب بنجاح هنا، لكن حصل خطأ في إنشاء حسابه على منصة Bristol LMS:\n${err.message}\n\nمن فضلك أنشئ الحساب يدوياً من لوحة تحكم المنصة.`
+      );
+      return { ok: false, error: err.message };
+    }
+  }
+
+  /**
+   * يعيد فتح واتساب لطالب عنده حساب منصة متسجل خلاص (بدون إنشاء حساب جديد) —
+   * مفيد لو ولي الأمر ضاع منه الماسدج أو الموظف قفل التاب بالغلط.
+   */
+  async function resendLmsWhatsapp(studentId) {
+    const student = allStudents.find(s => s.id === studentId) || allActiveStudents.find(s => s.id === studentId);
+    if (!student?.lmsAccount) return;
+    const waPhone = formatEgyptPhoneForWhatsapp(student.fatherPhone);
+    if (!waPhone) return alert('رقم تليفون الأب غير موجود أو غير صحيح');
+    const message = buildLmsCredentialsMessage({
+      studentName: student.studentName,
+      student: { username: student.lmsAccount.studentUsername, password: student.lmsAccount.studentPassword, studentCode: student.lmsAccount.studentCode },
+      parent: { username: student.lmsAccount.parentUsername, password: student.lmsAccount.parentPassword },
+    });
+    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
+  }
+
+  // ══════════════════════════════════════════════
+  // فصول Bristol من المنصة نفسها — عشان "الفصل" هنا يبقى دايماً
+  // من نفس القائمة اللي المنصة بتستخدمها، بدون نسخة تانية ممكن تتفرق بمرور الوقت
+  // ══════════════════════════════════════════════
+  let bristolClassLevels = null; // { id, label, sections:[{id,label}] }[] — يتحمّل مرة واحدة
+
+  async function loadBristolClassLevelsIfNeeded() {
+    if (schoolId !== LMS_INTEGRATION.enabledSchoolId) return;
+    try {
+      const res = await fetch(`${LMS_INTEGRATION.apiBase}/integrations/student-affairs/class-levels`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      bristolClassLevels = data.levels || [];
+      convertClassroomFieldToDropdown();
+    } catch (err) {
+      console.warn('تعذر تحميل قائمة فصول المنصة — سيبقى حقل الفصل نصياً:', err);
+    }
+  }
+
+  /** يطابق قيمة الصف هنا ("KG1", "Grade 3"...) مع صف المنصة المقابل. */
+  function findBristolLevel(gradeValue) {
+    if (!bristolClassLevels || !gradeValue) return null;
+    const norm = String(gradeValue).trim().toLowerCase().replace(/[\s-]+/g, '');
+    return bristolClassLevels.find(l => l.label.toLowerCase().replace(/[\s-]+/g, '') === norm) || null;
+  }
+
+  /** يحوّل حقل "الفصل" من نص حر إلى قائمة اختيار — مرة واحدة فقط. */
+  function convertClassroomFieldToDropdown() {
+    const old = document.getElementById('classroom');
+    if (!old || old.tagName === 'SELECT') return;
+    const select = document.createElement('select');
+    select.id = 'classroom';
+    select.className = old.className;
+    old.replaceWith(select);
+    const hint = document.getElementById('classroomHint');
+    if (hint) hint.textContent = '(نفس فصول المنصة)';
+    populateClassroomOptions();
+  }
+
+  /** يعيد بناء اختيارات "الفصل" حسب الصف المختار حالياً (Bristol فقط). */
+  function populateClassroomOptions() {
+    const select = document.getElementById('classroom');
+    if (!select || select.tagName !== 'SELECT') return;
+    const level = findBristolLevel(document.getElementById('grade').value);
+    if (!level) {
+      select.innerHTML = '<option value="">-- اختر الصف أولاً --</option>';
+      select.disabled = true;
+      return;
+    }
+    select.disabled = false;
+    select.innerHTML = '<option value="">-- اختر الفصل --</option>' +
+      level.sections.map(s => `<option value="${s.label}">${s.label}</option>`).join('');
+  }
+
+  // ══ إخفاء تاب التسجيل والاستيراد للمحاسب ══
+  const _isAccountant = Object.values(SCHOOLS).some(sc => sc.users.includes(session?.email));
+  if (_isAccountant && !SESSION.isAdmin()) {
+    const regBtn = document.getElementById('tabRegisterBtn');
+    if (regBtn) regBtn.style.display = 'none';
+    const importBtn = document.getElementById('tabImportBtn');
+    if (importBtn) importBtn.style.display = 'none';
+    const activeBtn = document.getElementById('tabActiveBtn');
+    if (activeBtn) activeBtn.style.display = 'none';
+    document.getElementById('tab-register').classList.remove('active');
+    document.getElementById('tab-pending').classList.add('active');
+    document.querySelectorAll('.shu2on-tab').forEach((t,i) => t.classList.toggle('active', i===1));
+    loadPendingStudents();
+  }
+
+  // ══════════════════════════════════════════════
+  // TABS
+  // ══════════════════════════════════════════════
+  function switchTab(name) {
+    document.querySelectorAll('.shu2on-tab').forEach((t, i) => {
+      t.classList.toggle('active', ['register','pending','import','active'][i] === name);
+    });
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    if (name === 'pending') loadPendingStudents();
+    if (name === 'active')  loadActiveStudents();
+  }
+
+  // ══════════════════════════════════════════════
+  // حساب السن
+  // ══════════════════════════════════════════════
+  // ── السن يُحسب دائماً من تاريخ الميلاد إلى 1 أكتوبر 2026 ──
+  const AGE_REF_DATE = new Date(2026, 9, 1);
+
+  function calcAge() {
+    const val = document.getElementById('birthDate').value;
+    const disp = document.getElementById('ageDisplay');
+    if (!val) { disp.textContent = ''; return; }
+    const birth = new Date(val);
+    let years  = AGE_REF_DATE.getFullYear() - birth.getFullYear();
+    let months = AGE_REF_DATE.getMonth()    - birth.getMonth();
+    if (months < 0) { years--; months += 12; }
+    disp.textContent = `العمر في 1 أكتوبر 2026: ${years} سنة ${months > 0 ? 'و ' + months + ' شهر' : ''}`;
+  }
+
+  function calcAgeFromDate(dateStr) {
+    if (!dateStr) return '—';
+    const birth = new Date(dateStr);
+    let years  = AGE_REF_DATE.getFullYear() - birth.getFullYear();
+    let months = AGE_REF_DATE.getMonth()    - birth.getMonth();
+    if (months < 0) { years--; months += 12; }
+    return `${years}س${months > 0 ? ' ' + months + 'ش' : ''}`;
+  }
+
+  // ══════════════════════════════════════════════
+  // validation رقم الهاتف
+  // ══════════════════════════════════════════════
+  function isValidPhone(phone) {
+    return /^01[0125]\d{8}$/.test(phone);
+  }
+
+  // ══════════════════════════════════════════════
+  // حفظ الطالب
+  // ══════════════════════════════════════════════
+  async function saveStudent() {
+    // ── بيانات الطالب ──
+    const studentName    = document.getElementById('studentName').value.trim();
+    const studentNameEn  = document.getElementById('studentNameEn').value.trim();
+    const studentNid     = document.getElementById('studentNid').value.trim();
+    const gender         = document.getElementById('gender').value;
+    const nationality    = document.getElementById('nationality').value;
+    const religion       = document.getElementById('religion').value;
+    const birthDate      = document.getElementById('birthDate').value;
+    const grade          = document.getElementById('grade').value;
+    // ── بيانات إضافية ──
+    const secondLang     = document.getElementById('secondLang').value;
+    const classroom      = document.getElementById('classroom').value.trim();
+    // ── بيانات الأب ──
+    const fatherName     = document.getElementById('fatherName').value.trim();
+    const fatherNameEn   = document.getElementById('fatherNameEn').value.trim();
+    const fatherNid      = document.getElementById('fatherNid').value.trim();
+    const fatherPhone    = document.getElementById('fatherPhone').value.trim();
+    const fatherJob      = document.getElementById('fatherJob').value.trim();
+    const address        = document.getElementById('address').value.trim();
+    // ── بيانات الأم ──
+    const motherName     = document.getElementById('motherName').value.trim();
+    const motherNameEn   = document.getElementById('motherNameEn').value.trim();
+    const motherNid      = document.getElementById('motherNid').value.trim();
+    const motherPhone    = document.getElementById('motherPhone').value.trim();
+    const motherJob      = document.getElementById('motherJob').value.trim();
+
+    const alertEl   = document.getElementById('regAlert');
+    const successEl = document.getElementById('regSuccess');
+
+    function showErr(msg) {
+      alertEl.textContent = msg;
+      alertEl.className = 'alert alert-error';
+      alertEl.classList.remove('hidden');
+      setTimeout(() => alertEl.classList.add('hidden'), 4000);
+    }
+
+    // ─── Validation ───
+    if (!studentName)              return showErr('من فضلك ادخل اسم الطالب بالعربي');
+    if (!studentNameEn)            return showErr('من فضلك ادخل اسم الطالب بالإنجليزي');
+    if (!studentNid || studentNid.length !== 14) return showErr('الرقم القومي للطالب يجب أن يكون 14 رقم');
+    if (!gender)                   return showErr('من فضلك اختر النوع');
+    if (!nationality)              return showErr('من فضلك اختر الجنسية');
+    if (!religion)                 return showErr('من فضلك اختر الديانة');
+    if (!birthDate)                return showErr('من فضلك ادخل تاريخ الميلاد');
+    if (!grade)                    return showErr('من فضلك اختر الصف');
+
+    if (!fatherName)               return showErr('من فضلك ادخل اسم الأب بالعربي');
+    if (!fatherNameEn)             return showErr('من فضلك ادخل اسم الأب بالإنجليزي');
+    if (!fatherNid || fatherNid.length !== 14) return showErr('الرقم القومي للأب يجب أن يكون 14 رقم');
+    if (!fatherPhone)              return showErr('من فضلك ادخل تليفون الأب');
+    if (!isValidPhone(fatherPhone))return showErr('رقم تليفون الأب غير صحيح — يجب أن يبدأ بـ 01 ويكون 11 رقم');
+    if (!fatherJob)                return showErr('من فضلك ادخل وظيفة الأب');
+    if (!address)                  return showErr('من فضلك ادخل العنوان');
+    if (!motherName)               return showErr('من فضلك ادخل اسم الأم بالعربي');
+    if (!motherNameEn)             return showErr('من فضلك ادخل اسم الأم بالإنجليزي');
+    if (!motherNid || motherNid.length !== 14) return showErr('الرقم القومي للأم يجب أن يكون 14 رقم');
+    if (motherPhone && !isValidPhone(motherPhone)) return showErr('رقم تليفون الأم غير صحيح');
+    if (!motherJob)                return showErr('من فضلك ادخل وظيفة الأم');
+
+    const btn = document.getElementById('saveBtn');
+    const txt = document.getElementById('saveBtnText');
+    btn.disabled = true; txt.textContent = 'جاري الحفظ...';
+
+    try {
+      const birth = new Date(birthDate);
+      let ageYears  = AGE_REF_DATE.getFullYear() - birth.getFullYear();
+      let ageMonths = AGE_REF_DATE.getMonth()    - birth.getMonth();
+      if (ageMonths < 0) { ageYears--; ageMonths += 12; }
+
+      const docRef = await db.collection('studentAffairs').add({
+        schoolId,
+        // الطالب
+        studentName,
+        studentNameEn,
+        studentNid,
+        gender,
+        nationality,
+        religion,
+        birthDate,
+        ageYears,
+        ageMonths,
+        grade,
+        // إضافية
+        secondLang,
+        classroom: classroom || '',
+        // الأب
+        fatherName,
+        fatherNameEn,
+        fatherNid,
+        fatherPhone,
+        fatherJob,
+        address,
+        // الأم
+        motherName,
+        motherNameEn,
+        motherNid,
+        motherPhone: motherPhone || '',
+        motherJob,
+        status: 'pending',
+        registeredBy: session.email,
+        registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+      successEl.textContent = `✓ تم تسجيل الطالب "${studentName}" بنجاح`;
+      successEl.classList.remove('hidden');
+      setTimeout(() => successEl.classList.add('hidden'), 4000);
+
+      loadPendingCount();
+
+      // ── ربط المنصة: بس لمدرسة Bristol حالياً ──
+      // بعد نجاح إنشاء الحساب، بنسجّل بيانات حساب المنصة (نفس الإيميل
+      // واليوزرنيم اللي المنصة نفسها بتولّده) جوة سجل الطالب في شئون
+      // الطلاب، عشان تكون الداتا موثّقة هنا مش بس متبعتة على واتساب.
+      if (schoolId === LMS_INTEGRATION.enabledSchoolId) {
+        txt.textContent = 'جاري إنشاء حساب المنصة...';
+        const lmsResult = await createLmsAccountAndNotify({ studentName, grade, classroom, fatherName, fatherPhone });
+        if (lmsResult.ok) {
+          await docRef.update({
+            lmsAccountCreated: true,
+            lmsAccount: {
+              schoolSlug: 'bristol',
+              studentUsername: lmsResult.student.username,
+              studentEmail: lmsResult.student.email,
+              studentPassword: lmsResult.student.password,
+              studentCode: lmsResult.student.studentCode,
+              parentUsername: lmsResult.parent.username,
+              parentEmail: lmsResult.parent.email,
+              parentPassword: lmsResult.parent.password,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            },
+          });
+        } else {
+          await docRef.update({ lmsAccountCreated: false, lmsAccountError: lmsResult.error || '' });
+        }
+      }
+
+      resetForm();
+    } catch (err) {
+      showErr('خطأ في الحفظ: ' + err.message);
+      console.error(err);
+    } finally {
+      btn.disabled = false; txt.textContent = 'حفظ البيانات';
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  // مسح الفورم
+  // ══════════════════════════════════════════════
+  function resetForm() {
+    [
+      'studentName','studentNameEn','studentNid',
+      'fatherName','fatherNameEn','fatherNid','fatherPhone','fatherJob','address',
+      'motherName','motherNameEn','motherNid','motherPhone','motherJob',
+      'classroom'
+    ].forEach(id => { document.getElementById(id).value = ''; });
+    ['grade','gender','nationality','religion','secondLang'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('birthDate').value = '';
+    document.getElementById('ageDisplay').textContent = '';
+    populateClassroomOptions(); // يرجّع اختيار الفصل لحالته الافتراضية (Bristol فقط)
+  }
+
+  // ══════════════════════════════════════════════
+  // badge عدد المنتظرين
+  // ══════════════════════════════════════════════
+  async function loadPendingCount() {
+    try {
+      const snap = await db.collection('studentAffairs')
+        .where('schoolId', '==', schoolId)
+        .where('status', '==', 'pending')
+        .get();
+      document.getElementById('pendingBadge').textContent = snap.size;
+    } catch(e) { console.warn(e); }
+  }
+
+  // ══════════════════════════════════════════════
+  // تحميل الطلاب المنتظرين
+  // ══════════════════════════════════════════════
+  async function loadPendingStudents() {
+    const container = document.getElementById('pendingList');
+    container.innerHTML = '<div class="empty-msg"><div class="empty-icon">⏳</div>جاري التحميل...</div>';
+
+    try {
+      // ملاحظة: لو Firestore طلب Composite Index على schoolId+status+createdAt
+      // ابعت الـ link اللي بيظهر في الـ console لـ Firebase وهيعمله تلقائي
+      const snap = await db.collection('studentAffairs')
+        .where('schoolId', '==', schoolId)
+        .where('status', '==', 'pending')
+        .get();
+      allStudents = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      updateStats();
+      renderStudents(allStudents);
+    } catch(err) {
+      console.error(err);
+      // لو الخطأ بسبب missing index — وضّح للمستخدم
+      if (err.code === 'failed-precondition' || err.message.includes('index')) {
+        container.innerHTML = `
+          <div class="alert alert-error" style="margin:1rem">
+            ⚠️ يحتاج Firestore إنشاء index مركّب.<br>
+            افتح الـ Console (F12) وهتلاقي رابط — اضغطه وسيُنشأ تلقائياً.
+          </div>`;
+      } else {
+        container.innerHTML = `<div class="alert alert-error" style="margin:1rem">خطأ في التحميل: ${err.message}</div>`;
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  // تحديث الإحصائيات
+  // ══════════════════════════════════════════════
+  function updateStats() {
+    document.getElementById('statTotal').textContent  = allStudents.length;
+    document.getElementById('statMale').textContent   = allStudents.filter(s => s.gender === 'ذكر').length;
+    document.getElementById('statFemale').textContent = allStudents.filter(s => s.gender === 'أنثى').length;
+    document.getElementById('statGrades').textContent = new Set(allStudents.map(s => s.grade)).size;
+    document.getElementById('pendingBadge').textContent = allStudents.length;
+
+    // ملء فلتر الفصول بالفصول الموجودة فعلاً
+    const classrooms = [...new Set(allStudents.map(s => (s.classroom || '').trim()).filter(Boolean))].sort();
+    const sel = document.getElementById('filterClassroom');
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">كل الفصول</option>' +
+      classrooms.map(c => `<option value="${c}">${c}</option>`).join('');
+    if (prev && classrooms.includes(prev)) sel.value = prev;
+  }
+
+  // ══════════════════════════════════════════════
+  // رسم البطاقات
+  // ══════════════════════════════════════════════
+  function renderStudents(list) {
+    const container = document.getElementById('pendingList');
+    if (!list.length) {
+      container.innerHTML = '<div class="empty-msg"><div class="empty-icon">✅</div>لا يوجد طلاب منتظرون</div>';
+      return;
+    }
+    // هل المستخدم الحالي محاسب أو أدمن؟ (مش شئون طلاب)
+    const canCollect = SESSION.isAdmin() || !SESSION.isShu2on();
+    container.innerHTML = list.map(s => `
+      <div class="student-pending-card">
+        <div class="student-avatar">${s.studentName?.charAt(0) || '؟'}</div>
+        <div class="student-info">
+          <div class="student-name">${escHtml(s.studentName)}</div>
+          <div class="student-meta">
+            ${escHtml(s.fatherName)} (${escHtml(s.fatherNameEn || "")}) · ${escHtml(s.fatherPhone)}
+            ${s.motherPhone ? " · أم: " + escHtml(s.motherPhone) : ""}
+          </div>
+          <div class="student-badges">
+            <span class="grade-badge">${escHtml(s.grade)}</span>
+            <span class="grade-badge ${s.gender === 'ذكر' ? 'gender-badge-m' : 'gender-badge-f'}">${escHtml(s.gender)}</span>
+            <span class="grade-badge" style="background:#f3e5f5;color:#6a1b9a;border-color:#ce93d8">${escHtml(s.nationality)}</span>
+            <span class="grade-badge" style="background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7">
+              ${calcAgeFromDate(s.birthDate)}
+            </span>
+          </div>
+          <div style="font-size:0.72rem;color:var(--text-light);margin-top:0.25rem">
+            سجّله: ${escHtml(s.registeredBy || '—')} ·
+            ${s.createdAt?.toDate ? s.createdAt.toDate().toLocaleDateString('ar-EG') : ''}
+          </div>
+          ${lmsAccountStatusHtml(s)}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end">
+          ${canCollect
+            ? `<button class="btn-transfer" onclick="goToCollection('${s.id}')">
+                💰 تسديد التحصيل
+               </button>`
+            : `<span style="font-size:0.72rem;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:0.3rem 0.65rem;font-weight:700;white-space:nowrap">
+                ⏳ في انتظار المحاسب
+               </span>`
+          }
+          ${s.lmsAccountCreated && s.schoolId === LMS_INTEGRATION.enabledSchoolId
+            ? `<button class="btn-resend-wa" data-id="${s.id}"
+                style="font-size:0.72rem;color:#2e7d32;background:none;border:1px solid #2e7d32;border-radius:8px;padding:0.25rem 0.6rem;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;white-space:nowrap">
+                📲 إعادة إرسال واتساب
+               </button>`
+            : ''
+          }
+          <button class="btn-delete-student" data-id="${s.id}" data-name="${escHtml(s.studentName)}"
+            style="font-size:0.72rem;color:var(--danger);background:none;border:none;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700">
+            🗑 حذف
+          </button>
+        </div>
+      </div>`).join('');
+  }
+
+  /**
+   * سطر صغير تحت كل بطاقة يوضّح حالة حساب المنصة: اتعمل ومعاه الإيميل، فشل
+   * وبيوضح السبب، أو لسه مفيش حساب (لمدرسة تانية غير Bristol).
+   */
+  function lmsAccountStatusHtml(s) {
+    if (s.schoolId !== LMS_INTEGRATION.enabledSchoolId) return '';
+    if (s.lmsAccountCreated && s.lmsAccount) {
+      return `<div style="font-size:0.72rem;color:#2e7d32;margin-top:0.3rem;font-weight:700">
+        ✅ حساب المنصة: ${escHtml(s.lmsAccount.studentEmail)}
+      </div>`;
+    }
+    if (s.lmsAccountCreated === false) {
+      return `<div style="font-size:0.72rem;color:var(--danger);margin-top:0.3rem;font-weight:700">
+        ⚠️ فشل إنشاء حساب المنصة${s.lmsAccountError ? ' — ' + escHtml(s.lmsAccountError) : ''}
+      </div>`;
+    }
+    return '';
+  }
+
+  // ── event delegation للحذف + إعادة إرسال واتساب ──
+  document.getElementById('pendingList').addEventListener('click', function(e) {
+    const resendBtn = e.target.closest('.btn-resend-wa');
+    if (resendBtn) return resendLmsWhatsapp(resendBtn.dataset.id);
+    const btn = e.target.closest('.btn-delete-student');
+    if (!btn) return;
+    deleteStudent(btn.dataset.id, btn.dataset.name);
+  });
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // ══════════════════════════════════════════════
+  // فلترة
+  // ══════════════════════════════════════════════
+  function filterStudents() {
+    const search    = document.getElementById('searchInput').value.trim().toLowerCase();
+    const grade     = document.getElementById('filterGrade').value;
+    const gender    = document.getElementById('filterGender').value;
+    const classroom = document.getElementById('filterClassroom').value;
+
+    let filtered = allStudents;
+    if (search) filtered = filtered.filter(s =>
+      (s.studentName || '').toLowerCase().includes(search) ||
+      (s.fatherName  || '').toLowerCase().includes(search) ||
+      (s.fatherPhone || '').includes(search)
+    );
+    if (grade)     filtered = filtered.filter(s => s.grade     === grade);
+    if (gender)    filtered = filtered.filter(s => s.gender    === gender);
+    if (classroom) filtered = filtered.filter(s => (s.classroom || '').trim() === classroom);
+
+    // stat card الفصل
+    const card  = document.getElementById('statClassroomCard');
+    if (classroom) {
+      card.style.display = '';
+      document.getElementById('statClassroom').textContent     = filtered.length;
+      document.getElementById('statClassroomLabel').textContent = 'فصل ' + classroom;
+    } else {
+      card.style.display = 'none';
+    }
+
+    renderStudents(filtered);
+  }
+
+  // ══════════════════════════════════════════════
+  // التحويل لصفحة التحصيل
+  // ══════════════════════════════════════════════
+  function goToCollection(studentId) {
+    const student = allStudents.find(s => s.id === studentId);
+    if (!student) return;
+
+    // حفظ بيانات الطالب في sessionStorage — collection.html هيقراها
+    sessionStorage.setItem('shu2on_prefill', JSON.stringify({
+      studentName:    student.studentName,
+      studentNameEn:  student.studentNameEn || '',
+      grade:          student.grade,
+      classroom:      student.classroom || '',
+      fatherName:     student.fatherName,
+      fatherNameEn:   student.fatherNameEn || '',
+      fatherPhone:    student.fatherPhone,
+      studentDocId:   student.id,
+    }));
+
+    // لو Admin — روّح لـ collection مباشرة
+    // لو shu2on — مفيش صلاحية لـ collection، بس بيروّح عشان المحاسب يكمّل
+    window.location.href = 'collection.html';
+  }
+
+  // ══════════════════════════════════════════════
+  // حذف (soft delete → status='deleted')
+  // ══════════════════════════════════════════════
+  async function deleteStudent(id, name) {
+    if (!confirm(`هل تريد حذف بيانات "${name}"؟\n(سيتم الحذف نهائياً)`)) return;
+    try {
+      const _session = SESSION.get();
+      await db.collection('studentAffairs').doc(id).update({
+        status: 'deleted',
+        deletedBy: _session?.email || '',
+        deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      allStudents = allStudents.filter(s => s.id !== id);
+      updateStats();
+      renderStudents(allStudents);
+    } catch(err) {
+      alert('خطأ في الحذف: ' + err.message);
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  // الطلاب المسجلون (active)
+  // ══════════════════════════════════════════════
+  let allActiveStudents = [];
+
+  async function loadActiveStudents() {
+    const container = document.getElementById('activeList');
+    container.innerHTML = '<div class="empty-msg"><div class="empty-icon">⏳</div>جاري التحميل...</div>';
+    try {
+      const snap = await db.collection('studentAffairs')
+        .where('schoolId', '==', schoolId)
+        .where('status', '==', 'active')
+        .get();
+      allActiveStudents = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.updatedAt?.seconds || b.createdAt?.seconds || 0)
+                      - (a.updatedAt?.seconds || a.createdAt?.seconds || 0));
+      updateActiveStats();
+      renderActiveStudents(allActiveStudents);
+      document.getElementById('activeBadge').textContent = allActiveStudents.length;
+    } catch(err) {
+      console.error(err);
+      container.innerHTML = `<div class="alert alert-error" style="margin:1rem">خطأ في التحميل: ${err.message}</div>`;
+    }
+  }
+
+  function updateActiveStats() {
+    document.getElementById('statActiveTotal').textContent  = allActiveStudents.length;
+    document.getElementById('statActiveMale').textContent   = allActiveStudents.filter(s => s.gender === 'ذكر').length;
+    document.getElementById('statActiveFemale').textContent = allActiveStudents.filter(s => s.gender === 'أنثى').length;
+    document.getElementById('statActiveGrades').textContent = new Set(allActiveStudents.map(s => s.grade)).size;
+    document.getElementById('activeBadge').textContent      = allActiveStudents.length;
+  }
+
+  function renderActiveStudents(list) {
+    const container = document.getElementById('activeList');
+    if (!list.length) {
+      container.innerHTML = '<div class="empty-msg"><div class="empty-icon">📭</div>لا يوجد طلاب مسجلون حتى الآن</div>';
+      return;
+    }
+    container.innerHTML = list.map(s => `
+      <div class="student-pending-card" style="border-right:4px solid #2e7d32">
+        <div class="student-avatar" style="background:#e8f5e9;color:#2e7d32">${s.studentName?.charAt(0) || '؟'}</div>
+        <div class="student-info">
+          <div class="student-name">${escHtml(s.studentName)}</div>
+          <div class="student-meta">
+            ${escHtml(s.studentNameEn || '')}
+            ${s.fatherName ? ' · ' + escHtml(s.fatherName) : ''}
+            ${s.fatherPhone ? ' · ' + escHtml(s.fatherPhone) : ''}
+          </div>
+          <div class="student-badges">
+            <span class="grade-badge">${escHtml(s.grade)}</span>
+            ${s.gender ? `<span class="grade-badge ${s.gender === 'ذكر' ? 'gender-badge-m' : 'gender-badge-f'}">${escHtml(s.gender)}</span>` : ''}
+            ${s.nationality ? `<span class="grade-badge" style="background:#f3e5f5;color:#6a1b9a;border-color:#ce93d8">${escHtml(s.nationality)}</span>` : ''}
+            ${s.birthDate ? `<span class="grade-badge" style="background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7">${calcAgeFromDate(s.birthDate)}</span>` : ''}
+            ${s.classroom ? `<span class="grade-badge" style="background:#fff8e1;color:#f57f17;border-color:#ffe082">فصل: ${escHtml(s.classroom)}</span>` : ''}
+            <span class="grade-badge" style="background:#e8f5e9;color:#1b5e20;border-color:#a5d6a7;font-size:0.68rem">✅ مسجل ودافع</span>
+          </div>
+          <div style="font-size:0.72rem;color:var(--text-light);margin-top:0.25rem">
+            ${s.updatedAt?.toDate ? 'آخر تحديث: ' + s.updatedAt.toDate().toLocaleDateString('ar-EG') :
+              s.createdAt?.toDate ? 'تسجيل: '     + s.createdAt.toDate().toLocaleDateString('ar-EG') : ''}
+          </div>
+          ${lmsAccountStatusHtml(s)}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end">
+          <button onclick="goToEditStudent('${encodeURIComponent(s.studentName)}')"
+            style="padding:0.35rem 0.85rem;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;
+                   font-family:Cairo,sans-serif;background:#1565c0;color:#fff;border:none;white-space:nowrap">
+            ✏️ تعديل
+          </button>
+          <button onclick="goToCollection2('${s.id}')"
+            style="padding:0.35rem 0.85rem;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;
+                   font-family:Cairo,sans-serif;background:var(--primary);color:#fff;border:none;white-space:nowrap">
+            💰 تحصيل
+          </button>
+          ${s.lmsAccountCreated && s.schoolId === LMS_INTEGRATION.enabledSchoolId
+            ? `<button class="btn-resend-wa" data-id="${s.id}"
+                style="font-size:0.72rem;color:#2e7d32;background:none;border:1px solid #2e7d32;border-radius:8px;padding:0.25rem 0.6rem;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;white-space:nowrap">
+                📲 إعادة إرسال واتساب
+               </button>`
+            : ''
+          }
+        </div>
+      </div>`).join('');
+  }
+
+  // ── إعادة إرسال واتساب من تاب الطلاب المسجلين ──
+  document.getElementById('activeList').addEventListener('click', function(e) {
+    const resendBtn = e.target.closest('.btn-resend-wa');
+    if (resendBtn) resendLmsWhatsapp(resendBtn.dataset.id);
+  });
+
+  function filterActiveStudents() {
+    const search = document.getElementById('searchActiveInput').value.trim().toLowerCase();
+    const grade  = document.getElementById('filterActiveGrade').value;
+    const gender = document.getElementById('filterActiveGender').value;
+    let filtered = allActiveStudents;
+    if (search) filtered = filtered.filter(s =>
+      (s.studentName || '').toLowerCase().includes(search) ||
+      (s.fatherName  || '').toLowerCase().includes(search) ||
+      (s.fatherPhone || '').includes(search)
+    );
+    if (grade)  filtered = filtered.filter(s => s.grade  === grade);
+    if (gender) filtered = filtered.filter(s => s.gender === gender);
+    renderActiveStudents(filtered);
+  }
+
+  function goToEditStudent(encodedName) {
+    window.location.href = 'edit-student.html?student=' + encodedName;
+  }
+
+  function goToCollection2(studentId) {
+    const student = allActiveStudents.find(s => s.id === studentId);
+    if (!student) return;
+    sessionStorage.setItem('shu2on_prefill', JSON.stringify({
+      studentName:    student.studentName,
+      studentNameEn:  student.studentNameEn || '',
+      grade:          student.grade,
+      classroom:      student.classroom || '',
+      fatherName:     student.fatherName,
+      fatherNameEn:   student.fatherNameEn || '',
+      fatherPhone:    student.fatherPhone,
+      studentDocId:   student.id,
+    }));
+    window.location.href = 'collection.html';
+  }
+
+  // تحميل عداد الـ active عند فتح الصفحة
+  (async function loadActiveBadge() {
+    try {
+      const snap = await db.collection('studentAffairs')
+        .where('schoolId', '==', schoolId)
+        .where('status', '==', 'active')
+        .get();
+      document.getElementById('activeBadge').textContent = snap.size;
+    } catch(e) { console.warn(e); }
+  })();
+
+  // ══════════════════════════════════════════════
+  // IMPORT FROM EXCEL
+  // ══════════════════════════════════════════════
+
+  // map sheet name → grade value
+  const SHEET_GRADE_MAP = {
+    'kg 1': 'KG1', 'kg2': 'KG2',
+    'gr 1': 'Grade 1', 'gr2': 'Grade 2', 'gr3': 'Grade 3',
+    'gr4': 'Grade 4', 'gr5': 'Grade 5', 'gr6': 'Grade 6',
+    'prep1': 'Prep 1', 'prep2': 'Prep 2', 'prep3': 'Prep 3',
+    'sec 1': 'Prep 1',
+  };
+
+  // second language normalization
+  const LANG_MAP = {
+    'فرنسى': 'فرنسي', 'فرنسي': 'فرنسي', 'فرنساوى': 'فرنسي', 'فرنساوي': 'فرنسي',
+    'المانى': 'ألماني', 'الماني': 'ألماني', 'ألماني': 'ألماني', 'ألمانى': 'ألماني',
+  };
+
+  let importedStudents = [];
+
+  function handleFileDrop(e) {
+    e.preventDefault();
+    document.getElementById('importDropZone').style.borderColor = 'var(--primary-light)';
+    const file = e.dataTransfer.files[0];
+    if (file) processXlsxFile(file);
+  }
+
+  function handleFileSelect(input) {
+    const file = input.files[0];
+    if (file) processXlsxFile(file);
+  }
+
+  function clean(val) {
+    if (val === null || val === undefined) return '';
+    const s = String(val).trim();
+    return s === 'nan' || s === 'NaN' ? '' : s;
+  }
+
+  function makeDate(day, month, year) {
+    try {
+      const d = parseInt(day), m = parseInt(month), y = parseInt(year);
+      if (isNaN(d) || isNaN(m) || isNaN(y) || y < 1980 || y > 2030) return '';
+      return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    } catch { return ''; }
+  }
+
+  function normalizeNationality(val) {
+    const v = clean(val);
+    if (!v) return 'مصرية';
+    if (v.includes('مصر')) return 'مصرية';
+    if (v.includes('سعود')) return 'سعودية';
+    if (v.includes('يمن')) return 'يمنية';
+    if (v.includes('سور')) return 'سورية';
+    if (v.includes('كويت')) return 'كويتية';
+    if (v.includes('أردن') || v.includes('اردن')) return 'أردنية';
+    if (v.includes('لبنان')) return 'لبنانية';
+    if (v.includes('فلسط')) return 'فلسطينية';
+    if (v.includes('سودان')) return 'سودانية';
+    if (v.includes('ليبيا') || v.includes('ليبي')) return 'ليبية';
+    if (v.includes('تونس')) return 'تونسية';
+    if (v.includes('جزائر')) return 'جزائرية';
+    if (v.includes('مغرب')) return 'مغربية';
+    if (v.includes('عراق')) return 'عراقية';
+    return 'مصرية';
+  }
+
+  function normalizeReligion(val) {
+    const v = clean(val).toLowerCase();
+    if (v.includes('مسيح') || v.includes('قبط')) return 'مسيحي';
+    return 'مسلم';
+  }
+
+  function normalizeGender(val) {
+    const v = clean(val);
+    if (v.includes('أنثى') || v.includes('انثى') || v.includes('بنت')) return 'أنثى';
+    return 'ذكر';
+  }
+
+  function normalizePhone(val) {
+    let v = clean(val).replace(/[^\d]/g, '').slice(0,11);
+    if (v.startsWith('2') && v.length > 11) v = v.slice(1);
+    // take first number if multiple
+    const raw = clean(val);
+    const match = raw.match(/0?1[0125]\d{8}/);
+    if (match) {
+      let p = match[0];
+      if (!p.startsWith('0')) p = '0' + p;
+      return p;
+    }
+    return v;
+  }
+
+  function parseSheetRows(ws, grade) {
+    const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+    // find header row
+    let headerIdx = -1;
+    for (let i = 0; i < data.length; i++) {
+      if (data[i].some(c => String(c).includes('اسم التلميذ'))) {
+        headerIdx = i;
+        break;
+      }
+    }
+    if (headerIdx < 0) return [];
+
+    // data starts 2 rows after header (skip sub-header يوم/شهر/سنة)
+    const rows = data.slice(headerIdx + 2);
+    const has23Cols = data[headerIdx].length >= 23;
+
+    const students = [];
+    for (const row of rows) {
+      const studentName = clean(row[2]);
+      if (!studentName || studentName === 'اسم التلميذ') continue;
+
+      // date columns: 5=day, 6=month, 7=year
+      const birthDate = makeDate(row[5], row[6], row[7]);
+
+      // secondLang: col 22 if 23-col sheet, else empty
+      const rawLang = has23Cols ? clean(row[22]) : '';
+      const secondLang = LANG_MAP[rawLang] || (rawLang ? rawLang : '');
+
+      // phone: take first valid 11-digit number
+      const fatherPhoneRaw = clean(row[15]);
+      const motherPhoneRaw = has23Cols ? clean(row[21]) : clean(row[21]);
+
+      students.push({
+        grade,
+        classroom: clean(row[0]) || '',
+        studentName:   studentName,
+        studentNameEn: clean(row[3]),
+        studentNid:    clean(row[4]),
+        gender:        normalizeGender(row[8]),
+        nationality:   normalizeNationality(row[9]),
+        religion:      normalizeReligion(row[10]),
+        birthDate,
+        secondLang,
+        // أب
+        fatherName:    clean(row[11]),
+        fatherNameEn:  clean(row[12]),
+        fatherNid:     clean(row[13]),
+        fatherJob:     clean(row[14]),
+        fatherPhone:   normalizePhone(fatherPhoneRaw),
+        address:       clean(row[16]),
+        // أم
+        motherName:    clean(row[17]),
+        motherNameEn:  clean(row[18]),
+        motherNid:     clean(row[19]),
+        motherJob:     clean(row[20]),
+        motherPhone:   normalizePhone(motherPhoneRaw),
+      });
+    }
+    return students;
+  }
+
+  function processXlsxFile(file) {
+    if (!file.name.endsWith('.xlsx')) {
+      alert('من فضلك ارفع ملف .xlsx فقط');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        let allStudentsImport = [];
+
+        for (const shName of wb.SheetNames) {
+          const gradeKey = shName.trim().toLowerCase();
+          let grade = null;
+          for (const [k, v] of Object.entries(SHEET_GRADE_MAP)) {
+            if (gradeKey === k) { grade = v; break; }
+          }
+          if (!grade) {
+            // try partial match
+            for (const [k, v] of Object.entries(SHEET_GRADE_MAP)) {
+              if (gradeKey.includes(k) || k.includes(gradeKey)) { grade = v; break; }
+            }
+          }
+          if (!grade) continue;
+
+          const ws = wb.Sheets[shName];
+          const rows = parseSheetRows(ws, grade);
+          allStudentsImport = allStudentsImport.concat(rows);
+        }
+
+        importedStudents = allStudentsImport.filter(s => s.studentName);
+
+        // show file info
+        document.getElementById('importFileInfo').style.display = 'block';
+        document.getElementById('importFileName').textContent = `📂 ${file.name}`;
+        document.getElementById('importFileStats').textContent =
+          `تم قراءة ${importedStudents.length} طالب من ${wb.SheetNames.length} شييت`;
+
+        // build preview table (first 8 rows)
+        showPreview(importedStudents.slice(0, 8));
+
+        // show actions
+        document.getElementById('importActions').style.display = 'flex';
+        document.getElementById('importResult').style.display = 'none';
+        document.getElementById('importProgress').style.display = 'none';
+
+      } catch(err) {
+        alert('خطأ في قراءة الملف: ' + err.message);
+        console.error(err);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function showPreview(rows) {
+    const cols = ['الاسم عربي','الاسم إنجليزي','الصف','الفصل','النوع','الجنسية','تاريخ الميلاد','الأب','تليفون الأب'];
+    const head = document.getElementById('previewHead');
+    const body = document.getElementById('previewBody');
+
+    head.innerHTML = `<tr>${cols.map(c =>
+      `<th style="background:var(--primary);color:#fff;padding:0.4rem 0.6rem;white-space:nowrap;font-size:0.72rem">${c}</th>`
+    ).join('')}</tr>`;
+
+    body.innerHTML = rows.map(s => `
+      <tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.studentName}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem;direction:ltr;text-align:left;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.studentNameEn}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem">${s.grade}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem">${s.classroom}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem">${s.gender}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem">${s.nationality}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem;direction:ltr;text-align:left">${s.birthDate}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.fatherName}</td>
+        <td style="padding:0.35rem 0.6rem;font-size:0.75rem;direction:ltr;text-align:left">${s.fatherPhone}</td>
+      </tr>`).join('');
+
+    document.getElementById('previewNote').textContent =
+      `معاينة أول ${rows.length} طلاب فقط — الإجمالي: ${importedStudents.length} طالب`;
+    document.getElementById('importPreview').style.display = 'block';
+  }
+
+  function resetImport() {
+    importedStudents = [];
+    document.getElementById('xlsxFileInput').value = '';
+    document.getElementById('importFileInfo').style.display = 'none';
+    document.getElementById('importPreview').style.display = 'none';
+    document.getElementById('importActions').style.display = 'none';
+    document.getElementById('importProgress').style.display = 'none';
+    document.getElementById('importResult').style.display = 'none';
+  }
+
+  async function startImport() {
+    if (!importedStudents.length) return;
+
+    const btn = document.getElementById('importBtn');
+    btn.disabled = true;
+    document.getElementById('importBtnText').textContent = 'جاري الاستيراد...';
+    document.getElementById('importProgress').style.display = 'block';
+    document.getElementById('importActions').style.display = 'none';
+    document.getElementById('importResult').style.display = 'none';
+
+    const AGE_REF = new Date(2026, 9, 1);
+    let done = 0, errors = 0;
+    const total = importedStudents.length;
+    const BATCH_SIZE = 400; // Firestore batch limit
+
+    // split into batches of 400
+    for (let bStart = 0; bStart < total; bStart += BATCH_SIZE) {
+      const chunk = importedStudents.slice(bStart, bStart + BATCH_SIZE);
+      const batch = db.batch();
+
+      for (const s of chunk) {
+        try {
+          // calc age
+          let ageYears = 0, ageMonths = 0;
+          if (s.birthDate) {
+            const birth = new Date(s.birthDate);
+            ageYears  = AGE_REF.getFullYear() - birth.getFullYear();
+            ageMonths = AGE_REF.getMonth()    - birth.getMonth();
+            if (ageMonths < 0) { ageYears--; ageMonths += 12; }
+          }
+
+          const ref = db.collection('studentAffairs').doc();
+          batch.set(ref, {
+            schoolId,
+            studentName:    s.studentName,
+            studentNameEn:  s.studentNameEn,
+            studentNid:     s.studentNid,
+            gender:         s.gender,
+            nationality:    s.nationality,
+            religion:       s.religion,
+            birthDate:      s.birthDate,
+            ageYears,
+            ageMonths,
+            grade:          s.grade,
+            classroom:      s.classroom,
+            secondLang:     s.secondLang,
+            fatherName:     s.fatherName,
+            fatherNameEn:   s.fatherNameEn,
+            fatherNid:      s.fatherNid,
+            fatherJob:      s.fatherJob,
+            fatherPhone:    s.fatherPhone,
+            address:        s.address,
+            motherName:     s.motherName,
+            motherNameEn:   s.motherNameEn,
+            motherNid:      s.motherNid,
+            motherJob:      s.motherJob,
+            motherPhone:    s.motherPhone || '',
+            status: 'pending',
+            registeredBy: session.email,
+            importedFrom: 'excel',
+            registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt:    firebase.firestore.FieldValue.serverTimestamp(),
+          });
+          done++;
+        } catch(e) {
+          errors++;
+          console.error('Error processing student:', s.studentName, e);
+        }
+      }
+
+      try {
+        await batch.commit();
+      } catch(e) {
+        errors += chunk.length;
+        done -= chunk.length;
+        console.error('Batch commit error:', e);
+      }
+
+      // update progress
+      const pct = Math.round((bStart + chunk.length) / total * 100);
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('progressPct').textContent = pct + '%';
+      document.getElementById('progressDetail').textContent =
+        `تم: ${Math.min(bStart + chunk.length, total)} / ${total}`;
+    }
+
+    // final progress
+    document.getElementById('progressBar').style.width = '100%';
+    document.getElementById('progressPct').textContent = '100%';
+    document.getElementById('progressLabel').textContent = 'اكتمل الاستيراد ✓';
+
+    // show result
+    const resultEl = document.getElementById('importResult');
+    resultEl.style.display = 'block';
+    if (errors === 0) {
+      resultEl.innerHTML = `
+        <div class="alert alert-success">
+          ✅ تم استيراد <strong>${done}</strong> طالب بنجاح إلى قاعدة البيانات!
+          <br><span style="font-size:0.82rem">يمكنك الآن مشاهدتهم في تاب "الطلاب المنتظرون"</span>
+        </div>`;
+    } else {
+      resultEl.innerHTML = `
+        <div class="alert alert-error">
+          ⚠️ تم استيراد <strong>${done}</strong> طالب — و <strong>${errors}</strong> سجل لم يُضف بسبب أخطاء
+        </div>`;
+    }
+
+    btn.disabled = false;
+    document.getElementById('importBtnText').textContent = '🚀 استيراد الطلاب';
+    loadPendingCount();
+  }
+
+  // ══════════════════════════════════════════════
+  // تحميل أولي
+  // ══════════════════════════════════════════════
+  loadPendingCount();
+  loadBristolClassLevelsIfNeeded();
+</script>
+</body>
+</html>

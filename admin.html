@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#1a3a6b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="المحاسبة" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<title>لوحة الأدمن - نظام المحاسبة</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .admin-school-card {
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: var(--transition);
+      background: var(--card-bg);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .admin-school-card:hover, .admin-school-card.active {
+      border-color: var(--primary);
+      background: var(--accent);
+    }
+    .admin-school-card img { width: 52px; height: 52px; object-fit: contain; border-radius: 10px; background: white; padding: 4px; }
+    .admin-school-card .school-info { flex: 1; }
+    .admin-school-card .school-name { font-size: 0.95rem; font-weight: 800; }
+    .admin-school-card .school-stats { font-size: 0.78rem; color: var(--text-light); margin-top: 2px; }
+    .color-swatch { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+
+    .user-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      margin-bottom: 0.5rem;
+    }
+    .user-card .user-email { font-size: 0.85rem; font-weight: 600; direction: ltr; text-align: left; }
+    .user-card .user-role { font-size: 0.72rem; color: var(--text-light); }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .school-overview-card {
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+    }
+    .school-overview-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+    .school-card-header {
+      padding: 1rem 1.25rem;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .school-card-header img { width: 40px; height: 40px; object-fit: contain; border-radius: 8px; background: rgba(255,255,255,0.2); padding: 4px; }
+    .school-card-body { padding: 1rem 1.25rem; background: white; border: 1px solid var(--border); border-top: none; }
+    .school-metric { display: flex; justify-content: space-between; padding: 0.3rem 0; font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+    .school-metric:last-child { border-bottom: none; }
+    .school-metric .label { color: var(--text-light); }
+    .school-metric .value { font-weight: 800; }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div id="topbarContainer"></div>
+
+    <div class="page-content">
+
+      <!-- Admin Badge -->
+      <div class="alert alert-info animate-in" style="margin-bottom:1rem">
+         <strong>وضع الأدمن</strong> - يمكنك الاطلاع على بيانات جميع المدارس
+      </div>
+
+      <!-- Tabs -->
+      <div class="d-flex gap-1 mb-2">
+        <button class="period-tab active" onclick="showTab('overview', this)"> نظرة عامة</button>
+        <button class="period-tab" onclick="showTab('transactions', this)"> كل التحصيلات</button>
+        <button class="period-tab" onclick="showTab('users', this)"> المستخدمون</button>
+        <button class="period-tab" onclick="showTab('prices', this)"> الأسعار</button>
+      </div>
+
+      <!-- Overview Tab -->
+      <div id="tab-overview" class="animate-in">
+
+        <!-- Period selector for reports -->
+        <div class="filter-section mb-2" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+          <div style="font-weight:700;font-size:0.9rem">نوع التقرير:</div>
+          <div class="d-flex gap-1">
+            <button class="period-tab active" id="rptDaily" onclick="setReportPeriod('daily',this)">يومي</button>
+            <button class="period-tab" id="rptWeekly" onclick="setReportPeriod('weekly',this)">اسبوعي</button>
+            <button class="period-tab" id="rptMonthly" onclick="setReportPeriod('monthly',this)">شهري</button>
+          </div>
+          <div id="rptDateDaily">
+            <input type="date" class="form-input" id="rptDate" style="width:180px" onchange="loadOverview()" />
+          </div>
+          <div id="rptDateWeekly" style="display:none;gap:0.5rem;align-items:center">
+            <label class="form-label" style="margin:0">من</label>
+            <input type="date" class="form-input" id="rptWeekFrom" style="width:160px" onchange="loadOverview()" />
+            <label class="form-label" style="margin:0">الى</label>
+            <input type="date" class="form-input" id="rptWeekTo" style="width:160px" onchange="loadOverview()" />
+          </div>
+          <div id="rptDateMonthly" style="display:none">
+            <input type="month" class="form-input" id="rptMonth" style="width:180px" onchange="loadOverview()" />
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="loadOverview()">تحديث</button>
+        </div>
+
+        <!-- Per-school report cards -->
+        <div id="schoolReportCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-bottom:1.5rem">
+          <div class="loading-spinner"></div>
+        </div>
+
+        <!-- Comparison table -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">مقارنة المدارس</span>
+            <button class="btn btn-secondary btn-sm" onclick="exportOverviewExcel()">Excel</button>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>المدرسة</th>
+                  <th>اجمالي التحصيل</th>
+                  <th>عدد العمليات</th>
+                  <th>عدد الطلاب</th>
+                  <th>مصروفات دراسية</th>
+                  <th>باص</th>
+                  <th>يونيفورم</th>
+                  <th>فايل</th>
+                  <th>ابليكيشن</th>
+                  <th>رحلات</th>
+                  <th>امتحانات</th>
+                </tr>
+              </thead>
+              <tbody id="comparisonTableBody">
+                <tr><td colspan="11"><div class="loading-spinner"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transactions Tab -->
+      <div id="tab-transactions" class="hidden animate-in">
+        <div class="filter-bar mb-2">
+          <div class="flex-1">
+            <select class="form-select" id="adminSchoolFilter" onchange="loadAllTransactions()">
+              <option value="">كل المدارس</option>
+            </select>
+          </div>
+          <input type="date" class="form-input" id="adminDateFrom" style="width:auto" />
+          <input type="date" class="form-input" id="adminDateTo" style="width:auto" />
+          <button class="btn btn-primary btn-sm" onclick="loadAllTransactions()"> بحث</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportAllExcel()"> Excel</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"> جميع التحصيلات</span>
+            <span class="badge badge-primary" id="allTransCount">0 سجل</span>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>المدرسة</th>
+                  <th>التاريخ</th>
+                  <th>الطالب</th>
+                  <th>المرحلة</th>
+                  <th>البند</th>
+                  <th>المبلغ</th>
+                  <th>طريقة الدفع</th>
+                  <th>الإيصال</th>
+                </tr>
+              </thead>
+              <tbody id="allTransBody">
+                <tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">اختر الفلاتر وانقر بحث</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Tab -->
+      <div id="tab-users" class="hidden animate-in">
+        <div id="usersTabContent" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+
+      <!-- Prices Tab -->
+      <div id="tab-prices" class="hidden animate-in">
+        <div id="pricesTabContent" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem">
+          <div class="loading-spinner"></div>
+        </div>
+        <div class="alert alert-info mt-2">
+           لتعديل الأسعار، افتح ملف <strong>firebase-config.js</strong> وعدّل قسم <strong>STAGES</strong>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- School Switcher Modal -->
+<div class="modal-overlay hidden" id="schoolSwitcherModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <span class="modal-title"> تغيير المدرسة</span>
+      <button class="btn-close" onclick="document.getElementById('schoolSwitcherModal').classList.add('hidden')"></button>
+    </div>
+    <div class="modal-body">
+      <div id="schoolSwitcherList" style="display:flex;flex-direction:column;gap:0.75rem">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="firebase-config.js"></script>
+<script src="layout.js"></script>
+<script>
+  if (!SESSION.isAdmin()) { window.location.href = 'index.html'; }
+  renderLayout('admin', 'لوحة الأدمن');
+
+  let currentReportPeriod = 'daily';
+  let allTransactionsData = []; // لتخزين البيانات الخاصة بالتصدير
+
+  function showTab(tab, btn) {
+    document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+    document.getElementById('tab-' + tab).classList.remove('hidden');
+    // فقط أزرار الـ main tabs (مش أزرار period داخل overview)
+    btn.closest('.d-flex').querySelectorAll('.period-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (tab === 'overview') loadOverview();
+    else if (tab === 'transactions') { /* لا تحمّل تلقائياً — المستخدم يضغط بحث */ }
+    else if (tab === 'users') renderDynamicContent();
+    else if (tab === 'prices') renderDynamicContent();
+  }
+
+  function setReportPeriod(period, btn) {
+    currentReportPeriod = period;
+    document.querySelectorAll('#tab-overview .period-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('rptDateDaily').style.display = period === 'daily' ? 'block' : 'none';
+    document.getElementById('rptDateWeekly').style.display = period === 'weekly' ? 'flex' : 'none';
+    document.getElementById('rptDateMonthly').style.display = period === 'monthly' ? 'block' : 'none';
+    loadOverview();
+  }
+
+  function getAdminDateRange() {
+    const today = localDateStr();
+    if (currentReportPeriod === 'daily') {
+      const d = document.getElementById('rptDate').value || today;
+      return { from: d, to: d };
+    } else if (currentReportPeriod === 'weekly') {
+      const from = document.getElementById('rptWeekFrom').value || today;
+      const to = document.getElementById('rptWeekTo').value || today;
+      return { from, to };
+    } else {
+      const month = document.getElementById('rptMonth').value || today.substring(0,7);
+      const [y, m] = month.split('-').map(Number);
+      const lastDay = new Date(y, m, 0).getDate();
+      return { from: `${month}-01`, to: `${month}-${String(lastDay).padStart(2,'0')}` };
+    }
+  }
+
+  async function loadOverview() {
+    const { from, to } = getAdminDateRange();
+    const cardsContainer = document.getElementById('schoolReportCards');
+    const comparisonBody = document.getElementById('comparisonTableBody');
+    cardsContainer.innerHTML = '<div class="loading-spinner"></div>';
+    comparisonBody.innerHTML = `<tr><td colspan="11"><div class="loading-spinner"></div></td></tr>`;
+    const ITEMS = ['مصروفات دراسية','باص','يونيفورم','فايل','ابليكيشن','رحلات','امتحانات'];
+    const allStats = {};
+    try {
+      for (const [id, school] of Object.entries(SCHOOLS)) {
+        const snap = await db.collection('transactions').where('schoolId', '==', id).where('date', '>=', from).where('date', '<=', to).get();
+        let total = 0;
+        const students = new Set();
+        const itemTotals = {};
+        ITEMS.forEach(i => itemTotals[i] = 0);
+        snap.forEach(doc => {
+          const d = doc.data();
+          total += d.amount || 0;
+          students.add(d.studentName);
+          if (d.paymentItems && Array.isArray(d.paymentItems)) {
+            d.paymentItems.forEach(pi => { const key = ITEMS.find(k => k === pi.item); if (key) itemTotals[key] += pi.netPrice || pi.price || 0; });
+          } else if (d.paymentItem) {
+            const matchedItem = ITEMS.find(i => d.paymentItem.includes(i));
+            if (matchedItem) itemTotals[matchedItem] += d.amount || 0;
+          }
+        });
+        allStats[id] = { total, count: snap.size, students: students.size, itemTotals };
+      }
+      cardsContainer.innerHTML = Object.entries(SCHOOLS).map(([id, school]) => {
+        const stats = allStats[id];
+        const periodLabel = currentReportPeriod === 'daily' ? `يوم ${from}` : currentReportPeriod === 'weekly' ? `اسبوع ${from} - ${to}` : `شهر ${from.substring(0,7)}`;
+        return `<div class="school-overview-card"><div class="school-card-header" style="background:${school.primaryColor}"><img src="${school.logo}" onerror="this.style.display='none'" /><div><div style="font-weight:800">${school.name}</div><div style="font-size:0.75rem;opacity:0.8">${periodLabel}</div></div></div><div class="school-card-body"><div class="school-metric"><span class="label">اجمالي التحصيل</span><span class="value" style="color:${school.primaryColor}">${formatCurrency(stats.total)}</span></div><div class="school-metric"><span class="label">عدد العمليات</span><span class="value">${stats.count}</span></div><div class="school-metric"><span class="label">عدد الطلاب</span><span class="value">${stats.students}</span></div>${Object.entries(stats.itemTotals).filter(([,v])=>v>0).map(([item,val])=>`<div class="school-metric"><span class="label">${item}</span><span class="value">${formatCurrency(val)}</span></div>`).join('')}</div></div>`;
+      }).join('');
+      comparisonBody.innerHTML = Object.entries(SCHOOLS).map(([id, school]) => {
+        const stats = allStats[id];
+        return `<tr><td><div class="d-flex align-center gap-1"><img src="${school.logo}" style="width:28px;height:28px;object-fit:contain;border-radius:6px" onerror="this.style.display='none'" /><strong>${school.name}</strong></div></td><td class="text-bold text-primary">${formatCurrency(stats.total)}</td><td>${stats.count}</td><td>${stats.students}</td>${ITEMS.map(item => `<td>${formatCurrency(stats.itemTotals[item]||0)}</td>`).join('')}</tr>`;
+      }).join('');
+      const totalsRow = document.createElement('tr');
+      totalsRow.style.fontWeight = '800';
+      totalsRow.style.background = 'var(--accent)';
+      const grandTotal = Object.values(allStats).reduce((s,d)=>s+d.total,0);
+      const grandCounts = Object.values(allStats).reduce((s,d)=>s+d.count,0);
+      const grandStudents = Object.values(allStats).reduce((s,d)=>s+d.students,0);
+      const grandItems = {};
+      ITEMS.forEach(item => { grandItems[item] = Object.values(allStats).reduce((s,d)=>s+(d.itemTotals[item]||0),0); });
+      totalsRow.innerHTML = `<td>الاجمالي</td><td>${formatCurrency(grandTotal)}</td><td>${grandCounts}</td><td>${grandStudents}</td>${ITEMS.map(i=>`<td>${formatCurrency(grandItems[i])}</td>`).join('')}`;
+      comparisonBody.appendChild(totalsRow);
+    } catch (err) { cardsContainer.innerHTML = `<div class="alert alert-error">خطأ: ${err.message}</div>`; }
+  }
+
+  async function exportOverviewExcel() {
+    const { from, to } = getAdminDateRange();
+    const ITEMS = ['مصروفات دراسية','باص','يونيفورم','فايل','ابليكيشن','رحلات','امتحانات'];
+
+    if (typeof ExcelJS === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      document.head.appendChild(s);
+      await new Promise(r => s.onload = r);
+    }
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Eng. Kareem Ali Mousa';
+    const ws = wb.addWorksheet('مقارنة المدارس', { views: [{ rightToLeft: true }] });
+
+    const C_HDR  = 'AD818A', C_TTL = 'DDD9C4', C_SEC = 'D8E4BC', C_EVEN = 'F5F0F0', C_TOT = '1A3A6B';
+    const S = (bg, bold, sz, fc='000000') => ({
+      font: { name:'Arial', bold:!!bold, size:sz||11, color:{argb:'FF'+fc} },
+      fill: bg ? { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+bg} } : undefined,
+      alignment: { horizontal:'right', vertical:'middle', wrapText:true, readingOrder:2 },
+      border: { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} }
+    });
+
+    const cols = [{ width:26 },{ width:16 },{ width:12 },{ width:12 }, ...ITEMS.map(()=>({ width:16 }))];
+    ws.columns = cols;
+
+    // Title
+    ws.mergeCells(`A1:${String.fromCharCode(75)}1`); // K = col 11
+    const r1 = ws.getRow(1);
+    r1.height = 32;
+    r1.getCell(1).value = `كشف مقارنة المدارس — السنة الدراسية 2026/2027`;
+    r1.getCell(1).style = S(C_TTL, true, 16, 'C00000');
+
+    // Period row
+    ws.mergeCells(`A2:K2`);
+    const r2 = ws.getRow(2);
+    r2.height = 20;
+    r2.getCell(1).value = `الفترة: من ${from} إلى ${to}  |  تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`;
+    r2.getCell(1).style = S(C_SEC, true, 11);
+
+    // Header row
+    const hdr = ws.addRow(['المدرسة', 'إجمالي التحصيل', 'عدد العمليات', 'عدد الطلاب', ...ITEMS]);
+    hdr.height = 24;
+    hdr.eachCell({ includeEmpty:true }, c => { c.style = S(C_HDR, true, 11, 'FFFFFF'); c.alignment = { horizontal:'center', vertical:'middle', readingOrder:2 }; });
+
+    // Data rows from table
+    const rows = document.querySelectorAll('#comparisonTableBody tr');
+    rows.forEach((tr, i) => {
+      const cells = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
+      const row = ws.addRow(cells);
+      row.height = 20;
+      const isTotal = tr.style.fontWeight === '800' || i === rows.length - 1;
+      row.eachCell({ includeEmpty:true }, c => { c.style = S(isTotal ? C_TOT : (i%2===1 ? C_EVEN : null), isTotal, 11, isTotal ? 'FFFFFF' : '000000'); });
+    });
+
+    const buf = await wb.xlsx.writeBuffer();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    a.download = `مقارنة_المدارس_${from}_${to}.xlsx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+
+  // =============== تحميل جميع التحصيلات ===============
+  async function loadAllTransactions() {
+    const schoolFilter = document.getElementById('adminSchoolFilter').value;
+    const dateFrom = document.getElementById('adminDateFrom').value;
+    const dateTo = document.getElementById('adminDateTo').value;
+    const tbody = document.getElementById('allTransBody');
+
+    if (!dateFrom || !dateTo) {
+      tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-title">من فضلك حدد تاريخ البداية والنهاية</div></div></td></tr>`;
+      document.getElementById('allTransCount').textContent = '0 سجل';
+      return;
+    }
+
+    tbody.innerHTML = `<tr><td colspan="8"><div class="loading-spinner"></div></td></tr>`;
+    try {
+      let allDocs = [];
+      if (schoolFilter) {
+        // query واحد على مدرسة محددة
+        const snap = await db.collection('transactions')
+          .where('schoolId', '==', schoolFilter)
+          .where('date', '>=', dateFrom)
+          .where('date', '<=', dateTo)
+          .limit(2000)
+          .get();
+        allDocs = snap.docs;
+      } else {
+        // query منفصل لكل مدرسة — أسرع وبيتجنب الـ cross-collection index
+        const snaps = await Promise.all(
+          Object.keys(SCHOOLS).map(id =>
+            db.collection('transactions')
+              .where('schoolId', '==', id)
+              .where('date', '>=', dateFrom)
+              .where('date', '<=', dateTo)
+              .limit(500)
+              .get()
+          )
+        );
+        snaps.forEach(snap => allDocs.push(...snap.docs));
+      }
+      const limitWarning = allDocs.length >= 2000
+        ? ' <span style="color:#c0392b;font-weight:700;background:#fdecea;padding:0.15rem 0.5rem;border-radius:4px"> تحذير: النتايج وصلت الحد الأقصى — ضيّق نطاق التاريخ</span>'
+        : '';
+      document.getElementById('allTransCount').innerHTML = allDocs.length + ' سجل' + limitWarning;
+      if (!allDocs.length) {
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-title">لا توجد بيانات</div></div></td></tr>`;
+        allTransactionsData = [];
+        return;
+      }
+      const sortedDocs = allDocs.sort((a,b) => (b.data().date || '') > (a.data().date || '') ? 1 : -1);
+      tbody.innerHTML = '';
+      sortedDocs.forEach(doc => {
+        const d = doc.data();
+        const school = SCHOOLS[d.schoolId];
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td><div class="d-flex align-center gap-1"><span class="color-swatch" style="background:${school?.primaryColor || '#ccc'}"></span>${school?.name || d.schoolId}</div></td><td>${d.date}</td><td><strong>${d.studentName}</strong></td><td><span class="badge badge-primary">${d.stageName || d.stage}</span></td><td>${d.paymentItem}</td><td class="text-bold text-primary">${formatCurrency(d.amount)}</td><td>${d.paymentTypeName || d.paymentType}</td><td class="text-sm text-muted">${d.receiptNumber}</td>`;
+        tbody.appendChild(tr);
+      });
+      // تخزين البيانات للتصدير
+      allTransactionsData = sortedDocs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (err) { tbody.innerHTML = `<tr><td colspan="8"><div class="alert alert-error">خطأ: ${err.message}</div></td></tr>`; }
+  }
+
+  // =============== تصدير Excel بنفس قالب Stanford 2.xlsx ===============
+  async function exportAllExcel() {
+    if (!window.ExcelJS) { alert('جاري تحميل مكتبة Excel... انتظر لحظة ثم حاول مرة أخرى'); return; }
+    if (!allTransactionsData.length) { alert('لا توجد بيانات للتصدير. قم بالبحث أولاً.'); return; }
+    const schoolFilter = document.getElementById('adminSchoolFilter').value;
+    const schoolObj = schoolFilter ? SCHOOLS[schoolFilter] : { name: 'كل المدارس', primaryColor: '#1a3a6b' };
+    const dateFrom = document.getElementById('adminDateFrom').value || localDateStr();
+    const dateTo = document.getElementById('adminDateTo').value || localDateStr();
+    
+    // استخدام نفس كود exportExcel من reports.html مع تعديل الإدخالات
+    const data = allTransactionsData;
+    const from = dateFrom;
+    const to = dateTo;
+    const school = schoolObj;
+    
+    const HDR_BG = 'AD818A';
+    const TTL_BG = 'DDD9C4';
+    const SEC_BG = 'D8E4BC';
+    const EVEN_BG = 'F5F0F0';
+    const RED_FC = 'C00000';
+    
+    function applyStyle(row, bgColor, bold, fontSize, fontColor = '000000') {
+      row.eachCell({ includeEmpty: true }, cell => {
+        cell.style = {
+          font: { name: 'Arial', bold: !!bold, size: fontSize || 11, color: { argb: 'FF' + fontColor } },
+          fill: bgColor ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + bgColor } } : undefined,
+          alignment: { horizontal: 'right', vertical: 'middle', wrapText: true, readingOrder: 'rtl' },
+          border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
+        };
+      });
+    }
+    
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Eng. Kareem Ali Mousa';
+    wb.created = new Date();
+    
+    // ----------------------------- ورقة DAILY -----------------------------
+    const wsDaily = wb.addWorksheet('DAILY', { views: [{ rightToLeft: true }] });
+    wsDaily.columns = [{width:5},{width:22},{width:12},{width:14},{width:10},{width:10},{width:12},{width:10},{width:12},{width:10},{width:14},{width:12},{width:14},{width:18}];
+    const r1 = wsDaily.addRow(['اليوم', 'السبت', `ايراد ${school?.name || ''} - السنة الدراسية 2026/2027`]);
+    wsDaily.mergeCells('C1:N1');
+    applyStyle(r1, HDR_BG, true, 14, 'FFFFFF');
+    r1.height = 28;
+    const r2 = wsDaily.addRow(['التاريخ', from]);
+    wsDaily.mergeCells('B2:N2');
+    applyStyle(r2, HDR_BG, true, 14);
+    r2.height = 24;
+    const headers = ['م','الاسم','الصف','الرسوم','Discount','FILE','UNIFORM','ابلكيشن','إيرادات أخرى','BUS','الايصال','ملاحظات'];
+    const r3 = wsDaily.addRow(headers);
+    applyStyle(r3, HDR_BG, true, 12);
+    r3.height = 22;
+    let totals = [0,0,0,0,0,0,0,0,0,0];
+    data.forEach((d,i) => {
+      const rowData = Array(14).fill('');
+      rowData[0] = i+1;
+      rowData[1] = d.studentName;
+      rowData[2] = d.grade;
+      const amt = d.amount || 0;
+      switch(d.paymentItem) {
+        case 'مصروفات دراسية': rowData[3]=amt; totals[3]+=amt; break;
+        case 'Discount': rowData[4]=amt; totals[4]+=amt; break;
+        case 'فايل': rowData[5]=amt; totals[5]+=amt; break;
+        case 'يونيفورم': rowData[6]=amt; totals[6]+=amt; break;
+        case 'ابلكيشن': rowData[7]=amt; totals[7]+=amt; break;
+        case 'إيرادات أخرى': rowData[8]=amt; totals[8]+=amt; break;
+        case 'باص': rowData[9]=amt; totals[9]+=amt; break;
+        default: rowData[8]=amt; totals[8]+=amt;
+      }
+      rowData[10] = d.receiptNumber || '';
+      rowData[11] = d.notes || '';
+      const row = wsDaily.addRow(rowData);
+      applyStyle(row, i%2===1 ? EVEN_BG : null, false, 11);
+      row.height = 20;
+    });
+    const totRow = wsDaily.addRow(['الإجمالي','','',totals[3],totals[4],totals[5],totals[6],totals[7],totals[8],totals[9]]);
+    wsDaily.mergeCells(`A${totRow.number}:C${totRow.number}`);
+    applyStyle(totRow, SEC_BG, true, 13);
+    totRow.height = 24;
+    const grandTotal = totals.reduce((a,b)=>a+b,0);
+    const revRow = wsDaily.addRow(['اجمالي الايرادات','','',grandTotal]);
+    wsDaily.mergeCells(`A${revRow.number}:C${revRow.number}`);
+    applyStyle(revRow, HDR_BG, true, 14);
+    revRow.height = 22;
+    
+    // ----------------------------- ورقة WEEKLY (مختصرة ولكن بنفس الهيكل) -----------------------------
+    const wsWeekly = wb.addWorksheet('WEEKLY', { views: [{ rightToLeft: true }] });
+    wsWeekly.columns = Array(22).fill({width:8});
+    wsWeekly.getColumn(1).width = 4;
+    const titleRow = wsWeekly.addRow([`التقرير المالي الاسبوعي لمدرسة ${school?.name || ''}`]);
+    wsWeekly.mergeCells('A1:V1');
+    applyStyle(titleRow, TTL_BG, true, 16, RED_FC);
+    titleRow.height = 30;
+    const weekNum = Math.ceil((new Date(from) - new Date(new Date(from).getFullYear(),0,1)) / 86400000 / 7);
+    wsWeekly.addRow(['','','','','','','','','','','','','الاسبوع رقم',weekNum]);
+    wsWeekly.mergeCells('M2:V2');
+    wsWeekly.addRow(['','','','','','','','','','','','','الفترة الزمنية',from,'الى',to]);
+    wsWeekly.mergeCells('A3:L3');
+    wsWeekly.mergeCells('M3:O3');
+    wsWeekly.mergeCells('P3:V3');
+    const sec1 = wsWeekly.addRow(['أولا: الايراد الأسبوعي']);
+    wsWeekly.mergeCells('A4:V4');
+    applyStyle(sec1, SEC_BG, true, 13);
+    const subH1 = wsWeekly.addRow(['م','اليوم','','','التاريخ','إيرادات الرسوم','','Discount','','FILE','','UNIFORM','','Bus','','ابلكيشن','','إيرادات أخرى','','إجمالي الايرادات','','الإجمالي للعامين']);
+    applyStyle(subH1, HDR_BG, true, 11);
+    wsWeekly.mergeCells('B4:D4');
+    wsWeekly.mergeCells('E4:E4');
+    const subH2 = wsWeekly.addRow(['','','','','','25/26','26/27','25/26','26/27','25/26','26/27','25/26','26/27','25/26','26/27','25/26','26/27','25/26','26/27','25/26','26/27','']);
+    applyStyle(subH2, HDR_BG, true, 9);
+    // تجميع يومي سريع
+    const dayNames = ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
+    const weekMap = {};
+    data.forEach(d => { const day = new Date(d.date).getDay(); weekMap[day] = weekMap[day] || []; weekMap[day].push(d); });
+    let weekTotals25 = [0,0,0,0,0,0,0];
+    let weekTotals26 = [0,0,0,0,0,0,0];
+    for (let dayIdx = 0; dayIdx < 6; dayIdx++) {
+      const list = weekMap[dayIdx] || [];
+      const dayTotal25 = [0,0,0,0,0,0,0];
+      const dayTotal26 = [0,0,0,0,0,0,0];
+      list.forEach(d => {
+        const is26 = d.academicYear === ACADEMIC_YEAR;
+        const amt = d.amount || 0;
+        switch(d.paymentItem) {
+          case 'مصروفات دراسية': is26 ? dayTotal26[0]+=amt : dayTotal25[0]+=amt; break;
+          case 'Discount':        is26 ? dayTotal26[1]+=amt : dayTotal25[1]+=amt; break;
+          case 'فايل':            is26 ? dayTotal26[2]+=amt : dayTotal25[2]+=amt; break;
+          case 'يونيفورم':        is26 ? dayTotal26[3]+=amt : dayTotal25[3]+=amt; break;
+          case 'باص':             is26 ? dayTotal26[4]+=amt : dayTotal25[4]+=amt; break;
+          case 'ابلكيشن':         is26 ? dayTotal26[5]+=amt : dayTotal25[5]+=amt; break;
+          default:                is26 ? dayTotal26[6]+=amt : dayTotal25[6]+=amt;
+        }
+      });
+      for(let i=0;i<7;i++){ weekTotals25[i]+=dayTotal25[i]; weekTotals26[i]+=dayTotal26[i]; }
+      const dateObj = new Date(from); dateObj.setDate(dateObj.getDate() + (dayIdx - dateObj.getDay() + 7)%7);
+      const dateStr = localDateStr(dateObj);
+      const row = wsWeekly.addRow([dayIdx+1, dayNames[dayIdx], '', '', dateStr, dayTotal25[0], dayTotal26[0], dayTotal25[1], dayTotal26[1], dayTotal25[2], dayTotal26[2], dayTotal25[3], dayTotal26[3], dayTotal25[4], dayTotal26[4], dayTotal25[5], dayTotal26[5], dayTotal25[6], dayTotal26[6], dayTotal25.reduce((a,b)=>a+b,0)+dayTotal26.reduce((a,b)=>a+b,0), dayTotal25.reduce((a,b)=>a+b,0), dayTotal26.reduce((a,b)=>a+b,0)]);
+      applyStyle(row, dayIdx%2===1 ? EVEN_BG : null, false, 11);
+      row.height = 20;
+    }
+    const totalRowWeek = wsWeekly.addRow(['الاجمالي','','','','', weekTotals25[0], weekTotals26[0], weekTotals25[1], weekTotals26[1], weekTotals25[2], weekTotals26[2], weekTotals25[3], weekTotals26[3], weekTotals25[4], weekTotals26[4], weekTotals25[5], weekTotals26[5], weekTotals25[6], weekTotals26[6], weekTotals25.reduce((a,b)=>a+b,0)+weekTotals26.reduce((a,b)=>a+b,0), weekTotals25.reduce((a,b)=>a+b,0), weekTotals26.reduce((a,b)=>a+b,0)]);
+    applyStyle(totalRowWeek, SEC_BG, true, 12);
+    totalRowWeek.height = 22;
+    
+    // ----------------------------- ورقة MONTHLY -----------------------------
+    const wsMonthly = wb.addWorksheet('MONTHLY', { views: [{ rightToLeft: true }] });
+    wsMonthly.columns = Array(16).fill({width:10});
+    wsMonthly.getColumn(1).width = 6;
+    const monthTitle = wsMonthly.addRow([`التقرير المالي الشهري لمدرسة ${school?.name || ''}`]);
+    wsMonthly.mergeCells('A1:M1');
+    applyStyle(monthTitle, TTL_BG, true, 18, RED_FC);
+    monthTitle.height = 32;
+    const monthName = new Date(from).toLocaleDateString('ar-EG', { month:'long', year:'numeric' });
+    wsMonthly.addRow(['الشهر','','','',monthName]);
+    wsMonthly.mergeCells('A2:D2');
+    wsMonthly.mergeCells('E2:M2');
+    wsMonthly.addRow(['الفترة الزمنية','','','',from,'','',to]);
+    wsMonthly.mergeCells('A3:D3');
+    const sec1M = wsMonthly.addRow(['أولا: الايراد الشهري']);
+    wsMonthly.mergeCells('A4:M4');
+    applyStyle(sec1M, SEC_BG, true, 13);
+    const hdrM = wsMonthly.addRow(['م','الاسبوع','من','الى','مصروفات دراسية','فايل','يونيفورم','باص','ابلكيشن','إيرادات أخرى','','إجمالي الايرادات','']);
+    applyStyle(hdrM, HDR_BG, true, 11);
+    const subM = wsMonthly.addRow(['','','','','25/26','26/27','25/26','26/27','25/26','26/27','25/26','26/27','']);
+    applyStyle(subM, HDR_BG, true, 9);
+    // تجميع أسبوعي
+    const weekGroups = {};
+    data.forEach(d => {
+      const dObj = new Date(d.date);
+      const wkStart = new Date(dObj); wkStart.setDate(dObj.getDate() - dObj.getDay());
+      const wkKey = localDateStr(wkStart);
+      if(!weekGroups[wkKey]) weekGroups[wkKey] = [];
+      weekGroups[wkKey].push(d);
+    });
+    const sortedWeeks = Object.keys(weekGroups).sort();
+    let monthTotals25 = [0,0,0,0,0,0,0];
+    let monthTotals26 = [0,0,0,0,0,0,0];
+    sortedWeeks.forEach((wk, idx) => {
+      const wkData = weekGroups[wk];
+      const wkEnd = new Date(wk); wkEnd.setDate(wkEnd.getDate()+6);
+      const wkTotals25 = [0,0,0,0,0,0,0];
+      const wkTotals26 = [0,0,0,0,0,0,0];
+      wkData.forEach(d => {
+        const is26 = d.academicYear === ACADEMIC_YEAR;
+        const amt = d.amount || 0;
+        switch(d.paymentItem) {
+          case 'مصروفات دراسية': is26 ? wkTotals26[0]+=amt : wkTotals25[0]+=amt; break;
+          case 'فايل':            is26 ? wkTotals26[1]+=amt : wkTotals25[1]+=amt; break;
+          case 'يونيفورم':        is26 ? wkTotals26[2]+=amt : wkTotals25[2]+=amt; break;
+          case 'باص':             is26 ? wkTotals26[3]+=amt : wkTotals25[3]+=amt; break;
+          case 'ابلكيشن':         is26 ? wkTotals26[4]+=amt : wkTotals25[4]+=amt; break;
+          case 'Discount':        is26 ? wkTotals26[5]+=amt : wkTotals25[5]+=amt; break;
+          default:                is26 ? wkTotals26[6]+=amt : wkTotals25[6]+=amt;
+        }
+      });
+      for(let i=0;i<7;i++){ monthTotals25[i]+=wkTotals25[i]; monthTotals26[i]+=wkTotals26[i]; }
+      const row = wsMonthly.addRow([idx+1, `الاسبوع ${idx+1}`, wk, localDateStr(wkEnd), wkTotals25[0],wkTotals26[0], wkTotals25[1],wkTotals26[1], wkTotals25[2],wkTotals26[2], wkTotals25[3],wkTotals26[3], wkTotals25[4],wkTotals26[4], wkTotals25[5],wkTotals26[5], wkTotals25[6],wkTotals26[6], wkTotals25.reduce((a,b)=>a+b,0)+wkTotals26.reduce((a,b)=>a+b,0)]);
+      applyStyle(row, idx%2===1 ? EVEN_BG : null, false, 11);
+      row.height = 20;
+    });
+    const totRowM = wsMonthly.addRow(['الاجمالي','','','', monthTotals25[0],monthTotals26[0], monthTotals25[1],monthTotals26[1], monthTotals25[2],monthTotals26[2], monthTotals25[3],monthTotals26[3], monthTotals25[4],monthTotals26[4], monthTotals25[5],monthTotals26[5], monthTotals25[6],monthTotals26[6], monthTotals25.reduce((a,b)=>a+b,0)+monthTotals26.reduce((a,b)=>a+b,0)]);
+    applyStyle(totRowM, SEC_BG, true, 13);
+    totRowM.height = 24;
+    
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `كشف_تحصيل_${school?.name || 'كل_المدارس'}_${from}_${to}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  
+  function switchToSchool(schoolId) {
+    const session = SESSION.get();
+    SESSION.set({ ...session, schoolId });
+    applySchoolTheme(SCHOOLS[schoolId]);
+    document.getElementById('schoolSwitcherModal')?.classList.add('hidden');
+    window.location.href = 'dashboard.html';
+  }
+  
+  function renderDynamicContent() {
+    const usersContainer = document.getElementById('usersTabContent');
+    usersContainer.innerHTML = Object.values(SCHOOLS).map(school => `
+      <div class="card"><div class="card-header" style="background:${school.primaryColor}10;border-right:4px solid ${school.primaryColor}"><img src="${school.logo}" style="width:32px;height:32px;object-fit:contain;border-radius:6px" onerror="this.style.display='none'" /><span class="card-title" style="color:${school.primaryColor}">${school.name}</span></div><div class="card-body">${school.users.map(email => `<div class="user-card"><div><div class="user-email">${email}</div><div class="user-role">محاسب مدرسة</div></div><span class="badge badge-success">نشط</span></div>`).join('')}<div class="user-card" style="border-style:dashed;cursor:pointer;justify-content:center;color:var(--primary);font-size:0.85rem;font-weight:700" onclick="alert('لإضافة مستخدم: اذهب إلى Firebase Console > Authentication')">+ إضافة محاسب</div></div></div>
+    `).join('') + `<div class="card"><div class="card-header" style="background:#fff3cd;border-right:4px solid #f57f17"><span class="card-title" style="color:#f57f17">المديرون</span></div><div class="card-body">${ADMINS.map(email => `<div class="user-card"><div><div class="user-email">${email}</div><div class="user-role">مدير النظام (صلاحية كاملة)</div></div><span class="badge badge-warning">أدمن</span></div>`).join('')}</div></div>`;
+    const pricesContainer = document.getElementById('pricesTabContent');
+    pricesContainer.innerHTML = Object.entries(STAGES).map(([key, stage]) => `<div class="card"><div class="card-header"><span class="card-title">${stage.labelAr} (${stage.label})</span><span class="badge badge-primary">${stage.grades.join(', ')}</span></div><div class="card-body">${Object.entries(stage.prices).map(([item, price]) => `<div class="school-metric"><span class="label">${item}</span><span class="value text-primary">${formatCurrency(price)}</span></div>`).join('')}<div style="margin-top:0.75rem;padding-top:0.75rem;border-top:2px solid var(--primary);display:flex;justify-content:space-between;font-weight:900"><span>الإجمالي</span><span class="text-primary">${formatCurrency(Object.values(stage.prices).reduce((a,b)=>a+b,0))}</span></div></div></div>`).join('');
+    const switcherList = document.getElementById('schoolSwitcherList');
+    switcherList.innerHTML = Object.values(SCHOOLS).map(school => `<div class="admin-school-card" onclick="switchToSchool('${school.id}')"><img src="${school.logo}" onerror="this.style.display='none'" /><div class="school-info"><div class="school-name">${school.name}</div><div class="school-stats"><span class="color-swatch" style="background:${school.primaryColor}"></span>${school.users.length} محاسب</div></div></div>`).join('');
+  }
+  
+  // ملء الـ school select بالمدارس
+  const schoolSelectEl = document.getElementById('adminSchoolFilter');
+  Object.values(SCHOOLS).forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    schoolSelectEl.appendChild(opt);
+  });
+
+  // Default dates
+  const today = localDateStr();
+  const firstOfMonth = new Date(); firstOfMonth.setDate(1);
+  document.getElementById('adminDateFrom').value = localDateStr(firstOfMonth);
+  document.getElementById('adminDateTo').value = today;
+  document.getElementById('rptDate').value = today;
+  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate()+6);
+  document.getElementById('rptWeekFrom').value = localDateStr(weekStart);
+  document.getElementById('rptWeekTo').value = localDateStr(weekEnd);
+  document.getElementById('rptMonth').value = today.substring(0,7);
+  
+  renderDynamicContent();
+  loadOverview();
+</script>
+</body>
+</html>
