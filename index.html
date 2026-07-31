@@ -187,7 +187,7 @@
         </div>
 
         <div class="form-check mb-2">
-          <input type="checkbox" id="rememberMe" />
+          <input type="checkbox" id="rememberMe" checked />
           <label for="rememberMe">تذكرني</label>
         </div>
 
@@ -210,7 +210,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
-<script src="/pwa.js?v=7"></script>
+<script src="/pwa.js?v=8"></script>
 <script>
   let selectedSchool = null;
   let isAdminMode = false;
@@ -306,15 +306,41 @@
     btnLoader.classList.remove('hidden');
 
     try {
+      const remember = !!document.getElementById('rememberMe')?.checked;
+      // Firebase: LOCAL يخلي الدخول يفضل بعد إغلاق الـ PWA
+      await auth.setPersistence(
+        remember
+          ? firebase.auth.Auth.Persistence.LOCAL
+          : firebase.auth.Auth.Persistence.SESSION
+      );
+
       const result = await auth.signInWithEmailAndPassword(email, password);
       const user = result.user;
+
+      const saveRememberMeta = (schoolId) => {
+        try {
+          if (remember) {
+            localStorage.setItem('remembered_email', email);
+            if (schoolId) localStorage.setItem('remembered_school', schoolId);
+            localStorage.setItem(SESSION_PERSIST_KEY, '1');
+          } else {
+            localStorage.removeItem('remembered_email');
+            localStorage.removeItem('remembered_school');
+            localStorage.setItem(SESSION_PERSIST_KEY, '0');
+          }
+        } catch (_) { /* ignore */ }
+      };
 
       // ── ADMIN ──
       if (ADMINS.includes(email)) {
         const schoolId = isAdminMode
           ? Object.keys(SCHOOLS)[0]
           : (selectedSchool?.id || Object.keys(SCHOOLS)[0]);
-        SESSION.set({ uid: user.uid, email, role: 'admin', schoolId, name: 'مدير النظام' });
+        SESSION.set(
+          { uid: user.uid, email, role: 'admin', schoolId, name: 'مدير النظام' },
+          { persist: remember }
+        );
+        saveRememberMeta(schoolId);
         window.location.href = 'admin.html';
         return;
       }
@@ -331,7 +357,8 @@
           schoolId: selectedSchool.id,
           schoolName: selectedSchool.name,
           name: email.split('@')[0]
-        });
+        }, { persist: remember });
+        saveRememberMeta(selectedSchool.id);
         window.location.href = 'hr.html';
         return;
       }
@@ -343,7 +370,8 @@
           schoolId: selectedSchool.id,
           schoolName: selectedSchool.name,
           name: email.split('@')[0]
-        });
+        }, { persist: remember });
+        saveRememberMeta(selectedSchool.id);
         window.location.href = 'student-affairs.html';
         return;
       }
@@ -355,7 +383,8 @@
           schoolId: selectedSchool.id,
           schoolName: selectedSchool.name,
           name: email.split('@')[0]
-        });
+        }, { persist: remember });
+        saveRememberMeta(selectedSchool.id);
         window.location.href = 'contractors.html';
         return;
       }
@@ -372,12 +401,8 @@
         schoolId: selectedSchool.id,
         schoolName: selectedSchool.name,
         name: email.split('@')[0]
-      });
-
-      if (document.getElementById('rememberMe').checked) {
-        localStorage.setItem('remembered_email', email);
-        localStorage.setItem('remembered_school', selectedSchool.id);
-      }
+      }, { persist: remember });
+      saveRememberMeta(selectedSchool.id);
 
       window.location.href = 'dashboard.html';
 
@@ -412,14 +437,33 @@
     selectSchool(SCHOOLS[rememberedSchool]);
   }
 
-  // If already logged in → redirect to correct page
+  function redirectBySession(session) {
+    if (!session) return;
+    if (session.role === 'admin') window.location.href = 'admin.html';
+    else if (session.role === 'hr') window.location.href = 'hr.html';
+    else if (session.role === 'shu2on') window.location.href = 'student-affairs.html';
+    else if (session.role === 'contractors') window.location.href = 'contractors.html';
+    else window.location.href = 'dashboard.html';
+  }
+
+  // جلسة محفوظة (تذكرني / PWA) → دخول مباشر
   const session = SESSION.get();
   if (session) {
-    if (session.role === 'admin')        window.location.href = 'admin.html';
-    else if (session.role === 'hr')      window.location.href = 'hr.html';
-    else if (session.role === 'shu2on')  window.location.href = 'student-affairs.html';
-    else if (session.role === 'contractors') window.location.href = 'contractors.html';
-    else                                 window.location.href = 'dashboard.html';
+    redirectBySession(session);
+  } else {
+    // Firebase لسه مسجّل (LOCAL) لكن الـ SESSION اتمسحت → ابنِ الجلسة وكمّل
+    auth.onAuthStateChanged((user) => {
+      if (!user) return;
+      if (SESSION.get()) {
+        redirectBySession(SESSION.get());
+        return;
+      }
+      const rebuilt = buildSessionFromUser(user);
+      if (rebuilt) {
+        SESSION.set(rebuilt, { persist: SESSION.shouldPersist() });
+        redirectBySession(rebuilt);
+      }
+    });
   }
 </script>
 </body>

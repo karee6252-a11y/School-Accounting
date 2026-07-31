@@ -270,7 +270,7 @@ function loadMohasbaPWAScript() {
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
     // مسار مطلق عشان الـ PWA/Service Worker يلاقيه دايماً
-    s.src = '/pwa.js?v=7';
+    s.src = '/pwa.js?v=8';
     s.async = true;
     s.dataset.mohasbaPwa = '1';
     s.onload = () => {
@@ -318,7 +318,7 @@ async function openAdminNotifications() {
     try {
       await new Promise((resolve, reject) => {
         const s = document.createElement('script');
-        s.src = '/pwa.js?v=7&t=' + Date.now();
+        s.src = '/pwa.js?v=8&t=' + Date.now();
         s.dataset.mohasbaPwa = '1';
         s.onload = () => (window.MohasbaPWA ? resolve() : reject());
         s.onerror = reject;

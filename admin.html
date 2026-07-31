@@ -240,7 +240,7 @@
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="firebase-config.js"></script>
 <script src="layout.js"></script>
-<script src="/pwa.js?v=7"></script>
+<script src="/pwa.js?v=8"></script>
 <script>
   if (!SESSION.isAdmin()) { window.location.href = 'index.html'; }
   renderLayout('admin', 'لوحة الأدمن');
@@ -675,7 +675,8 @@
   
   function switchToSchool(schoolId) {
     const session = SESSION.get();
-    SESSION.set({ ...session, schoolId });
+    SESSION.set({ ...session, schoolId }, { persist: SESSION.shouldPersist() });
+    try { localStorage.setItem('remembered_school', schoolId); } catch (_) {}
     applySchoolTheme(SCHOOLS[schoolId]);
     document.getElementById('schoolSwitcherModal')?.classList.add('hidden');
     window.location.href = 'dashboard.html';

@@ -94,11 +94,19 @@ window.MohasbaPWA = {
       const s = session || (typeof SESSION !== 'undefined' ? SESSION.get() : null);
       const isAdmin = this._isAdminSession(s);
       const onMobile = this.isMobileDevice();
+      const alreadyGranted = ('Notification' in window) && Notification.permission === 'granted';
 
-      // 1) الأدمن على الموبايل: نافذة تفعيل الإشعارات أول حاجة
-      if (isAdmin && onMobile) {
+      // 1) الأدمن: لو الإشعارات مفعّلة → اشترك بهدوء من غير توست/إشعار تجريبي
+      //    لو لأ → نافذة التفعيل (مرة، مش كل تنقّل)
+      if (isAdmin) {
         await new Promise((r) => setTimeout(r, 250));
-        await this.maybeShowNotificationPrompt(s, true);
+        if (alreadyGranted) {
+          await this.enablePush(s, { quiet: true });
+          this.startAdminAlertListener(s);
+          this.refreshNotifButtonState();
+        } else {
+          await this.maybeShowNotificationPrompt(s, true);
+        }
       }
 
       // 2) لو لسه من المتصفح مش من الأيقونة: نافذة التثبيت
@@ -106,16 +114,9 @@ window.MohasbaPWA = {
         if (!this._deferredInstall && this.isAndroid()) {
           await new Promise((r) => setTimeout(r, 400));
         }
-        // بعد ما يقفل نافذة الإشعارات (أو لو مش أدمن)
         if (!document.getElementById('pwa-notif-overlay')) {
           this.showInstallModal();
         }
-      }
-
-      // 3) أدمن على الكمبيوتر: برضه نطلب التفعيل
-      if (isAdmin && !onMobile) {
-        await new Promise((r) => setTimeout(r, 400));
-        await this.maybeShowNotificationPrompt(s, true);
       }
     } finally {
       this._onboardingRunning = false;
@@ -206,11 +207,11 @@ window.MohasbaPWA = {
     }
 
     if (Notification.permission === 'granted') {
-      const ok = await this.enablePush(s);
+      const ok = await this.enablePush(s, { quiet: true });
       this.startAdminAlertListener(s);
       this.refreshNotifButtonState();
       this._toast(ok
-        ? 'الإشعارات مفعّلة ✓ — هتوصلك تنبيهات كل مدرسة باسمها'
+        ? 'الإشعارات شغّالة على الجهاز ✓'
         : 'الصلاحية موجودة لكن فشل تسجيل الجهاز — حاول مرة أخرى');
       return;
     }
@@ -394,12 +395,12 @@ window.MohasbaPWA = {
     }
 
     if (!iosNeedsInstall && Notification.permission === 'granted') {
-      const ok = await this.enablePush(session);
+      const ok = await this.enablePush(session, { quiet: true });
       if (ok) {
         this.startAdminAlertListener(session);
         this.refreshNotifButtonState();
       }
-      // على الموبايل: لو مفعّلة خلاص، مفيش نافذة
+      // مفعّلة خلاص — بلاش نافذة ولا إشعار "تم التفعيل" متكرر
       return;
     }
 
@@ -492,7 +493,7 @@ window.MohasbaPWA = {
 
     overlay.querySelector('#pwa-notif-retry')?.addEventListener('click', async () => {
       if (Notification.permission === 'granted') {
-        await this.enablePush(session);
+        await this.enablePush(session, { quiet: true });
         this.startAdminAlertListener(session);
         this.refreshNotifButtonState();
         this._toast('الإشعارات مفعّلة ✓');
@@ -512,7 +513,7 @@ window.MohasbaPWA = {
       const errEl = overlay.querySelector('#pwa-notif-error');
       if (btn) { btn.disabled = true; btn.textContent = 'جاري التفعيل…'; }
       try {
-        const ok = await this.enablePush(session);
+        const ok = await this.enablePush(session, { quiet: false, welcome: true });
         if (!ok) throw new Error('تعذّر الاشتراك — اسمح بالإشعارات من رسالة المتصفح');
         this.startAdminAlertListener(session);
         this.refreshNotifButtonState();
@@ -543,9 +544,13 @@ window.MohasbaPWA = {
     return arr;
   },
 
-  async enablePush(session) {
+  async enablePush(session, opts = {}) {
+    const quiet = !!opts.quiet;
+    const welcome = !!opts.welcome;
     if (!('Notification' in window) || !('serviceWorker' in navigator)) return false;
-    const perm = await Notification.requestPermission();
+    const perm = Notification.permission === 'granted'
+      ? 'granted'
+      : await Notification.requestPermission();
     if (perm !== 'granted') return false;
 
     const reg = await navigator.serviceWorker.ready;
@@ -573,20 +578,20 @@ window.MohasbaPWA = {
       userAgent: navigator.userAgent.slice(0, 180),
     }, { merge: true });
 
-    const schoolLabel = (typeof SESSION !== 'undefined' && SESSION.getSchool)
-      ? (SESSION.getSchool()?.name || 'كل المدارس')
-      : 'School System';
-
-    try {
-      await reg.showNotification('تم تفعيل الإشعارات', {
-        body: session.role === 'admin'
-          ? 'هتوصلك تنبيهات كل المدارس، كل إشعار باسم مدرسته'
-          : ('هتوصلك تنبيهات ' + schoolLabel),
-        icon: '/icons/icon-192.png',
-        badge: '/icons/icon-96.png',
-        tag: 'mohasba-notif-test',
-      });
-    } catch (_) { /* ignore */ }
+    // إشعار ترحيب مرة واحدة فقط عند التفعيل اليدوي الأول — مش مع كل صفحة
+    let alreadyWelcomed = false;
+    try { alreadyWelcomed = localStorage.getItem('mohasba_push_welcomed') === '1'; } catch (_) { /* ignore */ }
+    if (!quiet && welcome && !alreadyWelcomed) {
+      try {
+        await reg.showNotification('تم تفعيل الإشعارات', {
+          body: 'هتوصلك تنبيهات عمليات المحاسبين فقط، كل إشعار باسم مدرسته',
+          icon: '/icons/icon-192.png',
+          badge: '/icons/icon-96.png',
+          tag: 'mohasba-notif-welcome',
+        });
+        try { localStorage.setItem('mohasba_push_welcomed', '1'); } catch (_) { /* ignore */ }
+      } catch (_) { /* ignore */ }
+    }
 
     return true;
   },
@@ -596,6 +601,8 @@ window.MohasbaPWA = {
       try { this._alertUnsub(); } catch (_) {}
       this._alertUnsub = null;
     }
+    this._listenSchoolId = null;
+    this._alertReady = false;
   },
 
   startAdminAlertListener(session) {
@@ -607,6 +614,7 @@ window.MohasbaPWA = {
     if (this._alertUnsub && this._listenSchoolId === schoolId) return;
     this.stopAdminAlertListener();
     this._listenSchoolId = schoolId;
+    this._alertReady = false;
 
     const bootAt = Date.now();
     // بدون orderBy+where لتفادي composite index — فلترة على العميل
@@ -614,19 +622,38 @@ window.MohasbaPWA = {
       .orderBy('createdAt', 'desc')
       .limit(40)
       .onSnapshot((snap) => {
+        // أول snapshot بعد فتح الصفحة = بيانات قديمة — علّمها كمقروءة ومتظهرش إشعار
+        if (!this._alertReady) {
+          snap.docs.forEach((doc) => this._seenAlertIds.add(doc.id));
+          this._alertReady = true;
+          return;
+        }
+
         const currentSchool = (typeof SESSION !== 'undefined' && SESSION.get)
           ? (SESSION.get()?.schoolId || schoolId)
           : schoolId;
+
         snap.docChanges().forEach((change) => {
           if (change.type !== 'added') return;
           const id = change.doc.id;
           if (this._seenAlertIds.has(id)) return;
           this._seenAlertIds.add(id);
           const d = change.doc.data() || {};
+
+          // متكررش إشعار لنفس الفاعل لو هو الأدمن نفسه
+          if (session.email && d.createdBy && d.createdBy === session.email) return;
+          if (typeof ADMINS !== 'undefined' && d.createdBy && ADMINS.includes(d.createdBy)) return;
+
           // إشعار حي داخل التطبيق للمدرسة المفتوحة حالياً فقط
+          // (الـ Push بره التطبيق بيوصل لكل مدارس الأدمن)
           if (currentSchool && d.schoolId && d.schoolId !== currentSchool) return;
-          const created = d.createdAt?.toMillis ? d.createdAt.toMillis() : 0;
-          if (created && created < bootAt - 2000) return;
+
+          const created = d.createdAt && typeof d.createdAt.toMillis === 'function'
+            ? d.createdAt.toMillis()
+            : 0;
+          // لازم تاريخ صالح وبعد تشغيل المستمع — يمنع إشعارات التنقّل/البيانات القديمة
+          if (!created || created < bootAt - 1000) return;
+
           this.showLocalNotification(d.title || 'إشعار جديد', d.body || '', d.url || '/admin.html');
         });
       }, (err) => console.warn('[PWA] alert listener:', err));

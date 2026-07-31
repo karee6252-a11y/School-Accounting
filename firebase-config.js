@@ -16,6 +16,11 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
+// بقاء تسجيل الدخول بعد إغلاق الـ PWA/المتصفح (مهم للإشعارات)
+try {
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+} catch (_) { /* ignore */ }
+
 // ========================================
 // SCHOOLS — 4 مدارس
 // ========================================
@@ -146,14 +151,22 @@ const ACCOUNTING_PAGES = [
 ];
 
 /**
- * بناء جلسة من مستخدم Firebase (لو sessionStorage اتمسح والـ Auth لسه شغّال)
+ * بناء جلسة من مستخدم Firebase (لو التخزين اتمسح والـ Auth لسه شغّال)
  */
 function buildSessionFromUser(user) {
   if (!user || !user.email) return null;
   const email = user.email;
   if (ADMINS.includes(email)) {
-    // الأدمن لازم يختار مدرسة من صفحة الدخول
-    return null;
+    let schoolId = null;
+    try { schoolId = localStorage.getItem('remembered_school'); } catch (_) { /* ignore */ }
+    if (!schoolId || !SCHOOLS[schoolId]) schoolId = Object.keys(SCHOOLS)[0];
+    return {
+      uid: user.uid,
+      email,
+      role: 'admin',
+      schoolId,
+      name: 'مدير النظام'
+    };
   }
   const school = Object.values(SCHOOLS).find(sc =>
     sc.users.includes(email) ||
@@ -171,6 +184,7 @@ function buildSessionFromUser(user) {
     email,
     role,
     schoolId: school.id,
+    schoolName: school.name,
     name: email.split('@')[0]
   };
 }
@@ -476,10 +490,43 @@ const ACADEMIC_YEAR_START = _currentAcademicYearData.start;
 // ========================================
 // SESSION MANAGEMENT
 // ========================================
+const SESSION_KEY = 'school_session';
+const SESSION_PERSIST_KEY = 'school_session_persist';
+
 const SESSION = {
+  _readRaw: () => {
+    try {
+      return sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
+    } catch (_) {
+      return null;
+    }
+  },
+  _writeRaw: (json, persist) => {
+    try { sessionStorage.setItem(SESSION_KEY, json); } catch (_) { /* ignore */ }
+    try {
+      if (persist) {
+        localStorage.setItem(SESSION_KEY, json);
+        localStorage.setItem(SESSION_PERSIST_KEY, '1');
+      } else {
+        // لو تذكرني مقفول: امسح النسخة الدائمة فقط
+        localStorage.removeItem(SESSION_KEY);
+        localStorage.setItem(SESSION_PERSIST_KEY, '0');
+      }
+    } catch (_) { /* ignore */ }
+  },
+  shouldPersist: () => {
+    try {
+      const flag = localStorage.getItem(SESSION_PERSIST_KEY);
+      if (flag === '0') return false;
+      // افتراضي: نعم (مهم للـ PWA والإشعارات)
+      return true;
+    } catch (_) {
+      return true;
+    }
+  },
   get: () => {
     try {
-      const raw = sessionStorage.getItem('school_session');
+      const raw = SESSION._readRaw();
       if (!raw) return null;
       const s = JSON.parse(raw);
       if (!s || !s.uid || !s.email || !s.role) return null;
@@ -491,12 +538,12 @@ const SESSION = {
       const isKnownContractors = Object.values(SCHOOLS).some(sc => sc.contractorsUsers?.includes(s.email));
 
       if (!isKnownAdmin && !isKnownAccountant && !isKnownHR && !isKnownShu2on && !isKnownContractors) {
-        sessionStorage.removeItem('school_session');
+        SESSION.clear();
         return null;
       }
 
       if (!SCHOOLS[s.schoolId]) {
-        sessionStorage.removeItem('school_session');
+        SESSION.clear();
         return null;
       }
 
@@ -509,28 +556,34 @@ const SESSION = {
           sc.contractorsUsers?.includes(s.email)
         );
         if (!allowedSchool || allowedSchool.id !== s.schoolId) {
-          sessionStorage.removeItem('school_session');
+          SESSION.clear();
           return null;
         }
       }
 
+      // زامن النسخة في sessionStorage لو جاية من localStorage
+      try { sessionStorage.setItem(SESSION_KEY, raw); } catch (_) { /* ignore */ }
       return s;
     } catch (e) {
-      sessionStorage.removeItem('school_session');
+      SESSION.clear();
       return null;
     }
   },
-  set: (data) => {
+  set: (data, opts = {}) => {
     if (!data || !data.uid || !data.email || !data.role || !data.schoolId) {
       console.error('SESSION.set: بيانات ناقصة', data);
       return;
     }
-    sessionStorage.setItem('school_session', JSON.stringify(data));
+    const persist = opts.persist !== undefined ? !!opts.persist : SESSION.shouldPersist();
+    SESSION._writeRaw(JSON.stringify(data), persist);
   },
-  clear: () => sessionStorage.removeItem('school_session'),
+  clear: () => {
+    try { sessionStorage.removeItem(SESSION_KEY); } catch (_) { /* ignore */ }
+    try { localStorage.removeItem(SESSION_KEY); } catch (_) { /* ignore */ }
+  },
   isAdmin: () => {
     const s = SESSION.get();
-    return s && ADMINS.includes(s.email);
+    return !!(s && ADMINS.includes(s.email));
   },
   isHR: () => {
     const s = SESSION.get();
@@ -601,6 +654,7 @@ function applySchoolTheme(school) {
 function logout() {
   auth.signOut().then(() => {
     SESSION.clear();
+    try { localStorage.setItem(SESSION_PERSIST_KEY, '0'); } catch (_) { /* ignore */ }
     window.location.href = 'index.html';
   });
 }
@@ -608,10 +662,19 @@ function logout() {
 /**
  * إشعار الأدمن بأي نشاط من المحاسب / الموظفين (ما عدا الأدمن نفسه)
  * Firestore adminAlerts + Web Push
+ * ملاحظة: بيتنادى فقط بعد حفظ/تعديل/حذف عملية — مش عند فتح الصفحات
  */
 const _adminNotifyCooldown = new Map();
 
-function _notifyCooldownOk(key, ms = 1200) {
+function _isActorAdmin(session) {
+  if (!session) return false;
+  if (session.role === 'admin') return true;
+  if (typeof ADMINS !== 'undefined' && ADMINS.includes(session.email)) return true;
+  if (typeof SESSION !== 'undefined' && SESSION.isAdmin && SESSION.isAdmin()) return true;
+  return false;
+}
+
+function _notifyCooldownOk(key, ms = 2500) {
   const now = Date.now();
   if ((_adminNotifyCooldown.get(key) || 0) + ms > now) return false;
   _adminNotifyCooldown.set(key, now);
@@ -620,8 +683,9 @@ function _notifyCooldownOk(key, ms = 1200) {
 
 async function notifyAdmins(info = {}) {
   const session = (typeof SESSION !== 'undefined' && SESSION.get) ? SESSION.get() : null;
-  // الأدمن وهو شغّال مش هيبعت لنفسه
-  if (session && session.role === 'admin') return;
+  // الأدمن وهو شغّال مش هيبعت لنفسه أبداً
+  if (_isActorAdmin(session)) return;
+  if (!session) return;
 
   const school = (typeof SESSION !== 'undefined' && SESSION.getSchool) ? SESSION.getSchool() : null;
   const schoolName = info.schoolName || school?.name || '';
@@ -633,7 +697,7 @@ async function notifyAdmins(info = {}) {
   const url = info.url || '/admin.html';
   const type = info.type || 'activity';
 
-  const coolKey = `${type}|${title}|${body}`;
+  const coolKey = `${type}|${action}|${createdBy}|${body}`;
   if (!_notifyCooldownOk(coolKey)) return;
 
   try {
@@ -661,6 +725,9 @@ async function notifyAdmins(info = {}) {
       const d = doc.data() || {};
       const sub = d.subscription;
       if (!sub || !sub.endpoint) return;
+      // الاشتراكات للأدمن فقط — ومتبعتش لنفس الفاعل
+      if (!d.email || d.email === createdBy) return;
+      if (typeof ADMINS !== 'undefined' && !ADMINS.includes(d.email)) return;
       // فلتر حسب المدرسة: الاشتراك لازم يكون للمدرسة دي أو لكل المدارس
       const ids = Array.isArray(d.schoolIds) ? d.schoolIds : (d.schoolId ? [d.schoolId] : ['*']);
       const matchSchool = !schoolId
@@ -682,10 +749,10 @@ async function notifyAdmins(info = {}) {
   }
 }
 
-/** اختصار سريع من أي صفحة بعد حفظ/تعديل/حذف */
+/** اختصار سريع من أي صفحة بعد حفظ/تعديل/حذف فقط */
 function notifyAdminActivity(action, details = '', opts = {}) {
   const session = (typeof SESSION !== 'undefined' && SESSION.get) ? SESSION.get() : null;
-  if (!session || session.role === 'admin') return Promise.resolve();
+  if (!session || _isActorAdmin(session)) return Promise.resolve();
 
   const school = SESSION.getSchool ? SESSION.getSchool() : null;
   const detailTxt = details ? String(details) : '';
