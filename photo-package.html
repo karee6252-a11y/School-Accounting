@@ -566,6 +566,9 @@
       alertEl.textContent = `تم تسجيل الضيف "${name}" بنجاح `;
       alertEl.classList.remove('hidden');
       setTimeout(() => alertEl.classList.add('hidden'), 3000);
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('باكدج تصوير (تسجيل مباشر)', `${name} — ${grade} — ${formatCurrency(price)}`, { type: 'photo', url: '/photo-package.html' });
+      }
 
     } catch (e) {
       showErr('حدث خطأ: ' + e.message);
@@ -846,6 +849,9 @@
       updateStats();
       filterStudents();
       showReceipt(currentStudent, price, payType);
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('حجز باكدج تصوير', `${currentStudent.name || ''} — ${formatCurrency(price)}`, { type: 'photo', url: '/photo-package.html' });
+      }
 
     } catch (e) {
       showModalAlert('حدث خطأ: ' + e.message);
@@ -904,6 +910,9 @@
         photoBookedAt: firebase.firestore.FieldValue.delete(),
         photoBookedBy: firebase.firestore.FieldValue.delete(),
       });
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('إلغاء باكدج تصوير', name || studentId, { type: 'photo_cancel', url: '/photo-package.html' });
+      }
       const idx = allPartyStudents.findIndex(x => x.id === studentId);
       if (idx !== -1) {
         delete allPartyStudents[idx].photoPackage;

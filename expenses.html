@@ -1249,6 +1249,13 @@
       showAddAlert(refundTxn
         ? `تم حفظ الاسترداد وخصمه من دفعة الطالب بنجاح! المتبقي: ${formatCurrency(expense.remainingAfterRefund)}`
         : 'تم حفظ المصروف بنجاح! ', 'success');
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity(
+          refundTxn ? 'استرداد مصروف' : 'مصروف جديد',
+          `${expense.recipientName || ''} — ${formatCurrency(expense.amount || 0)} — ${expense.categoryLabel || ''}`,
+          { type: 'expense', url: '/expenses.html' }
+        );
+      }
       setTimeout(() => {
         closeAddModal();
         loadReport();
@@ -1268,6 +1275,9 @@
     if (!confirm('هل تريد حذف هذا المصروف؟')) return;
     try {
       await db.collection('expenses').doc(id).delete();
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('حذف مصروف', id, { type: 'expense_delete', url: '/expenses.html' });
+      }
       loadReport();
     } catch (err) {
       alert('خطأ في الحذف: ' + err.message);

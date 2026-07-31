@@ -842,6 +842,9 @@
         `${newStageName || newGrade}  •  ${newGrade}  •  ${currentStudentTx.length} معاملة`;
 
       showToast('✅ تم حفظ بيانات الطالب بنجاح');
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('تعديل بيانات طالب', newName, { type: 'student_edit', url: '/edit-student.html' });
+      }
       hideInfoAlert();
     } catch(e) {
       showInfoAlert('خطأ في الحفظ: ' + e.message);
@@ -1049,6 +1052,9 @@
       const msg = document.getElementById(`tx_savedMsg_${txId}`);
       if (msg) { msg.style.display = 'inline'; setTimeout(() => msg.style.display = 'none', 2500); }
       showToast('✅ تم حفظ المعاملة بنجاح');
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('تعديل معاملة طالب', `${currentStudentName || ''} — ${txId}`, { type: 'student_tx_edit', url: '/edit-student.html' });
+      }
     } catch(e) {
       showToast('خطأ: ' + e.message, 'error');
     } finally {
@@ -1076,6 +1082,9 @@
       currentStudentTx = currentStudentTx.filter(t => t.id !== _pendingDeleteTxId);
       buildTxPanel();
       showToast('🗑 تم حذف المعاملة');
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('حذف معاملة طالب', `${currentStudentName || ''} — ${_pendingDeleteTxId}`, { type: 'student_tx_delete', url: '/edit-student.html' });
+      }
     } catch(e) {
       showToast('خطأ في الحذف: ' + e.message, 'error');
     } finally {
@@ -1162,6 +1171,9 @@
       const msg = document.getElementById(`debt_savedMsg_${debtId}`);
       if (msg) { msg.style.display = 'inline'; setTimeout(() => msg.style.display = 'none', 2500); }
       showToast('✅ تم حفظ المديونية');
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('تعديل مديونية طالب', `${currentStudentName || ''} — ${debtId}`, { type: 'student_debt_edit', url: '/edit-student.html' });
+      }
     } catch(e) {
       showToast('خطأ: ' + e.message, 'error');
     } finally {
@@ -1189,6 +1201,9 @@
       currentStudentDebts = currentStudentDebts.filter(d => d.id !== _pendingDeleteDebtId);
       buildDebtPanel();
       showToast('🗑 تم حذف المديونية');
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('حذف مديونية طالب', `${currentStudentName || ''} — ${_pendingDeleteDebtId}`, { type: 'student_debt_delete', url: '/edit-student.html' });
+      }
     } catch(e) {
       showToast('خطأ: ' + e.message, 'error');
     } finally {

@@ -284,7 +284,7 @@ const MohasbaPWA = {
         <div class="pwa-onboard-head">
           <div class="pwa-bell">🔔</div>
           <h3>${denied ? 'الإشعارات متوقفة' : 'فعّل إشعارات الأدمن'}</h3>
-          <p>عشان يوصلك تنبيه فوري لما أي محاسب يسجّل تحصيل</p>
+          <p>عشان يوصلك تنبيه فوري لأي نشاط يعمله المحاسب على النظام</p>
         </div>
         <div class="pwa-onboard-body">
           ${denied

@@ -1410,6 +1410,9 @@ async function saveCustodyEntry() {
     await loadCustodyEntries();
     renderCustodyWidget();
     toast(`تم إضافة عهدة ${formatCurrency(amount)} ✓`);
+    if (typeof notifyAdminActivity === 'function') {
+      notifyAdminActivity('إضافة عهدة مقاولات', formatCurrency(amount), { type: 'contractors', url: '/contractors.html' });
+    }
   } catch(e) { showAlert('addCustodyAlert','خطأ: '+e.message); }
 }
 
@@ -1507,6 +1510,9 @@ async function saveEditCustodyEntry() {
     const logModal = document.getElementById('custodyLogModal');
     if (!logModal.classList.contains('hidden')) renderCustodyLog();
     toast('تم تعديل العهدة ✓');
+    if (typeof notifyAdminActivity === 'function') {
+      notifyAdminActivity('تعديل عهدة مقاولات', formatCurrency(amount), { type: 'contractors', url: '/contractors.html' });
+    }
   } catch(e) { showAlert('editCustodyAlert','خطأ: '+e.message); }
 }
 
@@ -1519,6 +1525,9 @@ async function deleteCustodyEntry(id) {
     const logModal = document.getElementById('custodyLogModal');
     if (!logModal.classList.contains('hidden')) renderCustodyLog();
     toast('تم الحذف ✓');
+    if (typeof notifyAdminActivity === 'function') {
+      notifyAdminActivity('حذف عهدة مقاولات', id, { type: 'contractors', url: '/contractors.html' });
+    }
   } catch(e) { alert('خطأ: '+e.message); }
 }
 
@@ -1937,6 +1946,9 @@ async function saveSupplier() {
     populateSupplierSelects();
     updateSummaryCards();
     toast(`تم حفظ بيانات ${name} ✓`);
+    if (typeof notifyAdminActivity === 'function') {
+      notifyAdminActivity(editId ? 'تعديل مورد/مقاول' : 'إضافة مورد/مقاول', name, { type: 'contractors', url: '/contractors.html' });
+    }
   } catch(e) { showAlert('supplierAlert','خطأ: '+e.message); }
 }
 
@@ -1952,6 +1964,9 @@ async function deleteSupplier(id) {
   if (!confirm(`هل تريد حذف "${s.name}" نهائياً؟`)) return;
   try {
     await db.collection('contractors_suppliers').doc(id).delete();
+    if (typeof notifyAdminActivity === 'function') {
+      notifyAdminActivity('حذف مورد/مقاول', s?.name || id, { type: 'contractors', url: '/contractors.html' });
+    }
     await loadSuppliers();
     populateSupplierSelects();
     updateSummaryCards();
@@ -2098,6 +2113,9 @@ async function savePurchase() {
     updateSummaryCards();
     renderCustodyWidget();
     toast('تم حفظ الفاتورة ✓');
+    if (typeof notifyAdminActivity === 'function') {
+      notifyAdminActivity(editId ? 'تعديل فاتورة مقاولات' : 'فاتورة مقاولات جديدة', formatCurrency(data.total || data.net || 0), { type: 'contractors', url: '/contractors.html' });
+    }
   } catch(e) { showAlert('purchaseAlert','خطأ: '+e.message); }
 }
 
@@ -2109,6 +2127,9 @@ async function deletePurchase(id) {
     updateSummaryCards();
     renderCustodyWidget();
     toast('تم الحذف');
+    if (typeof notifyAdminActivity === 'function') {
+      notifyAdminActivity('حذف فاتورة مقاولات', id, { type: 'contractors', url: '/contractors.html' });
+    }
   } catch(e) { alert('خطأ: '+e.message); }
 }
 
@@ -2333,6 +2354,9 @@ async function saveContract() {
     updateSummaryCards();
     renderCustodyWidget();
     toast('تم حفظ العقد ✓');
+    if (typeof notifyAdminActivity === 'function') {
+      notifyAdminActivity(editId ? 'تعديل عقد مقاولات' : 'عقد مقاولات جديد', data.purpose || data.workType || '', { type: 'contractors', url: '/contractors.html' });
+    }
   } catch(e) { showAlert('contractAlert','خطأ: '+e.message); }
 }
 
@@ -2344,6 +2368,9 @@ async function deleteContract(id) {
     updateSummaryCards();
     renderCustodyWidget();
     toast('تم حذف العقد ✓');
+    if (typeof notifyAdminActivity === 'function') {
+      notifyAdminActivity('حذف عقد مقاولات', id, { type: 'contractors', url: '/contractors.html' });
+    }
   } catch(e) { alert('خطأ: ' + e.message); }
 }
 

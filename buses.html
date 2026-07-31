@@ -1061,6 +1061,9 @@
 
       closeBusCompanyModal();
       await loadBusData();
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity(editId ? 'تعديل شركة باصات' : 'إضافة شركة باصات', name, { type: 'bus_company', url: '/buses.html' });
+      }
     } catch(err) {
       alert('خطأ في الحفظ: ' + err.message);
     }
@@ -1078,6 +1081,9 @@
       batch.delete(colRef.doc(companyId));
       await batch.commit();
       await loadBusData();
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('حذف شركة باصات', companyId, { type: 'bus_company_delete', url: '/buses.html' });
+      }
     } catch(err) {
       alert('خطأ في الحذف: ' + err.message);
     }
@@ -2116,12 +2122,21 @@
       if (editId) { await col.doc(editId).update(data); }
       else { data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); data.createdBy = session.email; await col.add(data); }
       closeSubModal(); await loadSubs();
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity(editId ? 'تعديل اشتراك باص' : 'اشتراك باص جديد', `${name} — ${formatCurrency(paid)}`, { type: 'bus_sub', url: '/buses.html' });
+      }
     } catch(e) { alert('خطأ في الحفظ: ' + e.message); }
   }
 
   async function deleteSub(id) {
     if (!confirm('هل تريد حذف هذا الاشتراك؟')) return;
-    try { await db.collection('busSubscriptions').doc(id).delete(); await loadSubs(); }
+    try {
+      await db.collection('busSubscriptions').doc(id).delete();
+      await loadSubs();
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('حذف اشتراك باص', id, { type: 'bus_sub_delete', url: '/buses.html' });
+      }
+    }
     catch(e) { alert('خطأ في الحذف: ' + e.message); }
   }
 
@@ -2342,12 +2357,21 @@
       if (editId) { await col.doc(editId).update(data); }
       else { data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); data.createdBy = session.email; await col.add(data); }
       closeExpModal(); await loadExps();
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity(editId ? 'تعديل مصروف باص' : 'مصروف باص جديد', `${data.label || data.category || ''} — ${formatCurrency(data.amount || 0)}`, { type: 'bus_exp', url: '/buses.html' });
+      }
     } catch(e) { alert('خطأ في الحفظ: ' + e.message); }
   }
 
   async function deleteExp(id) {
     if (!confirm('هل تريد حذف هذا المصروف؟')) return;
-    try { await db.collection('busExpenses').doc(id).delete(); await loadExps(); }
+    try {
+      await db.collection('busExpenses').doc(id).delete();
+      await loadExps();
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('حذف مصروف باص', id, { type: 'bus_exp_delete', url: '/buses.html' });
+      }
+    }
     catch(e) { alert('خطأ في الحذف: ' + e.message); }
   }
 

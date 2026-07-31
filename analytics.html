@@ -962,6 +962,13 @@ async function saveManualEntry() {
     document.getElementById('manualExpense').value = '';
     document.getElementById('manualNotes').value = '';
     showManualAlert('تم الحفظ — التحليل يتحدّث تلقائيًا', 'success');
+    if (typeof notifyAdminActivity === 'function') {
+      notifyAdminActivity(
+        'إدخال تحليلي يدوي',
+        `${paymentItem}: إيراد ${formatCurrency(revenue)} / مصروف ${formatCurrency(expense)}`,
+        { type: 'analytics', url: '/analytics.html' }
+      );
+    }
     // onSnapshot هيعيد الرسم — لا حاجة لإعادة تحميل يدوي
   } catch (err) {
     console.error(err);
@@ -975,6 +982,9 @@ async function deleteManual(id) {
   if (!confirm('حذف هذا الإدخال اليدوي؟')) return;
   try {
     await db.collection('analyticsEntries').doc(id).delete();
+    if (typeof notifyAdminActivity === 'function') {
+      notifyAdminActivity('حذف إدخال تحليلي', id, { type: 'analytics_delete', url: '/analytics.html' });
+    }
   } catch (err) {
     alert('خطأ: ' + err.message);
   }

@@ -606,32 +606,47 @@ function logout() {
 }
 
 /**
- * تنبيه الأدمن بعد تسجيل تحصيل — Firestore + Web Push API
+ * إشعار الأدمن بأي نشاط من المحاسب / الموظفين (ما عدا الأدمن نفسه)
+ * Firestore adminAlerts + Web Push
  */
-async function notifyAdminsOfPayment(info) {
-  const schoolName = info.schoolName || '';
-  const studentName = info.studentName || '';
-  const amount = info.amount || 0;
-  const paymentItem = info.paymentItem || '';
-  const createdBy = info.createdBy || '';
-  const schoolId = info.schoolId || '';
-  const amountTxt = formatCurrency(amount);
-  const title = `تحصيل جديد — ${schoolName}`;
-  const body = `${studentName}: ${amountTxt} (${paymentItem}) — ${createdBy}`;
-  const url = '/admin.html';
+const _adminNotifyCooldown = new Map();
+
+function _notifyCooldownOk(key, ms = 1200) {
+  const now = Date.now();
+  if ((_adminNotifyCooldown.get(key) || 0) + ms > now) return false;
+  _adminNotifyCooldown.set(key, now);
+  return true;
+}
+
+async function notifyAdmins(info = {}) {
+  const session = (typeof SESSION !== 'undefined' && SESSION.get) ? SESSION.get() : null;
+  // الأدمن وهو شغّال مش هيبعت لنفسه
+  if (session && session.role === 'admin') return;
+
+  const school = (typeof SESSION !== 'undefined' && SESSION.getSchool) ? SESSION.getSchool() : null;
+  const schoolName = info.schoolName || school?.name || '';
+  const schoolId = info.schoolId || session?.schoolId || '';
+  const createdBy = info.createdBy || session?.email || '';
+  const action = info.action || info.type || 'نشاط';
+  const title = String(info.title || `${action} — ${schoolName}`).slice(0, 120);
+  const body = String(info.body || `${action} بواسطة ${createdBy}`).slice(0, 300);
+  const url = info.url || '/admin.html';
+  const type = info.type || 'activity';
+
+  const coolKey = `${type}|${title}|${body}`;
+  if (!_notifyCooldownOk(coolKey)) return;
 
   try {
     await db.collection('adminAlerts').add({
-      type: 'collection',
+      type,
+      action,
       title,
       body,
       url,
       schoolId,
       schoolName,
-      studentName,
-      amount,
-      paymentItem,
       createdBy,
+      meta: info.meta || null,
       read: false,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
@@ -656,4 +671,42 @@ async function notifyAdminsOfPayment(info) {
   } catch (e) {
     console.warn('[notify] push send failed', e);
   }
+}
+
+/** اختصار سريع من أي صفحة بعد حفظ/تعديل/حذف */
+function notifyAdminActivity(action, details = '', opts = {}) {
+  const session = (typeof SESSION !== 'undefined' && SESSION.get) ? SESSION.get() : null;
+  if (!session || session.role === 'admin') return Promise.resolve();
+
+  const school = SESSION.getSchool ? SESSION.getSchool() : null;
+  const detailTxt = details ? String(details) : '';
+  const body = [detailTxt, session.email].filter(Boolean).join(' — ');
+
+  return notifyAdmins({
+    type: opts.type || 'activity',
+    action,
+    title: opts.title || `${action} — ${school?.name || ''}`,
+    body: opts.body || body,
+    url: opts.url || '/admin.html',
+    schoolId: session.schoolId,
+    schoolName: school?.name || '',
+    createdBy: session.email,
+    meta: opts.meta || { details: detailTxt },
+  }).catch((e) => console.warn('[notify]', e));
+}
+
+/** توافق خلفي — تحصيل */
+async function notifyAdminsOfPayment(info) {
+  const amountTxt = formatCurrency(info.amount || 0);
+  return notifyAdmins({
+    type: 'collection',
+    action: 'تحصيل جديد',
+    title: `تحصيل جديد — ${info.schoolName || ''}`,
+    body: `${info.studentName || ''}: ${amountTxt} (${info.paymentItem || ''}) — ${info.createdBy || ''}`,
+    url: '/collection.html',
+    schoolId: info.schoolId,
+    schoolName: info.schoolName,
+    createdBy: info.createdBy,
+    meta: info,
+  });
 }

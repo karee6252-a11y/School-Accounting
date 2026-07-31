@@ -2038,6 +2038,9 @@
 
       closeEditTxModal();
       renderTable();
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('تعديل تحصيل من التقارير', studentName || editingTxId || '', { type: 'collection_edit', url: '/reports.html' });
+      }
     } catch(err) {
       showEtAlert('خطأ في الحفظ: ' + err.message);
     } finally {

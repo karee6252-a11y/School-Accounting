@@ -875,6 +875,10 @@
       loadRecentList();
       resetRegForm();
       showAlert('regAlert', 'تم التسجيل بنجاح!', 'success');
+      if (typeof notifyAdminActivity === 'function') {
+        const nm = currentQRData?.studentName || currentQRData?.name || '';
+        notifyAdminActivity('تسجيل حفلة', nm, { type: 'party', url: '/party.html' });
+      }
 
     } catch(e) {
       showAlert('regAlert', 'حدث خطأ: ' + e.message, 'error');
@@ -1629,6 +1633,10 @@
       }
       renderAttendeeTable(allAttendees);
       loadStats();
+      if (typeof notifyAdminActivity === 'function') {
+        const nm = allAttendees[idx]?.studentName || allAttendees[idx]?.name || docId;
+        notifyAdminActivity('دخول حفلة', nm, { type: 'party_attend', url: '/party.html' });
+      }
     } catch(e) {
       alert('حدث خطأ: ' + e.message);
     }

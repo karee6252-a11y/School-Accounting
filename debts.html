@@ -483,6 +483,13 @@
           : `✓ تم تسجيل دفع ${formatCurrency(amount)} — المتبقي: ${formatCurrency(newRemaining)}`,
         'success'
       );
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity(
+          isFullyPaid ? 'تسوية مديونية كاملة' : 'سداد جزئي لمديونية',
+          `${currentDebt.studentName}: ${formatCurrency(amount)} — ${currentDebt.paymentItem || ''}`,
+          { type: 'debt_settle', url: '/debts.html' }
+        );
+      }
       await loadDebts();
     } catch(err) {
       showSettleAlert('خطأ في الحفظ: ' + err.message);

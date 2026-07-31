@@ -882,6 +882,9 @@
       successEl.textContent = `✓ تم تسجيل الطالب "${studentName}" بنجاح`;
       successEl.classList.remove('hidden');
       setTimeout(() => successEl.classList.add('hidden'), 4000);
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('تسجيل طالب (شئون)', `${studentName} — ${grade}`, { type: 'student_affairs', url: '/student-affairs.html' });
+      }
 
       loadPendingCount();
 

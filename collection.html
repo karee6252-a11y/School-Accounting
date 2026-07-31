@@ -1060,6 +1060,9 @@
       }
       await db.collection('transactions').doc(id).delete();
       showAlert('تم الحذف', 'success');
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('حذف تحصيل', `عملية رقم ${id}`, { type: 'collection_delete', url: '/collection.html' });
+      }
       loadTodayTransactions();
     } catch(err) {
       showAlert('خطأ في الحذف: ' + err.message);
@@ -1235,6 +1238,9 @@
       // ===== نهاية المزامنة =====
 
       showAlert('تم التعديل بنجاح ✓', 'success');
+      if (typeof notifyAdminActivity === 'function') {
+        notifyAdminActivity('تعديل تحصيل', editingDocId || '', { type: 'collection_edit', url: '/collection.html' });
+      }
       closeEditModal();
       loadTodayTransactions();
     } catch (err) {
