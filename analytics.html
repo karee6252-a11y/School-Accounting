@@ -178,6 +178,10 @@
 
             <div id="manualGradeBlock">
               <div class="form-group">
+                <label class="form-label">المرحلة <span class="required">*</span></label>
+                <select class="form-input" id="manualStage" onchange="onManualStageChange()"></select>
+              </div>
+              <div class="form-group">
                 <label class="form-label">الصف <span class="required">*</span></label>
                 <select class="form-input" id="manualGrade" onchange="onManualGradeChange()"></select>
               </div>
@@ -415,35 +419,79 @@ function numCell(val) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function getManualGradesList() {
+/** نفس مصدر الصفوف/المراحل بتاع التحصيل اليومي */
+function getCollectionStagesMap() {
+  if (schoolId === 'cardiff' && typeof CARDIFF_STAGES !== 'undefined') return CARDIFF_STAGES;
+  if (typeof STAGES !== 'undefined') return STAGES;
+  return {};
+}
+
+function getManualStageEntries() {
+  const stages = getCollectionStagesMap();
+  return Object.entries(stages).map(([key, st]) => ({
+    key,
+    label: st.label && st.labelAr
+      ? (st.label + ' - ' + st.labelAr)
+      : (st.labelAr || st.label || key),
+    grades: Array.isArray(st.grades) ? st.grades.slice() : []
+  }));
+}
+
+function getManualGradesForStage(stageKey) {
+  const stages = getCollectionStagesMap();
+  if (stageKey && stages[stageKey] && Array.isArray(stages[stageKey].grades)) {
+    return stages[stageKey].grades.slice();
+  }
+  // كل الصفوف من كل المراحل (زي التحصيل)
   const grades = [];
-  try {
-    const stages = (schoolId === 'cardiff' && typeof CARDIFF_STAGES !== 'undefined')
-      ? CARDIFF_STAGES
-      : (typeof STAGES !== 'undefined' ? STAGES : null);
-    if (stages) {
-      Object.values(stages).forEach(st => {
-        (st.grades || []).forEach(g => {
-          if (!grades.includes(g)) grades.push(g);
-        });
-      });
-    }
-  } catch (_) { /* ignore */ }
-  if (!grades.length) {
-    return ['KG1', 'KG2', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Prep 1'];
+  Object.values(stages).forEach(st => {
+    (st.grades || []).forEach(g => {
+      if (!grades.includes(g)) grades.push(g);
+    });
+  });
+  // أي صف ظهر في التحصيل الفعلي ومش موجود في القائمة
+  if (typeof allTx !== 'undefined' && Array.isArray(allTx)) {
+    allTx.forEach(tx => {
+      if (tx.schoolId && tx.schoolId !== schoolId) return;
+      const g = String(tx.grade || '').trim();
+      if (g && !grades.includes(g)) grades.push(g);
+    });
   }
   return grades;
+}
+
+function fillManualStageSelect() {
+  const sel = document.getElementById('manualStage');
+  if (!sel) return;
+  const prev = sel.value;
+  const entries = getManualStageEntries();
+  sel.innerHTML =
+    '<option value="">كل المراحل — كل الصفوف</option>' +
+    entries.map(e =>
+      `<option value="${escapeHtml(e.key)}">${escapeHtml(e.label)}</option>`
+    ).join('');
+  if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
 }
 
 function fillManualGradeSelect() {
   const sel = document.getElementById('manualGrade');
   if (!sel) return;
   const prev = sel.value;
-  const grades = getManualGradesList();
+  const stageKey = document.getElementById('manualStage')?.value || '';
+  const grades = getManualGradesForStage(stageKey);
+  if (!grades.length) {
+    sel.innerHTML = '<option value="">لا توجد صفوف</option>';
+    return;
+  }
   sel.innerHTML = grades.map(g =>
     `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`
   ).join('');
   if (prev && grades.includes(prev)) sel.value = prev;
+}
+
+function onManualStageChange() {
+  fillManualGradeSelect();
+  onManualGradeChange();
 }
 
 function isExpenseNatureItem(item) {
@@ -604,12 +652,14 @@ async function saveManualGradeEntry() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
+    const stage = document.getElementById('manualStage')?.value || '';
     await db.collection('analyticsEntries').add({
       ...baseMeta,
       entryKind: 'gradeRow',
       paymentItem: 'إدخال صف — ' + grade,
       revenue: 0,
       expense: 0,
+      stage: stage || null,
       ...row
     });
 
@@ -852,6 +902,7 @@ function setAnalysisMode(mode) {
   }
 
   selectedMonthYm = null;
+  fillManualStageSelect();
   fillManualGradeSelect();
   onManualEntryTypeChange();
   loadGradeFieldsFromSaved();
@@ -1267,6 +1318,8 @@ function startLiveSync() {
         const today = todayStr();
         allTx = snap.docs.map(d => ({ id: d.id, ...d.data() }))
           .filter(t => t.date && String(t.date) <= today);
+        // حدّث قائمة الصفوف لو ظاهرة صفوف جديدة من التحصيل
+        if (!(document.getElementById('manualStage')?.value)) fillManualGradeSelect();
         scheduleRender();
       }, onErr('transactions'))
   );
@@ -2567,6 +2620,7 @@ setInterval(() => {
 window.addEventListener('beforeunload', stopLiveSync);
 fillTadkheelYearSelect();
 fillManualYearSelect(ACADEMIC_YEAR);
+fillManualStageSelect();
 fillManualGradeSelect();
 onManualEntryTypeChange();
 startLiveSync();
