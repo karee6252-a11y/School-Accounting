@@ -173,9 +173,12 @@
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">السنة الدراسية</label>
-              <div id="manualYearLabel" style="font-weight:800;color:var(--primary);padding:0.55rem 0.75rem;background:var(--accent);border-radius:10px;border:1px solid var(--border)">—</div>
-              <!-- مخفي للتوافق — الإدخال سنوي مش شهري -->
+              <label class="form-label">السنة الدراسية <span class="required">*</span></label>
+              <select class="form-input" id="manualYearSelect" onchange="onManualYearChange()"></select>
+              <p id="manualYearHint" style="font-size:0.72rem;color:var(--text-light);margin-top:0.35rem;line-height:1.45">
+                اختار السنة اللي هتدخّل لها الإجمالي (ينفع سنة سابقة).
+              </p>
+              <!-- مخفي للتوافق مع فلتر الشهور للبيانات الحية -->
               <select class="form-input hidden" id="manualMonth" aria-hidden="true"></select>
               <input type="hidden" id="manualDate" />
             </div>
@@ -185,7 +188,7 @@
             </div>
             <button class="btn btn-primary w-full" id="manualSaveBtn" onclick="saveManualEntry()">حفظ وعرض التحليل</button>
             <p style="font-size:0.72rem;color:var(--text-light);margin-top:0.6rem;line-height:1.5" id="manualFormHint">
-              الإدخال سنوي بإجمالي كل بند — مش شهري. لا يغيّر التحصيل أو المصروفات المسجّلة في النظام.
+              إدخال سنوي بإجمالي كل بند للسنة المختارة — مش شهري. لا يغيّر التحصيل أو المصروفات في النظام.
             </p>
           </div>
         </div>
@@ -313,19 +316,73 @@ function isExcludedAnalysisItem(item) {
   return n === 'امتحانات';
 }
 
-function currentManualAnalysisYear() {
-  return isTadkheelMode() ? tadkheelYear : ACADEMIC_YEAR;
-}
-
 function annualYmForYear(label) {
   const startY = Number(String(label || '').split('/')[0]);
   if (!startY) return todayStr().slice(0, 7);
   return startY + '-07';
 }
 
+function getSelectedManualYear() {
+  const sel = document.getElementById('manualYearSelect');
+  if (sel && sel.value) return sel.value;
+  return isTadkheelMode() ? tadkheelYear : ACADEMIC_YEAR;
+}
+
+function currentManualAnalysisYear() {
+  return getSelectedManualYear();
+}
+
+function fillManualYearSelect(preferredYear) {
+  const sel = document.getElementById('manualYearSelect');
+  if (!sel) return;
+  const years = listAcademicYears(14);
+  const want = preferredYear || sel.value || (isTadkheelMode() ? tadkheelYear : ACADEMIC_YEAR);
+  sel.innerHTML = years.map(y =>
+    `<option value="${escapeHtml(y)}">${escapeHtml(y)}${y === ACADEMIC_YEAR ? ' (الحالية)' : ''}</option>`
+  ).join('');
+  sel.value = years.includes(want) ? want : years[0];
+  updateManualYearHint();
+}
+
+function updateManualYearHint() {
+  const hint = document.getElementById('manualYearHint');
+  if (!hint) return;
+  const y = getSelectedManualYear();
+  if (y === ACADEMIC_YEAR) {
+    hint.textContent = 'السنة الحالية — إدخال سنوي للمقارنة مع التحليل المباشر.';
+  } else {
+    hint.textContent = 'سنة سابقة («' + y + '») — هيتسجل كتدخيل سنوي وتقدر تحلله من وضع تدخيل.';
+  }
+}
+
+function onManualYearChange() {
+  const y = getSelectedManualYear();
+  updateManualYearHint();
+  // زامن سنة وضع التدخيل مع اختيار الإدخال
+  tadkheelYear = y;
+  const tSel = document.getElementById('tadkheelYearSelect');
+  if (tSel) {
+    if (![...tSel.options].some(o => o.value === y)) fillTadkheelYearSelect();
+    tSel.value = y;
+  }
+  const ayYm = annualYmForYear(y);
+  const dateEl = document.getElementById('manualDate');
+  if (dateEl) dateEl.value = ayYm + '-01';
+  const mSel = document.getElementById('manualMonth');
+  if (mSel) mSel.value = ayYm;
+
+  if (isTadkheelMode()) {
+    document.getElementById('modeHint').textContent = 'وضع التدخيل: التحليل على البيانات اليدوية فقط لسنة ' + y;
+    document.getElementById('manualTableTitle').textContent = 'سجل تدخيل السنة ' + y;
+    document.getElementById('kpiManualRevSub').textContent = 'سنة ' + y;
+    document.getElementById('kpiManualExpSub').textContent = 'سنة ' + y;
+    selectedMonthYm = null;
+    scheduleRender();
+  }
+}
+
 function syncManualYearLabel() {
-  const el = document.getElementById('manualYearLabel');
-  if (el) el.textContent = currentManualAnalysisYear();
+  fillManualYearSelect(isTadkheelMode() ? tadkheelYear : getSelectedManualYear());
 }
 
 const CHART_COLORS = [
@@ -387,12 +444,18 @@ function fillTadkheelYearSelect() {
 
 function getActiveManualEntries() {
   if (isTadkheelMode()) {
+    // كل الإدخالات السنوية للسنة المختارة
     return manualEntries.filter(e =>
-      e.entryMode === 'tadkheel' && String(e.analysisYear || e.academicYear || '') === String(tadkheelYear)
+      String(e.analysisYear || e.academicYear || '') === String(tadkheelYear)
     );
   }
-  // الوضع المباشر: متخلطش مع بيانات التدخيل القديمة
-  return manualEntries.filter(e => e.entryMode !== 'tadkheel');
+  // الوضع المباشر: إدخالات السنة الحالية فقط (مش سنين سابقة)
+  return manualEntries.filter(e => {
+    if (e.entryMode === 'tadkheel') return false;
+    const ay = String(e.analysisYear || e.academicYear || '');
+    if (!ay) return true; // قديم بدون سنة — اعتبره للوضع المباشر
+    return ay === String(ACADEMIC_YEAR);
+  });
 }
 
 function setAnalysisMode(mode) {
@@ -410,6 +473,7 @@ function setAnalysisMode(mode) {
 
   if (isTadkheelMode()) {
     fillTadkheelYearSelect();
+    fillManualYearSelect(tadkheelYear);
     if (hint) hint.textContent = 'وضع التدخيل: التحليل على البيانات اليدوية فقط لسنة ' + tadkheelYear;
     if (liveEl) {
       liveEl.textContent = '✎ تدخيل — بدون بيانات النظام الحية';
@@ -451,6 +515,7 @@ function onTadkheelYearChange() {
   const sel = document.getElementById('tadkheelYearSelect');
   tadkheelYear = sel?.value || tadkheelYear;
   selectedMonthYm = null;
+  fillManualYearSelect(tadkheelYear);
   if (isTadkheelMode()) {
     document.getElementById('modeHint').textContent = 'وضع التدخيل: التحليل على البيانات اليدوية فقط لسنة ' + tadkheelYear;
     document.getElementById('manualTableTitle').textContent = 'سجل تدخيل السنة ' + tadkheelYear;
@@ -1304,9 +1369,13 @@ async function saveManualEntry() {
   const revenue = parseFloat(document.getElementById('manualRevenue').value) || 0;
   const expense = parseFloat(document.getElementById('manualExpense').value) || 0;
   const notes = document.getElementById('manualNotes').value.trim();
-  const analysisYear = currentManualAnalysisYear();
+  const analysisYear = getSelectedManualYear();
+  if (!analysisYear) return showManualAlert('اختار السنة الدراسية');
+
   const yearMonth = annualYmForYear(analysisYear);
   const date = yearMonth + '-01';
+  // أي سنة غير الحالية = تدخيل لسنة سابقة
+  const asTadkheel = isTadkheelMode() || analysisYear !== ACADEMIC_YEAR;
 
   if (!paymentItem || paymentItem === 'غير محدد') return showManualAlert('اختر البند');
   if (isExcludedAnalysisItem(paymentItem)) return showManualAlert('بند الامتحانات مش موجود في التحليل');
@@ -1320,7 +1389,7 @@ async function saveManualEntry() {
       schoolName: school?.name || '',
       academicYear: analysisYear,
       analysisYear,
-      entryMode: isTadkheelMode() ? 'tadkheel' : 'overlay',
+      entryMode: asTadkheel ? 'tadkheel' : 'overlay',
       period: 'annual',
       entryPeriod: 'annual',
       paymentItem,
@@ -1338,15 +1407,23 @@ async function saveManualEntry() {
     document.getElementById('manualExpense').value = '';
     document.getElementById('manualNotes').value = '';
     if (document.getElementById('manualCustomItem')) document.getElementById('manualCustomItem').value = '';
-    showManualAlert(
-      isTadkheelMode() ? 'تم التدخيل — التحليل على بيانات السنة اليدوية' : 'تم الحفظ — التحليل يتحدّث تلقائيًا',
-      'success'
-    );
+
+    // لو سنة سابقة: افتح وضع التدخيل على نفس السنة عشان تشوف التحليل فورًا
+    if (asTadkheel) {
+      tadkheelYear = analysisYear;
+      if (!isTadkheelMode()) setAnalysisMode('tadkheel');
+      else {
+        fillTadkheelYearSelect();
+        document.getElementById('tadkheelYearSelect').value = analysisYear;
+        onTadkheelYearChange();
+      }
+    }
+
+    showManualAlert('تم حفظ إجمالي «' + paymentItem + '» لسنة ' + analysisYear, 'success');
     if (typeof notifyAdminActivity === 'function') {
       notifyAdminActivity(
-        isTadkheelMode() ? 'تدخيل تحليلي لسنة قديمة' : 'إدخال تحليلي يدوي',
-        `${paymentItem}: إيراد ${formatCurrency(revenue)} / مصروف ${formatCurrency(expense)}` +
-          (isTadkheelMode() ? (' — ' + tadkheelYear) : ''),
+        asTadkheel ? 'تدخيل تحليلي لسنة' : 'إدخال تحليلي يدوي',
+        `${paymentItem}: إيراد ${formatCurrency(revenue)} / مصروف ${formatCurrency(expense)} — ${analysisYear}`,
         { type: 'analytics', url: '/analytics.html' }
       );
     }
@@ -2118,6 +2195,7 @@ setInterval(() => {
 
 window.addEventListener('beforeunload', stopLiveSync);
 fillTadkheelYearSelect();
+fillManualYearSelect(ACADEMIC_YEAR);
 startLiveSync();
 </script>
 </body>
