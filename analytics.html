@@ -164,23 +164,20 @@
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
               <div class="form-group">
-                <label class="form-label">إيراد (ج.م)</label>
+                <label class="form-label">إيراد سنوي (ج.م)</label>
                 <input type="number" min="0" step="0.01" class="form-input" id="manualRevenue" placeholder="0" />
               </div>
               <div class="form-group">
-                <label class="form-label">مصروف (ج.م)</label>
+                <label class="form-label">مصروف سنوي (ج.م)</label>
                 <input type="number" min="0" step="0.01" class="form-input" id="manualExpense" placeholder="0" />
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-              <div class="form-group">
-                <label class="form-label">الشهر</label>
-                <select class="form-input" id="manualMonth"></select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">التاريخ</label>
-                <input type="date" class="form-input" id="manualDate" />
-              </div>
+            <div class="form-group">
+              <label class="form-label">السنة الدراسية</label>
+              <div id="manualYearLabel" style="font-weight:800;color:var(--primary);padding:0.55rem 0.75rem;background:var(--accent);border-radius:10px;border:1px solid var(--border)">—</div>
+              <!-- مخفي للتوافق — الإدخال سنوي مش شهري -->
+              <select class="form-input hidden" id="manualMonth" aria-hidden="true"></select>
+              <input type="hidden" id="manualDate" />
             </div>
             <div class="form-group">
               <label class="form-label">ملاحظات</label>
@@ -188,7 +185,7 @@
             </div>
             <button class="btn btn-primary w-full" id="manualSaveBtn" onclick="saveManualEntry()">حفظ وعرض التحليل</button>
             <p style="font-size:0.72rem;color:var(--text-light);margin-top:0.6rem;line-height:1.5" id="manualFormHint">
-              الإدخال اليدوي للتحليل والمقارنة — لا يغيّر التحصيل أو المصروفات المسجّلة في النظام.
+              الإدخال سنوي بإجمالي كل بند — مش شهري. لا يغيّر التحصيل أو المصروفات المسجّلة في النظام.
             </p>
           </div>
         </div>
@@ -239,7 +236,7 @@
               <tr>
                 <th>#</th>
                 <th>التاريخ</th>
-                <th>الشهر</th>
+                <th>الفترة</th>
                 <th>البند</th>
                 <th>إيراد</th>
                 <th>مصروف</th>
@@ -275,7 +272,61 @@ const school   = SESSION.getSchool();
 
 document.getElementById('printSchool').textContent = school?.name || '';
 document.getElementById('printDate').textContent = new Date().toLocaleString('ar-EG');
-document.getElementById('manualDate').value = localDateStr();
+if (document.getElementById('manualDate')) document.getElementById('manualDate').value = localDateStr();
+
+/** توحيد أسماء البنود في التحليل فقط */
+function normalizeAnalysisItem(raw) {
+  let item = String(raw || '').trim();
+  if (!item) return 'غير محدد';
+
+  // أبليكيشن ← دمج كل الأشكال الغلط (ابليكشن / أبليكشن / ...)
+  const compact = item.replace(/\s+/g, '');
+  if (
+    compact === 'أبليكيشن' || compact === 'ابليكيشن' ||
+    compact === 'ابليكشن' || compact === 'أبليكشن' ||
+    compact === 'ابلكيشن' || compact === 'أبلكيشن' ||
+    /^ا?بلي?كي?ش[ن]?$/i.test(compact) ||
+    compact.toLowerCase() === 'application'
+  ) {
+    return 'أبليكيشن';
+  }
+  if (item.includes('ابليك') || item.includes('أبليك')) return 'أبليكيشن';
+
+  // قسط 1 + قسط 2 (+ قسط 3 لو موجود) ← مصروفات دراسية
+  if (
+    item === 'مصروفات - قسط 1' ||
+    item === 'مصروفات - قسط 2' ||
+    item === 'مصروفات - قسط 3' ||
+    item === 'مصروفات دراسية - قسط 1' ||
+    item === 'مصروفات دراسية - قسط 2' ||
+    item === 'مصروفات دراسية - قسط 3' ||
+    (/قسط\s*[123]/i.test(item) && item.includes('مصروف'))
+  ) {
+    return 'مصروفات دراسية';
+  }
+
+  return item;
+}
+
+function isExcludedAnalysisItem(item) {
+  const n = normalizeAnalysisItem(item);
+  return n === 'امتحانات';
+}
+
+function currentManualAnalysisYear() {
+  return isTadkheelMode() ? tadkheelYear : ACADEMIC_YEAR;
+}
+
+function annualYmForYear(label) {
+  const startY = Number(String(label || '').split('/')[0]);
+  if (!startY) return todayStr().slice(0, 7);
+  return startY + '-07';
+}
+
+function syncManualYearLabel() {
+  const el = document.getElementById('manualYearLabel');
+  if (el) el.textContent = currentManualAnalysisYear();
+}
 
 const CHART_COLORS = [
   '#1a3a6b','#2e7d32','#c62828','#f57f17','#6a1b9a','#00838f',
@@ -366,8 +417,9 @@ function setAnalysisMode(mode) {
     }
     if (customWrap) customWrap.style.display = '';
     if (formTitle) formTitle.textContent = 'تدخيل بنود السنة — إيراد ومصروف';
-    if (formHint) formHint.textContent = 'كل إدخال هنا جزء من سنة التدخيل المختارة فقط، ومش بيأثر على التحصيل أو المصروفات الحية.';
+    if (formHint) formHint.textContent = 'إدخال سنوي بإجمالي كل بند لسنة التدخيل — مش شهري، ومش بيأثر على النظام الحي.';
     if (tableTitle) tableTitle.textContent = 'سجل تدخيل السنة ' + tadkheelYear;
+    syncManualYearLabel();
     document.getElementById('kpiManualRevLbl').textContent = 'إجمالي الإيراد المدخل';
     document.getElementById('kpiManualExpLbl').textContent = 'إجمالي المصروف المدخل';
     document.getElementById('kpiNetLbl').textContent = 'صافي التدخيل';
@@ -381,8 +433,9 @@ function setAnalysisMode(mode) {
     }
     if (customWrap) customWrap.style.display = 'none';
     if (formTitle) formTitle.textContent = 'إدخال يدوي تحت البند';
-    if (formHint) formHint.textContent = 'الإدخال اليدوي للتحليل والمقارنة — لا يغيّر التحصيل أو المصروفات المسجّلة في النظام.';
-    if (tableTitle) tableTitle.textContent = 'سجل الإدخال اليدوي';
+    if (formHint) formHint.textContent = 'الإدخال سنوي بإجمالي كل بند — مش شهري. لا يغيّر التحصيل أو المصروفات المسجّلة في النظام.';
+    if (tableTitle) tableTitle.textContent = 'سجل الإدخال اليدوي (سنوي)';
+    syncManualYearLabel();
     document.getElementById('kpiManualRevLbl').textContent = 'إيراد يدوي مُدخل';
     document.getElementById('kpiManualExpLbl').textContent = 'مصروف يدوي مُدخل';
     document.getElementById('kpiNetLbl').textContent = 'صافي (فعلي)';
@@ -509,7 +562,7 @@ function ensureMonthBucket(s, ym) {
   if (!s.byMonth[ym]) s.byMonth[ym] = { actualRev: 0, manualRev: 0, manualExp: 0 };
 }
 
-/** توزيع مبلغ التحصيل على البنود بنسبة netPrice (نفس منطق التقارير) */
+/** توزيع مبلغ التحصيل على البنود بنسبة netPrice + توحيد الأسماء للتحليل */
 function allocateTxAmounts(d) {
   const paidAmount = Number(d.amount) || 0;
   const rows = [];
@@ -538,18 +591,34 @@ function allocateTxAmounts(d) {
       const share = paidAmount / itemNetPrices.length;
       itemNetPrices.forEach(x => rows.push({ item: x.item, amount: share, due: 0 }));
     }
-    return rows;
+  } else {
+    const itemStr = String(d.paymentItem || '').trim();
+    if (!itemStr) {
+      rows.push({ item: 'غير محدد', amount: paidAmount, due: Number(d.totalDue) || 0 });
+    } else if (itemStr.includes('+')) {
+      const parts = itemStr.split('+').map(s => s.trim()).filter(Boolean);
+      const share = paidAmount / parts.length;
+      const dueShare = (Number(d.totalDue) || 0) / parts.length;
+      parts.forEach(item => rows.push({ item, amount: share, due: dueShare }));
+    } else {
+      rows.push({ item: itemStr, amount: paidAmount, due: Number(d.totalDue) || 0 });
+    }
   }
 
-  const itemStr = String(d.paymentItem || '').trim();
-  if (!itemStr) return [{ item: 'غير محدد', amount: paidAmount, due: Number(d.totalDue) || 0 }];
-  if (itemStr.includes('+')) {
-    const parts = itemStr.split('+').map(s => s.trim()).filter(Boolean);
-    const share = paidAmount / parts.length;
-    const dueShare = (Number(d.totalDue) || 0) / parts.length;
-    return parts.map(item => ({ item, amount: share, due: dueShare }));
-  }
-  return [{ item: itemStr, amount: paidAmount, due: Number(d.totalDue) || 0 }];
+  // توحيد + دمج الأقساط + استبعاد الامتحانات (تحليل فقط)
+  const merged = {};
+  rows.forEach(r => {
+    const item = normalizeAnalysisItem(r.item);
+    if (isExcludedAnalysisItem(item)) return;
+    if (!merged[item]) merged[item] = { item, amount: 0, due: 0 };
+    merged[item].amount += Number(r.amount) || 0;
+    merged[item].due += Number(r.due) || 0;
+  });
+  return Object.values(merged).map(r => ({
+    item: r.item,
+    amount: Math.round((Number(r.amount) || 0) * 100) / 100,
+    due: Math.round((Number(r.due) || 0) * 100) / 100
+  }));
 }
 
 function dateToYm(dateStr) {
@@ -558,16 +627,31 @@ function dateToYm(dateStr) {
 }
 
 function getAnalysisItems() {
-  const base = [...PAYMENT_ITEMS];
-  if (schoolId === 'cardiff') {
-    ['مصروفات - قسط 3', 'سمر كورس'].forEach(i => { if (!base.includes(i)) base.push(i); });
+  // قائمة التحليل: بدون قسط 1/2/3 وبدون امتحانات — الأقساط متدمجة في مصروفات دراسية
+  const base = PAYMENT_ITEMS.filter(i =>
+    i !== 'مصروفات - قسط 1' &&
+    i !== 'مصروفات - قسط 2' &&
+    i !== 'امتحانات'
+  );
+  if (!base.includes('مصروفات دراسية')) base.unshift('مصروفات دراسية');
+  if (!base.includes('أبليكيشن')) base.push('أبليكيشن');
+
+  if (schoolId === 'cardiff' && !base.includes('سمر كورس')) {
+    base.push('سمر كورس');
   }
+
   const fromData = new Set();
   if (!isTadkheelMode()) {
     allTx.forEach(tx => allocateTxAmounts(tx).forEach(r => fromData.add(r.item)));
   }
-  getActiveManualEntries().forEach(e => { if (e.paymentItem) fromData.add(e.paymentItem); });
-  fromData.forEach(i => { if (i && !base.includes(i)) base.push(i); });
+  getActiveManualEntries().forEach(e => {
+    if (e.paymentItem) fromData.add(normalizeAnalysisItem(e.paymentItem));
+  });
+  fromData.forEach(i => {
+    const n = normalizeAnalysisItem(i);
+    if (!n || isExcludedAnalysisItem(n)) return;
+    if (!base.includes(n)) base.push(n);
+  });
   return base;
 }
 
@@ -600,7 +684,8 @@ function buildItemStats(filterYm) {
   const items = getAnalysisItems();
   // في التدخيل: ضم بنود اللي اتدخلت حتى لو مش في القائمة الأساسية
   activeManual.forEach(e => {
-    if (e.paymentItem && !items.includes(e.paymentItem)) items.push(e.paymentItem);
+    const item = normalizeAnalysisItem(e.paymentItem);
+    if (item && !isExcludedAnalysisItem(item) && !items.includes(item)) items.push(item);
   });
   const map = {};
   items.forEach(name => { map[name] = emptyItemStat(name); });
@@ -614,8 +699,10 @@ function buildItemStats(filterYm) {
       if (filterYm && ym !== filterYm) return;
 
       allocateTxAmounts(tx).forEach(row => {
-        if (!map[row.item]) map[row.item] = emptyItemStat(row.item);
-        const s = map[row.item];
+        const item = row.item; // متوحّد من allocateTxAmounts
+        if (!item || isExcludedAnalysisItem(item)) return;
+        if (!map[item]) map[item] = emptyItemStat(item);
+        const s = map[item];
         s.actualRev += row.amount;
         s.actualDue += row.due;
         s.txCount += 1;
@@ -640,7 +727,10 @@ function buildItemStats(filterYm) {
       if (!isInAnalysisRange(tx.date)) return;
       const ym = dateToYm(tx.date);
       if (filterYm && ym !== filterYm) return;
-      const item = String(tx.paymentItem || 'تسوية مديونية').split('+')[0].trim() || 'تسوية مديونية';
+      const item = normalizeAnalysisItem(
+        String(tx.paymentItem || 'تسوية مديونية').split('+')[0].trim() || 'تسوية مديونية'
+      );
+      if (!item || isExcludedAnalysisItem(item)) return;
       if (!map[item]) map[item] = emptyItemStat(item);
       const s = map[item];
       const amt = Number(tx.amount) || 0;
@@ -658,11 +748,18 @@ function buildItemStats(filterYm) {
   }
 
   activeManual.forEach(e => {
+    const item = normalizeAnalysisItem(e.paymentItem);
+    if (!item || isExcludedAnalysisItem(item)) return;
+    const isAnnual = e.period === 'annual' || e.entryPeriod === 'annual';
     const ym = e.yearMonth || dateToYm(e.date);
-    if (!isInAnalysisRange(e.date || (ym ? ym + '-01' : ''))) return;
-    if (filterYm && ym !== filterYm) return;
-    const item = e.paymentItem;
-    if (!item) return;
+    // الإدخال السنوي يظهر في إجمالي السنة حتى لو فيه فلتر شهر
+    if (!isAnnual) {
+      if (!isInAnalysisRange(e.date || (ym ? ym + '-01' : ''))) return;
+      if (filterYm && ym !== filterYm) return;
+    } else if (isTadkheelMode()) {
+      const ay = String(e.analysisYear || e.academicYear || '');
+      if (ay && ay !== String(tadkheelYear)) return;
+    }
     if (!map[item]) map[item] = emptyItemStat(item);
     const s = map[item];
     const rev = Number(e.revenue) || 0;
@@ -670,9 +767,15 @@ function buildItemStats(filterYm) {
     s.manualRev += rev;
     s.manualExp += exp;
     s.manualCount += 1;
-    ensureMonthBucket(s, ym);
-    s.byMonth[ym].manualRev += rev;
-    s.byMonth[ym].manualExp += exp;
+    // للإدخال السنوي: حطّه على أول شهر في الفترة للرسم البياني
+    const bucketYm = isAnnual
+      ? (PERIOD_MONTHS[0]?.ym || ym || annualYmForYear(currentManualAnalysisYear()))
+      : ym;
+    ensureMonthBucket(s, bucketYm);
+    if (bucketYm && s.byMonth[bucketYm]) {
+      s.byMonth[bucketYm].manualRev += rev;
+      s.byMonth[bucketYm].manualExp += exp;
+    }
   });
 
   Object.values(map).forEach(s => {
@@ -791,7 +894,9 @@ function startLiveSync() {
 }
 
 function forceRefresh() {
-  document.getElementById('manualDate').value = todayStr();
+  syncManualYearLabel();
+  const ayYm = annualYmForYear(currentManualAnalysisYear());
+  if (document.getElementById('manualDate')) document.getElementById('manualDate').value = ayYm + '-01';
   startLiveSync();
   showManualAlert('تم إعادة مزامنة البيانات', 'success');
 }
@@ -806,25 +911,28 @@ function fillManualItemSelect() {
 
 function fillMonthSelects() {
   if (!PERIOD_MONTHS.length) refreshPeriodMonths();
+  syncManualYearLabel();
+
+  // الإدخال اليدوي سنوي — الـ select مخفي ومتزامن مع بداية السنة الدراسية
   const sel = document.getElementById('manualMonth');
-  const nowYm = todayStr().slice(0, 7);
-  const prevYm = sel.value;
-  sel.innerHTML = PERIOD_MONTHS.map(m =>
-    `<option value="${m.ym}">${escapeHtml(m.label)} ${m.year}</option>`
-  ).join('');
-  if (prevYm && PERIOD_MONTHS.some(m => m.ym === prevYm)) sel.value = prevYm;
-  else if (!isTadkheelMode() && PERIOD_MONTHS.some(m => m.ym === nowYm)) sel.value = nowYm;
-  else if (PERIOD_MONTHS.length) sel.value = PERIOD_MONTHS[0].ym;
-
-  // في التدخيل: اربط التاريخ بشهر الإدخال
-  if (isTadkheelMode() && sel.value) {
-    const dateEl = document.getElementById('manualDate');
-    if (dateEl && String(dateEl.value || '').slice(0, 7) !== sel.value) {
-      dateEl.value = sel.value + '-01';
-    }
+  if (sel) {
+    const ayYm = annualYmForYear(currentManualAnalysisYear());
+    sel.innerHTML = PERIOD_MONTHS.map(m =>
+      `<option value="${m.ym}">${escapeHtml(m.label)} ${m.year}</option>`
+    ).join('');
+    if (PERIOD_MONTHS.some(m => m.ym === ayYm)) sel.value = ayYm;
+    else if (PERIOD_MONTHS.length) sel.value = PERIOD_MONTHS[0].ym;
   }
+  const dateEl = document.getElementById('manualDate');
+  if (dateEl) dateEl.value = (sel?.value || annualYmForYear(currentManualAnalysisYear())) + '-01';
 
+  // فلتر الشهور للبيانات الحية فقط (مش للإدخال اليدوي)
   const bar = document.getElementById('monthFilterBar');
+  if (!bar) return;
+  if (isTadkheelMode()) {
+    bar.innerHTML = `<button class="an-month-chip active" onclick="setMonthFilter(null)">السنة كاملة — ${escapeHtml(tadkheelYear)}</button>`;
+    return;
+  }
   bar.innerHTML = `<button class="an-month-chip ${!selectedMonthYm ? 'active' : ''}" onclick="setMonthFilter(null)">كل الفترة</button>` +
     PERIOD_MONTHS.map(m =>
       `<button class="an-month-chip ${selectedMonthYm === m.ym ? 'active' : ''}" onclick="setMonthFilter('${m.ym}')">${escapeHtml(m.short)}</button>`
@@ -982,9 +1090,18 @@ function renderItemDetail(stats) {
 
 function renderManualTable() {
   const tbody = document.getElementById('manualTableBody');
-  let rows = getActiveManualEntries();
-  if (selectedItem) rows = rows.filter(e => e.paymentItem === selectedItem);
-  if (selectedMonthYm) rows = rows.filter(e => (e.yearMonth || dateToYm(e.date)) === selectedMonthYm);
+  let rows = getActiveManualEntries().filter(e => !isExcludedAnalysisItem(e.paymentItem));
+  if (selectedItem) {
+    rows = rows.filter(e => normalizeAnalysisItem(e.paymentItem) === selectedItem);
+  }
+  // الإدخال السنوي يظهر دائمًا مع فلتر الشهر
+  if (selectedMonthYm) {
+    rows = rows.filter(e =>
+      e.period === 'annual' ||
+      e.entryPeriod === 'annual' ||
+      (e.yearMonth || dateToYm(e.date)) === selectedMonthYm
+    );
+  }
 
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="9"><div class="an-empty">' +
@@ -995,13 +1112,20 @@ function renderManualTable() {
   tbody.innerHTML = rows.map((e, i) => {
     const rev = Number(e.revenue) || 0;
     const exp = Number(e.expense) || 0;
-    const ym = e.yearMonth || dateToYm(e.date);
-    const mLabel = PERIOD_MONTHS.find(m => m.ym === ym);
+    const item = normalizeAnalysisItem(e.paymentItem);
+    const isAnnual = e.period === 'annual' || e.entryPeriod === 'annual';
+    const periodLabel = isAnnual
+      ? ('سنوي — ' + (e.analysisYear || e.academicYear || currentManualAnalysisYear()))
+      : (() => {
+          const ym = e.yearMonth || dateToYm(e.date);
+          const mLabel = PERIOD_MONTHS.find(m => m.ym === ym);
+          return mLabel ? mLabel.label : ym;
+        })();
     return `<tr>
       <td class="text-sm text-muted">${i + 1}</td>
       <td>${escapeHtml(e.date || '')}</td>
-      <td>${escapeHtml(mLabel ? mLabel.label : ym)}</td>
-      <td><strong>${escapeHtml(e.paymentItem || '')}</strong></td>
+      <td>${escapeHtml(periodLabel)}</td>
+      <td><strong>${escapeHtml(item || '')}</strong></td>
       <td style="color:#2e7d32;font-weight:700">${formatCurrency(rev)}</td>
       <td style="color:#c62828;font-weight:700">${formatCurrency(exp)}</td>
       <td style="font-weight:800">${formatCurrency(rev - exp)}</td>
@@ -1176,22 +1300,17 @@ function renderCharts(stats, sysExp) {
 
 async function saveManualEntry() {
   const customItem = (document.getElementById('manualCustomItem')?.value || '').trim();
-  const paymentItem = customItem || document.getElementById('manualItem').value;
+  let paymentItem = normalizeAnalysisItem(customItem || document.getElementById('manualItem').value);
   const revenue = parseFloat(document.getElementById('manualRevenue').value) || 0;
   const expense = parseFloat(document.getElementById('manualExpense').value) || 0;
-  const yearMonth = document.getElementById('manualMonth').value;
-  let date = document.getElementById('manualDate').value || localDateStr();
   const notes = document.getElementById('manualNotes').value.trim();
+  const analysisYear = currentManualAnalysisYear();
+  const yearMonth = annualYmForYear(analysisYear);
+  const date = yearMonth + '-01';
 
-  if (!paymentItem) return showManualAlert('اختر البند');
-  if (revenue <= 0 && expense <= 0) return showManualAlert('أدخل إيرادًا أو مصروفًا أكبر من صفر');
-  if (!yearMonth) return showManualAlert('اختر الشهر');
-
-  // في التدخيل: خلي التاريخ داخل الشهر المختار لو بره السنة
-  if (isTadkheelMode()) {
-    const ymOfDate = String(date).slice(0, 7);
-    if (ymOfDate !== yearMonth) date = yearMonth + '-01';
-  }
+  if (!paymentItem || paymentItem === 'غير محدد') return showManualAlert('اختر البند');
+  if (isExcludedAnalysisItem(paymentItem)) return showManualAlert('بند الامتحانات مش موجود في التحليل');
+  if (revenue <= 0 && expense <= 0) return showManualAlert('أدخل إجمالي إيراد أو مصروف أكبر من صفر');
 
   const btn = document.getElementById('manualSaveBtn');
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
@@ -1199,9 +1318,11 @@ async function saveManualEntry() {
     const payload = {
       schoolId,
       schoolName: school?.name || '',
-      academicYear: isTadkheelMode() ? tadkheelYear : ACADEMIC_YEAR,
-      analysisYear: isTadkheelMode() ? tadkheelYear : ACADEMIC_YEAR,
+      academicYear: analysisYear,
+      analysisYear,
       entryMode: isTadkheelMode() ? 'tadkheel' : 'overlay',
+      period: 'annual',
+      entryPeriod: 'annual',
       paymentItem,
       revenue: round2(revenue),
       expense: round2(expense),
@@ -1990,7 +2111,7 @@ setInterval(() => {
   const day = todayStr();
   if (day !== lastSeenDay) {
     lastSeenDay = day;
-    document.getElementById('manualDate').value = day;
+    syncManualYearLabel();
     startLiveSync();
   }
 }, 60000);
