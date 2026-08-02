@@ -232,15 +232,18 @@
                 <input type="text" class="form-input" id="manualCustomItem" placeholder="اكتب بند جديد لو مش موجود في القائمة" />
               </div>
               <div class="an-fields-grid">
-                <div class="form-group">
-                  <label class="form-label">إيراد سنوي (ج.م)</label>
+                <div class="form-group" id="manualRevenueWrap">
+                  <label class="form-label" id="manualRevenueLbl">إيراد سنوي (ج.م)</label>
                   <input type="number" min="0" step="0.01" class="form-input" id="manualRevenue" placeholder="0" />
                 </div>
-                <div class="form-group">
-                  <label class="form-label">مصروف سنوي (ج.م)</label>
-                  <input type="number" min="0" step="0.01" class="form-input" id="manualExpense" placeholder="0" />
+                <div class="form-group" id="manualExpenseWrap">
+                  <label class="form-label" id="manualExpenseLbl">مصروف سنوي (اختياري)</label>
+                  <input type="number" min="0" step="0.01" class="form-input" id="manualExpense" placeholder="مش إجباري" />
                 </div>
               </div>
+              <p id="manualItemHint" style="font-size:0.72rem;color:var(--text-light);margin:0.35rem 0 0;line-height:1.45">
+                زي الشيت: مش كل بند ليه مصروف — المصروف مش شرط. ادخل المبلغ المناسب للبند بس.
+              </p>
             </div>
 
             <div class="form-group">
@@ -249,7 +252,7 @@
             </div>
             <button class="btn btn-primary w-full" id="manualSaveBtn" onclick="saveManualForm()">حفظ وعرض التحليل</button>
             <p style="font-size:0.72rem;color:var(--text-light);margin-top:0.6rem;line-height:1.5" id="manualFormHint">
-              اختار الصف وأدخل أرقامه يدويًا — سنوي مش شهري. بند «مصروفات التشغيل عن عام كامل» من نوع «بند سنوي» فقط.
+              اختار الصف وأدخل أرقامه (إيرادات) — مفيش مصروف هنا. للمصروفات زي «مصروفات التشغيل عن عام كامل» اختار نوع «بند سنوي».
             </p>
           </div>
         </div>
@@ -396,6 +399,17 @@ const MANUAL_SUMMARY_ITEMS = [
   'فرق المحصل'
 ];
 
+/** بنود الشيت اللي طبيعتها مصروف — مش لازم معاها إيراد */
+const MANUAL_EXPENSE_NATURE_ITEMS = [
+  'مصروفات التشغيل عن عام كامل',
+  'تسوية الباص',
+  'اجمالي الشهور',
+  'اجمالي شحن موبيل',
+  'اجمالي الرواتب',
+  'مصروفات اخري',
+  'المدفوعات والاسترداد'
+];
+
 function numCell(val) {
   const n = parseFloat(val);
   return Number.isFinite(n) ? n : 0;
@@ -432,13 +446,51 @@ function fillManualGradeSelect() {
   if (prev && grades.includes(prev)) sel.value = prev;
 }
 
+function isExpenseNatureItem(item) {
+  const n = normalizeAnalysisItem(item);
+  return MANUAL_EXPENSE_NATURE_ITEMS.includes(n) ||
+    n.includes('مصروف') ||
+    n.includes('رواتب') ||
+    n.includes('تسوية');
+}
+
+function updateManualItemFieldLabels() {
+  const item = normalizeAnalysisItem(
+    (document.getElementById('manualCustomItem')?.value || '').trim() ||
+    document.getElementById('manualItem')?.value || ''
+  );
+  const revLbl = document.getElementById('manualRevenueLbl');
+  const expLbl = document.getElementById('manualExpenseLbl');
+  const hint = document.getElementById('manualItemHint');
+  const revInp = document.getElementById('manualRevenue');
+  const expInp = document.getElementById('manualExpense');
+  if (!revLbl || !expLbl) return;
+
+  if (isExpenseNatureItem(item)) {
+    revLbl.textContent = 'إيراد سنوي (اختياري — مش إجباري)';
+    expLbl.textContent = 'مصروف / المبلغ (ج.م)';
+    if (revInp) revInp.placeholder = 'مش إجباري';
+    if (expInp) expInp.placeholder = '0';
+    if (hint) hint.textContent = 'البند ده مصروف زي الشيت — ادخل المبلغ في خانة المصروف. الإيراد مش شرط.';
+  } else {
+    revLbl.textContent = 'إيراد سنوي (ج.م)';
+    expLbl.textContent = 'مصروف سنوي (اختياري — مش إجباري)';
+    if (revInp) revInp.placeholder = '0';
+    if (expInp) expInp.placeholder = 'مش إجباري';
+    if (hint) hint.textContent = 'زي الشيت: معظم البنود إيراد فقط — المصروف مش شرط ومش إجباري.';
+  }
+}
+
 function onManualEntryTypeChange() {
   const type = document.getElementById('manualEntryType')?.value || 'grade';
   const gradeBlock = document.getElementById('manualGradeBlock');
   const itemBlock = document.getElementById('manualItemBlock');
   if (gradeBlock) gradeBlock.classList.toggle('hidden', type !== 'grade');
   if (itemBlock) itemBlock.classList.toggle('hidden', type !== 'item');
-  if (type === 'item') fillManualItemSelect();
+  if (type === 'item') {
+    fillManualItemSelect();
+    updateManualItemFieldLabels();
+  }
 }
 
 function clearGradeFields() {
@@ -773,7 +825,7 @@ function setAnalysisMode(mode) {
     }
     if (customWrap) customWrap.style.display = '';
     if (formTitle) formTitle.textContent = 'تدخيل يدوي حسب الصف';
-    if (formHint) formHint.textContent = 'اختار الصف وأدخل أرقامه لسنة التدخيل. مصروفات التشغيل عن عام كامل من نوع بند سنوي.';
+    if (formHint) formHint.textContent = 'اختار الصف وأدخل إيراداته — مفيش مصروف إجباري. المصروفات من نوع بند سنوي فقط.';
     if (tableTitle) tableTitle.textContent = 'سجل تدخيل السنة ' + tadkheelYear;
     syncManualYearLabel();
     document.getElementById('kpiManualRevLbl').textContent = 'إجمالي الإيراد المدخل';
@@ -789,7 +841,7 @@ function setAnalysisMode(mode) {
     }
     if (customWrap) customWrap.style.display = 'none';
     if (formTitle) formTitle.textContent = 'إدخال يدوي حسب الصف';
-    if (formHint) formHint.textContent = 'اختار الصف وأدخل أرقامه يدويًا. مصروفات التشغيل عن عام كامل من نوع بند سنوي فقط.';
+    if (formHint) formHint.textContent = 'اختار الصف وأدخل إيراداته — المصروف مش إجباري. مصروفات التشغيل من نوع بند سنوي.';
     if (tableTitle) tableTitle.textContent = 'سجل الإدخال اليدوي (سنوي)';
     syncManualYearLabel();
     document.getElementById('kpiManualRevLbl').textContent = 'إيراد يدوي مُدخل';
@@ -1274,6 +1326,12 @@ function fillManualItemSelect() {
   const prev = sel.value || selectedItem || '';
   sel.innerHTML = items.map(i => `<option value="${escapeHtml(i)}">${escapeHtml(i)}</option>`).join('');
   if (prev && items.includes(prev)) sel.value = prev;
+  if (!sel.dataset.boundLabels) {
+    sel.dataset.boundLabels = '1';
+    sel.addEventListener('change', updateManualItemFieldLabels);
+    document.getElementById('manualCustomItem')?.addEventListener('input', updateManualItemFieldLabels);
+  }
+  updateManualItemFieldLabels();
 }
 
 function fillMonthSelects() {
@@ -1681,7 +1739,18 @@ async function saveManualEntry() {
 
   if (!paymentItem || paymentItem === 'غير محدد') return showManualAlert('اختر البند');
   if (isExcludedAnalysisItem(paymentItem)) return showManualAlert('بند الامتحانات مش موجود في التحليل');
-  if (revenue <= 0 && expense <= 0) return showManualAlert('أدخل إجمالي إيراد أو مصروف أكبر من صفر');
+
+  // زي الشيت: مش كل بند ليه مصروف — يكفي إيراد فقط أو مصروف فقط
+  let rev = round2(revenue);
+  let exp = round2(expense);
+  if (rev <= 0 && exp <= 0) {
+    return showManualAlert('أدخل المبلغ (إيراد أو مصروف). المصروف مش إجباري لو البند إيراد.');
+  }
+  // لو بند مصروف واتكتب الرقم في خانة الإيراد بالغلط — حوّله لمصروف
+  if (isExpenseNatureItem(paymentItem) && exp <= 0 && rev > 0) {
+    exp = rev;
+    rev = 0;
+  }
 
   const btn = document.getElementById('manualSaveBtn');
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
@@ -1695,8 +1764,8 @@ async function saveManualEntry() {
       period: 'annual',
       entryPeriod: 'annual',
       paymentItem,
-      revenue: round2(revenue),
-      expense: round2(expense),
+      revenue: rev,
+      expense: exp,
       yearMonth,
       date,
       notes,
@@ -1725,7 +1794,7 @@ async function saveManualEntry() {
     if (typeof notifyAdminActivity === 'function') {
       notifyAdminActivity(
         asTadkheel ? 'تدخيل تحليلي لسنة' : 'إدخال تحليلي يدوي',
-        `${paymentItem}: إيراد ${formatCurrency(revenue)} / مصروف ${formatCurrency(expense)} — ${analysisYear}`,
+        `${paymentItem}: إيراد ${formatCurrency(rev)} / مصروف ${formatCurrency(exp)} — ${analysisYear}`,
         { type: 'analytics', url: '/analytics.html' }
       );
     }
