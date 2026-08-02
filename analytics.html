@@ -35,7 +35,7 @@
     .an-chart-wrap { position:relative; height:280px; }
     .an-chart-wrap.tall { height:320px; }
 
-    .an-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem; }
+    .an-form-grid { display:grid; grid-template-columns:1.1fr 1fr; gap:1rem; margin-bottom:1.25rem; }
     .an-detail-head { display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.75rem; }
     .an-badge { display:inline-flex; align-items:center; gap:0.35rem; padding:0.25rem 0.7rem; border-radius:20px; font-size:0.75rem; font-weight:800; background:var(--accent); color:var(--primary); }
     .an-empty { text-align:center; padding:2rem 1rem; color:var(--text-light); font-size:0.9rem; }
@@ -46,42 +46,10 @@
     }
     .an-month-chip.active { background:var(--primary); color:#fff; border-color:var(--primary); }
     .an-print-only { display:none; }
-
-    .an-sheet-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0.5rem 0 1rem; border:1px solid var(--border); border-radius:10px; }
-    .an-sheet {
-      width:100%; min-width:980px; border-collapse:collapse; font-size:0.78rem;
-    }
-    .an-sheet th, .an-sheet td {
-      border:1px solid #c5d0de; padding:0.35rem 0.4rem; text-align:center; white-space:nowrap;
-    }
-    .an-sheet thead th {
-      background:#1a3a6b; color:#fff; font-weight:800; font-size:0.72rem; position:sticky; top:0; z-index:1;
-    }
-    .an-sheet .grade-cell { font-weight:800; background:#eef3f9; text-align:right; min-width:72px; }
-    .an-sheet tfoot td, .an-sheet tr.tot-row td { background:#fff8e1; font-weight:800; }
-    .an-sheet input.an-cell {
-      width:100%; min-width:72px; max-width:110px; border:1px solid transparent; background:transparent;
-      text-align:center; font-family:inherit; font-size:0.78rem; font-weight:700; padding:0.25rem;
-      color:var(--text-dark); border-radius:4px;
-    }
-    .an-sheet input.an-cell:focus { outline:none; border-color:var(--primary); background:#fff; }
-    .an-sheet input.an-cell[readonly] { color:var(--text-mid); background:#f5f7fa; }
-    .an-sheet-sec {
-      margin:0.85rem 0 0.35rem; font-size:0.85rem; font-weight:800; color:var(--primary);
-    }
-    .an-ops-grid {
-      display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:0.65rem; margin-bottom:0.85rem;
-    }
-    .an-ops-grid .form-group { margin:0; }
-    .an-ops-grid .form-label { font-size:0.72rem; }
-    .an-sheet-note { font-size:0.72rem; color:var(--text-light); line-height:1.5; margin:0.35rem 0 0.75rem; }
-    details.an-quick-entry { margin-top:0.75rem; border-top:1px dashed var(--border); padding-top:0.75rem; }
-    details.an-quick-entry summary {
-      cursor:pointer; font-weight:800; font-size:0.82rem; color:var(--text-mid); margin-bottom:0.65rem;
-    }
-
+    .an-fields-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; }
+    .an-form-sec { font-size:0.82rem; font-weight:800; color:var(--primary); margin:0.85rem 0 0.45rem; }
     @media print {
-      .sidebar, .topbar, #manualSheetCard, #sidebarToggle, .btn, .an-month-bar, .no-print { display:none !important; }
+      .sidebar, .topbar, .an-form-grid .card:first-child, #sidebarToggle, .btn, .an-month-bar, .no-print { display:none !important; }
       .main-content { margin:0 !important; }
       .an-print-only { display:block; }
       .an-charts { grid-template-columns:1fr 1fr; break-inside:avoid; }
@@ -94,6 +62,7 @@
       .an-kpi .val { font-size:1.05rem; }
       .an-items { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .an-chart-wrap, .an-chart-wrap.tall { height:240px; }
+      .an-fields-grid { grid-template-columns:1fr; }
     }
     @media (max-width:420px) {
       .an-kpis { grid-template-columns:1fr; }
@@ -183,171 +152,109 @@
         </div>
       </div>
 
-      <div class="card no-print" id="manualSheetCard" style="margin-bottom:1.25rem">
-        <div class="card-header" style="flex-wrap:wrap;gap:0.5rem">
-          <span class="card-title" id="manualFormTitle">إدخال يدوي — زي شيت التحليل</span>
-          <span class="an-badge" id="sheetYearBadge">—</span>
-        </div>
-        <div class="card-body">
-          <div id="manualAlert" class="alert alert-error hidden" style="margin-bottom:0.75rem"></div>
+      <div class="an-form-grid">
+        <div class="card no-print" id="manualFormCard">
+          <div class="card-header"><span class="card-title" id="manualFormTitle">إدخال يدوي حسب الصف</span></div>
+          <div class="card-body">
+            <div id="manualAlert" class="alert alert-error hidden" style="margin-bottom:0.75rem"></div>
 
-          <div style="display:grid;grid-template-columns:minmax(180px,260px) 1fr;gap:0.85rem;align-items:end;margin-bottom:0.75rem">
-            <div class="form-group" style="margin:0">
+            <div class="form-group">
+              <label class="form-label">نوع الإدخال</label>
+              <select class="form-input" id="manualEntryType" onchange="onManualEntryTypeChange()">
+                <option value="grade">إيرادات صف</option>
+                <option value="item">بند سنوي (مصروف / ملخص)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
               <label class="form-label">السنة الدراسية <span class="required">*</span></label>
               <select class="form-input" id="manualYearSelect" onchange="onManualYearChange()"></select>
+              <p id="manualYearHint" style="font-size:0.72rem;color:var(--text-light);margin-top:0.35rem;line-height:1.45">
+                اختار السنة اللي هتدخّل لها الإجمالي (ينفع سنة سابقة).
+              </p>
+              <select class="form-input hidden" id="manualMonth" aria-hidden="true"></select>
+              <input type="hidden" id="manualDate" />
             </div>
-            <p id="manualYearHint" class="an-sheet-note" style="margin:0">
-              ادخل الأرقام يدويًا زي ملف الإكسيل — الصفوف والأعمدة نفسها. الحفظ سنوي ومش بيأثر على التحصيل اليومي.
+
+            <div id="manualGradeBlock">
+              <div class="form-group">
+                <label class="form-label">الصف <span class="required">*</span></label>
+                <select class="form-input" id="manualGrade" onchange="onManualGradeChange()"></select>
+              </div>
+              <div class="an-form-sec">بيانات الصف</div>
+              <div class="an-fields-grid">
+                <div class="form-group">
+                  <label class="form-label">عدد الطلاب</label>
+                  <input type="number" min="0" step="1" class="form-input" id="manualStudents" placeholder="0" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">اجمالي المستحق</label>
+                  <input type="number" min="0" step="0.01" class="form-input" id="manualDue" placeholder="0" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">الايراد المحصل</label>
+                  <input type="number" min="0" step="0.01" class="form-input" id="manualCollected" placeholder="0" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">المديونية</label>
+                  <input type="number" min="0" step="0.01" class="form-input" id="manualDebtAmt" placeholder="0" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">فايل</label>
+                  <input type="number" min="0" step="0.01" class="form-input" id="manualFile" placeholder="0" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">يونيفورم</label>
+                  <input type="number" min="0" step="0.01" class="form-input" id="manualUniform" placeholder="0" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">باص</label>
+                  <input type="number" min="0" step="0.01" class="form-input" id="manualBus" placeholder="0" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">أبليكيشن</label>
+                  <input type="number" min="0" step="0.01" class="form-input" id="manualApplication" placeholder="0" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">كورس</label>
+                  <input type="number" min="0" step="0.01" class="form-input" id="manualCourse" placeholder="0" />
+                </div>
+              </div>
+            </div>
+
+            <div id="manualItemBlock" class="hidden">
+              <div class="form-group">
+                <label class="form-label">البند</label>
+                <select class="form-input" id="manualItem"></select>
+              </div>
+              <div class="form-group" id="customItemWrap" style="display:none">
+                <label class="form-label">بند مخصص (اختياري)</label>
+                <input type="text" class="form-input" id="manualCustomItem" placeholder="اكتب بند جديد لو مش موجود في القائمة" />
+              </div>
+              <div class="an-fields-grid">
+                <div class="form-group">
+                  <label class="form-label">إيراد سنوي (ج.م)</label>
+                  <input type="number" min="0" step="0.01" class="form-input" id="manualRevenue" placeholder="0" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">مصروف سنوي (ج.م)</label>
+                  <input type="number" min="0" step="0.01" class="form-input" id="manualExpense" placeholder="0" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">ملاحظات</label>
+              <input type="text" class="form-input" id="manualNotes" placeholder="اختياري" />
+            </div>
+            <button class="btn btn-primary w-full" id="manualSaveBtn" onclick="saveManualForm()">حفظ وعرض التحليل</button>
+            <p style="font-size:0.72rem;color:var(--text-light);margin-top:0.6rem;line-height:1.5" id="manualFormHint">
+              اختار الصف وأدخل أرقامه يدويًا — سنوي مش شهري. بند «مصروفات التشغيل عن عام كامل» من نوع «بند سنوي» فقط.
             </p>
           </div>
-          <select class="form-input hidden" id="manualMonth" aria-hidden="true"></select>
-          <input type="hidden" id="manualDate" />
-
-          <div class="an-sheet-sec">① إيرادات حسب الصف (زي الشيت)</div>
-          <div class="an-sheet-wrap">
-            <table class="an-sheet" id="manualSheetTable">
-              <thead>
-                <tr>
-                  <th>الصف</th>
-                  <th>عدد الطلاب</th>
-                  <th>اجمالي المستحق</th>
-                  <th>الايراد المحصل</th>
-                  <th>المديونية</th>
-                  <th>فايل</th>
-                  <th>يونيفورم</th>
-                  <th>باص</th>
-                  <th>أبليكيشن</th>
-                  <th>كورس</th>
-                </tr>
-              </thead>
-              <tbody id="manualSheetBody"></tbody>
-              <tfoot id="manualSheetFoot"></tfoot>
-            </table>
-          </div>
-
-          <div class="an-sheet-sec">② طلاب محولون / قسم إضافي</div>
-          <div class="an-sheet-wrap">
-            <table class="an-sheet" id="manualBristolTable">
-              <thead>
-                <tr>
-                  <th>الصف</th>
-                  <th>عدد الطلاب</th>
-                  <th>اجمالي المستحق</th>
-                  <th>الايراد المحصل</th>
-                  <th>المديونية</th>
-                  <th>فايل</th>
-                  <th>يونيفورم</th>
-                  <th>باص</th>
-                  <th>أبليكيشن</th>
-                  <th>كورس</th>
-                </tr>
-              </thead>
-              <tbody id="manualBristolBody"></tbody>
-              <tfoot id="manualBristolFoot"></tfoot>
-            </table>
-          </div>
-
-          <div class="an-sheet-sec">③ مصروفات التشغيل والملخص السنوي</div>
-          <div class="an-ops-grid" id="manualOpsGrid">
-            <div class="form-group">
-              <label class="form-label">تسوية الباص</label>
-              <input type="number" min="0" step="0.01" class="form-input sheet-ops" data-ops="busSettlement" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">اجمالي الشهور</label>
-              <input type="number" min="0" step="0.01" class="form-input sheet-ops" data-ops="monthsTotal" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">اجمالي شحن موبيل</label>
-              <input type="number" min="0" step="0.01" class="form-input sheet-ops" data-ops="mobileCharge" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">اجمالي الرواتب</label>
-              <input type="number" min="0" step="0.01" class="form-input sheet-ops" data-ops="salaries" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">مصروفات اخري</label>
-              <input type="number" min="0" step="0.01" class="form-input sheet-ops" data-ops="otherExpenses" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">مصروفات التشغيل عن عام كامل</label>
-              <input type="number" min="0" step="0.01" class="form-input sheet-ops" data-ops="operatingExpensesYear" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">صافي ربح باص</label>
-              <input type="number" step="0.01" class="form-input sheet-ops" data-ops="busNetProfit" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">مبالغ محصلة بدون استكمال التحاق</label>
-              <input type="number" min="0" step="0.01" class="form-input sheet-ops" data-ops="incompleteEnrollment" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">متحصلات أبليكيشن (بدون استكمال)</label>
-              <input type="number" min="0" step="0.01" class="form-input sheet-ops" data-ops="incompleteApplication" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">المدفوعات والاسترداد</label>
-              <input type="number" min="0" step="0.01" class="form-input sheet-ops" data-ops="paymentsRefunds" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">اجمالي المسلم لمجلس الادارة</label>
-              <input type="number" min="0" step="0.01" class="form-input sheet-ops" data-ops="deliveredToBoard" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">اجمالي المسلم لادارة المدرسة</label>
-              <input type="number" min="0" step="0.01" class="form-input sheet-ops" data-ops="deliveredToSchool" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">اجمالي الايراد قبل المدفوعات</label>
-              <input type="number" min="0" step="0.01" class="form-input sheet-ops" data-ops="revenueBeforePayments" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">صافي الايراد بعد المدفوعات</label>
-              <input type="number" step="0.01" class="form-input sheet-ops" data-ops="netAfterPayments" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">فرق المحصل</label>
-              <input type="number" step="0.01" class="form-input sheet-ops" data-ops="collectionDiff" placeholder="0" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">ملاحظات / ملاحظات الشيت</label>
-            <input type="text" class="form-input" id="manualNotes" placeholder="اختياري — زي ملاحظات الشيت" />
-          </div>
-
-          <button class="btn btn-primary w-full" id="manualSaveBtn" onclick="saveManualSheet()">حفظ الشيت وعرض التحليل</button>
-          <p class="an-sheet-note" id="manualFormHint">
-            الإدخال سنوي بنفس شكل ملف الإكسيل. بند «مصروفات التشغيل عن عام كامل» للإدخال اليدوي فقط ومش موجود في التحصيل اليومي.
-          </p>
-
-          <details class="an-quick-entry">
-            <summary>إدخال بند سريع (اختياري)</summary>
-            <div class="form-group">
-              <label class="form-label">البند</label>
-              <select class="form-input" id="manualItem"></select>
-            </div>
-            <div class="form-group" id="customItemWrap" style="display:none">
-              <label class="form-label">بند مخصص (اختياري)</label>
-              <input type="text" class="form-input" id="manualCustomItem" placeholder="اكتب بند جديد لو مش موجود في القائمة" />
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-              <div class="form-group">
-                <label class="form-label">إيراد سنوي (ج.م)</label>
-                <input type="number" min="0" step="0.01" class="form-input" id="manualRevenue" placeholder="0" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">مصروف سنوي (ج.م)</label>
-                <input type="number" min="0" step="0.01" class="form-input" id="manualExpense" placeholder="0" />
-              </div>
-            </div>
-            <button class="btn btn-secondary w-full" type="button" onclick="saveManualEntry()">حفظ البند السريع</button>
-          </details>
         </div>
-      </div>
 
-      <div class="an-form-grid">
-        <div class="card" id="itemDetailCard" style="grid-column:1 / -1">
+        <div class="card" id="itemDetailCard">
           <div class="card-header">
             <span class="card-title">تفاصيل البند المختار</span>
             <button class="btn btn-sm btn-secondary no-print" onclick="printItemDetail()">طباعة التفاصيل</button>
@@ -472,38 +379,30 @@ function isExcludedAnalysisItem(item) {
 
 /** بند يدوي فقط — مش في التحصيل اليومي */
 const MANUAL_ONLY_ITEMS = ['مصروفات التشغيل عن عام كامل'];
-const SHEET_GRADE_FIELDS = ['students', 'due', 'collected', 'debt', 'file', 'uniform', 'bus', 'application', 'course'];
-const SHEET_OPS_EXPENSE_MAP = {
-  busSettlement: 'تسوية الباص',
-  monthsTotal: 'اجمالي الشهور',
-  mobileCharge: 'اجمالي شحن موبيل',
-  salaries: 'اجمالي الرواتب',
-  otherExpenses: 'مصروفات اخري',
-  operatingExpensesYear: 'مصروفات التشغيل عن عام كامل',
-  paymentsRefunds: 'المدفوعات والاسترداد'
-};
-const SHEET_OPS_REVENUE_MAP = {
-  incompleteEnrollment: 'مبالغ محصلة بدون استكمال التحاق',
-  incompleteApplication: 'أبليكيشن'
-};
+const MANUAL_SUMMARY_ITEMS = [
+  'مصروفات التشغيل عن عام كامل',
+  'تسوية الباص',
+  'اجمالي الشهور',
+  'اجمالي شحن موبيل',
+  'اجمالي الرواتب',
+  'مصروفات اخري',
+  'صافي ربح باص',
+  'مبالغ محصلة بدون استكمال التحاق',
+  'المدفوعات والاسترداد',
+  'اجمالي المسلم لمجلس الادارة',
+  'اجمالي المسلم لادارة المدرسة',
+  'اجمالي الايراد قبل المدفوعات',
+  'صافي الايراد بعد المدفوعات',
+  'فرق المحصل'
+];
 
-let sheetDirty = false;
-let sheetHydratedYear = '';
-let sheetStructureReady = false;
-
-function shortGradeLabel(grade) {
-  const g = String(grade || '').trim();
-  if (!g) return '';
-  if (/^KG\d$/i.test(g) || /^PRE-?KG$/i.test(g)) return g.toUpperCase().replace('PREKG', 'PRE-KG');
-  const gr = g.match(/^Grade\s*(\d+)$/i);
-  if (gr) return 'GR' + gr[1];
-  const pr = g.match(/^Prep\s*(\d+)$/i);
-  if (pr) return 'PREP' + pr[1];
-  return g;
+function numCell(val) {
+  const n = parseFloat(val);
+  return Number.isFinite(n) ? n : 0;
 }
 
-function getSheetGradeGroups() {
-  const schoolGrades = [];
+function getManualGradesList() {
+  const grades = [];
   try {
     const stages = (schoolId === 'cardiff' && typeof CARDIFF_STAGES !== 'undefined')
       ? CARDIFF_STAGES
@@ -511,239 +410,125 @@ function getSheetGradeGroups() {
     if (stages) {
       Object.values(stages).forEach(st => {
         (st.grades || []).forEach(g => {
-          if (!schoolGrades.includes(g)) schoolGrades.push(g);
+          if (!grades.includes(g)) grades.push(g);
         });
       });
     }
   } catch (_) { /* ignore */ }
-
-  // افتراضي زي Book1 لو مفيش صفوف للمدرسة
-  const mainDefaults = ['KG1', 'KG2', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4'];
-  const bristolDefaults = ['Grade 5', 'Grade 6', 'Prep 1'];
-
-  let main = schoolGrades.length ? schoolGrades.slice() : mainDefaults.slice();
-  let bristol = [];
-
-  // قسم المحولين زي الشيت: GR5 / GR6 / PREP1 لو موجودين، وإلا آخر 3 صفوف
-  const bristolKeys = bristolDefaults.filter(g => main.includes(g));
-  if (bristolKeys.length) {
-    bristol = bristolKeys;
-    main = main.filter(g => !bristolKeys.includes(g));
-  } else if (!schoolGrades.length) {
-    bristol = bristolDefaults.slice();
+  if (!grades.length) {
+    return ['KG1', 'KG2', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Prep 1'];
   }
-
-  return { main, bristol };
+  return grades;
 }
 
-function numCell(val) {
-  const n = parseFloat(val);
-  return Number.isFinite(n) ? n : 0;
+function fillManualGradeSelect() {
+  const sel = document.getElementById('manualGrade');
+  if (!sel) return;
+  const prev = sel.value;
+  const grades = getManualGradesList();
+  sel.innerHTML = grades.map(g =>
+    `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`
+  ).join('');
+  if (prev && grades.includes(prev)) sel.value = prev;
 }
 
-function sheetCellHtml(section, grade, field, readonly) {
-  const key = escapeHtml(section + '|' + grade + '|' + field);
-  const ro = readonly ? ' readonly' : '';
-  return `<input type="number" step="0.01" class="an-cell sheet-grade-cell" data-key="${key}" data-section="${escapeHtml(section)}" data-grade="${escapeHtml(grade)}" data-field="${escapeHtml(field)}"${ro} placeholder="0" />`;
+function onManualEntryTypeChange() {
+  const type = document.getElementById('manualEntryType')?.value || 'grade';
+  const gradeBlock = document.getElementById('manualGradeBlock');
+  const itemBlock = document.getElementById('manualItemBlock');
+  if (gradeBlock) gradeBlock.classList.toggle('hidden', type !== 'grade');
+  if (itemBlock) itemBlock.classList.toggle('hidden', type !== 'item');
+  if (type === 'item') fillManualItemSelect();
 }
 
-function renderSheetGradeRows(tbodyId, footId, grades, section) {
-  const tbody = document.getElementById(tbodyId);
-  const foot = document.getElementById(footId);
-  if (!tbody || !foot) return;
-  tbody.innerHTML = grades.map(g => {
-    const label = shortGradeLabel(g);
-    return `<tr data-grade="${escapeHtml(g)}">
-      <td class="grade-cell">${escapeHtml(label)}</td>
-      ${SHEET_GRADE_FIELDS.map(f => `<td>${sheetCellHtml(section, g, f, false)}</td>`).join('')}
-    </tr>`;
-  }).join('');
-
-  foot.innerHTML = `<tr class="tot-row">
-    <td class="grade-cell">TOT</td>
-    ${SHEET_GRADE_FIELDS.map(f => `<td><input type="number" class="an-cell" id="tot-${section}-${f}" readonly value="0" /></td>`).join('')}
-  </tr>`;
-}
-
-function ensureManualSheetStructure() {
-  const { main, bristol } = getSheetGradeGroups();
-  const bristolRows = bristol.length ? bristol : ['Grade 5', 'Grade 6', 'Prep 1'];
-  renderSheetGradeRows('manualSheetBody', 'manualSheetFoot', main, 'main');
-  renderSheetGradeRows('manualBristolBody', 'manualBristolFoot', bristolRows, 'bristol');
-  sheetStructureReady = true;
-
-  const card = document.getElementById('manualSheetCard');
-  if (card && !card.dataset.bound) {
-    card.dataset.bound = '1';
-    card.addEventListener('input', (e) => {
-      if (e.target && (e.target.classList.contains('sheet-grade-cell') || e.target.classList.contains('sheet-ops') || e.target.id === 'manualNotes')) {
-        sheetDirty = true;
-        if (e.target.classList.contains('sheet-grade-cell')) updateSheetTotals();
-      }
-    });
-  }
-}
-
-function updateSheetTotals() {
-  ['main', 'bristol'].forEach(section => {
-    SHEET_GRADE_FIELDS.forEach(field => {
-      let sum = 0;
-      document.querySelectorAll(`.sheet-grade-cell[data-section="${section}"][data-field="${field}"]`).forEach(inp => {
-        sum += numCell(inp.value);
-      });
-      const tot = document.getElementById('tot-' + section + '-' + field);
-      if (tot) tot.value = String(round2(sum));
-    });
+function clearGradeFields() {
+  ['manualStudents', 'manualDue', 'manualCollected', 'manualDebtAmt',
+    'manualFile', 'manualUniform', 'manualBus', 'manualApplication', 'manualCourse'
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
   });
 }
 
-function collectSheetGradeRows(section) {
-  const map = {};
-  document.querySelectorAll(`.sheet-grade-cell[data-section="${section}"]`).forEach(inp => {
-    const g = inp.dataset.grade;
-    if (!map[g]) map[g] = { grade: g, label: shortGradeLabel(g) };
-    map[g][inp.dataset.field] = numCell(inp.value);
-  });
-  return Object.values(map);
-}
-
-function collectSheetOps() {
-  const ops = {};
-  document.querySelectorAll('.sheet-ops[data-ops]').forEach(inp => {
-    ops[inp.dataset.ops] = numCell(inp.value);
-  });
-  return ops;
-}
-
-function setSheetOps(ops) {
-  document.querySelectorAll('.sheet-ops[data-ops]').forEach(inp => {
-    const v = ops && ops[inp.dataset.ops];
-    inp.value = v != null && v !== '' ? String(v) : '';
-  });
-}
-
-function setSheetGradeRows(section, rows) {
-  const byGrade = {};
-  (rows || []).forEach(r => { if (r && r.grade) byGrade[r.grade] = r; });
-  document.querySelectorAll(`.sheet-grade-cell[data-section="${section}"]`).forEach(inp => {
-    const row = byGrade[inp.dataset.grade];
-    const v = row ? row[inp.dataset.field] : '';
-    inp.value = v != null && v !== '' && Number(v) !== 0 ? String(v) : (v === 0 ? '0' : '');
-  });
-}
-
-function clearManualSheetForm() {
-  document.querySelectorAll('.sheet-grade-cell').forEach(inp => { inp.value = ''; });
-  setSheetOps({});
-  const notes = document.getElementById('manualNotes');
-  if (notes) notes.value = '';
-  updateSheetTotals();
-}
-
-function findYearSheetDoc(year) {
-  return manualEntries.find(e =>
-    e.entryKind === 'yearSheet' &&
-    String(e.analysisYear || e.academicYear || '') === String(year)
-  ) || null;
-}
-
-function hydrateManualSheet(force) {
-  ensureManualSheetStructure();
+function loadGradeFieldsFromSaved() {
   const year = getSelectedManualYear();
-  const badge = document.getElementById('sheetYearBadge');
-  if (badge) badge.textContent = year || '—';
-  if (!force && sheetDirty && sheetHydratedYear === year) return;
+  const grade = document.getElementById('manualGrade')?.value || '';
+  if (!year || !grade) { clearGradeFields(); return; }
 
-  const doc = findYearSheetDoc(year);
-  if (doc && doc.sheet) {
-    setSheetGradeRows('main', doc.sheet.mainGrades || []);
-    setSheetGradeRows('bristol', doc.sheet.bristolGrades || []);
-    setSheetOps(doc.sheet.ops || {});
-    const notes = document.getElementById('manualNotes');
-    if (notes) notes.value = doc.notes || doc.sheet.notes || '';
-  } else if (sheetHydratedYear !== year || force) {
-    clearManualSheetForm();
-  }
-  updateSheetTotals();
-  sheetHydratedYear = year;
-  sheetDirty = false;
+  const row = manualEntries.find(e =>
+    e.entryKind === 'gradeRow' &&
+    String(e.analysisYear || e.academicYear || '') === String(year) &&
+    String(e.grade || '') === String(grade)
+  );
+  if (!row) { clearGradeFields(); return; }
+
+  const set = (id, v) => {
+    const el = document.getElementById(id);
+    if (el) el.value = v != null && v !== '' ? String(v) : '';
+  };
+  set('manualStudents', row.students);
+  set('manualDue', row.due);
+  set('manualCollected', row.collected);
+  set('manualDebtAmt', row.debt);
+  set('manualFile', row.file);
+  set('manualUniform', row.uniform);
+  set('manualBus', row.bus);
+  set('manualApplication', row.application);
+  set('manualCourse', row.course);
+  const notes = document.getElementById('manualNotes');
+  if (notes && row.notes) notes.value = row.notes;
 }
 
-function buildSheetExplodedItems(sheet) {
-  const totals = {
-    'مصروفات دراسية': { revenue: 0, expense: 0 },
-    'فايل': { revenue: 0, expense: 0 },
-    'يونيفورم': { revenue: 0, expense: 0 },
-    'باص': { revenue: 0, expense: 0 },
-    'أبليكيشن': { revenue: 0, expense: 0 },
-    'سمر كورس': { revenue: 0, expense: 0 }
-  };
-
-  const bump = (item, rev, exp) => {
-    if (!totals[item]) totals[item] = { revenue: 0, expense: 0 };
-    totals[item].revenue += numCell(rev);
-    totals[item].expense += numCell(exp);
-  };
-
-  [...(sheet.mainGrades || []), ...(sheet.bristolGrades || [])].forEach(r => {
-    bump('مصروفات دراسية', r.collected, 0);
-    bump('فايل', r.file, 0);
-    bump('يونيفورم', r.uniform, 0);
-    bump('باص', r.bus, 0);
-    bump('أبليكيشن', r.application, 0);
-    bump('سمر كورس', r.course, 0);
-  });
-
-  const ops = sheet.ops || {};
-  Object.keys(SHEET_OPS_EXPENSE_MAP).forEach(k => {
-    bump(SHEET_OPS_EXPENSE_MAP[k], 0, ops[k]);
-  });
-  Object.keys(SHEET_OPS_REVENUE_MAP).forEach(k => {
-    bump(SHEET_OPS_REVENUE_MAP[k], ops[k], 0);
-  });
-
-  return Object.entries(totals)
-    .map(([paymentItem, v]) => ({
-      paymentItem,
-      revenue: round2(v.revenue),
-      expense: round2(v.expense)
-    }))
-    .filter(x => x.revenue > 0 || x.expense > 0);
+function onManualGradeChange() {
+  loadGradeFieldsFromSaved();
 }
 
-async function saveManualSheet() {
-  ensureManualSheetStructure();
+function gradeRowToItems(row) {
+  return [
+    { paymentItem: 'مصروفات دراسية', revenue: numCell(row.collected), expense: 0 },
+    { paymentItem: 'فايل', revenue: numCell(row.file), expense: 0 },
+    { paymentItem: 'يونيفورم', revenue: numCell(row.uniform), expense: 0 },
+    { paymentItem: 'باص', revenue: numCell(row.bus), expense: 0 },
+    { paymentItem: 'أبليكيشن', revenue: numCell(row.application), expense: 0 },
+    { paymentItem: 'سمر كورس', revenue: numCell(row.course), expense: 0 }
+  ].filter(x => x.revenue > 0 || x.expense > 0);
+}
+
+async function saveManualGradeEntry() {
   const analysisYear = getSelectedManualYear();
+  const grade = document.getElementById('manualGrade')?.value || '';
   if (!analysisYear) return showManualAlert('اختار السنة الدراسية');
+  if (!grade) return showManualAlert('اختار الصف');
+
+  const row = {
+    grade,
+    students: numCell(document.getElementById('manualStudents')?.value),
+    due: numCell(document.getElementById('manualDue')?.value),
+    collected: numCell(document.getElementById('manualCollected')?.value),
+    debt: numCell(document.getElementById('manualDebtAmt')?.value),
+    file: numCell(document.getElementById('manualFile')?.value),
+    uniform: numCell(document.getElementById('manualUniform')?.value),
+    bus: numCell(document.getElementById('manualBus')?.value),
+    application: numCell(document.getElementById('manualApplication')?.value),
+    course: numCell(document.getElementById('manualCourse')?.value)
+  };
+  const notes = (document.getElementById('manualNotes')?.value || '').trim();
+  const items = gradeRowToItems(row);
+  const hasAny = items.length || Object.values(row).some((v, i) => i > 0 && numCell(v) > 0);
+  if (!hasAny) return showManualAlert('أدخل رقم واحد على الأقل للصف');
 
   const yearMonth = annualYmForYear(analysisYear);
   const date = yearMonth + '-01';
   const asTadkheel = isTadkheelMode() || analysisYear !== ACADEMIC_YEAR;
-  const notes = (document.getElementById('manualNotes')?.value || '').trim();
-
-  const sheet = {
-    mainGrades: collectSheetGradeRows('main'),
-    bristolGrades: collectSheetGradeRows('bristol'),
-    ops: collectSheetOps(),
-    notes
-  };
-
-  const exploded = buildSheetExplodedItems(sheet);
-  const hasAnyGrade = [...sheet.mainGrades, ...sheet.bristolGrades].some(r =>
-    SHEET_GRADE_FIELDS.some(f => numCell(r[f]) !== 0)
-  );
-  const hasOps = Object.values(sheet.ops).some(v => numCell(v) !== 0);
-  if (!hasAnyGrade && !hasOps && !exploded.length) {
-    return showManualAlert('أدخل رقم واحد على الأقل في الشيت');
-  }
-
   const btn = document.getElementById('manualSaveBtn');
-  btn.disabled = true; btn.textContent = 'جاري حفظ الشيت...';
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
   try {
-    // امسح النسخ القديمة المتولّدة من نفس شيت السنة
+    // امسح إدخال الصف القديم وبنوده المتولدة لنفس السنة/الصف
     const old = manualEntries.filter(e =>
-      e.fromSheetYear === analysisYear ||
-      (e.entryKind === 'yearSheet' && String(e.analysisYear || '') === String(analysisYear))
+      String(e.analysisYear || e.academicYear || '') === String(analysisYear) &&
+      String(e.grade || '') === String(grade) &&
+      (e.entryKind === 'gradeRow' || e.entryKind === 'gradeItem')
     );
     for (let i = 0; i < old.length; i += 400) {
       const batch = db.batch();
@@ -761,34 +546,31 @@ async function saveManualSheet() {
       entryPeriod: 'annual',
       yearMonth,
       date,
+      grade,
+      notes,
       createdBy: session.email,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
     await db.collection('analyticsEntries').add({
       ...baseMeta,
-      entryKind: 'yearSheet',
-      paymentItem: 'شيت التحليل السنوي',
+      entryKind: 'gradeRow',
+      paymentItem: 'إدخال صف — ' + grade,
       revenue: 0,
       expense: 0,
-      notes,
-      sheet
+      ...row
     });
 
-    for (const row of exploded) {
+    for (const it of items) {
       await db.collection('analyticsEntries').add({
         ...baseMeta,
-        entryKind: 'sheetItem',
-        fromSheetYear: analysisYear,
-        paymentItem: row.paymentItem,
-        revenue: row.revenue,
-        expense: row.expense,
-        notes: notes ? ('من الشيت — ' + notes) : 'من الشيت السنوي'
+        entryKind: 'gradeItem',
+        paymentItem: it.paymentItem,
+        revenue: round2(it.revenue),
+        expense: round2(it.expense),
+        notes: notes ? (grade + ' — ' + notes) : ('صف ' + grade)
       });
     }
-
-    sheetDirty = false;
-    sheetHydratedYear = analysisYear;
 
     if (asTadkheel) {
       tadkheelYear = analysisYear;
@@ -800,20 +582,26 @@ async function saveManualSheet() {
       }
     }
 
-    showManualAlert('تم حفظ شيت سنة ' + analysisYear + ' (' + exploded.length + ' بند)', 'success');
+    showManualAlert('تم حفظ بيانات صف «' + grade + '» لسنة ' + analysisYear, 'success');
     if (typeof notifyAdminActivity === 'function') {
       notifyAdminActivity(
-        asTadkheel ? 'تدخيل شيت تحليلي' : 'حفظ شيت تحليلي يدوي',
-        `سنة ${analysisYear} — ${exploded.length} بند`,
+        asTadkheel ? 'تدخيل صف تحليلي' : 'إدخال صف تحليلي يدوي',
+        `${grade} — ${analysisYear}`,
         { type: 'analytics', url: '/analytics.html' }
       );
     }
   } catch (err) {
     console.error(err);
-    showManualAlert('خطأ في حفظ الشيت: ' + err.message);
+    showManualAlert('خطأ في الحفظ: ' + err.message);
   } finally {
-    btn.disabled = false; btn.textContent = 'حفظ الشيت وعرض التحليل';
+    btn.disabled = false; btn.textContent = 'حفظ وعرض التحليل';
   }
+}
+
+async function saveManualForm() {
+  const type = document.getElementById('manualEntryType')?.value || 'grade';
+  if (type === 'item') return saveManualEntry();
+  return saveManualGradeEntry();
 }
 
 function annualYmForYear(label) {
@@ -849,9 +637,9 @@ function updateManualYearHint() {
   if (!hint) return;
   const y = getSelectedManualYear();
   if (y === ACADEMIC_YEAR) {
-    hint.textContent = 'السنة الحالية — ادخل أرقام الشيت يدويًا (صفوف/أعمدة زي الإكسيل) للمقارنة مع التحليل المباشر.';
+    hint.textContent = 'السنة الحالية — اختار الصف وأدخل أرقامه يدويًا للمقارنة مع التحليل المباشر.';
   } else {
-    hint.textContent = 'سنة سابقة («' + y + '») — الشيت هيتسجل كتدخيل سنوي وتحلله من وضع تدخيل.';
+    hint.textContent = 'سنة سابقة («' + y + '») — هيتسجل كتدخيل سنوي وتقدر تحلله من وضع تدخيل.';
   }
 }
 
@@ -871,8 +659,7 @@ function onManualYearChange() {
   const mSel = document.getElementById('manualMonth');
   if (mSel) mSel.value = ayYm;
 
-  sheetDirty = false;
-  hydrateManualSheet(true);
+  loadGradeFieldsFromSaved();
 
   if (isTadkheelMode()) {
     document.getElementById('modeHint').textContent = 'وضع التدخيل: التحليل على البيانات اليدوية فقط لسنة ' + y;
@@ -946,20 +733,19 @@ function fillTadkheelYearSelect() {
 }
 
 function getActiveManualEntries() {
-  const usable = (e) => e && e.entryKind !== 'yearSheet';
+  // تجاهل وثائق الصف الخام / الشيت — التحليل على البنود المتولدة فقط
+  const usable = (e) => e && e.entryKind !== 'yearSheet' && e.entryKind !== 'gradeRow';
   if (isTadkheelMode()) {
-    // كل الإدخالات السنوية للسنة المختارة (بدون وثيقة الشيت الخام)
     return manualEntries.filter(e =>
       usable(e) &&
       String(e.analysisYear || e.academicYear || '') === String(tadkheelYear)
     );
   }
-  // الوضع المباشر: إدخالات السنة الحالية فقط (مش سنين سابقة)
   return manualEntries.filter(e => {
     if (!usable(e)) return false;
     if (e.entryMode === 'tadkheel') return false;
     const ay = String(e.analysisYear || e.academicYear || '');
-    if (!ay) return true; // قديم بدون سنة — اعتبره للوضع المباشر
+    if (!ay) return true;
     return ay === String(ACADEMIC_YEAR);
   });
 }
@@ -986,8 +772,8 @@ function setAnalysisMode(mode) {
       liveEl.style.color = '#6a1b9a';
     }
     if (customWrap) customWrap.style.display = '';
-    if (formTitle) formTitle.textContent = 'تدخيل يدوي — شيت السنة كاملة';
-    if (formHint) formHint.textContent = 'املأ الشيت زي ملف الإكسيل لسنة التدخيل. بند مصروفات التشغيل عن عام كامل يدوي فقط.';
+    if (formTitle) formTitle.textContent = 'تدخيل يدوي حسب الصف';
+    if (formHint) formHint.textContent = 'اختار الصف وأدخل أرقامه لسنة التدخيل. مصروفات التشغيل عن عام كامل من نوع بند سنوي.';
     if (tableTitle) tableTitle.textContent = 'سجل تدخيل السنة ' + tadkheelYear;
     syncManualYearLabel();
     document.getElementById('kpiManualRevLbl').textContent = 'إجمالي الإيراد المدخل';
@@ -1002,8 +788,8 @@ function setAnalysisMode(mode) {
       liveEl.style.color = 'var(--success)';
     }
     if (customWrap) customWrap.style.display = 'none';
-    if (formTitle) formTitle.textContent = 'إدخال يدوي — زي شيت التحليل';
-    if (formHint) formHint.textContent = 'املأ الشيت زي ملف الإكسيل. بند مصروفات التشغيل عن عام كامل للإدخال اليدوي فقط.';
+    if (formTitle) formTitle.textContent = 'إدخال يدوي حسب الصف';
+    if (formHint) formHint.textContent = 'اختار الصف وأدخل أرقامه يدويًا. مصروفات التشغيل عن عام كامل من نوع بند سنوي فقط.';
     if (tableTitle) tableTitle.textContent = 'سجل الإدخال اليدوي (سنوي)';
     syncManualYearLabel();
     document.getElementById('kpiManualRevLbl').textContent = 'إيراد يدوي مُدخل';
@@ -1014,7 +800,9 @@ function setAnalysisMode(mode) {
   }
 
   selectedMonthYm = null;
-  hydrateManualSheet(true);
+  fillManualGradeSelect();
+  onManualEntryTypeChange();
+  loadGradeFieldsFromSaved();
   scheduleRender();
 }
 
@@ -1023,8 +811,7 @@ function onTadkheelYearChange() {
   tadkheelYear = sel?.value || tadkheelYear;
   selectedMonthYm = null;
   fillManualYearSelect(tadkheelYear);
-  sheetDirty = false;
-  hydrateManualSheet(true);
+  loadGradeFieldsFromSaved();
   if (isTadkheelMode()) {
     document.getElementById('modeHint').textContent = 'وضع التدخيل: التحليل على البيانات اليدوية فقط لسنة ' + tadkheelYear;
     document.getElementById('manualTableTitle').textContent = 'سجل تدخيل السنة ' + tadkheelYear;
@@ -1051,8 +838,7 @@ async function clearTadkheelYear() {
       entries.slice(i, i + batchSize).forEach(e => batch.delete(db.collection('analyticsEntries').doc(e.id)));
       await batch.commit();
     }
-    sheetDirty = false;
-    hydrateManualSheet(true);
+    clearGradeFields();
     showManualAlert('اتمسحت بيانات التدخيل — ابدأ الإدخال من جديد', 'success');
     if (typeof notifyAdminActivity === 'function') {
       notifyAdminActivity('مسح تدخيل تحليلي', tadkheelYear, { type: 'analytics_clear', url: '/analytics.html' });
@@ -1213,7 +999,7 @@ function getAnalysisItems() {
   );
   if (!base.includes('مصروفات دراسية')) base.unshift('مصروفات دراسية');
   if (!base.includes('أبليكيشن')) base.push('أبليكيشن');
-  MANUAL_ONLY_ITEMS.forEach(i => { if (!base.includes(i)) base.push(i); });
+  MANUAL_SUMMARY_ITEMS.forEach(i => { if (!base.includes(i)) base.push(i); });
 
   if (schoolId === 'cardiff' && !base.includes('سمر كورس')) {
     base.push('سمر كورس');
@@ -1463,6 +1249,7 @@ function startLiveSync() {
             return !d || String(d) <= today;
           })
           .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+        loadGradeFieldsFromSaved();
         scheduleRender();
         if (liveEl && !isTadkheelMode()) {
           liveEl.textContent = '● متصل — تحديث لحظي من أول عملية حتى اليوم';
@@ -1535,7 +1322,6 @@ function selectItem(name) {
 }
 
 function renderAll() {
-  hydrateManualSheet(false);
   const stats = buildItemStats(selectedMonthYm);
   const items = getAnalysisItems();
   const sysExp = totalSystemExpenses(selectedMonthYm);
@@ -2712,8 +2498,8 @@ setInterval(() => {
 window.addEventListener('beforeunload', stopLiveSync);
 fillTadkheelYearSelect();
 fillManualYearSelect(ACADEMIC_YEAR);
-ensureManualSheetStructure();
-hydrateManualSheet(true);
+fillManualGradeSelect();
+onManualEntryTypeChange();
 startLiveSync();
 </script>
 </body>
