@@ -120,7 +120,7 @@
       <div class="d-flex align-center gap-1 no-print" style="justify-content:space-between;flex-wrap:wrap;margin-bottom:1rem">
         <div>
           <div style="font-size:0.8rem;color:var(--text-light);font-weight:700">تحليل سنوي تراكمي: <span id="ayLabel" style="color:var(--primary)">جاري التحميل...</span></div>
-          <div id="modeHint" style="font-size:0.75rem;color:var(--text-light)">من أول عملية على النظام حتى اليوم — يتحدّث تلقائيًا مع أي تغيير</div>
+          <div id="modeHint" style="font-size:0.75rem;color:var(--text-light)">تحليل سنوي فقط — من أول عملية حتى اليوم، بدون تفصيل شهري</div>
           <div id="liveStatus" style="font-size:0.7rem;color:var(--success);font-weight:700;margin-top:0.2rem">● متصل — تحديث لحظي</div>
         </div>
         <div class="d-flex gap-1" style="flex-wrap:wrap;align-items:center">
@@ -319,8 +319,6 @@
         </div>
       </div>
 
-      <div class="an-month-bar no-print" id="monthFilterBar"></div>
-
       <div class="an-charts">
         <div class="an-chart-card">
           <h3>توزيع الإيراد الفعلي حسب البند</h3>
@@ -331,7 +329,7 @@
           <div class="an-chart-wrap"><canvas id="chartManualBars"></canvas></div>
         </div>
         <div class="an-chart-card" style="grid-column:1 / -1">
-          <h3>المسار التراكمي — إيراد فعلي / مصروف فعلي / إيراد يدوي / مصروف يدوي</h3>
+          <h3>ملخص سنوي — إيراد فعلي / مصروف فعلي / إيراد يدوي / مصروف يدوي</h3>
           <div class="an-chart-wrap tall"><canvas id="chartYearLine"></canvas></div>
         </div>
         <div class="an-chart-card">
@@ -1103,7 +1101,7 @@ function setAnalysisMode(mode) {
     document.getElementById('kpiManualRevSub').textContent = 'سنة ' + tadkheelYear;
     document.getElementById('kpiManualExpSub').textContent = 'سنة ' + tadkheelYear;
   } else {
-    if (hint) hint.textContent = 'من أول عملية على النظام حتى اليوم — يتحدّث تلقائيًا مع أي تغيير';
+    if (hint) hint.textContent = 'تحليل سنوي فقط — من أول عملية حتى اليوم، بدون تفصيل شهري';
     if (liveEl) {
       liveEl.textContent = '● متصل — تحديث لحظي من أول عملية حتى اليوم';
       liveEl.style.color = 'var(--success)';
@@ -1600,34 +1598,21 @@ function fillMonthSelects() {
   if (!PERIOD_MONTHS.length) refreshPeriodMonths();
   syncManualYearLabel();
 
-  // الإدخال اليدوي سنوي — الـ select مخفي ومتزامن مع بداية السنة الدراسية
+  // التحليل سنوي فقط — التاريخ الداخلي متزامن مع بداية السنة
   const sel = document.getElementById('manualMonth');
   if (sel) {
     const ayYm = annualYmForYear(currentManualAnalysisYear());
-    sel.innerHTML = PERIOD_MONTHS.map(m =>
-      `<option value="${m.ym}">${escapeHtml(m.label)} ${m.year}</option>`
-    ).join('');
-    if (PERIOD_MONTHS.some(m => m.ym === ayYm)) sel.value = ayYm;
-    else if (PERIOD_MONTHS.length) sel.value = PERIOD_MONTHS[0].ym;
+    sel.innerHTML = `<option value="${ayYm}">سنوي</option>`;
+    sel.value = ayYm;
   }
   const dateEl = document.getElementById('manualDate');
   if (dateEl) dateEl.value = (sel?.value || annualYmForYear(currentManualAnalysisYear())) + '-01';
-
-  // فلتر الشهور للبيانات الحية فقط (مش للإدخال اليدوي)
-  const bar = document.getElementById('monthFilterBar');
-  if (!bar) return;
-  if (isTadkheelMode()) {
-    bar.innerHTML = `<button class="an-month-chip active" onclick="setMonthFilter(null)">السنة كاملة — ${escapeHtml(tadkheelYear)}</button>`;
-    return;
-  }
-  bar.innerHTML = `<button class="an-month-chip ${!selectedMonthYm ? 'active' : ''}" onclick="setMonthFilter(null)">كل الفترة</button>` +
-    PERIOD_MONTHS.map(m =>
-      `<button class="an-month-chip ${selectedMonthYm === m.ym ? 'active' : ''}" onclick="setMonthFilter('${m.ym}')">${escapeHtml(m.short)}</button>`
-    ).join('');
+  // مفيش فلتر شهور — التحليل سنوي فقط
+  selectedMonthYm = null;
 }
 
-function setMonthFilter(ym) {
-  selectedMonthYm = ym;
+function setMonthFilter() {
+  selectedMonthYm = null;
   fillMonthSelects();
   renderAll();
 }
@@ -1640,9 +1625,10 @@ function selectItem(name) {
 function renderAll() {
   updateManualYearSummary();
   updateGradeSplitPreview();
-  const stats = buildItemStats(selectedMonthYm);
+  selectedMonthYm = null; // التحليل سنوي فقط
+  const stats = buildItemStats(null);
   const items = getAnalysisItems();
-  const sysExp = totalSystemExpenses(selectedMonthYm);
+  const sysExp = totalSystemExpenses(null);
   const debts = remainingDebts();
 
   let actualRev = 0, manualRev = 0, manualExp = 0, txCount = 0;
@@ -1712,7 +1698,7 @@ function renderAll() {
 function renderItemDetail(stats) {
   const body = document.getElementById('itemDetailBody');
   if (!selectedItem) {
-    body.innerHTML = '<div class="an-empty">اختر بندًا من الأعلى لعرض تفاصيله على مدار السنة</div>';
+    body.innerHTML = '<div class="an-empty">اختر بندًا من الأعلى لعرض تفاصيله السنوية</div>';
     return;
   }
   const s = stats[selectedItem];
@@ -1721,16 +1707,9 @@ function renderItemDetail(stats) {
     return;
   }
 
-  const monthRows = PERIOD_MONTHS.map(m => {
-    const bm = s.byMonth[m.ym] || { actualRev: 0, manualRev: 0, manualExp: 0 };
-    return `<tr>
-      <td>${escapeHtml(m.label)} ${m.year}</td>
-      <td style="color:#2e7d32;font-weight:700">${formatCurrency(bm.actualRev)}</td>
-      <td style="color:#2e7d32">${formatCurrency(bm.manualRev)}</td>
-      <td style="color:#c62828">${formatCurrency(bm.manualExp)}</td>
-      <td style="font-weight:800">${formatCurrency(bm.actualRev + bm.manualRev - bm.manualExp)}</td>
-    </tr>`;
-  }).join('');
+  const yearLabel = isTadkheelMode()
+    ? ('تدخيل — ' + tadkheelYear)
+    : ('السنة الدراسية — ' + ACADEMIC_YEAR);
 
   const recentTx = [...s.txs].sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 40);
   const txRows = recentTx.length
@@ -1742,34 +1721,28 @@ function renderItemDetail(stats) {
         <td class="text-sm">${escapeHtml(t.paymentType || '')}</td>
         <td class="text-sm text-muted">${escapeHtml(t.receiptNumber || '')}</td>
       </tr>`).join('')
-    : '<tr><td colspan="6"><div class="an-empty">لا تحصيل مسجّل على هذا البند في الفترة</div></td></tr>';
+    : '<tr><td colspan="6"><div class="an-empty">لا تحصيل مسجّل على هذا البند في السنة</div></td></tr>';
 
   body.innerHTML = `
     <div class="an-detail-head">
       <strong style="font-size:1.05rem">${escapeHtml(selectedItem)}</strong>
-      <span class="an-badge">${selectedMonthYm ? ('شهر ' + selectedMonthYm) : ('من ' + (dataStartYm || '—') + ' حتى اليوم')}</span>
+      <span class="an-badge">${escapeHtml(yearLabel)}</span>
     </div>
     <div class="an-kpis" style="margin-bottom:1rem">
-      <div class="an-kpi rev"><div class="lbl">إيراد فعلي</div><div class="val" style="font-size:1.05rem">${formatCurrency(s.actualRev)}</div></div>
+      <div class="an-kpi rev"><div class="lbl">إيراد فعلي (سنوي)</div><div class="val" style="font-size:1.05rem">${formatCurrency(s.actualRev)}</div></div>
       <div class="an-kpi"><div class="lbl">مستحق (من البنود)</div><div class="val" style="font-size:1.05rem">${formatCurrency(s.actualDue)}</div></div>
-      <div class="an-kpi rev"><div class="lbl">إيراد يدوي</div><div class="val" style="font-size:1.05rem">${formatCurrency(s.manualRev)}</div></div>
-      <div class="an-kpi exp"><div class="lbl">مصروف يدوي</div><div class="val" style="font-size:1.05rem">${formatCurrency(s.manualExp)}</div></div>
+      <div class="an-kpi rev"><div class="lbl">إيراد يدوي (سنوي)</div><div class="val" style="font-size:1.05rem">${formatCurrency(s.manualRev)}</div></div>
+      <div class="an-kpi exp"><div class="lbl">مصروف يدوي (سنوي)</div><div class="val" style="font-size:1.05rem">${formatCurrency(s.manualExp)}</div></div>
       <div class="an-kpi net"><div class="lbl">صافي تحليلي</div><div class="val" style="font-size:1.05rem">${formatCurrency(s.actualRev + s.manualRev - s.manualExp)}</div></div>
     </div>
-    <h4 style="font-size:0.85rem;margin-bottom:0.5rem">تفصيل شهري</h4>
-    <div class="table-wrapper" style="margin-bottom:1rem;max-height:260px;overflow:auto">
-      <table class="data-table">
-        <thead><tr><th>الشهر</th><th>إيراد فعلي</th><th>إيراد يدوي</th><th>مصروف يدوي</th><th>صافي</th></tr></thead>
-        <tbody>${monthRows}</tbody>
-      </table>
-    </div>
+    ${isTadkheelMode() ? '' : `
     <h4 style="font-size:0.85rem;margin-bottom:0.5rem">آخر التحصيلات على البند (${recentTx.length})</h4>
     <div class="table-wrapper" style="max-height:280px;overflow:auto">
       <table class="data-table">
         <thead><tr><th>التاريخ</th><th>الطالب</th><th>الصف</th><th>المبلغ</th><th>طريقة الدفع</th><th>إيصال</th></tr></thead>
         <tbody>${txRows}</tbody>
       </table>
-    </div>
+    </div>`}
   `;
 }
 
@@ -1779,15 +1752,7 @@ function renderManualTable() {
   if (selectedItem) {
     rows = rows.filter(e => normalizeAnalysisItem(e.paymentItem) === selectedItem);
   }
-  // الإدخال السنوي يظهر دائمًا مع فلتر الشهر
-  if (selectedMonthYm) {
-    rows = rows.filter(e =>
-      e.period === 'annual' ||
-      e.entryPeriod === 'annual' ||
-      (e.yearMonth || dateToYm(e.date)) === selectedMonthYm
-    );
-  }
-
+  // الإدخال سنوي — بدون فلتر شهر
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="9"><div class="an-empty">' +
       (isTadkheelMode() ? 'مفيش تدخيل للسنة دي بعد — ابدأ الإدخال من النموذج' : 'لا توجد إدخالات يدوية بعد') +
@@ -1876,58 +1841,50 @@ function renderCharts(stats, sysExp) {
     }
   });
 
-  // خط زمني — من أول شهر فيه بيانات حتى الشهر الحالي
-  const monthActual = PERIOD_MONTHS.map(() => 0);
-  const monthManRev = PERIOD_MONTHS.map(() => 0);
-  const monthManExp = PERIOD_MONTHS.map(() => 0);
-  const monthSysExp = PERIOD_MONTHS.map(() => 0);
-
+  // ملخص سنوي إجمالي (مش شهري)
+  let totalActual = 0, totalManRev = 0, totalManExp = 0;
   Object.values(stats).forEach(s => {
-    PERIOD_MONTHS.forEach((m, idx) => {
-      const bm = s.byMonth[m.ym];
-      if (!bm) return;
-      monthActual[idx] += bm.actualRev;
-      monthManRev[idx] += bm.manualRev;
-      monthManExp[idx] += bm.manualExp;
-    });
+    totalActual += s.actualRev || 0;
+    totalManRev += s.manualRev || 0;
+    totalManExp += s.manualExp || 0;
   });
-  allExp.forEach(e => {
-    if (!isInAnalysisRange(e.date)) return;
-    const ym = dateToYm(e.date);
-    const idx = PERIOD_MONTHS.findIndex(m => m.ym === ym);
-    if (idx >= 0) monthSysExp[idx] += Number(e.amount) || 0;
-  });
+  totalActual = round2(totalActual);
+  totalManRev = round2(totalManRev);
+  totalManExp = round2(totalManExp);
+  const totalSysExp = round2(sysExp || 0);
 
   destroyChart('year');
   const yearTitle = document.getElementById('chartYearLine')?.closest('.an-chart-card')?.querySelector('h3');
   if (yearTitle) {
     yearTitle.textContent = isTadkheelMode()
-      ? 'المسار الشهري للتدخيل — إيراد / مصروف'
-      : 'المسار التراكمي — إيراد فعلي / مصروف فعلي / إيراد يدوي / مصروف يدوي';
+      ? 'ملخص سنوي للتدخيل — إيراد / مصروف'
+      : 'ملخص سنوي — إيراد فعلي / مصروف فعلي / إيراد يدوي / مصروف يدوي';
   }
-  const yearDatasets = isTadkheelMode()
-    ? [
-        { label: 'إيراد مدخل', data: monthManRev.map(round2), borderColor: '#2e7d32', backgroundColor: '#2e7d3322', tension: 0.3, fill: true },
-        { label: 'مصروف مدخل', data: monthManExp.map(round2), borderColor: '#c62828', backgroundColor: '#c6282822', tension: 0.3, fill: true }
-      ]
-    : [
-        { label: 'إيراد فعلي', data: monthActual.map(round2), borderColor: '#2e7d32', backgroundColor: '#2e7d3322', tension: 0.3, fill: true },
-        { label: 'مصروف فعلي', data: monthSysExp.map(round2), borderColor: '#c62828', backgroundColor: '#c6282822', tension: 0.3, fill: true },
-        { label: 'إيراد يدوي', data: monthManRev.map(round2), borderColor: '#1565c0', borderDash: [6, 4], tension: 0.3, fill: false },
-        { label: 'مصروف يدوي', data: monthManExp.map(round2), borderColor: '#ef6c00', borderDash: [6, 4], tension: 0.3, fill: false }
-      ];
+  const yearLabels = isTadkheelMode()
+    ? ['إيراد مدخل', 'مصروف مدخل', 'صافي']
+    : ['إيراد فعلي', 'مصروف فعلي', 'إيراد يدوي', 'مصروف يدوي', 'صافي تحليلي'];
+  const yearData = isTadkheelMode()
+    ? [totalManRev, totalManExp, round2(totalManRev - totalManExp)]
+    : [totalActual, totalSysExp, totalManRev, totalManExp, round2(totalActual + totalManRev - totalManExp - totalSysExp)];
+  const yearColors = isTadkheelMode()
+    ? ['#2e7d32', '#c62828', '#1a3a6b']
+    : ['#2e7d32', '#c62828', '#1565c0', '#ef6c00', '#1a3a6b'];
+
   charts.year = new Chart(document.getElementById('chartYearLine'), {
-    type: 'line',
+    type: 'bar',
     data: {
-      labels: PERIOD_MONTHS.map(m => m.short),
-      datasets: yearDatasets
+      labels: yearLabels,
+      datasets: [{
+        label: 'إجمالي السنة',
+        data: yearData,
+        backgroundColor: yearColors
+      }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { labels: { font: { family: 'Cairo' } } } },
+      plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { font: { family: 'Cairo', size: 10 }, maxRotation: 45 } },
+        x: { ticks: { font: { family: 'Cairo', size: 11 } } },
         y: { beginAtZero: true, ticks: { font: { family: 'Cairo', size: 10 } } }
       }
     }
@@ -2286,7 +2243,7 @@ async function exportAnalyticsExcel() {
 
     blank(wsCover, 2);
     const note = wsCover.addRow([
-      'ملاحظة: الإدخال اليدوي للتحليل والمقارنة فقط — لا يغيّر التحصيل أو المصروفات المسجّلة في النظام. الشيت مُقسّم: ملخص → بنود → شهري → تفاصيل → مصروفات → مديونيات → يدوي → رسوم بيانية.'
+      'ملاحظة: الإدخال اليدوي للتحليل والمقارنة فقط — لا يغيّر التحصيل أو المصروفات المسجّلة في النظام. التحليل سنوي فقط: ملخص → بنود → تفاصيل → مصروفات → مديونيات → يدوي → رسوم.'
     ]);
     wsCover.mergeCells(`A${note.number}:${CEND}${note.number}`);
     paintRow(note, LTGRAY, 'FF455A64', false, 9, true);
@@ -2325,119 +2282,10 @@ async function exportAnalyticsExcel() {
     [3, 4, 6, 7, 8, 9].forEach(ci => numFmt(it.getCell(ci)));
     it.getCell(10).numFmt = '0%';
 
-    // ─── 3) التفصيل الشهري (مصفوفة) ───
-    const wsMonth = wb.addWorksheet('03-التفصيل الشهري');
-    styleSheet(wsMonth);
-    const monthCols = PERIOD_MONTHS.map(m => m.short);
-    wsMonth.columns = [
-      { width: 24 },
-      ...PERIOD_MONTHS.map(() => ({ width: 12 })),
-      { width: 14 }
-    ];
-    const colLetter = (n) => {
-      let s = '';
-      while (n > 0) {
-        const m = (n - 1) % 26;
-        s = String.fromCharCode(65 + m) + s;
-        n = Math.floor((n - 1) / 26);
-      }
-      return s;
-    };
-    const MEND = colLetter(PERIOD_MONTHS.length + 2);
+    // التحليل سنوي فقط — تم إلغاء شيتات التفصيل/المسار الشهري
 
-    addTitle(wsMonth, `إيراد فعلي شهري حسب البند — ${schoolName}`, MEND);
-    addSub(wsMonth, `من ${periodFrom} حتى ${periodTo}`, MEND);
-    addHdr(wsMonth, ['البند', ...monthCols, 'إجمالي البند'], PRI);
-
-    const monthTotals = PERIOD_MONTHS.map(() => 0);
-    items.forEach((name, idx) => {
-      const s = stats[name] || emptyItemStat(name);
-      const vals = PERIOD_MONTHS.map((m, i) => {
-        const v = round2((s.byMonth[m.ym] || {}).actualRev || 0);
-        monthTotals[i] += v;
-        return v;
-      });
-      const rowTotal = round2(vals.reduce((a, b) => a + b, 0));
-      if (rowTotal === 0 && s.manualRev === 0 && s.manualExp === 0) return;
-      const r = addData(wsMonth, [name, ...vals, rowTotal], idx % 2 === 1);
-      for (let c = 2; c <= PERIOD_MONTHS.length + 2; c++) numFmt(r.getCell(c));
-      r.getCell(1).alignment = rAlign();
-    });
-    const mt = addTotal(wsMonth, ['إجمالي الإيراد الفعلي', ...monthTotals.map(round2), actualRev]);
-    for (let c = 2; c <= PERIOD_MONTHS.length + 2; c++) numFmt(mt.getCell(c));
-
-    blank(wsMonth);
-    addSection(wsMonth, 'مصروف النظام الشهري', MEND, RED);
-    addHdr(wsMonth, ['البند', ...monthCols, 'الإجمالي'], 'FFB71C1C');
-    const monthSys = PERIOD_MONTHS.map(() => 0);
-    allExp.forEach(e => {
-      if (!isInAnalysisRange(e.date)) return;
-      const idx = PERIOD_MONTHS.findIndex(m => m.ym === dateToYm(e.date));
-      if (idx >= 0) monthSys[idx] += Number(e.amount) || 0;
-    });
-    const er = addData(wsMonth, ['مصروفات النظام', ...monthSys.map(round2), sysExp], false, true);
-    for (let c = 2; c <= PERIOD_MONTHS.length + 2; c++) {
-      numFmt(er.getCell(c));
-      er.getCell(c).font = { name: 'Arial', bold: true, size: 10, color: { argb: RED } };
-    }
-
-    blank(wsMonth);
-    addSection(wsMonth, 'صافي شهري (إيراد فعلي − مصروف نظام)', MEND, PRI);
-    addHdr(wsMonth, ['البند', ...monthCols, 'الإجمالي'], PRI);
-    const monthNet = monthTotals.map((v, i) => round2(v - monthSys[i]));
-    const nr = addData(wsMonth, ['الصافي', ...monthNet, netActual], false, true);
-    for (let c = 2; c <= PERIOD_MONTHS.length + 2; c++) {
-      numFmt(nr.getCell(c));
-      const v = c <= PERIOD_MONTHS.length + 1 ? monthNet[c - 2] : netActual;
-      nr.getCell(c).font = {
-        name: 'Arial', bold: true, size: 10,
-        color: { argb: v >= 0 ? GRN : RED }
-      };
-    }
-
-    // ─── 4) مسار شهري مجمّع ───
-    const wsTrend = wb.addWorksheet('04-المسار الشهري');
-    styleSheet(wsTrend);
-    wsTrend.columns = [
-      { width: 16 }, { width: 14 }, { width: 14 }, { width: 14 },
-      { width: 14 }, { width: 14 }, { width: 14 }, { width: 14 }
-    ];
-    addTitle(wsTrend, `المسار التراكمي الشهري — ${schoolName}`, 'H');
-    addSub(wsTrend, 'إيراد فعلي / مصروف فعلي / يدوي / صافي', 'H');
-    addHdr(wsTrend, [
-      'الشهر', 'إيراد فعلي', 'مصروف فعلي', 'صافي فعلي',
-      'إيراد يدوي', 'مصروف يدوي', 'صافي تحليلي', 'تحصيل تراكمي'
-    ]);
-
-    let running = 0;
-    const manRevM = PERIOD_MONTHS.map(() => 0);
-    const manExpM = PERIOD_MONTHS.map(() => 0);
-    Object.values(stats).forEach(s => {
-      PERIOD_MONTHS.forEach((m, i) => {
-        const bm = s.byMonth[m.ym];
-        if (!bm) return;
-        manRevM[i] += bm.manualRev || 0;
-        manExpM[i] += bm.manualExp || 0;
-      });
-    });
-
-    PERIOD_MONTHS.forEach((m, i) => {
-      const ar = round2(monthTotals[i]);
-      const se = round2(monthSys[i]);
-      const mr = round2(manRevM[i]);
-      const me = round2(manExpM[i]);
-      const na = round2(ar - se);
-      const analytical = round2(ar + mr - me - se);
-      running = round2(running + ar);
-      const r = addData(wsTrend, [
-        `${m.label} ${m.year}`, ar, se, na, mr, me, analytical, running
-      ], i % 2 === 1);
-      for (let c = 2; c <= 8; c++) numFmt(r.getCell(c));
-      r.getCell(4).font = { name: 'Arial', bold: true, size: 10, color: { argb: na >= 0 ? GRN : RED } };
-    });
-
-    // ─── 5) تفاصيل التحصيل ───
-    const wsTx = wb.addWorksheet('05-تفاصيل التحصيل');
+    // ─── 3) تفاصيل التحصيل ───
+    const wsTx = wb.addWorksheet('03-تفاصيل التحصيل');
     styleSheet(wsTx);
     wsTx.columns = [
       { width: 5 }, { width: 12 }, { width: 26 }, { width: 12 }, { width: 22 },
@@ -2494,8 +2342,8 @@ async function exportAnalyticsExcel() {
       };
     }
 
-    // ─── 6) المصروفات ───
-    const wsExp = wb.addWorksheet('06-المصروفات');
+    // ─── 4) المصروفات ───
+    const wsExp = wb.addWorksheet('04-المصروفات');
     styleSheet(wsExp);
     wsExp.columns = [
       { width: 5 }, { width: 12 }, { width: 22 }, { width: 28 },
@@ -2530,7 +2378,7 @@ async function exportAnalyticsExcel() {
     numFmt(et.getCell(5));
 
     // ─── 7) طرق الدفع ───
-    const wsPay = wb.addWorksheet('07-طرق الدفع');
+    const wsPay = wb.addWorksheet('05-طرق الدفع');
     styleSheet(wsPay);
     wsPay.columns = [{ width: 6 }, { width: 28 }, { width: 16 }, { width: 14 }];
     addTitle(wsPay, `توزيع الإيراد حسب طريقة الدفع — ${schoolName}`, 'D');
@@ -2551,7 +2399,7 @@ async function exportAnalyticsExcel() {
     pt.getCell(4).numFmt = '0%';
 
     // ─── 8) المديونيات ───
-    const wsDebt = wb.addWorksheet('08-المديونيات');
+    const wsDebt = wb.addWorksheet('06-المديونيات');
     styleSheet(wsDebt);
     wsDebt.columns = [
       { width: 5 }, { width: 26 }, { width: 14 }, { width: 22 },
@@ -2654,18 +2502,7 @@ async function exportAnalyticsExcel() {
         });
 
         blank(wsPerItem);
-        const mh = addHdr(wsPerItem, ['الشهر', 'إيراد فعلي', 'إيراد يدوي', 'مصروف يدوي', 'صافي'], SEC);
-        PERIOD_MONTHS.forEach((m, i) => {
-          const bm = s.byMonth[m.ym] || { actualRev: 0, manualRev: 0, manualExp: 0 };
-          if (!bm.actualRev && !bm.manualRev && !bm.manualExp) return;
-          const net = round2((bm.actualRev || 0) + (bm.manualRev || 0) - (bm.manualExp || 0));
-          const r = addData(wsPerItem, [
-            `${m.label} ${m.year}`,
-            round2(bm.actualRev), round2(bm.manualRev), round2(bm.manualExp), net
-          ], i % 2 === 1);
-          [2, 3, 4, 5].forEach(ci => numFmt(r.getCell(ci)));
-        });
-        void mh;
+        // التحليل سنوي فقط — بدون تفصيل شهري لكل بند
       });
 
     // ─── 11) الرسوم البيانية ───
@@ -2678,7 +2515,7 @@ async function exportAnalyticsExcel() {
     const chartSpecs = [
       { id: 'chartItemsPie', title: 'توزيع الإيراد الفعلي حسب البند', row: 4, col: 0 },
       { id: 'chartManualBars', title: 'إيراد × مصروف يدوي حسب البند', row: 4, col: 3 },
-      { id: 'chartYearLine', title: 'المسار التراكمي الشهري', row: 22, col: 0 },
+      { id: 'chartYearLine', title: 'ملخص سنوي', row: 22, col: 0 },
       { id: 'chartCompare', title: 'مقارنة فعلي vs يدوي', row: 40, col: 0 },
       { id: 'chartPayTypes', title: 'طرق الدفع', row: 40, col: 3 },
     ];
@@ -2707,7 +2544,7 @@ async function exportAnalyticsExcel() {
     foot.height = 22;
 
     // تجميد صفوف العناوين في الشيتات الجدولية
-    [wsItems, wsTx, wsExp, wsDebt, wsMan, wsPay, wsTrend].forEach(ws => {
+    [wsItems, wsTx, wsExp, wsDebt, wsMan, wsPay].forEach(ws => {
       ws.views = [{ state: 'normal', rightToLeft: true, showGridLines: false, ySplit: 3 }];
     });
 
