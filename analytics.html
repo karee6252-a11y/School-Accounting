@@ -2439,7 +2439,7 @@ async function exportAnalyticsExcel() {
     [5, 6, 7].forEach(ci => numFmt(dt.getCell(ci)));
 
     // ─── 9) الإدخال اليدوي ───
-    const wsMan = wb.addWorksheet('09-الإدخال اليدوي');
+    const wsMan = wb.addWorksheet('07-الإدخال اليدوي');
     styleSheet(wsMan);
     wsMan.columns = [
       { width: 5 }, { width: 12 }, { width: 16 }, { width: 22 },
@@ -2473,7 +2473,7 @@ async function exportAnalyticsExcel() {
     [5, 6, 7].forEach(ci => numFmt(manTot.getCell(ci)));
 
     // ─── 10) تحليل كل بند (شيت واحد بأقسام) ───
-    const wsPerItem = wb.addWorksheet('10-تحليل كل بند');
+    const wsPerItem = wb.addWorksheet('08-تحليل كل بند');
     styleSheet(wsPerItem);
     wsPerItem.columns = [
       { width: 18 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 14 }
@@ -2506,7 +2506,7 @@ async function exportAnalyticsExcel() {
       });
 
     // ─── 11) الرسوم البيانية ───
-    const wsCharts = wb.addWorksheet('11-الرسوم البيانية');
+    const wsCharts = wb.addWorksheet('09-الرسوم البيانية');
     styleSheet(wsCharts);
     wsCharts.columns = [{ width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }];
     addTitle(wsCharts, `الرسوم البيانية — ${schoolName}`, 'F', PRI, 15);
