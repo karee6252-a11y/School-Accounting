@@ -219,6 +219,9 @@
                     <option value="Prep 2">Prep 2</option>
                     <option value="Prep 3">Prep 3</option>
                   </optgroup>
+                  <optgroup label="الثانوي" class="bristol-only-grade" hidden>
+                    <option value="أولى ثانوي">أولى ثانوي</option>
+                  </optgroup>
                 </select>
               </div>
             </div>
@@ -363,6 +366,9 @@
               <option value="Prep 2">Prep 2</option>
               <option value="Prep 3">Prep 3</option>
             </optgroup>
+            <optgroup label="الثانوي" class="bristol-only-grade" hidden>
+              <option value="أولى ثانوي">أولى ثانوي</option>
+            </optgroup>
           </select>
           <select class="form-input" id="filterClassroom" onchange="filterStudents()" style="max-width:140px">
             <option value="">كل الفصول</option>
@@ -432,6 +438,9 @@
               <option value="Prep 1">Prep 1</option>
               <option value="Prep 2">Prep 2</option>
               <option value="Prep 3">Prep 3</option>
+            </optgroup>
+            <optgroup label="الثانوي" class="bristol-only-grade" hidden>
+              <option value="أولى ثانوي">أولى ثانوي</option>
             </optgroup>
           </select>
           <select class="form-input" id="filterActiveGender" onchange="filterActiveStudents()" style="max-width:130px">
@@ -559,6 +568,11 @@
   const session  = SESSION.get();
   const schoolId = session?.schoolId;
   let allStudents = [];
+
+  // صف «أولى ثانوي» ظاهر في بريستول فقط
+  if (schoolId === 'bristol') {
+    document.querySelectorAll('.bristol-only-grade').forEach(el => { el.hidden = false; });
+  }
 
   // ══════════════════════════════════════════════
   // ربط "شئون الطلاب" بمنصة Bristol LMS

@@ -466,7 +466,11 @@ function numCell(val) {
 
 /** نفس مصدر الصفوف/المراحل بتاع التحصيل اليومي */
 function getCollectionStagesMap() {
+  if (typeof getSchoolStages === 'function') return getSchoolStages(schoolId);
   if (schoolId === 'cardiff' && typeof CARDIFF_STAGES !== 'undefined') return CARDIFF_STAGES;
+  if (schoolId === 'bristol' && typeof BRISTOL_EXTRA_STAGES !== 'undefined') {
+    return Object.assign({}, STAGES || {}, BRISTOL_EXTRA_STAGES);
+  }
   if (typeof STAGES !== 'undefined') return STAGES;
   return {};
 }

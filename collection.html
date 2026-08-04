@@ -237,6 +237,7 @@
   let _shu2onStudentId = null;  // يتعبّى لما يجي من شئون الطلاب
 
   const isCardiff = schoolId === 'cardiff';
+  const isBristol = schoolId === 'bristol';
 
   function init() {
     document.getElementById('dateInput').value = localDateStr();
@@ -254,6 +255,10 @@
         <option value="kg">KG - الروضة</option>
         <option value="grade">Grade - الابتدائي</option>
         <option value="prep">Prep - الاعدادي</option>`;
+      // بريستول فقط: أولى ثانوي
+      if (isBristol) {
+        stageSelect.innerHTML += `<option value="secondary">Secondary - الثانوي</option>`;
+      }
     }
     renderPaymentItems(null);
     loadTodayTransactions();
@@ -287,6 +292,7 @@
             else if (['KG1','KG2'].includes(prefill.grade))                            stageKey = 'kg';
             else if (prefill.grade.startsWith('Grade'))                                stageKey = 'grade';
             else if (prefill.grade.startsWith('Prep'))                                 stageKey = 'prep';
+            else if (isBristol && (prefill.grade === 'أولى ثانوي' || prefill.grade.includes('ثانوي'))) stageKey = 'secondary';
           }
           if (stageKey) {
             document.getElementById('stageSelect').value = stageKey;
@@ -316,6 +322,7 @@
 
   function getStageData(stage) {
     if (isCardiff) return CARDIFF_STAGES[stage] || null;
+    if (isBristol && stage === 'secondary') return BRISTOL_EXTRA_STAGES.secondary;
     return STAGES[stage] || null;
   }
 
@@ -337,7 +344,7 @@
       }
       return stageData.otherPrices?.[item] ?? null;
     }
-    return STAGES[stage]?.prices?.[item] || null;
+    return getStageData(stage)?.prices?.[item] || null;
   }
 
   // يرجع بيانات الأقساط للمصروفات الدراسية في Cardiff
@@ -692,7 +699,7 @@
       const debt = Math.max(0, totalDue - amount);
       const itemsList = Object.entries(selectedItems).map(([item,v])=>({item,price:v.price,discount:v.discount||0,netPrice:v.price*(1-(v.discount||0)/100)}));
       const paymentItem = itemsList.map(i=>i.item).join(' + ');
-      const stageName = isCardiff ? (CARDIFF_STAGES[stage]?.labelAr || stage) : (STAGES[stage]?.labelAr || stage);
+      const stageName = getStageData(stage)?.labelAr || stage;
       const paymentTier = isCardiff ? (stage === 'semi_international' ? document.getElementById('paymentTierSelect').value : null) : null;
       const paymentTierName = isCardiff ? (stage === 'semi_international' ? (document.getElementById('paymentTierSelect').options[document.getElementById('paymentTierSelect').selectedIndex]?.text || '') : null) : null;
 
@@ -850,7 +857,7 @@
     const paymentTypeName=PAYMENT_TYPES.find(p=>p.value===paymentType)?.label||paymentType;
     const totalDue=getTotalAfterDiscount();
     const debt=totalDue-parseFloat(amount);
-    const stageName=stage?(isCardiff?CARDIFF_STAGES[stage]?.labelAr:STAGES[stage]?.labelAr):'';
+    const stageName=stage?(getStageData(stage)?.labelAr||stage):'';
     const tierHTML=isCardiff&&document.getElementById('paymentTierSelect').value?`<tr><td class="rl">نوع الدفعة</td><td class="rv">${document.getElementById('paymentTierSelect').options[document.getElementById('paymentTierSelect').selectedIndex]?.text}</td></tr>`:'';
     const itemRows=`<tr><td class="rl">المصروفات الدراسية</td><td class="rv">${formatCurrency(totalDue)}</td></tr>`;
     const debtHTML=debt>0?`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#f5f5f5;border:2px solid #000;border-radius:8px;color:#000;font-weight:800;font-size:12px;margin-bottom:10px;"><span>&#9888; مديونية متبقية</span><span>${formatCurrency(debt)}</span></div>`:'';
@@ -945,7 +952,7 @@
     const paymentTypeName=PAYMENT_TYPES.find(p=>p.value===paymentType)?.label||paymentType;
     const totalDue=getTotalAfterDiscount();
     const debt=totalDue-parseFloat(amount);
-    const stageName=stage?(isCardiff?CARDIFF_STAGES[stage]?.labelAr:STAGES[stage]?.labelAr):'';
+    const stageName=stage?(getStageData(stage)?.labelAr||stage):'';
     const tierHTML=isCardiff&&document.getElementById('paymentTierSelect').value?`<tr><td class="rl">نوع الدفعة</td><td class="rv">${document.getElementById('paymentTierSelect').options[document.getElementById('paymentTierSelect').selectedIndex]?.text}</td></tr>`:'';
     const itemRows=`<tr><td class="rl">المصروفات الدراسية</td><td class="rv">${formatCurrency(totalDue)}</td></tr>`;
     const debtHTML=debt>0?`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#f5f5f5;border:2px solid #000;border-radius:8px;color:#000;font-weight:800;font-size:12px;margin-bottom:10px;"><span>&#9888; مديونية متبقية</span><span>${formatCurrency(debt)}</span></div>`:'';

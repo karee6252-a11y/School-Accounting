@@ -373,6 +373,35 @@ const STAGES = {
   }
 };
 
+/** مراحل إضافية — بريستول فقط */
+const BRISTOL_EXTRA_STAGES = {
+  secondary: {
+    label: "Secondary",
+    labelAr: "الثانوي",
+    grades: ["أولى ثانوي"],
+    prices: {
+      "مصروفات دراسية": 32500,
+      "مصروفات - قسط 1": 18250,
+      "مصروفات - قسط 2": 14250,
+      "باص": 0,
+      "يونيفورم": 4800,
+      "فايل": 450,
+      "أبليكيشن": 700,
+      "رحلات": 0,
+      "امتحانات": 0,
+      "إيرادات أخرى": 0
+    }
+  }
+};
+
+/** مراحل المدرسة الحالية (Cardiff / Bristol+ثانوي / باقي المدارس) */
+function getSchoolStages(sid) {
+  const id = sid || (typeof SESSION !== 'undefined' && SESSION.get && SESSION.get()?.schoolId) || '';
+  if (id === 'cardiff' && typeof CARDIFF_STAGES !== 'undefined') return CARDIFF_STAGES;
+  if (id === 'bristol') return Object.assign({}, STAGES, BRISTOL_EXTRA_STAGES);
+  return STAGES;
+}
+
 // ========================================
 // CARDIFF STAGES & PRICING
 // ========================================

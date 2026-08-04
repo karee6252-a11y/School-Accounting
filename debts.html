@@ -115,6 +115,7 @@
               <option value="kg">KG</option>
               <option value="grade">Grade</option>
               <option value="prep">Prep</option>
+              <option value="secondary" class="bristol-only-grade" hidden>Secondary - الثانوي</option>
               <option value="international">International (Cardiff)</option>
               <option value="semi_international">Semi-International (Cardiff)</option>
             </select>
@@ -224,6 +225,9 @@
   renderLayout('debts', 'المديونيات');
   const session = SESSION.get();
   const schoolId = session.schoolId;
+  if (schoolId === 'bristol') {
+    document.querySelectorAll('.bristol-only-grade').forEach(el => { el.hidden = false; });
+  }
 
   let allDebts = [];
   let filteredDebts = [];

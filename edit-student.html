@@ -353,7 +353,7 @@
 
   function getStageName(stageId) {
     const map = {
-      pre_kg:'Pre-KG', kg:'KG', grade:'Grade', prep:'Prep',
+      pre_kg:'Pre-KG', kg:'KG', grade:'Grade', prep:'Prep', secondary:'الثانوي',
       international:'American Section', semi_international:'Semi-International'
     };
     return map[stageId] || stageId || '—';
@@ -361,16 +361,16 @@
 
   function getAllGrades() {
     const grades = [];
-    Object.values(STAGES).forEach(st => grades.push(...st.grades));
-    Object.values(CARDIFF_STAGES).forEach(st => { if (st.grades) grades.push(...st.grades); });
+    const sid = SESSION.get()?.schoolId;
+    const stages = (typeof getSchoolStages === 'function') ? getSchoolStages(sid) : STAGES;
+    Object.values(stages || {}).forEach(st => grades.push(...(st.grades || [])));
     return [...new Set(grades)];
   }
 
   function stageForGrade(grade) {
-    for (const [id, st] of Object.entries(STAGES)) {
-      if (st.grades.includes(grade)) return id;
-    }
-    for (const [id, st] of Object.entries(CARDIFF_STAGES)) {
+    const sid = SESSION.get()?.schoolId;
+    const stages = (typeof getSchoolStages === 'function') ? getSchoolStages(sid) : STAGES;
+    for (const [id, st] of Object.entries(stages || {})) {
       if (st.grades && st.grades.includes(grade)) return id;
     }
     return '';
@@ -582,7 +582,11 @@
         <option value="Prep 1" ${val==='Prep 1'?'selected':''}>Prep 1</option>
         <option value="Prep 2" ${val==='Prep 2'?'selected':''}>Prep 2</option>
         <option value="Prep 3" ${val==='Prep 3'?'selected':''}>Prep 3</option>
-      </optgroup>`;
+      </optgroup>
+      ${(SESSION.get()?.schoolId === 'bristol') ? `
+      <optgroup label="الثانوي">
+        <option value="أولى ثانوي" ${val==='أولى ثانوي'?'selected':''}>أولى ثانوي</option>
+      </optgroup>` : ''}`;
   }
 
   function buildInfoPanel() {
