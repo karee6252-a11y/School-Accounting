@@ -317,9 +317,10 @@
           <input
             type="text"
             id="searchInput"
-            placeholder="اكتب اسم الطالب..."
+            placeholder="اكتب اسم الطالب (عربي أو إنجليزي)..."
             autocomplete="off"
             oninput="onSearchInput()"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();onSearchEnter();}"
           />
           <div class="suggestions-dropdown" id="suggestionsDropdown"></div>
         </div>
@@ -462,8 +463,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=2.7"></script>
-<script src="layout.js?v=2.6"></script>
+<script src="firebase-config.js?v=2.8"></script>
+<script src="layout.js?v=2.8"></script>
 <script src="/pwa.js?v=8"></script>
 <script>
   renderLayout('student-search', 'بحث الطلاب');
@@ -487,54 +488,159 @@
     instapay: 'إنستاباي'
   };
 
-  // ── Autocomplete ─────────────────────────────
+  // ── Autocomplete / Search Index ─────────────────────────────
   let allStudentNames = [];
+  let studentIndex = []; // { name, nameEn, grade, stage, stageName, searchBlob }
   let searchTimeout = null;
-
-  // ── Load distinct student names — مع cache 30 دقيقة في sessionStorage ──
-  // التحسين: بدل ما نجيب كل الـ transactions (آلاف reads)،
-  //   نجيب بس آخر 3 أشهر + نحفظ النتيجة في cache
   let namesLoaded = false;
-  async function loadStudentNames() {
-    if (namesLoaded) return;
-    const NAMES_KEY = `student_names_${schoolId}`;
-    const NAMES_TTL = 30 * 60 * 1000; // 30 دقيقة
-    try {
-      // جرب الـ cache الأول
-      const raw = sessionStorage.getItem(NAMES_KEY);
-      if (raw) {
-        const obj = JSON.parse(raw);
-        if (Date.now() - obj.ts < NAMES_TTL) {
-          allStudentNames = obj.names;
-          namesLoaded = true;
-          return; // ✅ صفر reads
-        }
-      }
-      // جيب من Firebase — آخر 3 أشهر بس بدل كل السجلات
-      // جيب من بداية السنة الدراسية الحالية
-      const names = new Set();
-      const [snap, dSnap] = await Promise.all([
-        db.collection('transactions')
-          .where('schoolId', '==', schoolId)
-          .where('date', '>=', ACADEMIC_YEAR_START)
-          .get(),
-        db.collection('debts')
-          .where('schoolId', '==', schoolId)
-          .get()
-          .catch(() => null)
-      ]);
-      snap.forEach(doc => { if (doc.data().studentName) names.add(doc.data().studentName); });
-      if (dSnap) dSnap.forEach(doc => { if (doc.data().studentName) names.add(doc.data().studentName); });
-      allStudentNames = [...names].sort();
-      namesLoaded = true;
-      // احفظ في cache
-      try { sessionStorage.setItem(NAMES_KEY, JSON.stringify({ names: allStudentNames, ts: Date.now() })); }
-      catch(e) {}
-    } catch(e) {
-      console.warn('loadStudentNames error:', e);
+  let namesLoading = null;
+  let currentAffairs = null;
+
+  function normalize(name) {
+    return (name || '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/أ|إ|آ/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ى/g, 'ي')
+      .toLowerCase();
+  }
+
+  function getStageLabel(stageRaw, stageName) {
+    if (stageName) return stageName;
+    if (!stageRaw) return '—';
+    const stages = (typeof getSchoolStages === 'function')
+      ? getSchoolStages(schoolId)
+      : (schoolId === 'cardiff' && typeof CARDIFF_STAGES !== 'undefined' ? CARDIFF_STAGES : STAGES);
+    return stages?.[stageRaw]?.labelAr || stages?.[stageRaw]?.label || stageRaw;
+  }
+
+  function upsertStudentEntry(map, { name, nameEn, grade, stage, stageName }) {
+    const ar = (name || '').trim();
+    const en = (nameEn || '').trim();
+    if (!ar && !en) return;
+    const key = normalize(ar) || normalize(en);
+    if (!key) return;
+    const existing = map.get(key);
+    if (existing) {
+      if (ar && !existing.name) existing.name = ar;
+      if (en && !existing.nameEn) existing.nameEn = en;
+      if (grade) existing.grade = grade;
+      if (stage) existing.stage = stage;
+      if (stageName) existing.stageName = stageName;
+      existing.searchBlob = [existing.name, existing.nameEn, existing.grade]
+        .filter(Boolean).map(normalize).join(' ');
+      return;
     }
+    map.set(key, {
+      name: ar || en,
+      nameEn: en,
+      grade: grade || '',
+      stage: stage || '',
+      stageName: stageName || '',
+      searchBlob: [ar || en, en, grade].filter(Boolean).map(normalize).join(' ')
+    });
+  }
+
+  async function loadStudentNames(forceRefresh) {
+    if (namesLoaded && !forceRefresh) return;
+    if (namesLoading) return namesLoading;
+
+    namesLoading = (async () => {
+      const CACHE_KEY = `student_search_index_v3_${schoolId}`;
+      const NAMES_TTL = 15 * 60 * 1000;
+      try {
+        if (!forceRefresh) {
+          const raw = sessionStorage.getItem(CACHE_KEY);
+          if (raw) {
+            const obj = JSON.parse(raw);
+            if (Date.now() - obj.ts < NAMES_TTL && Array.isArray(obj.index) && obj.index.length > 0) {
+              studentIndex = obj.index;
+              allStudentNames = obj.names || studentIndex.map(e => e.name).filter(Boolean);
+              namesLoaded = true;
+              return;
+            }
+          }
+        }
+
+        const map = new Map();
+        const [txSnap, debtSnap, affairsSnap] = await Promise.all([
+          db.collection('transactions').where('schoolId', '==', schoolId).get(),
+          db.collection('debts').where('schoolId', '==', schoolId).get().catch(() => null),
+          db.collection('studentAffairs').where('schoolId', '==', schoolId).get().catch(() => null)
+        ]);
+
+        txSnap.forEach(doc => {
+          const d = doc.data();
+          upsertStudentEntry(map, {
+            name: d.studentName,
+            nameEn: d.studentNameEn,
+            grade: d.grade,
+            stage: d.stage,
+            stageName: d.stageName
+          });
+        });
+        if (debtSnap) {
+          debtSnap.forEach(doc => {
+            const d = doc.data();
+            upsertStudentEntry(map, {
+              name: d.studentName,
+              nameEn: d.studentNameEn,
+              grade: d.grade,
+              stage: d.stage,
+              stageName: d.stageName
+            });
+          });
+        }
+        if (affairsSnap) {
+          affairsSnap.forEach(doc => {
+            const d = doc.data();
+            upsertStudentEntry(map, {
+              name: d.studentName,
+              nameEn: d.studentNameEn,
+              grade: d.grade,
+              stage: d.stage,
+              stageName: d.stageName
+            });
+          });
+        }
+
+        studentIndex = [...map.values()].sort((a, b) =>
+          (a.name || '').localeCompare(b.name || '', 'ar')
+        );
+        allStudentNames = [...new Set(studentIndex.map(e => e.name).filter(Boolean))].sort((a, b) =>
+          a.localeCompare(b, 'ar')
+        );
+        namesLoaded = true;
+
+        try {
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+            index: studentIndex,
+            names: allStudentNames,
+            ts: Date.now()
+          }));
+        } catch (e) {}
+      } catch (e) {
+        console.warn('loadStudentNames error:', e);
+        namesLoaded = true;
+      } finally {
+        namesLoading = null;
+      }
+    })();
+
+    return namesLoading;
   }
   loadStudentNames();
+
+  function matchStudentEntries(q) {
+    const nq = normalize(q);
+    if (!nq) return [];
+    return studentIndex.filter(e =>
+      (e.searchBlob || '').includes(nq) ||
+      normalize(e.name).includes(nq) ||
+      normalize(e.nameEn).includes(nq)
+    ).slice(0, 12);
+  }
 
   function onSearchInput() {
     clearTimeout(searchTimeout);
@@ -543,8 +649,7 @@
       hideSuggestions();
       return;
     }
-    // Show loading in dropdown while waiting
-    if (allStudentNames.length === 0) {
+    if (!namesLoaded) {
       const dd = document.getElementById('suggestionsDropdown');
       dd.innerHTML = '';
       const loadEl = document.createElement('div');
@@ -553,33 +658,48 @@
       loadEl.textContent = 'جاري التحميل...';
       dd.appendChild(loadEl);
       dd.classList.add('show');
-      // Wait for names then search
       loadStudentNames().then(() => showSuggestions(val));
       return;
     }
-    searchTimeout = setTimeout(() => showSuggestions(val), 200);
+    searchTimeout = setTimeout(() => showSuggestions(val), 180);
+  }
+
+  async function onSearchEnter() {
+    const val = document.getElementById('searchInput').value.trim();
+    if (!val) return;
+    await loadStudentNames();
+    const matches = matchStudentEntries(val);
+    if (matches.length === 1) {
+      selectStudent(matches[0].name, matches[0]);
+      return;
+    }
+    if (matches.length > 1) {
+      showSuggestions(val);
+      return;
+    }
+    // بحث مباشر بالاسم المكتوب حتى لو مش في الـ index
+    hideSuggestions();
+    loadStudentData(val);
   }
 
   function showSuggestions(q) {
     const dd = document.getElementById('suggestionsDropdown');
-    // If names still not loaded, search Firestore directly
-    if (allStudentNames.length === 0) {
-      searchFirestoreDirectly(q);
+    if (!namesLoaded) {
+      loadStudentNames().then(() => showSuggestions(q));
       return;
     }
-    const matches = allStudentNames.filter(n =>
-      n.toLowerCase().includes(q.toLowerCase())
-    ).slice(0, 10);
 
+    const matches = matchStudentEntries(q);
     dd.innerHTML = '';
     if (matches.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'suggestion-item';
       empty.style.cssText = 'color:var(--text-light);cursor:default';
-      empty.textContent = ' لا توجد نتائج لـ "' + q + '"';
+      empty.textContent = 'لا توجد نتائج لـ "' + q + '" — اضغط Enter للبحث المباشر';
       dd.appendChild(empty);
     } else {
-      matches.forEach(name => {
+      matches.forEach(entry => {
+        const name = entry.name;
         const item = document.createElement('div');
         item.className = 'suggestion-item';
         const avatar = document.createElement('div');
@@ -590,9 +710,16 @@
         nameInner.className = 'suggestion-name';
         nameInner.innerHTML = highlightMatch(name, q);
         nameDiv.appendChild(nameInner);
+        if (entry.nameEn || entry.grade) {
+          const meta = document.createElement('div');
+          meta.style.cssText = 'font-size:0.72rem;color:var(--text-light);margin-top:2px';
+          meta.textContent = [entry.nameEn, entry.grade, getStageLabel(entry.stage, entry.stageName)]
+            .filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(' · ');
+          nameDiv.appendChild(meta);
+        }
         item.appendChild(avatar);
         item.appendChild(nameDiv);
-        item.addEventListener('click', function() { selectStudent(name); });
+        item.addEventListener('click', function() { selectStudent(name, entry); });
         dd.appendChild(item);
       });
     }
@@ -600,33 +727,16 @@
   }
 
   function highlightMatch(name, q) {
-    const idx = name.toLowerCase().indexOf(q.toLowerCase());
-    if (idx < 0) return name;
+    const lower = name.toLowerCase();
+    const ql = q.toLowerCase();
+    const idx = lower.indexOf(ql);
+    if (idx < 0) {
+      // fallback: normalized highlight skip — return plain
+      return name;
+    }
     return name.substring(0, idx) +
       `<mark style="background:rgba(255,220,0,0.4);border-radius:2px">${name.substring(idx, idx + q.length)}</mark>` +
       name.substring(idx + q.length);
-  }
-
-  async function searchFirestoreDirectly(q) {
-    const dd = document.getElementById('suggestionsDropdown');
-    dd.innerHTML = '';
-    const loadEl = document.createElement('div');
-    loadEl.className = 'suggestion-item';
-    loadEl.style.cssText = 'color:var(--text-light);cursor:default;justify-content:center';
-    loadEl.textContent = 'جاري البحث...';
-    dd.appendChild(loadEl);
-    dd.classList.add('show');
-    try {
-      await loadStudentNames();
-      showSuggestions(q);
-    } catch(e) {
-      dd.innerHTML = '';
-      const errEl = document.createElement('div');
-      errEl.className = 'suggestion-item';
-      errEl.style.cssText = 'color:red;cursor:default';
-      errEl.textContent = 'خطأ في البحث';
-      dd.appendChild(errEl);
-    }
   }
 
   function hideSuggestions() {
@@ -639,36 +749,40 @@
     }
   });
 
-  function selectStudent(name) {
+  function selectStudent(name, entry) {
     document.getElementById('searchInput').value = name;
     hideSuggestions();
-    loadStudentData(name);
+    const aliases = [];
+    if (entry?.nameEn && entry.nameEn !== name) aliases.push(entry.nameEn);
+    loadStudentData(name, aliases);
   }
 
   // ── Duplicate detection helpers ──────────────────
   let currentDuplicateNames = [];
-
-  function normalize(name) {
-    return (name || '')
-      .trim()
-      .replace(/\s+/g, ' ')           // مسافات متعددة → مسافة واحدة
-      .replace(/أ|إ|آ/g, 'ا')         // توحيد الألف
-      .replace(/ة/g, 'ه')             // تاء مربوطة → هاء
-      .replace(/ى/g, 'ي')             // ألف مقصورة → ياء
-      .toLowerCase();
-  }
 
   function findSimilarNames(targetName) {
     const normTarget = normalize(targetName);
     return allStudentNames.filter(n => {
       if (n === targetName) return false;
       const normN = normalize(n);
-      // نفس الاسم بعد التوحيد
       if (normN === normTarget) return true;
-      // فرق مسافة فقط
       if (normN.replace(/\s/g,'') === normTarget.replace(/\s/g,'')) return true;
       return false;
     });
+  }
+
+  function resolveNameAliases(name) {
+    const entry = studentIndex.find(e =>
+      e.name === name || e.nameEn === name ||
+      normalize(e.name) === normalize(name) ||
+      normalize(e.nameEn) === normalize(name)
+    );
+    const aliases = new Set([name]);
+    if (entry) {
+      if (entry.name) aliases.add(entry.name);
+      if (entry.nameEn) aliases.add(entry.nameEn);
+    }
+    return [...aliases];
   }
 
   // ── Load Student Data ──────────────────────────
@@ -677,12 +791,19 @@
     document.getElementById('resultArea').style.display = 'none';
     document.getElementById('loadingState').style.display = 'block';
     document.getElementById('duplicateWarning').style.display = 'none';
+    document.getElementById('mergeAllBtn').style.display = '';
+    currentAffairs = null;
 
     try {
-      // كل الأسماء اللي هنجيب بياناتها (الاسم الأصلي + أي duplicates محددة)
-      const allNames = [name, ...extraNames.filter(n => n !== name)];
+      await loadStudentNames();
+      const aliasNames = resolveNameAliases(name);
+      const allNames = [...new Set([
+        name,
+        ...aliasNames,
+        ...extraNames.filter(Boolean)
+      ])];
+      const displayName = studentIndex.find(e => allNames.includes(e.name) || allNames.includes(e.nameEn))?.name || name;
 
-      // جيب transactions لكل الأسماء
       const txPromises = allNames.map(n =>
         db.collection('transactions')
           .where('schoolId', '==', schoolId)
@@ -696,10 +817,25 @@
           .get()
           .catch(() => null)
       );
+      const affairsPromises = allNames.flatMap(n => [
+        db.collection('studentAffairs')
+          .where('schoolId', '==', schoolId)
+          .where('studentName', '==', n)
+          .limit(1)
+          .get()
+          .catch(() => null),
+        db.collection('studentAffairs')
+          .where('schoolId', '==', schoolId)
+          .where('studentNameEn', '==', n)
+          .limit(1)
+          .get()
+          .catch(() => null)
+      ]);
 
-      const [txSnaps, debtSnaps] = await Promise.all([
+      const [txSnaps, debtSnaps, affairsSnaps] = await Promise.all([
         Promise.all(txPromises),
-        Promise.all(debtPromises)
+        Promise.all(debtPromises),
+        Promise.all(affairsPromises)
       ]);
 
       const transactions = [];
@@ -713,6 +849,9 @@
         });
       });
       transactions.sort((a, b) => {
+        const da = a.date || '';
+        const db_ = b.date || '';
+        if (da !== db_) return db_.localeCompare(da);
         const ta = a.createdAt?.seconds || 0;
         const tb = b.createdAt?.seconds || 0;
         return tb - ta;
@@ -730,10 +869,17 @@
         });
       });
 
+      for (const snap of affairsSnaps) {
+        if (snap && !snap.empty) {
+          currentAffairs = { id: snap.docs[0].id, ...snap.docs[0].data() };
+          break;
+        }
+      }
+
       // كشف الأسماء المتشابهة (بس لو مش بندمج بالفعل)
       if (extraNames.length === 0) {
-        const similarNames = findSimilarNames(name);
-        currentDuplicateNames = [name, ...similarNames];
+        const similarNames = findSimilarNames(displayName);
+        currentDuplicateNames = [displayName, ...similarNames];
         if (similarNames.length > 0) {
           const warningEl = document.getElementById('duplicateWarning');
           const listEl = document.getElementById('duplicateNamesList');
@@ -743,13 +889,12 @@
                      padding:0.3rem 0.85rem; font-size:0.82rem; font-weight:700;
                      color:#856404; cursor:pointer; white-space:nowrap"
               title="اضغط لعرض معاملات هذا الاسم بس">
-              ${n === name ? '✓ ' : ''}${n}
+              ${n === displayName ? '✓ ' : ''}${n}
             </span>
           `).join('');
           warningEl.style.display = 'block';
         }
       } else {
-        // وضع الدمج — وضح إن الداتا مدموجة
         const warningEl = document.getElementById('duplicateWarning');
         const listEl = document.getElementById('duplicateNamesList');
         listEl.innerHTML = `<span style="background:#d4edda; border:1.5px solid #4caf50; border-radius:20px; padding:0.3rem 0.85rem; font-size:0.82rem; font-weight:700; color:#2e7d32">✅ يتم عرض كل المعاملات من ${allNames.length} أسماء مدموجة</span>`;
@@ -757,7 +902,7 @@
         warningEl.style.display = 'block';
       }
 
-      renderStudentProfile(name, transactions, debts);
+      renderStudentProfile(displayName, transactions, debts);
 
     } catch(err) {
       console.error(err);
@@ -801,11 +946,14 @@
     const lastTx = transactions[0];
     const lastDate = lastTx?.date || '—';
 
-    // Grade & Stage from latest tx
+    // Grade & Stage from latest tx / affairs / index
     const latestTx = transactions[0] || debts[0] || {};
-    const grade = latestTx.grade || '—';
-    const stageRaw = latestTx.stage || '';
-    const stage = stageRaw ? (STAGES[stageRaw]?.labelAr || (typeof stageRaw === 'string' ? stageRaw : '—')) : '—';
+    const affairs = currentAffairs || {};
+    const grade = latestTx.grade || affairs.grade || '—';
+    const stageRaw = latestTx.stage || affairs.stage || '';
+    const stage = getStageLabel(stageRaw, latestTx.stageName || affairs.stageName);
+    const nameEn = affairs.studentNameEn || latestTx.studentNameEn || '';
+    const schoolName = (typeof SESSION !== 'undefined' && SESSION.getSchool?.()?.name) || schoolId;
 
     // Favorite payment method
     const methodCount = {};
@@ -819,7 +967,12 @@
     // ── Profile Header ──
     document.getElementById('profileAvatar').textContent = name.charAt(0);
     document.getElementById('profileName').textContent = name;
-    document.getElementById('profileMeta').textContent = `${stage} — ${grade} | ${schoolId}`;
+    document.getElementById('profileMeta').textContent = [
+      stage,
+      grade,
+      nameEn,
+      schoolName
+    ].filter(v => v && v !== '—').join(' · ');
     document.getElementById('psTotal').textContent = formatCurrency(totalPaid);
     document.getElementById('psTxCount').textContent = transactions.length;
     document.getElementById('psDebt').textContent = totalDebt > 0 ? formatCurrency(totalDebt) : 'لا يوجد';
@@ -858,6 +1011,7 @@
         const itemsDisplay = itemNames.length > 0 ? itemNames.join(' + ') : (t.paymentItem || '—');
         const firstItem = itemNames[0] || t.paymentItem || '';
         const icon = PAYMENT_ICONS[firstItem] || '💳';
+        const tierLabel = t.paymentTierName || (t.paymentTier === 'golden' ? 'دفعة ذهبية' : (t.paymentTier === 'normal' ? 'دفعة عادية' : ''));
         return `
           <div class="tx-row">
             <div class="tx-icon">${icon}</div>
@@ -865,6 +1019,8 @@
               <div class="tx-item">${itemsDisplay}</div>
               <div class="tx-meta">
                 <span class="method-pill">${method}</span>
+                ${tierLabel ? `<span style="margin-right:0.4rem;font-size:0.72rem;color:var(--primary);font-weight:700">${tierLabel}</span>` : ''}
+                ${t.grade ? `<span style="margin-right:0.4rem;font-size:0.72rem;color:var(--text-light)">${t.grade}</span>` : ''}
                 ${t.receiptNumber ? `<span style="margin-right:0.4rem;font-size:0.72rem;color:var(--text-light)"> إيصال #${t.receiptNumber}</span>` : ''}
                 ${t.notes ? `<span style="margin-right:0.4rem;font-size:0.72rem;color:var(--text-light)">${t.notes}</span>` : ''}
               </div>
