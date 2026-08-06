@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="School System" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 <title>التحصيل اليومي - نظام المحاسبة</title>
-  <link rel="stylesheet" href="styles.css?v=2.3" />
+  <link rel="stylesheet" href="styles.css?v=2.6" />
   <style>
     .payment-item-card { position: relative; cursor: pointer; transition: var(--transition); }
     .payment-item-card.selected { background: var(--accent); border-color: var(--primary); }
@@ -80,7 +80,7 @@
                   <div id="debtIndicator" style="margin-top:4px;display:none"></div>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">المرحلة الدراسية <span class="required">*</span></label>
+                  <label class="form-label">المرحلة الدراسية <span class="required" id="stageRequiredMark">*</span></label>
                   <select class="form-select" id="stageSelect" onchange="onStageChange()">
                     <option value="">اختر المرحلة</option>
                   </select>
@@ -95,7 +95,7 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">الصف <span class="required">*</span></label>
+                  <label class="form-label">الصف <span class="required" id="gradeRequiredMark">*</span></label>
                   <select class="form-select" id="gradeSelect" onchange="onGradeChange()">
                     <option value="">اختر الصف اولا</option>
                   </select>
@@ -225,8 +225,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
-<script src="layout.js"></script>
+<script src="firebase-config.js?v=2.6"></script>
+<script src="layout.js?v=2.6"></script>
 <script src="/pwa.js?v=8"></script>
 <script>
   renderLayout('collection', 'التحصيل اليومي');
@@ -519,9 +519,28 @@
     calcDebt();
   }
 
+  /** إيرادات أخرى فقط — مش محتاج مرحلة ولا صف */
+  function isOtherRevenueOnlySelection(extraItem) {
+    const keys = Object.keys(selectedItems);
+    const set = new Set(keys);
+    if (extraItem) set.add(extraItem);
+    if (set.size === 0) return false;
+    return [...set].every(k => k === 'إيرادات أخرى');
+  }
+
+  function updateStageGradeRequiredUI() {
+    const optional = isOtherRevenueOnlySelection();
+    const stageMark = document.getElementById('stageRequiredMark');
+    const gradeMark = document.getElementById('gradeRequiredMark');
+    if (stageMark) stageMark.style.display = optional ? 'none' : '';
+    if (gradeMark) gradeMark.style.display = optional ? 'none' : '';
+  }
+
   function togglePaymentItem(item, price) {
     const stage = document.getElementById('stageSelect').value;
-    if (!stage) { showAlert('من فضلك اختر المرحلة اولا'); return; }
+    const isOtherRev = item === 'إيرادات أخرى';
+    // إيرادات أخرى تتعمل من غير مرحلة/صف؛ باقي البنود تحتاج مرحلة
+    if (!stage && !isOtherRev) { showAlert('من فضلك اختر المرحلة اولا'); return; }
     if (isCardiff && stage === 'semi_international' && !document.getElementById('paymentTierSelect').value) {
       showAlert('من فضلك اختر نوع الدفعة اولا'); return;
     }
@@ -529,10 +548,15 @@
     else {
       clearConflictingFeeItems(item);
       selectedItems[item] = { price: price||0, discount: 0 };
+      if (isOtherRev) {
+        selectedItems[item].variable = true;
+        selectedItems[item].customPrice = selectedItems[item].customPrice || '';
+      }
     }
-    renderPaymentItems(stage);
+    renderPaymentItems(stage || null);
     updateSelectedSummary();
     updateDiscountFields();
+    updateStageGradeRequiredUI();
     calcDebt();
   }
 
@@ -679,10 +703,11 @@
     const date = document.getElementById('dateInput').value;
     const notes = document.getElementById('notes').value.trim();
     if (!studentName) return showAlert('من فضلك ادخل اسم الطالب');
-    if (!stage) return showAlert('من فضلك اختر المرحلة');
-    if (isCardiff && stage === 'semi_international' && !document.getElementById('paymentTierSelect').value) return showAlert('من فضلك اختر نوع الدفعة');
-    if (!grade) return showAlert('من فضلك اختر الصف');
     if (Object.keys(selectedItems).length===0) return showAlert('من فضلك اختر بند الدفع');
+    const otherRevOnly = isOtherRevenueOnlySelection();
+    if (!otherRevOnly && !stage) return showAlert('من فضلك اختر المرحلة');
+    if (!otherRevOnly && isCardiff && stage === 'semi_international' && !document.getElementById('paymentTierSelect').value) return showAlert('من فضلك اختر نوع الدفعة');
+    if (!otherRevOnly && !grade) return showAlert('من فضلك اختر الصف');
     const allFree = Object.values(selectedItems).every(v => (v.price || 0) === 0);
     if (!allFree && (!amount||amount<=0)) return showAlert('من فضلك ادخل مبلغ صحيح');
     if (!paymentType) return showAlert('من فضلك اختر طريقة الدفع');
@@ -699,7 +724,7 @@
       const debt = Math.max(0, totalDue - amount);
       const itemsList = Object.entries(selectedItems).map(([item,v])=>({item,price:v.price,discount:v.discount||0,netPrice:v.price*(1-(v.discount||0)/100)}));
       const paymentItem = itemsList.map(i=>i.item).join(' + ');
-      const stageName = getStageData(stage)?.labelAr || stage;
+      const stageName = getStageData(stage)?.labelAr || stage || (otherRevOnly ? 'إيرادات أخرى' : '');
       const paymentTier = isCardiff ? (stage === 'semi_international' ? document.getElementById('paymentTierSelect').value : null) : null;
       const paymentTierName = isCardiff ? (stage === 'semi_international' ? (document.getElementById('paymentTierSelect').options[document.getElementById('paymentTierSelect').selectedIndex]?.text || '') : null) : null;
 
@@ -804,7 +829,7 @@
       document.getElementById('paymentSummaryBox').style.display='none';
       selectedItems={};
       renderPaymentItems(document.getElementById('stageSelect').value);
-      updateSelectedSummary(); updateDiscountFields(); generateReceiptNumber();
+      updateSelectedSummary(); updateDiscountFields(); updateStageGradeRequiredUI(); generateReceiptNumber();
     } catch(err) { console.error(err); showAlert('حدث خطا: '+err.message); }
     finally { btn.disabled=false; btn.innerHTML='حفظ التحصيل'; }
   }
@@ -842,7 +867,7 @@
     if (tierSelect) { tierSelect.value=''; document.getElementById('paymentTierGroup').classList.add('hidden'); }
     document.getElementById('paymentSummaryBox').style.display='none';
     document.getElementById('discountSection').style.display='none';
-    selectedItems={}; renderPaymentItems(null); updateSelectedSummary(); generateReceiptNumber();
+    selectedItems={}; renderPaymentItems(null); updateSelectedSummary(); updateStageGradeRequiredUI(); generateReceiptNumber();
   }
 
   function previewReceipt() {

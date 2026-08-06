@@ -201,6 +201,9 @@ function renderLayout(activePage, pageTitle) {
   document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
   document.getElementById('topbarContainer').innerHTML = topbarHTML;
 
+  // أعد تطبيق ثيم المدرسة بعد رسم السايد بار (يضمن اللون على كل الشاشات)
+  if (school) applySchoolTheme(school);
+
   // خلفية إغلاق السايدبار على الموبايل
   if (!document.getElementById('sidebarBackdrop')) {
     const backdrop = document.createElement('div');

@@ -7,10 +7,11 @@
 /* ---- CSS VARIABLES (overridden per school) ---- */
 :root {
   --primary: #1a3a6b;
-  --primary-dark: color-mix(in srgb, var(--primary) 78%, black);
-  --primary-light: color-mix(in srgb, var(--primary) 18%, white);
+  --primary-dark: #142c52;
+  --primary-light: #e8eef6;
   --secondary: #c8a951;
-  --accent: color-mix(in srgb, var(--primary) 8%, #f7f8fc);
+  --accent: #eef1f7;
+  --sidebar-bg: #1a3a6b;
   --danger: #c62828;
   --success: #1b7a3d;
   --warning: #c77700;
@@ -343,11 +344,8 @@ body {
 /* ---- SIDEBAR ---- */
 .sidebar {
   width: var(--sidebar-width);
-  background:
-    linear-gradient(175deg,
-      color-mix(in srgb, var(--primary) 92%, #000) 0%,
-      var(--primary) 42%,
-      color-mix(in srgb, var(--primary) 88%, #1a2030) 100%);
+  /* لون أساسي ثابت فقط — بدون تدرج عشان يظهر على كل الشاشات */
+  background: var(--sidebar-bg, var(--primary));
   color: white;
   display: flex;
   flex-direction: column;
@@ -365,13 +363,7 @@ body {
 }
 
 .sidebar::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 0% 0%, rgba(255,255,255,0.1), transparent 45%),
-    radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--secondary) 25%, transparent), transparent 40%);
-  pointer-events: none;
+  content: none;
 }
 
 .sidebar-header {

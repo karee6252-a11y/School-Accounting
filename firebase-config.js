@@ -386,7 +386,7 @@ const BRISTOL_EXTRA_STAGES = {
       "باص": 0,
       "يونيفورم": 4800,
       "فايل": 450,
-      "أبليكيشن": 700,
+      "أبليكيشن": 900,
       "رحلات": 0,
       "امتحانات": 0,
       "إيرادات أخرى": 0
@@ -394,7 +394,6 @@ const BRISTOL_EXTRA_STAGES = {
   }
 };
 
-/** مراحل المدرسة الحالية (Cardiff / Bristol+ثانوي / باقي المدارس) */
 function getSchoolStages(sid) {
   const id = sid || (typeof SESSION !== 'undefined' && SESSION.get && SESSION.get()?.schoolId) || '';
   if (id === 'cardiff' && typeof CARDIFF_STAGES !== 'undefined') return CARDIFF_STAGES;
@@ -671,13 +670,64 @@ function escapeHtml(str) {
 }
 
 function applySchoolTheme(school) {
-  document.documentElement.style.setProperty('--primary',   school.primaryColor);
-  document.documentElement.style.setProperty('--secondary', school.secondaryColor);
-  document.documentElement.style.setProperty('--accent',    school.accentColor);
+  if (!school) return;
+  const root = document.documentElement;
+  const primary = school.primaryColor || '#1a3a6b';
+  const secondary = school.secondaryColor || '#c8a951';
+  const accent = school.accentColor || '#e8ecf5';
+
+  root.style.setProperty('--primary', primary);
+  root.style.setProperty('--secondary', secondary);
+  root.style.setProperty('--accent', accent);
+
+  // ألوان مشتقة صريحة (بدون الاعتماد على color-mix لو المتصفح ضعيف)
+  root.style.setProperty('--primary-dark', shadeHex(primary, -22));
+  root.style.setProperty('--primary-light', mixHex(primary, '#ffffff', 0.82));
+
+  // ثبّت لون السايد بار كلون أساسي صريح
+  root.style.setProperty('--sidebar-bg', primary);
+  const sidebarEl = document.querySelector('.sidebar');
+  if (sidebarEl) sidebarEl.style.background = primary;
+
   const logoEl = document.getElementById('school-logo');
-  if (logoEl) logoEl.src = school.logo;
+  if (logoEl && school.logo) logoEl.src = school.logo;
   const nameEl = document.getElementById('school-name');
-  if (nameEl) nameEl.textContent = school.name;
+  if (nameEl && school.name) nameEl.textContent = school.name;
+}
+
+/** تظليل/تفتيح لون hex بسيط */
+function shadeHex(hex, percent) {
+  const { r, g, b } = hexToRgb(hex) || { r: 26, g: 58, b: 107 };
+  const t = percent < 0 ? 0 : 255;
+  const p = Math.abs(percent) / 100;
+  const rr = Math.round((t - r) * p + r);
+  const gg = Math.round((t - g) * p + g);
+  const bb = Math.round((t - b) * p + b);
+  return rgbToHex(rr, gg, bb);
+}
+
+function mixHex(a, b, t) {
+  const A = hexToRgb(a) || { r: 26, g: 58, b: 107 };
+  const B = hexToRgb(b) || { r: 255, g: 255, b: 255 };
+  return rgbToHex(
+    Math.round(A.r + (B.r - A.r) * t),
+    Math.round(A.g + (B.g - A.g) * t),
+    Math.round(A.b + (B.b - A.b) * t)
+  );
+}
+
+function hexToRgb(hex) {
+  const h = String(hex || '').replace('#', '').trim();
+  if (h.length !== 3 && h.length !== 6) return null;
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+  const n = parseInt(full, 16);
+  if (Number.isNaN(n)) return null;
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function rgbToHex(r, g, b) {
+  const c = (n) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0');
+  return `#${c(r)}${c(g)}${c(b)}`;
 }
 
 function logout() {
