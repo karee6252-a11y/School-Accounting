@@ -567,8 +567,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- ExcelJS for styled Excel -->
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-<script src="firebase-config.js?v=2.7"></script>
-<script src="layout.js?v=2.6"></script>
+<script src="firebase-config.js?v=2.8"></script>
+<script src="layout.js?v=2.8"></script>
 <script src="/pwa.js?v=8"></script>
 <script>
 
@@ -650,10 +650,12 @@
     }
   }
 
-  //  ربط الاسترداد باسم الطالب 
-  window.studentNamesSet   = null; // Set بأسماء الطلاب — نفس مصدر التحصيل اليومي
-  window.refundTxnOptions  = [];   // الدفعات المطابقة لاسم الطالب المكتوب
-  window.selectedRefundTxn = null; // الدفعة المختارة لخصم الاسترداد منها
+  //  ربط الاسترداد باسم الطالب
+  window.studentNamesSet   = null; // Set بأسماء الطلاب من التحصيل
+  window.studentNamesList  = [];   // قائمة مرتبة للاقتراحات
+  window.refundTxnOptions  = [];
+  window.selectedRefundTxn = null;
+  window._studentNamesLoading = null;
 
   function resetRefundState() {
     window.refundTxnOptions  = [];
@@ -663,46 +665,96 @@
     const box = document.getElementById('refundRemainingBox');
     if (box) box.style.display = 'none';
     const msg = document.getElementById('refundStatusMsg');
-    if (msg) msg.textContent = 'اكتب اسم الطالب كما هو مسجل بالضبط في التحصيل اليومي...';
+    if (msg) {
+      msg.style.color = 'var(--text-light)';
+      msg.textContent = 'اكتب اسم الطالب (عربي) واختر من الاقتراحات أو اكتب جزء من الاسم...';
+    }
   }
 
-  // نفس مصدر ونفس الكاش المستخدم في صفحة التحصيل اليومي (student_names_${schoolId})
-  // عشان نضمن مطابقة الأسماء مع الشيتات والتحصيل اليومي بالظبط
-  async function loadStudentNamesForExpenses() {
-    if (window.studentNamesSet) return; // اتحمّلت قبل كده في نفس الجلسة
-    const NAMES_KEY = `student_names_${schoolId}`;
-    const NAMES_TTL = 30 * 60 * 1000;
-    try {
-      const raw = sessionStorage.getItem(NAMES_KEY);
-      if (raw) {
-        const obj = JSON.parse(raw);
-        if (Date.now() - obj.ts < NAMES_TTL) {
-          window.studentNamesSet = new Set(obj.names);
-          document.getElementById('expRecipientSuggestions').innerHTML =
-            obj.names.map(n => `<option value="${n}">`).join('');
-          return;
-        }
-      }
-      const snap = await db.collection('transactions')
-        .where('schoolId', '==', schoolId)
-        .where('date', '>=', ACADEMIC_YEAR_START)
-        .get();
-      const names = new Set();
-      snap.forEach(doc => { if (doc.data().studentName) names.add(doc.data().studentName); });
-      const namesArr = [...names].sort();
-      sessionStorage.setItem(NAMES_KEY, JSON.stringify({ names: namesArr, ts: Date.now() }));
-      window.studentNamesSet = new Set(namesArr);
-      document.getElementById('expRecipientSuggestions').innerHTML =
-        namesArr.map(n => `<option value="${n}">`).join('');
-    } catch (e) {
-      window.studentNamesSet = new Set();
+  function normalizeStudentName(name) {
+    return (name || '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/أ|إ|آ/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ى/g, 'ي')
+      .toLowerCase();
+  }
+
+  /** رجّع الاسم/الأسماء المطابقة من سجلات التحصيل (تطابق تام أو بعد توحيد الحروف) */
+  function resolveRefundStudentNames(typed) {
+    const raw = (typed || '').trim();
+    if (!raw || !window.studentNamesSet) return [];
+    if (window.studentNamesSet.has(raw)) return [raw];
+    const nq = normalizeStudentName(raw);
+    if (!nq) return [];
+    const exactNorm = [];
+    const partial = [];
+    for (const n of window.studentNamesSet) {
+      const nn = normalizeStudentName(n);
+      if (nn === nq) exactNorm.push(n);
+      else if (nn.includes(nq) || nq.includes(nn)) partial.push(n);
     }
+    if (exactNorm.length) return exactNorm;
+    // لو فيه تطابق جزئي واحد واضح نقبله؛ لو أكتر نرجّعهم عشان المستخدم يميّز
+    return partial;
+  }
+
+  // تحميل كل أسماء التحصيل للمدرسة (مش بس السنة الحالية) — كاش مستقل عن صفحة التحصيل
+  async function loadStudentNamesForExpenses(forceRefresh) {
+    if (window.studentNamesSet && !forceRefresh) return;
+    if (window._studentNamesLoading) return window._studentNamesLoading;
+
+    window._studentNamesLoading = (async () => {
+      const CACHE_KEY = `expense_refund_names_v2_${schoolId}`;
+      const NAMES_TTL = 15 * 60 * 1000;
+      try {
+        if (!forceRefresh) {
+          const raw = sessionStorage.getItem(CACHE_KEY);
+          if (raw) {
+            const obj = JSON.parse(raw);
+            if (Date.now() - obj.ts < NAMES_TTL && Array.isArray(obj.names) && obj.names.length > 0) {
+              window.studentNamesList = obj.names;
+              window.studentNamesSet = new Set(obj.names);
+              document.getElementById('expRecipientSuggestions').innerHTML =
+                obj.names.map(n => `<option value="${String(n).replace(/"/g, '&quot;')}">`).join('');
+              return;
+            }
+          }
+        }
+
+        const snap = await db.collection('transactions')
+          .where('schoolId', '==', schoolId)
+          .get();
+        const names = new Set();
+        snap.forEach(doc => {
+          const n = (doc.data().studentName || '').trim();
+          if (n) names.add(n);
+        });
+        const namesArr = [...names].sort((a, b) => a.localeCompare(b, 'ar'));
+        window.studentNamesList = namesArr;
+        window.studentNamesSet = new Set(namesArr);
+        document.getElementById('expRecipientSuggestions').innerHTML =
+          namesArr.map(n => `<option value="${String(n).replace(/"/g, '&quot;')}">`).join('');
+        try {
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ names: namesArr, ts: Date.now() }));
+        } catch (e) {}
+      } catch (e) {
+        console.warn('loadStudentNamesForExpenses', e);
+        if (!window.studentNamesSet) window.studentNamesSet = new Set();
+        if (!window.studentNamesList) window.studentNamesList = [];
+      } finally {
+        window._studentNamesLoading = null;
+      }
+    })();
+
+    return window._studentNamesLoading;
   }
 
   let refundNameDebounce = null;
   function onRecipientNameInput() {
     const category = document.getElementById('expenseCategory').value;
-    if (category !== 'refund') return; // المطابقة تخص الاسترداد بس
+    if (category !== 'refund') return;
     clearTimeout(refundNameDebounce);
     refundNameDebounce = setTimeout(runRefundNameMatch, 350);
   }
@@ -715,40 +767,69 @@
     list.innerHTML = '';
     document.getElementById('refundRemainingBox').style.display = 'none';
 
-    if (!name) { msg.textContent = 'اكتب اسم الطالب كما هو مسجل بالضبط في التحصيل اليومي...'; return; }
-
-    if (!window.studentNamesSet || !window.studentNamesSet.has(name)) {
-      msg.innerHTML = ' لا يوجد طالب بهذا الاسم حرفيًا في سجلات التحصيل اليومي — تأكد من تطابق الاسم تمامًا (اختر من قائمة الاقتراحات).';
-      msg.style.color = '#c0392b';
+    if (!name) {
+      msg.style.color = 'var(--text-light)';
+      msg.textContent = 'اكتب اسم الطالب (عربي) واختر من الاقتراحات أو اكتب جزء من الاسم...';
       return;
     }
 
     msg.style.color = 'var(--text-light)';
+    msg.textContent = 'جاري التحقق من الاسم...';
+    await loadStudentNamesForExpenses();
+
+    const matchedNames = resolveRefundStudentNames(name);
+    if (matchedNames.length === 0) {
+      msg.innerHTML = 'لا يوجد طالب بهذا الاسم في سجلات التحصيل — تأكد من الاسم أو اختَر من قائمة الاقتراحات.';
+      msg.style.color = '#c0392b';
+      return;
+    }
+
+    // لو الاسم المكتوب مختلف شوية عن المسجّل، حدّث الحقل بالاسم الرسمي الأول
+    if (matchedNames.length === 1 && matchedNames[0] !== name) {
+      document.getElementById('recipientName').value = matchedNames[0];
+    }
+
     msg.textContent = 'جاري البحث عن دفعات هذا الطالب...';
     try {
-      const snap = await db.collection('transactions')
-        .where('schoolId', '==', schoolId)
-        .where('studentName', '==', name)
-        .get();
+      const snaps = await Promise.all(
+        matchedNames.map(n =>
+          db.collection('transactions')
+            .where('schoolId', '==', schoolId)
+            .where('studentName', '==', n)
+            .get()
+        )
+      );
 
       const txns = [];
-      snap.forEach(doc => txns.push({ id: doc.id, ...doc.data() }));
+      const seen = new Set();
+      snaps.forEach(snap => {
+        snap.forEach(doc => {
+          if (seen.has(doc.id)) return;
+          seen.add(doc.id);
+          txns.push({ id: doc.id, ...doc.data() });
+        });
+      });
       txns.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
       window.refundTxnOptions = txns;
 
       if (txns.length === 0) {
-        msg.innerHTML = ' الاسم مطابق لكن لا توجد دفعات مسجلة لهذا الطالب.';
+        msg.innerHTML = 'الاسم موجود لكن لا توجد دفعات مسجلة لهذا الطالب.';
         msg.style.color = '#c0392b';
         return;
       }
 
-      msg.textContent = ` تم إيجاد ${txns.length} دفعة — اختر الدفعة المطلوب خصم الاسترداد منها:`;
+      if (matchedNames.length > 1) {
+        msg.innerHTML = `وُجد أكثر من تطابق للاسم (${matchedNames.length}) — ${txns.length} دفعة. اختر الدفعة الصحيحة:`;
+      } else {
+        msg.textContent = `تم إيجاد ${txns.length} دفعة — اختر الدفعة المطلوب خصم الاسترداد منها:`;
+      }
+      msg.style.color = 'var(--text-light)';
       list.innerHTML = txns.map((t, idx) => `
         <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
           <input type="radio" name="refundTxnRadio" value="${idx}" onchange="selectRefundTxn(${idx})" />
           <span style="flex:1">
             <strong>${formatCurrency ? formatCurrency(t.amount||0) : (t.amount||0)}</strong>
-            — ${t.paymentItem || ''} — ${t.date || ''}${t.receiptNumber ? ' — إيصال #' + t.receiptNumber : ''}
+            — ${t.studentName || ''} — ${t.paymentItem || ''} — ${t.date || ''}${t.receiptNumber ? ' — إيصال #' + t.receiptNumber : ''}
           </span>
         </label>
       `).join('');
@@ -760,6 +841,9 @@
 
   function selectRefundTxn(idx) {
     window.selectedRefundTxn = window.refundTxnOptions[idx] || null;
+    if (window.selectedRefundTxn?.studentName) {
+      document.getElementById('recipientName').value = window.selectedRefundTxn.studentName;
+    }
     updateRefundRemaining();
   }
 
@@ -1141,7 +1225,7 @@
   }
 
   async function saveExpense() {
-    const recipientName = document.getElementById('recipientName').value.trim();
+    let recipientName = document.getElementById('recipientName').value.trim();
     const date          = document.getElementById('expenseDate').value;
     const amount        = parseFloat(document.getElementById('expenseAmount').value);
     const category      = document.getElementById('expenseCategory').value;
@@ -1159,13 +1243,19 @@
     // تحقق خاص بالاسترداد — لازم دفعة مختارة والمبلغ متسّق معاها
     let refundTxn = null;
     if (category === 'refund') {
-      if (!window.studentNamesSet || !window.studentNamesSet.has(recipientName)) {
-        return showAddAlert('اسم المستلم لازم يطابق اسم طالب موجود بالظبط في التحصيل اليومي');
-      }
+      await loadStudentNamesForExpenses();
+      const matched = resolveRefundStudentNames(recipientName);
       if (!window.selectedRefundTxn) {
+        if (matched.length === 0) {
+          return showAddAlert('اسم المستلم مش موجود في سجلات التحصيل — اختَر الاسم من الاقتراحات');
+        }
         return showAddAlert('من فضلك اختر الدفعة المطلوب خصم الاسترداد منها من القائمة');
       }
       refundTxn = window.selectedRefundTxn;
+      if (refundTxn.studentName) {
+        recipientName = refundTxn.studentName;
+        document.getElementById('recipientName').value = recipientName;
+      }
       if (amount > (refundTxn.amount || 0)) {
         return showAddAlert('مبلغ الاسترداد أكبر من المبلغ المدفوع في الدفعة المختارة');
       }
