@@ -240,7 +240,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=2.8"></script>
+<script src="firebase-config.js?v=2.9"></script>
 <script src="layout.js?v=2.7"></script>
 <script src="/pwa.js?v=8"></script>
 <script>
@@ -335,6 +335,11 @@
     }
 
     restoreCollectionDraftAndUniform();
+    const flash = sessionStorage.getItem('collection_flash');
+    if (flash) {
+      sessionStorage.removeItem('collection_flash');
+      showAlert(flash);
+    }
   }
 
   function getStageData(stage) {
@@ -372,6 +377,15 @@
   function goToUniformChoice(e) {
     e.preventDefault();
     e.stopPropagation();
+    const studentName = document.getElementById('studentName').value.trim();
+    const stage = document.getElementById('stageSelect').value;
+    const grade = document.getElementById('gradeSelect').value;
+    if (!studentName) return showAlert('من فضلك ادخل اسم الطالب أولاً');
+    if (!stage) return showAlert('من فضلك اختر المرحلة أولاً');
+    if (isCardiff && stage === 'semi_international' && !document.getElementById('paymentTierSelect').value) {
+      return showAlert('من فضلك اختر نوع الدفعة أولاً');
+    }
+    if (!grade) return showAlert('من فضلك اختر الصف أولاً');
     sessionStorage.setItem('collection_draft', JSON.stringify({
       studentName: document.getElementById('studentName').value,
       stage: document.getElementById('stageSelect').value,

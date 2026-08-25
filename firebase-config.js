@@ -601,8 +601,9 @@ function buildUniformNotes(mode, stageLabel, grade, lines, packagePrice, extraTo
     ? `باكدج يونيفورم كامل — ${stageLabel || ''}${grade ? ' / ' + grade : ''}`
     : `قطع يونيفورم فردانية — ${stageLabel || ''}${grade ? ' / ' + grade : ''}`;
   const pieceLines = lines.map(l => {
+    const qty = l.qty > 1 ? ` × ${l.qty}` : '';
     const stepTxt = l.steps > 0 ? ` (+${l.steps} مقاس / +${l.extra})` : '';
-    return `${l.name} — مقاس ${l.size}${stepTxt} = ${l.total}`;
+    return `${l.name}${qty} — مقاس ${l.size}${stepTxt} = ${l.total}`;
   });
   const extras = extraTotal > 0 ? [`زيادة المقاسات: ${extraTotal}`] : [];
   if (mode === 'package') extras.unshift(`سعر الباكدج: ${packagePrice}`);

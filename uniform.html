@@ -61,7 +61,7 @@
     }
     .piece-row {
       display: grid;
-      grid-template-columns: auto 1fr auto auto;
+      grid-template-columns: auto 1fr auto auto auto;
       gap: 0.75rem;
       align-items: center;
       padding: 0.85rem 1rem;
@@ -124,6 +124,31 @@
     .uni-total-label { font-size: 0.75rem; color: var(--text-light); font-weight: 700; }
     .uni-total-val { font-size: 1.45rem; font-weight: 900; color: var(--primary); }
     .uni-total-sub { font-size: 0.72rem; color: #c0392b; font-weight: 700; }
+    .locked-input, .locked-input:disabled {
+      background: var(--accent) !important;
+      color: var(--text-dark) !important;
+      cursor: not-allowed;
+      opacity: 1;
+      pointer-events: none;
+    }
+    .qty-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 0.15rem;
+    }
+    .qty-box button {
+      width: 28px; height: 28px;
+      border: none; background: var(--accent);
+      color: var(--primary); font-weight: 900;
+      font-size: 1rem; border-radius: 6px;
+      cursor: pointer; font-family: inherit; line-height: 1;
+    }
+    .qty-box button:hover { background: var(--primary); color: white; }
+    .qty-box span { min-width: 22px; text-align: center; font-weight: 900; font-size: 0.9rem; }
     @media (max-width: 700px) {
       .piece-row { grid-template-columns: auto 1fr auto; }
       .piece-price { grid-column: 2 / 3; grid-row: 2; text-align: right; }
@@ -149,29 +174,29 @@
       <div class="card mb-2">
         <div class="card-header"><span class="card-title">بيانات الطالب</span></div>
         <div class="card-body">
+          <div class="hint-box" style="margin-bottom:1rem">البيانات دي جاية من التحصيل اليومي ومقفولة هنا — لو محتاج تعدّل الاسم أو المرحلة أو الصف ارجع للتحصيل.</div>
           <div class="form-grid">
             <div class="form-group">
-              <label class="form-label">اسم الطالب <span class="required">*</span></label>
-              <input type="text" class="form-input form-input-ar" id="studentName" placeholder="الاسم كاملا" list="studentSuggestions" />
-              <datalist id="studentSuggestions"></datalist>
+              <label class="form-label">اسم الطالب</label>
+              <input type="text" class="form-input form-input-ar locked-input" id="studentName" readonly disabled />
             </div>
             <div class="form-group">
-              <label class="form-label">المرحلة الدراسية <span class="required">*</span></label>
-              <select class="form-select" id="stageSelect" onchange="onStageChange()">
+              <label class="form-label">المرحلة الدراسية</label>
+              <select class="form-select locked-input" id="stageSelect" disabled>
                 <option value="">اختر المرحلة</option>
               </select>
             </div>
             <div class="form-group hidden" id="paymentTierGroup">
-              <label class="form-label">نوع الدفعة <span class="required">*</span></label>
-              <select class="form-select" id="paymentTierSelect" onchange="onPaymentTierChange()">
+              <label class="form-label">نوع الدفعة</label>
+              <select class="form-select locked-input" id="paymentTierSelect" disabled>
                 <option value="">اختر نوع الدفعة</option>
                 <option value="normal">دفعة عادية</option>
                 <option value="golden">دفعة ذهبية ⭐</option>
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">الصف <span class="required">*</span></label>
-              <select class="form-select" id="gradeSelect" onchange="onGradeChange()">
+              <label class="form-label">الصف</label>
+              <select class="form-select locked-input" id="gradeSelect" disabled>
                 <option value="">اختر الصف اولا</option>
               </select>
             </div>
@@ -219,7 +244,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=2.8"></script>
+<script src="firebase-config.js?v=2.9"></script>
 <script src="layout.js?v=2.7"></script>
 <script src="/pwa.js?v=8"></script>
 <script>
@@ -232,6 +257,13 @@
   let mode = 'package';
   let selectedIds = new Set(UNIFORM_ITEMS.map(i => i.id));
   let pieceSizes = {};
+  let pieceQty = {};
+
+  function getPieceQty(id) {
+    if (mode === 'package') return 1;
+    const n = parseInt(pieceQty[id], 10);
+    return n > 0 ? n : 1;
+  }
 
   function getStageData(stage) {
     if (isCardiff) return CARDIFF_STAGES[stage] || null;
@@ -261,15 +293,19 @@
     const basePrice = getUniformPiecePrice(item.id, grade, stage);
     const extra = getUniformSizeExtra(baseSize, size);
     const steps = getUniformSizeSteps(baseSize, size);
+    const qty = getPieceQty(item.id);
+    const unit = basePrice + extra;
     return {
       id: item.id,
       name: item.name,
       size,
       baseSize,
       basePrice,
-      extra,
+      extra: extra * qty,
       steps,
-      total: basePrice + extra
+      qty,
+      unit,
+      total: unit * qty
     };
   }
 
@@ -282,6 +318,16 @@
     const piecesSum = lines.reduce((s, l) => s + l.total, 0);
     const grand = mode === 'package' ? (packagePrice + extraTotal) : piecesSum;
     return { lines, extraTotal, packagePrice, grand };
+  }
+
+  function qtyBoxHtml(itemId, qty, enabled) {
+    if (mode === 'package') return '';
+    const dis = enabled ? '' : 'disabled';
+    return `<div class="qty-box" onclick="event.stopPropagation()">
+      <button type="button" ${dis} onclick="onQtyChange('${itemId}', -1, event)">−</button>
+      <span>${qty}</span>
+      <button type="button" ${dis} onclick="onQtyChange('${itemId}', 1, event)">+</button>
+    </div>`;
   }
 
   function sizeSelectHtml(itemId, selected, enabled) {
@@ -310,16 +356,19 @@
     }
 
     document.getElementById('sizeHint').textContent = ready
-      ? `مقاس الصف الأساسي: ${baseSize} — كل درجة أكبر تزيد 50 ج.م على القطعة`
+      ? (mode === 'pieces'
+        ? `مقاس الصف الأساسي: ${baseSize} — زوّد العدد براحتك، وكل مقاس أكبر يزيد 50 ج.م على القطعة`
+        : `مقاس الصف الأساسي: ${baseSize} — كل درجة أكبر تزيد 50 ج.م على القطعة`)
       : 'اختَر المرحلة والصف أولاً عشان الأسعار والمقاس الأساسي يظهروا';
 
     list.innerHTML = UNIFORM_ITEMS.map(item => {
       const line = lineFor(item);
       const on = mode === 'package' || selectedIds.has(item.id);
       const clickable = mode === 'pieces';
-      const extraHtml = line.steps > 0 ? `<div class="piece-extra">+${formatCurrency(line.extra)} (${line.steps} مقاس)</div>` : '';
+      const extraHtml = line.steps > 0 ? `<div class="piece-extra">+${formatCurrency(line.extra)} (${line.steps} مقاس${line.qty > 1 ? ' × ' + line.qty : ''})</div>` : '';
+      const qtyNote = mode === 'pieces' && on && line.qty > 1 ? `<div class="piece-meta">${formatCurrency(line.unit)} × ${line.qty}</div>` : '';
       const priceHtml = ready && on
-        ? `<div class="piece-price">${formatCurrency(mode === 'package' ? line.basePrice : line.total)}${extraHtml}</div>`
+        ? `<div class="piece-price">${formatCurrency(mode === 'package' ? line.basePrice : line.total)}${qtyNote}${extraHtml}</div>`
         : `<div class="piece-price" style="color:var(--text-light);font-weight:700">—</div>`;
       return `<div class="piece-row ${on ? 'on' : ''} ${clickable ? 'clickable' : 'locked'}" ${clickable ? `onclick="togglePiece('${item.id}')"` : ''}>
         <div class="piece-check">${on ? '✓' : ''}</div>
@@ -328,6 +377,7 @@
           <div class="piece-meta">المقاس الأساسي ${line.baseSize}${mode === 'package' ? ' · ضمن الباكدج' : ''}</div>
         </div>
         ${sizeSelectHtml(item.id, line.size, ready && on)}
+        ${qtyBoxHtml(item.id, line.qty, ready)}
         ${priceHtml}
       </div>`;
     }).join('');
@@ -343,14 +393,31 @@
     document.getElementById('tabPackage').classList.toggle('active', next === 'package');
     document.getElementById('tabPieces').classList.toggle('active', next === 'pieces');
     if (next === 'package') selectedIds = new Set(UNIFORM_ITEMS.map(i => i.id));
-    else selectedIds = new Set();
+    else {
+      selectedIds = new Set();
+      pieceQty = {};
+    }
     renderPieces();
   }
 
   function togglePiece(id) {
     if (mode !== 'pieces') return;
-    if (selectedIds.has(id)) selectedIds.delete(id);
-    else selectedIds.add(id);
+    if (selectedIds.has(id)) {
+      selectedIds.delete(id);
+      pieceQty[id] = 1;
+    } else {
+      selectedIds.add(id);
+      if (!pieceQty[id]) pieceQty[id] = 1;
+    }
+    renderPieces();
+  }
+
+  function onQtyChange(id, delta, ev) {
+    if (ev) ev.stopPropagation();
+    if (mode !== 'pieces') return;
+    if (!selectedIds.has(id)) selectedIds.add(id);
+    const next = Math.min(30, Math.max(1, getPieceQty(id) + delta));
+    pieceQty[id] = next;
     renderPieces();
   }
 
@@ -461,43 +528,48 @@
     }
   }
 
-  function loadStudentSuggestions() {
-    const NAMES_KEY = `student_names_${schoolId}`;
-    try {
-      const raw = sessionStorage.getItem(NAMES_KEY);
-      if (!raw) return;
-      const obj = JSON.parse(raw);
-      if (!obj.names) return;
-      document.getElementById('studentSuggestions').innerHTML =
-        obj.names.map(n => `<option value="${escapeHtml(n)}">`).join('');
-    } catch (_) { /* ignore */ }
-  }
-
   function applyCollectionDraft() {
     const raw = sessionStorage.getItem('collection_draft');
-    if (!raw) return;
+    if (!raw) return false;
     try {
       const d = JSON.parse(raw);
-      if (d.studentName) document.getElementById('studentName').value = d.studentName;
-      if (d.stage) {
-        document.getElementById('stageSelect').value = d.stage;
-        onStageChange();
+      const name = (d.studentName || '').trim();
+      if (!name || !d.stage || !d.grade) return false;
+      document.getElementById('studentName').disabled = false;
+      document.getElementById('stageSelect').disabled = false;
+      document.getElementById('gradeSelect').disabled = false;
+      document.getElementById('paymentTierSelect').disabled = false;
+      document.getElementById('studentName').value = name;
+      document.getElementById('stageSelect').value = d.stage;
+      onStageChange();
+      if (d.paymentTier) document.getElementById('paymentTierSelect').value = d.paymentTier;
+      document.getElementById('gradeSelect').value = d.grade;
+      onGradeChange();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function lockStudentFields() {
+    ['studentName', 'stageSelect', 'gradeSelect', 'paymentTierSelect'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.disabled = true;
+        el.classList.add('locked-input');
       }
-      if (d.paymentTier) {
-        document.getElementById('paymentTierSelect').value = d.paymentTier;
-      }
-      if (d.grade) {
-        document.getElementById('gradeSelect').value = d.grade;
-        onGradeChange();
-      }
-    } catch (_) { /* ignore */ }
+    });
   }
 
   populateStages();
   resetSizesToBase();
-  loadStudentSuggestions();
-  applyCollectionDraft();
-  renderPieces();
+  if (!applyCollectionDraft()) {
+    sessionStorage.setItem('collection_flash', 'املأ اسم الطالب والمرحلة والصف في التحصيل اليومي، ثم اضغط اختيار تحت بند اليونيفورم');
+    window.location.href = 'collection.html';
+  } else {
+    lockStudentFields();
+    renderPieces();
+  }
 </script>
 </body>
 </html>

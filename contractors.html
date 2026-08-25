@@ -273,6 +273,34 @@
       max-width: 100%;
     }
     .data-table { min-width: max-content; }
+    .receipt-box {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 0.9rem;
+      background: var(--bg);
+      text-align: center;
+    }
+    .receipt-box.has-img { border-color: var(--primary); background: var(--accent); }
+    .receipt-box input[type=file] { display: none; }
+    .receipt-thumb {
+      display: block; max-height: 140px; max-width: 100%;
+      margin: 0.55rem auto 0; border-radius: 8px;
+      cursor: pointer; box-shadow: var(--shadow);
+    }
+    .receipt-actions { display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap; margin-top: 0.45rem; }
+    .receipt-chip {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7;
+      border-radius: 12px; padding: 2px 8px; font-size: 0.7rem; font-weight: 800;
+      cursor: pointer; white-space: nowrap;
+    }
+    .receipt-view-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.78);
+      z-index: 4000; display: none; align-items: center; justify-content: center;
+      padding: 1rem; flex-direction: column; gap: 0.75rem;
+    }
+    .receipt-view-overlay.show { display: flex; }
+    .receipt-view-overlay img { max-width: 96vw; max-height: 82vh; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.4); }
   </style>
 </head>
 <body>
@@ -797,6 +825,17 @@
           </div>
         </div>
         <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">صورة إثبات الدفع (إيصال / تحويل)</label>
+          <div class="receipt-box" id="pReceiptBox">
+            <input type="file" accept="image/*" capture="environment" id="pReceiptFile" onchange="onReceiptPicked('p', this)" />
+            <div class="receipt-actions">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('pReceiptFile').click()">رفع / تصوير الإيصال</button>
+              <button type="button" class="btn btn-outline btn-sm" id="pReceiptClear" onclick="clearReceiptDraft('p')" style="display:none">حذف الصورة</button>
+            </div>
+            <img class="receipt-thumb" id="pReceiptThumb" alt="إيصال" style="display:none" onclick="openReceiptLightbox(this.src)" />
+          </div>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
           <label class="form-label">ملاحظات</label>
           <textarea class="form-textarea" id="pNotes" rows="2" placeholder="رقم الفاتورة، ضمان، ملاحظات..."></textarea>
         </div>
@@ -984,6 +1023,17 @@
           </div>
         </div>
         <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">صورة إثبات الدفع (إيصال / تحويل)</label>
+          <div class="receipt-box" id="cReceiptBox">
+            <input type="file" accept="image/*" capture="environment" id="cReceiptFile" onchange="onReceiptPicked('c', this)" />
+            <div class="receipt-actions">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('cReceiptFile').click()">رفع / تصوير الإيصال</button>
+              <button type="button" class="btn btn-outline btn-sm" id="cReceiptClear" onclick="clearReceiptDraft('c')" style="display:none">حذف الصورة</button>
+            </div>
+            <img class="receipt-thumb" id="cReceiptThumb" alt="إيصال" style="display:none" onclick="openReceiptLightbox(this.src)" />
+          </div>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
           <label class="form-label">ملاحظات</label>
           <textarea class="form-textarea" id="cNotes" rows="2"></textarea>
         </div>
@@ -1052,6 +1102,17 @@
         </div>
       </div>
       <div class="form-group">
+        <label class="form-label">صورة إثبات الدفع (إيصال / تحويل)</label>
+        <div class="receipt-box" id="payReceiptBox">
+          <input type="file" accept="image/*" capture="environment" id="payReceiptFile" onchange="onReceiptPicked('pay', this)" />
+          <div class="receipt-actions">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('payReceiptFile').click()">رفع / تصوير الإيصال</button>
+            <button type="button" class="btn btn-outline btn-sm" id="payReceiptClear" onclick="clearReceiptDraft('pay')" style="display:none">حذف الصورة</button>
+          </div>
+          <img class="receipt-thumb" id="payReceiptThumb" alt="إيصال" style="display:none" onclick="openReceiptLightbox(this.src)" />
+        </div>
+      </div>
+      <div class="form-group">
         <label class="form-label">ملاحظات</label>
         <input type="text" class="form-input" id="payNotes" placeholder="اختياري..." />
       </div>
@@ -1089,6 +1150,17 @@
       <div class="form-group">
         <label class="form-label">إجمالي العهدة (ج.م)</label>
         <input type="number" class="form-input" id="cwAmount" placeholder="0.00" readonly style="font-size:1.2rem;font-weight:800;background:var(--accent);color:var(--primary)" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">صورة إثبات الدفع / التحويل</label>
+        <div class="receipt-box" id="cwReceiptBox">
+          <input type="file" accept="image/*" capture="environment" id="cwReceiptFile" onchange="onReceiptPicked('cw', this)" />
+          <div class="receipt-actions">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('cwReceiptFile').click()">رفع / تصوير الإيصال</button>
+            <button type="button" class="btn btn-outline btn-sm" id="cwReceiptClear" onclick="clearReceiptDraft('cw')" style="display:none">حذف الصورة</button>
+          </div>
+          <img class="receipt-thumb" id="cwReceiptThumb" alt="إيصال" style="display:none" onclick="openReceiptLightbox(this.src)" />
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1194,12 +1266,17 @@
   </div>
 </div>
 
+<div class="receipt-view-overlay" id="receiptLightbox" onclick="if(event.target===this)closeReceiptLightbox()">
+  <img id="receiptLightboxImg" alt="إيصال الدفع" />
+  <button type="button" class="btn btn-secondary" onclick="closeReceiptLightbox()">إغلاق</button>
+</div>
+
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-<script src="firebase-config.js?v=2.7"></script>
+<script src="firebase-config.js?v=2.9"></script>
 <script src="layout.js?v=2.6"></script>
 <script src="/pwa.js?v=8"></script>
 <script>
@@ -1226,6 +1303,159 @@ let filteredPurch = [];
 let filteredContr = [];
 let custodyEntries = [];   // دفعات العهدة المستقلة
 let custodyManualTotal = null; // تعديل يدوي على إجمالي العهدة (null = يتحسب تلقائي من الدفعات)
+let receiptDraft = { p: null, c: null, pay: null, cw: null };
+
+function receiptEls(key) {
+  return {
+    box: document.getElementById(key + 'ReceiptBox'),
+    file: document.getElementById(key + 'ReceiptFile'),
+    thumb: document.getElementById(key + 'ReceiptThumb'),
+    clear: document.getElementById(key + 'ReceiptClear')
+  };
+}
+function renderReceiptDraft(key) {
+  const els = receiptEls(key);
+  const d = receiptDraft[key];
+  if (!els.box) return;
+  if (d && d.dataUrl) {
+    els.box.classList.add('has-img');
+    els.thumb.src = d.dataUrl;
+    els.thumb.style.display = 'block';
+    if (els.clear) els.clear.style.display = '';
+  } else {
+    els.box.classList.remove('has-img');
+    els.thumb.removeAttribute('src');
+    els.thumb.style.display = 'none';
+    if (els.clear) els.clear.style.display = 'none';
+  }
+}
+function clearReceiptDraft(key) {
+  receiptDraft[key] = null;
+  const f = receiptEls(key).file;
+  if (f) f.value = '';
+  renderReceiptDraft(key);
+}
+function setReceiptFromDoc(key, rec) {
+  receiptDraft[key] = (rec && rec.receiptImage)
+    ? { dataUrl: rec.receiptImage, name: rec.receiptName || 'إيصال', existing: true }
+    : null;
+  renderReceiptDraft(key);
+}
+function openReceiptLightbox(src) {
+  if (!src) return;
+  document.getElementById('receiptLightboxImg').src = src;
+  document.getElementById('receiptLightbox').classList.add('show');
+}
+function closeReceiptLightbox() {
+  document.getElementById('receiptLightbox').classList.remove('show');
+  document.getElementById('receiptLightboxImg').removeAttribute('src');
+}
+function compressImageFile(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) return reject(new Error('لا توجد صورة'));
+    if (!file.type || !file.type.startsWith('image/')) return reject(new Error('الملف لازم يكون صورة'));
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const maxW = 1100;
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      const quals = [0.68, 0.52, 0.4, 0.3];
+      let i = 0;
+      const next = () => {
+        canvas.toBlob(blob => {
+          if (!blob) return reject(new Error('تعذر ضغط الصورة'));
+          if (blob.size > 110000 && i < quals.length - 1) { i++; return next(); }
+          const reader = new FileReader();
+          reader.onload = () => resolve({ dataUrl: reader.result, name: file.name || 'إيصال.jpg' });
+          reader.onerror = () => reject(new Error('تعذر قراءة الصورة'));
+          reader.readAsDataURL(blob);
+        }, 'image/jpeg', quals[i]);
+      };
+      next();
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('تعذر فتح الصورة')); };
+    img.src = url;
+  });
+}
+async function onReceiptPicked(key, input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  try {
+    receiptDraft[key] = await compressImageFile(file);
+    renderReceiptDraft(key);
+  } catch (e) {
+    alert(e.message || 'تعذر رفع الصورة');
+    input.value = '';
+  }
+}
+function receiptFieldsForSave(key) {
+  const d = receiptDraft[key];
+  if (!d || !d.dataUrl) return {};
+  if (d.existing) return {};
+  return { receiptImage: d.dataUrl, receiptName: d.name || 'إيصال', receiptAt: localDateStr() };
+}
+function hasReceipt(rec) {
+  if (!rec) return false;
+  if (rec.receiptImage) return true;
+  return (rec.paymentHistory || []).some(h => h.receiptImage);
+}
+function receiptChipHtml(kind, rec) {
+  if (hasReceipt(rec)) {
+    return `<button type="button" class="receipt-chip" onclick="event.stopPropagation(); viewDocReceipt('${kind}','${rec.id}')">إيصال</button>`;
+  }
+  return `<button type="button" class="receipt-chip" style="background:#fff8e1;color:#e65100;border-color:#ffe082" onclick="event.stopPropagation(); attachReceiptLater('${kind}','${rec.id}')">رفع إيصال</button>`;
+}
+function viewDocReceipt(kind, id) {
+  let rec = null;
+  if (kind === 'purchase') rec = allPurchases.find(x => x.id === id);
+  else if (kind === 'contract') rec = allContracts.find(x => x.id === id);
+  else if (kind === 'custody') rec = custodyEntries.find(x => x.id === id);
+  if (!rec) return;
+  if (rec.receiptImage) return openReceiptLightbox(rec.receiptImage);
+  const hist = (rec.paymentHistory || []).filter(h => h.receiptImage);
+  if (hist.length) return openReceiptLightbox(hist[hist.length - 1].receiptImage);
+  alert('لا يوجد إيصال محفوظ');
+}
+let attachLater = { kind: '', id: '' };
+function attachReceiptLater(kind, id) {
+  attachLater = { kind, id };
+  let input = document.getElementById('attachLaterInput');
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.id = 'attachLaterInput';
+    input.style.display = 'none';
+    input.onchange = async function () {
+      const file = this.files && this.files[0];
+      this.value = '';
+      if (!file) return;
+      try {
+        const packed = await compressImageFile(file);
+        const payload = {
+          receiptImage: packed.dataUrl,
+          receiptName: packed.name,
+          receiptAt: localDateStr(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        if (attachLater.kind === 'purchase') await db.collection('contractors_purchases').doc(attachLater.id).update(payload);
+        else if (attachLater.kind === 'contract') await db.collection('contractors_contracts').doc(attachLater.id).update(payload);
+        else if (attachLater.kind === 'custody') await db.collection('custody_entries').doc(attachLater.id).update(payload);
+        toast('تم حفظ صورة الإيصال ✓');
+        if (attachLater.kind === 'purchase') await loadPurchases();
+        else if (attachLater.kind === 'contract') await loadContracts();
+        else { await loadCustodyEntries(); renderCustodyLog(); }
+      } catch (e) { alert('خطأ: ' + e.message); }
+    };
+    document.body.appendChild(input);
+  }
+  input.click();
+}
 
 // ─── INIT ────────────────────────────────────────────────────────
 async function init() {
@@ -1388,6 +1618,7 @@ function openAddCustody() {
   document.getElementById('cwAmount').value = '';
   document.getElementById('cwDate').value   = localDateStr();
   document.getElementById('addCustodyAlert').classList.add('hidden');
+  clearReceiptDraft('cw');
   openModal('addCustodyModal');
   setTimeout(() => document.getElementById('cwPrev').focus(), 200);
 }
@@ -1403,6 +1634,7 @@ async function saveCustodyEntry() {
   try {
     await db.collection('custody_entries').add({
       schoolId, amount, custodyPrev: prev, custodyNew: newC, date,
+      ...receiptFieldsForSave('cw'),
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       createdBy: session.email
     });
@@ -1457,6 +1689,7 @@ function renderCustodyLog() {
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:0.75rem">
+        ${receiptChipHtml('custody', e)}
         <div class="clog-date">${e.date||'—'}</div>
         <button class="clog-del" onclick="openEditCustody('${e.id}')" title="تعديل" style="color:var(--primary)">✏️</button>
         <button class="clog-del" onclick="deleteCustodyEntry('${e.id}')" title="حذف">🗑</button>
@@ -1733,6 +1966,7 @@ function renderPurchases() {
       <td class="text-bold" style="color:#c0392b">${formatCurrency(netVal)}</td>
       <td class="text-sm text-muted">${p.notes||'—'}</td>
       <td>
+        ${receiptChipHtml('purchase', p)}
         <button class="btn btn-sm btn-secondary" onclick="openEditPurchase('${p.id}')"></button>
         <button class="btn btn-sm btn-danger" onclick="deletePurchase('${p.id}')" style="margin-right:3px"></button>
       </td>
@@ -1802,6 +2036,8 @@ function renderContracts() {
       <td>${methodBadge}<br/>${srcBadge}</td>
       <td style="color:${hasDebt?'#c0392b':'#2e7d32'};font-weight:800">${hasDebt?formatCurrency(c.remaining||0):'مسدد ✓'}</td>
       <td>
+        ${receiptChipHtml('contract', c)}
+        ${(c.remaining||0) > 0 ? `<button type="button" class="btn btn-sm btn-primary" onclick="openPayModal('${c.id}')" title="سداد دفعة">دفع</button>` : ''}
         <button class="btn btn-sm btn-secondary" onclick="openEditContract('${c.id}')" style="margin-right:3px"></button>
         <button class="btn btn-sm" onclick="deleteContract('${c.id}')" style="background:#fdecea;color:#c0392b;border:1px solid #f5c6cb;margin-right:3px" title="حذف">🗑️</button>
       </td>
@@ -1989,6 +2225,7 @@ function openPurchaseModal() {
     document.getElementById(id).style.background  = 'var(--bg)';
   });
   document.getElementById('purchaseAlert').classList.add('hidden');
+  clearReceiptDraft('p');
   openModal('purchaseModal');
 }
 
@@ -2027,6 +2264,7 @@ function openEditPurchase(id) {
     document.getElementById('pPaySourceAccountsLabel').style.background  = 'var(--accent)';
   }
   document.getElementById('purchaseAlert').classList.add('hidden');
+  setReceiptFromDoc('p', p);
   openModal('purchaseModal');
 }
 
@@ -2096,6 +2334,7 @@ async function savePurchase() {
     paySourceLabel: PAY_SOURCE_LABELS[paySource]||paySource,
     deductsFromCustody,
     notes: document.getElementById('pNotes').value.trim(),
+    ...receiptFieldsForSave('p'),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 
@@ -2153,6 +2392,7 @@ function openContractModal() {
   document.getElementById('contractAlert').classList.add('hidden');
   document.getElementById('cAreaGroup').style.display  = 'none';
   document.getElementById('cFixedGroup').style.display = 'grid';
+  clearReceiptDraft('c');
   openModal('contractModal');
 }
 
@@ -2218,6 +2458,7 @@ function openEditContract(id) {
     if (el) { el.style.borderColor = 'var(--primary)'; el.style.background = 'var(--accent)'; }
   }
 
+  setReceiptFromDoc('c', c);
   openModal('contractModal');
 }
 
@@ -2331,6 +2572,7 @@ async function saveContract() {
     deductsFromCustody,
     notes: document.getElementById('cNotes').value.trim(),
     isAreaBased: isArea,
+    ...receiptFieldsForSave('c'),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   if (isArea)   { data.area = area; data.pricePerM = pricePerM; }
@@ -2397,6 +2639,7 @@ function openPayModal(contractId) {
     سبق دفعه: <strong style="color:#2e7d32">${formatCurrency(c.paid)}</strong> |
     المتبقي: <strong style="color:#c0392b">${formatCurrency(c.remaining)}</strong>
   `;
+  clearReceiptDraft('pay');
   openModal('payModal');
 }
 
@@ -2495,16 +2738,19 @@ async function confirmPay() {
   const notesWithSource = paySource === 'chairman'
     ? (notes ? notes + ' — لا يُخصم من العهدة' : 'لا يُخصم من العهدة')
     : notes;
+  const recPay = receiptFieldsForSave('pay');
   const history = [...(c.paymentHistory||[]), {
     amount, method, methodLabel: PAY_LABELS[method]||method,
     paySource, paySourceLabel: PAY_SOURCE_LABELS[paySource]||paySource,
-    date: today, notes: notesWithSource, by: session.email
+    date: today, notes: notesWithSource, by: session.email,
+    hasReceipt: !!recPay.receiptImage
   }];
 
   try {
     await db.collection('contractors_contracts').doc(contractId).update({
       paid: newPaid, remaining: newRemaining, paymentHistory: history,
       ...paySlotUpdates,
+      ...recPay,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     closeModal('payModal');
