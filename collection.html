@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="School System" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 <title>التحصيل اليومي - نظام المحاسبة</title>
-  <link rel="stylesheet" href="styles.css?v=2.6" />
+  <link rel="stylesheet" href="styles.css?v=2.7" />
   <style>
     .payment-item-card { position: relative; cursor: pointer; transition: var(--transition); }
     .payment-item-card.selected { background: var(--accent); border-color: var(--primary); }
@@ -51,6 +51,21 @@
     .payment-summary-box { background: #f8f9fa; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-top: 0.75rem; }
     .payment-summary-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 0.2rem 0; }
     .payment-summary-total { display: flex; justify-content: space-between; font-weight: 900; font-size: 1rem; color: var(--primary); border-top: 2px solid var(--primary); padding-top: 0.5rem; margin-top: 0.5rem; }
+    .uniform-choice-link {
+      display: inline-block;
+      margin-top: 0.45rem;
+      padding: 0.18rem 0.7rem;
+      border: none;
+      background: var(--primary);
+      color: white;
+      border-radius: 20px;
+      font-family: inherit;
+      font-size: 0.72rem;
+      font-weight: 800;
+      cursor: pointer;
+      line-height: 1.4;
+    }
+    .uniform-choice-link:hover { filter: brightness(1.08); }
   </style>
 </head>
 <body>
@@ -225,8 +240,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=2.7"></script>
-<script src="layout.js?v=2.6"></script>
+<script src="firebase-config.js?v=2.8"></script>
+<script src="layout.js?v=2.7"></script>
 <script src="/pwa.js?v=8"></script>
 <script>
   renderLayout('collection', 'التحصيل اليومي');
@@ -318,6 +333,8 @@
         }
       } catch(e) { console.warn('prefill parse error:', e); }
     }
+
+    restoreCollectionDraftAndUniform();
   }
 
   function getStageData(stage) {
@@ -345,6 +362,91 @@
       return stageData.otherPrices?.[item] ?? null;
     }
     return getStageData(stage)?.prices?.[item] || null;
+  }
+
+  function uniformChoiceHtml(item) {
+    if (item !== 'يونيفورم') return '';
+    return `<button type="button" class="uniform-choice-link" onclick="goToUniformChoice(event)">اختيار</button>`;
+  }
+
+  function goToUniformChoice(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    sessionStorage.setItem('collection_draft', JSON.stringify({
+      studentName: document.getElementById('studentName').value,
+      stage: document.getElementById('stageSelect').value,
+      grade: document.getElementById('gradeSelect').value,
+      paymentTier: document.getElementById('paymentTierSelect')?.value || '',
+      date: document.getElementById('dateInput').value,
+      notes: document.getElementById('notes').value,
+      paymentType: document.getElementById('paymentType').value,
+      receiptNumber: document.getElementById('receiptNumber').value,
+      amount: document.getElementById('amountInput').value,
+      selectedItems
+    }));
+    window.location.href = 'uniform.html';
+  }
+
+  function restoreCollectionDraftAndUniform() {
+    let draft = null;
+    let uni = null;
+    try {
+      const draftRaw = sessionStorage.getItem('collection_draft');
+      if (draftRaw) draft = JSON.parse(draftRaw);
+    } catch (_) { draft = null; }
+    try {
+      const uniRaw = sessionStorage.getItem('uniform_selection');
+      if (uniRaw) uni = JSON.parse(uniRaw);
+    } catch (_) { uni = null; }
+    sessionStorage.removeItem('collection_draft');
+    sessionStorage.removeItem('uniform_selection');
+    if (!draft && !uni) return;
+
+    const src = uni || draft;
+    if (src.studentName) document.getElementById('studentName').value = src.studentName;
+    if (draft && draft.date) document.getElementById('dateInput').value = draft.date;
+    if (src.stage) {
+      document.getElementById('stageSelect').value = src.stage;
+      onStageChange();
+    }
+    if (src.paymentTier) {
+      const tier = document.getElementById('paymentTierSelect');
+      if (tier) tier.value = src.paymentTier;
+    }
+    if (src.grade) {
+      document.getElementById('gradeSelect').value = src.grade;
+      onGradeChange();
+    }
+
+    const sameStudent = !draft || !uni || !draft.studentName || draft.studentName === uni.studentName;
+    selectedItems = (sameStudent && draft && draft.selectedItems) ? draft.selectedItems : {};
+    if (uni) {
+      selectedItems['يونيفورم'] = {
+        price: uni.total || 0,
+        discount: 0,
+        variable: true,
+        customPrice: String(uni.total || 0),
+        fromUniformPage: true
+      };
+      const userNotes = (draft && draft.notes) ? draft.notes.trim() : '';
+      document.getElementById('notes').value = [userNotes, uni.notes].filter(Boolean).join('\n');
+    } else if (draft) {
+      document.getElementById('notes').value = draft.notes || '';
+    }
+
+    if (draft && draft.paymentType) document.getElementById('paymentType').value = draft.paymentType;
+    if (draft && draft.receiptNumber) document.getElementById('receiptNumber').value = draft.receiptNumber;
+
+    renderPaymentItems(document.getElementById('stageSelect').value || null);
+    updateSelectedSummary();
+    updateDiscountFields();
+    updateStageGradeRequiredUI();
+    calcDebt();
+    if (src.studentName) checkStudentDebt();
+
+    if (uni) {
+      showAlert('تم تطبيق اختيار اليونيفورم — راجع المبلغ واحفظ التحصيل', 'success');
+    }
   }
 
   // يرجع بيانات الأقساط للمصروفات الدراسية في Cardiff
@@ -454,7 +556,10 @@
         cardEl.onclick = () => togglePaymentItem(item, price || 0);
         let html = `<div class="item-check">${isSelected ? '&#10003;' : ''}</div><div class="item-name">${item}</div>`;
         if (forceVariable) html += `<div class="item-price text-muted">سعر متغير</div>`;
+        else if (isSelected && selectedItems[item]?.fromUniformPage) html += `<div class="item-price">${formatCurrency(selectedItems[item].price)}</div>`;
         else html += price ? `<div class="item-price">${formatCurrency(price)}</div>` : `<div class="item-price text-muted">اختر المرحلة أولا</div>`;
+        html += uniformChoiceHtml(item);
+        if (isSelected && selectedItems[item]?.fromUniformPage) html += `<div style="font-size:0.68rem;color:var(--primary);font-weight:800;margin-top:4px">من صفحة الاختيار</div>`;
         if (isSelected && !forceVariable) html += `<div onclick="event.stopPropagation()" style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.75rem"><input type="checkbox" id="var_${item}" ${isVariable ? 'checked' : ''} onchange="toggleVariablePrice('${item}', this.checked)"/><label for="var_${item}" style="cursor:pointer;color:var(--text-light)">سعر متغير</label></div>`;
         if (isSelected && (isVariable || forceVariable)) html += `<div onclick="event.stopPropagation()" style="margin-top:6px"><input type="number" class="form-input" style="font-size:0.8rem;padding:0.3rem 0.5rem;height:auto" placeholder="ادخل السعر" min="0" value="${customPrice}" oninput="setCustomPrice('${item}', this.value)"/></div>`;
         cardEl.innerHTML = html;
@@ -478,7 +583,10 @@
       let html = `<div class="item-check">${isSelected ? "&#10003;" : ""}</div><div class="item-name">${item}</div>`;
       if (forceVariable) html += `<div class="item-price text-muted">سعر متغير</div>`;
       else if (isApp && isSelected && isFree) html += `<div class="item-price" style="color:var(--success,#27ae60)">مجاني</div>`;
+      else if (isSelected && selectedItems[item]?.fromUniformPage) html += `<div class="item-price">${formatCurrency(selectedItems[item].price)}</div>`;
       else html += price ? `<div class="item-price">${formatCurrency(price)}</div>` : `<div class="item-price text-muted">اختر المرحلة اولا</div>`;
+      html += uniformChoiceHtml(item);
+      if (isSelected && selectedItems[item]?.fromUniformPage) html += `<div style="font-size:0.68rem;color:var(--primary);font-weight:800;margin-top:4px">من صفحة الاختيار</div>`;
       if (isSelected && isApp) html += `<div onclick="event.stopPropagation()" style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.75rem"><input type="checkbox" id="free_${item}" ${isFree ? "checked" : ""} onchange="toggleFreeItem('${item}', this.checked)"/><label for="free_${item}" style="cursor:pointer;color:var(--text-light)">مجاني</label></div>`;
       if (isSelected && !forceVariable && !isApp) html += `<div onclick="event.stopPropagation()" style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.75rem"><input type="checkbox" id="var_${item}" ${isVariable ? "checked" : ""} onchange="toggleVariablePrice('${item}', this.checked)"/><label for="var_${item}" style="cursor:pointer;color:var(--text-light)">سعر متغير</label></div>`;
       if (isSelected && (isVariable || forceVariable)) html += `<div onclick="event.stopPropagation()" style="margin-top:6px"><input type="number" class="form-input" style="font-size:0.8rem;padding:0.3rem 0.5rem;height:auto" placeholder="ادخل السعر" min="0" value="${customPrice}" oninput="setCustomPrice('${item}', this.value)"/></div>`;

@@ -147,7 +147,7 @@ const ADMINS = [
 const ACCOUNTING_PAGES = [
   'dashboard', 'collection', 'student-search', 'debts',
   'expenses', 'buses', 'reports', 'analytics',
-  'party', 'photo-package', 'admin', 'accounts'
+  'party', 'photo-package', 'uniform', 'admin', 'accounts'
 ];
 
 /**
@@ -489,6 +489,125 @@ const PAYMENT_ITEMS = [
   "امتحانات",
   "إيرادات أخرى"
 ];
+
+// ========================================
+// UNIFORM CATALOG — تسعير بريستول 2026/2027
+// الباكدج الكامل + القطع الفردانية + زيادة المقاس
+// ========================================
+const UNIFORM_SIZE_UPCHARGE = 50;
+
+const UNIFORM_SIZE_ORDER = ['0', '2', '4', '6', '8', '10', '12', '14', '16', '18', 'S', 'M', 'L', 'XL', '2XL'];
+
+const UNIFORM_ITEMS = [
+  { id: 'summer_pants', name: 'بنطلون صيفي' },
+  { id: 'winter_pants', name: 'بنطلون شتوي' },
+  { id: 'summer_polo',  name: 'بولو صيفي' },
+  { id: 'winter_polo',  name: 'بولو شتوي' },
+  { id: 'pe_shirt',     name: 'تيشيرت P.E' },
+  { id: 'sweatshirt',   name: 'سويتشيرت' },
+  { id: 'jacket',       name: 'جاكيت بامب' }
+];
+
+/** early = Pre / KG1 / KG2 */
+const UNIFORM_PIECE_PRICES = {
+  summer_pants: { early: 420,  grade: 440,  prep: 480,  sec: 520 },
+  winter_pants: { early: 520,  grade: 540,  prep: 530,  sec: 610 },
+  summer_polo:  { early: 450,  grade: 480,  prep: 510,  sec: 540 },
+  winter_polo:  { early: 480,  grade: 570,  prep: 590,  sec: 630 },
+  pe_shirt:     { early: 380,  grade: 490,  prep: 490,  sec: 490 },
+  sweatshirt:   { early: 770,  grade: 820,  prep: 870,  sec: 890 },
+  jacket:       { early: 1150, grade: 1250, prep: 1330, sec: 1350 }
+};
+
+const UNIFORM_PACKAGE_PRICES = {
+  pre_kg: 4000,
+  kg: 4000,
+  grade: 4500,
+  prep: 4800,
+  secondary: 5000
+};
+
+const UNIFORM_BASE_SIZE_BY_GRADE = {
+  'Pre-KG': '0',
+  'KG1': '6',
+  'KG2': '8',
+  'Grade 1': '8',
+  'Grade 2': '10',
+  'Grade 3': '12',
+  'Grade 4': '14',
+  'Grade 5': '14',
+  'Grade 6': '16',
+  'Prep 1': 'S',
+  'Prep 2': 'S',
+  'Prep 3': 'S',
+  'أولى ثانوي': 'S',
+  'Grade 10': 'S',
+  'Grade 11': 'S'
+};
+
+function getUniformPriceBand(grade, stage) {
+  const g = grade || '';
+  if (g === 'Pre-KG' || stage === 'pre_kg') return 'early';
+  if (g === 'KG1' || g === 'KG2' || stage === 'kg') return 'early';
+  if (g.includes('ثانوي') || g === 'Grade 10' || g === 'Grade 11' || /^Sec/i.test(g) || stage === 'secondary') return 'sec';
+  if (g.startsWith('Prep') || stage === 'prep') return 'prep';
+  if (g.startsWith('Grade') || stage === 'grade') return 'grade';
+  if (stage === 'international' || stage === 'semi_international') return 'grade';
+  return null;
+}
+
+function getUniformPackagePrice(stage, grade) {
+  if (stage && UNIFORM_PACKAGE_PRICES[stage] != null) return UNIFORM_PACKAGE_PRICES[stage];
+  const g = grade || '';
+  if (g === 'Pre-KG') return 4000;
+  if (g === 'KG1' || g === 'KG2') return 4000;
+  if (g.startsWith('Prep')) return 4800;
+  if (g.includes('ثانوي') || g === 'Grade 10' || g === 'Grade 11') return 5000;
+  if (g.startsWith('Grade')) return 4500;
+  return 0;
+}
+
+function getUniformBaseSize(grade, stage) {
+  if (grade && UNIFORM_BASE_SIZE_BY_GRADE[grade]) return UNIFORM_BASE_SIZE_BY_GRADE[grade];
+  if (stage === 'pre_kg') return '0';
+  if (stage === 'kg') return '6';
+  if (stage === 'grade') return '8';
+  if (stage === 'prep' || stage === 'secondary') return 'S';
+  return '8';
+}
+
+function getUniformPiecePrice(itemId, grade, stage) {
+  const band = getUniformPriceBand(grade, stage);
+  const row = UNIFORM_PIECE_PRICES[itemId];
+  if (!band || !row) return 0;
+  return row[band] || 0;
+}
+
+function getUniformSizeIndex(size) {
+  const i = UNIFORM_SIZE_ORDER.indexOf(String(size));
+  return i < 0 ? 0 : i;
+}
+
+function getUniformSizeSteps(baseSize, selectedSize) {
+  return Math.max(0, getUniformSizeIndex(selectedSize) - getUniformSizeIndex(baseSize));
+}
+
+function getUniformSizeExtra(baseSize, selectedSize) {
+  return getUniformSizeSteps(baseSize, selectedSize) * UNIFORM_SIZE_UPCHARGE;
+}
+
+function buildUniformNotes(mode, stageLabel, grade, lines, packagePrice, extraTotal, grandTotal) {
+  const header = mode === 'package'
+    ? `باكدج يونيفورم كامل — ${stageLabel || ''}${grade ? ' / ' + grade : ''}`
+    : `قطع يونيفورم فردانية — ${stageLabel || ''}${grade ? ' / ' + grade : ''}`;
+  const pieceLines = lines.map(l => {
+    const stepTxt = l.steps > 0 ? ` (+${l.steps} مقاس / +${l.extra})` : '';
+    return `${l.name} — مقاس ${l.size}${stepTxt} = ${l.total}`;
+  });
+  const extras = extraTotal > 0 ? [`زيادة المقاسات: ${extraTotal}`] : [];
+  if (mode === 'package') extras.unshift(`سعر الباكدج: ${packagePrice}`);
+  return [header, ...pieceLines, ...extras, `الإجمالي: ${grandTotal}`].filter(Boolean).join('\n');
+}
 
 // ========================================
 // ACADEMIC YEAR

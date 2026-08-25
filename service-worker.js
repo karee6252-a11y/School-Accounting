@@ -3,7 +3,7 @@
 //  الإصدار: يُحدَّث تلقائياً عند تغيير أي ملف
 // ============================================================
 
-const CACHE_NAME = 'mohasba-v25';
+const CACHE_NAME = 'mohasba-v26';
 
 // الملفات اللي هتتحفظ في الـ cache لأول مرة (App Shell)
 const APP_SHELL = [
@@ -18,6 +18,7 @@ const APP_SHELL = [
   // صفحات التطبيق
   '/dashboard.html',
   '/collection.html',
+  '/uniform.html',
   '/student-search.html',
   '/debts.html',
   '/expenses.html',

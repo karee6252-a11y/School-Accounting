@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#1a3a6b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="School System" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <title>اختيار اليونيفورم - نظام المحاسبة</title>
+  <link rel="stylesheet" href="styles.css?v=2.7" />
+  <style>
+    .uni-banner {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      border-radius: var(--radius);
+      padding: 1.15rem 1.4rem;
+      color: white;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .uni-banner h2 { font-size: 1.15rem; font-weight: 900; margin: 0 0 0.2rem; }
+    .uni-banner p { font-size: 0.82rem; opacity: 0.88; margin: 0; }
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .mode-tab {
+      border: 2px solid var(--border);
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 1rem 1.1rem;
+      cursor: pointer;
+      text-align: right;
+      font-family: inherit;
+      transition: var(--transition);
+    }
+    .mode-tab:hover { border-color: color-mix(in srgb, var(--primary) 40%, var(--border)); background: var(--accent); }
+    .mode-tab.active { border-color: var(--primary); background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent); }
+    .mode-tab .mt-title { font-size: 0.95rem; font-weight: 900; color: var(--text-dark); margin-bottom: 0.25rem; }
+    .mode-tab .mt-sub { font-size: 0.75rem; color: var(--text-light); font-weight: 600; }
+    .pkg-price-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--accent);
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+      border-radius: 20px;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 800;
+      margin-bottom: 0.85rem;
+    }
+    .piece-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap: 0.75rem;
+      align-items: center;
+      padding: 0.85rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--card-bg);
+      margin-bottom: 0.55rem;
+      transition: var(--transition);
+    }
+    .piece-row.on { border-color: var(--primary); background: var(--accent); }
+    .piece-row.locked { cursor: default; }
+    .piece-row.clickable { cursor: pointer; }
+    .piece-check {
+      width: 22px; height: 22px;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 900; color: white;
+      background: white;
+      flex-shrink: 0;
+    }
+    .piece-row.on .piece-check { background: var(--primary); border-color: var(--primary); }
+    .piece-name { font-weight: 800; font-size: 0.9rem; }
+    .piece-meta { font-size: 0.72rem; color: var(--text-light); margin-top: 0.15rem; }
+    .piece-price { font-weight: 900; color: var(--primary); white-space: nowrap; font-size: 0.9rem; text-align: left; }
+    .piece-extra { font-size: 0.7rem; color: #c0392b; font-weight: 700; }
+    .size-select {
+      font-family: inherit;
+      font-weight: 800;
+      font-size: 0.82rem;
+      padding: 0.35rem 0.5rem;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: white;
+      min-width: 72px;
+    }
+    .hint-box {
+      font-size: 0.78rem;
+      color: var(--text-light);
+      background: var(--accent);
+      border-radius: var(--radius-sm);
+      padding: 0.65rem 0.85rem;
+      margin-bottom: 0.85rem;
+    }
+    .uni-footer {
+      position: sticky;
+      bottom: 0.75rem;
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.15rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      box-shadow: 0 -8px 24px rgba(0,0,0,0.08);
+      z-index: 20;
+    }
+    .uni-total-label { font-size: 0.75rem; color: var(--text-light); font-weight: 700; }
+    .uni-total-val { font-size: 1.45rem; font-weight: 900; color: var(--primary); }
+    .uni-total-sub { font-size: 0.72rem; color: #c0392b; font-weight: 700; }
+    @media (max-width: 700px) {
+      .piece-row { grid-template-columns: auto 1fr auto; }
+      .piece-price { grid-column: 2 / 3; grid-row: 2; text-align: right; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div id="topbarContainer"></div>
+    <div class="page-content">
+      <div class="alert hidden" id="formAlert"></div>
+
+      <div class="uni-banner">
+        <div>
+          <h2>اختيار اليونيفورم</h2>
+          <p>باكدج كامل بسعر المرحلة، أو قطع فردانية — زيادة كل مقاس فوق مقاس الصف = 50 ج.م</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="goBackToCollection()">رجوع للتحصيل</button>
+      </div>
+
+      <div class="card mb-2">
+        <div class="card-header"><span class="card-title">بيانات الطالب</span></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">اسم الطالب <span class="required">*</span></label>
+              <input type="text" class="form-input form-input-ar" id="studentName" placeholder="الاسم كاملا" list="studentSuggestions" />
+              <datalist id="studentSuggestions"></datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">المرحلة الدراسية <span class="required">*</span></label>
+              <select class="form-select" id="stageSelect" onchange="onStageChange()">
+                <option value="">اختر المرحلة</option>
+              </select>
+            </div>
+            <div class="form-group hidden" id="paymentTierGroup">
+              <label class="form-label">نوع الدفعة <span class="required">*</span></label>
+              <select class="form-select" id="paymentTierSelect" onchange="onPaymentTierChange()">
+                <option value="">اختر نوع الدفعة</option>
+                <option value="normal">دفعة عادية</option>
+                <option value="golden">دفعة ذهبية ⭐</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">الصف <span class="required">*</span></label>
+              <select class="form-select" id="gradeSelect" onchange="onGradeChange()">
+                <option value="">اختر الصف اولا</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mode-tabs">
+        <button type="button" class="mode-tab active" id="tabPackage" onclick="setMode('package')">
+          <div class="mt-title">باكدج كامل</div>
+          <div class="mt-sub">القطع السبع ثابتة — سعر ثابت حسب المرحلة</div>
+        </button>
+        <button type="button" class="mode-tab" id="tabPieces" onclick="setMode('pieces')">
+          <div class="mt-title">قطع فردانية</div>
+          <div class="mt-sub">اختار القطع اللي هتتباع والسعر يتحدد أوتوماتيك</div>
+        </button>
+      </div>
+
+      <div class="card mb-2">
+        <div class="card-header">
+          <span class="card-title" id="listTitle">مكونات الباكدج</span>
+          <span class="pkg-price-chip" id="pkgChip" style="display:none"></span>
+        </div>
+        <div class="card-body">
+          <div class="hint-box" id="sizeHint">كل مرحلة ليها مقاس أساسي. لو زوّدت المقاس على أي قطعة، الحساب يزيد 50 جنيه لكل درجة.</div>
+          <div id="piecesList"></div>
+        </div>
+      </div>
+
+      <div class="uni-footer">
+        <div>
+          <div class="uni-total-label">الإجمالي</div>
+          <div class="uni-total-val" id="grandTotal">ج.م 0</div>
+          <div class="uni-total-sub" id="extraLine"></div>
+        </div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+          <button class="btn btn-secondary" onclick="goBackToCollection()">رجوع</button>
+          <button class="btn btn-primary" id="confirmBtn" onclick="confirmUniform()">تأكيد والرجوع للتحصيل</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js?v=2.8"></script>
+<script src="layout.js?v=2.7"></script>
+<script src="/pwa.js?v=8"></script>
+<script>
+  renderLayout('uniform', 'اختيار اليونيفورم');
+  const session = SESSION.get();
+  const schoolId = session.schoolId;
+  const isCardiff = schoolId === 'cardiff';
+  const isBristol = schoolId === 'bristol';
+
+  let mode = 'package';
+  let selectedIds = new Set(UNIFORM_ITEMS.map(i => i.id));
+  let pieceSizes = {};
+
+  function getStageData(stage) {
+    if (isCardiff) return CARDIFF_STAGES[stage] || null;
+    if (isBristol && stage === 'secondary') return BRISTOL_EXTRA_STAGES.secondary;
+    return STAGES[stage] || null;
+  }
+
+  function currentStage() { return document.getElementById('stageSelect').value; }
+  function currentGrade() { return document.getElementById('gradeSelect').value; }
+
+  function resetSizesToBase() {
+    const grade = currentGrade();
+    const stage = currentStage();
+    const base = getUniformBaseSize(grade, stage);
+    UNIFORM_ITEMS.forEach(it => { pieceSizes[it.id] = base; });
+  }
+
+  function includedIds() {
+    return mode === 'package' ? UNIFORM_ITEMS.map(i => i.id) : [...selectedIds];
+  }
+
+  function lineFor(item) {
+    const stage = currentStage();
+    const grade = currentGrade();
+    const baseSize = getUniformBaseSize(grade, stage);
+    const size = pieceSizes[item.id] || baseSize;
+    const basePrice = getUniformPiecePrice(item.id, grade, stage);
+    const extra = getUniformSizeExtra(baseSize, size);
+    const steps = getUniformSizeSteps(baseSize, size);
+    return {
+      id: item.id,
+      name: item.name,
+      size,
+      baseSize,
+      basePrice,
+      extra,
+      steps,
+      total: basePrice + extra
+    };
+  }
+
+  function calcTotals() {
+    const stage = currentStage();
+    const grade = currentGrade();
+    const lines = includedIds().map(id => lineFor(UNIFORM_ITEMS.find(i => i.id === id))).filter(Boolean);
+    const extraTotal = lines.reduce((s, l) => s + l.extra, 0);
+    const packagePrice = getUniformPackagePrice(stage, grade);
+    const piecesSum = lines.reduce((s, l) => s + l.total, 0);
+    const grand = mode === 'package' ? (packagePrice + extraTotal) : piecesSum;
+    return { lines, extraTotal, packagePrice, grand };
+  }
+
+  function sizeSelectHtml(itemId, selected, enabled) {
+    const opts = UNIFORM_SIZE_ORDER.map(s =>
+      `<option value="${s}" ${s === selected ? 'selected' : ''}>${s}</option>`
+    ).join('');
+    const dis = enabled ? '' : 'disabled';
+    return `<select class="size-select" ${dis} onclick="event.stopPropagation()" onchange="onSizeChange('${itemId}', this.value)">${opts}</select>`;
+  }
+
+  function renderPieces() {
+    const list = document.getElementById('piecesList');
+    const stage = currentStage();
+    const grade = currentGrade();
+    const ready = !!(stage && grade);
+    const baseSize = getUniformBaseSize(grade, stage);
+    const totals = calcTotals();
+
+    document.getElementById('listTitle').textContent = mode === 'package' ? 'مكونات الباكدج الكامل' : 'القطع الفردانية';
+    const chip = document.getElementById('pkgChip');
+    if (mode === 'package' && totals.packagePrice) {
+      chip.style.display = 'inline-flex';
+      chip.textContent = 'سعر الباكدج: ' + formatCurrency(totals.packagePrice);
+    } else {
+      chip.style.display = 'none';
+    }
+
+    document.getElementById('sizeHint').textContent = ready
+      ? `مقاس الصف الأساسي: ${baseSize} — كل درجة أكبر تزيد 50 ج.م على القطعة`
+      : 'اختَر المرحلة والصف أولاً عشان الأسعار والمقاس الأساسي يظهروا';
+
+    list.innerHTML = UNIFORM_ITEMS.map(item => {
+      const line = lineFor(item);
+      const on = mode === 'package' || selectedIds.has(item.id);
+      const clickable = mode === 'pieces';
+      const extraHtml = line.steps > 0 ? `<div class="piece-extra">+${formatCurrency(line.extra)} (${line.steps} مقاس)</div>` : '';
+      const priceHtml = ready && on
+        ? `<div class="piece-price">${formatCurrency(mode === 'package' ? line.basePrice : line.total)}${extraHtml}</div>`
+        : `<div class="piece-price" style="color:var(--text-light);font-weight:700">—</div>`;
+      return `<div class="piece-row ${on ? 'on' : ''} ${clickable ? 'clickable' : 'locked'}" ${clickable ? `onclick="togglePiece('${item.id}')"` : ''}>
+        <div class="piece-check">${on ? '✓' : ''}</div>
+        <div>
+          <div class="piece-name">${item.name}</div>
+          <div class="piece-meta">المقاس الأساسي ${line.baseSize}${mode === 'package' ? ' · ضمن الباكدج' : ''}</div>
+        </div>
+        ${sizeSelectHtml(item.id, line.size, ready && on)}
+        ${priceHtml}
+      </div>`;
+    }).join('');
+
+    document.getElementById('grandTotal').textContent = ready ? formatCurrency(totals.grand) : 'ج.م 0';
+    document.getElementById('extraLine').textContent = ready && totals.extraTotal > 0
+      ? 'منها زيادة مقاسات: ' + formatCurrency(totals.extraTotal)
+      : '';
+  }
+
+  function setMode(next) {
+    mode = next;
+    document.getElementById('tabPackage').classList.toggle('active', next === 'package');
+    document.getElementById('tabPieces').classList.toggle('active', next === 'pieces');
+    if (next === 'package') selectedIds = new Set(UNIFORM_ITEMS.map(i => i.id));
+    else selectedIds = new Set();
+    renderPieces();
+  }
+
+  function togglePiece(id) {
+    if (mode !== 'pieces') return;
+    if (selectedIds.has(id)) selectedIds.delete(id);
+    else selectedIds.add(id);
+    renderPieces();
+  }
+
+  function onSizeChange(id, size) {
+    pieceSizes[id] = size;
+    renderPieces();
+  }
+
+  function onPaymentTierChange() {
+    renderPieces();
+  }
+
+  function onGradeChange() {
+    resetSizesToBase();
+    renderPieces();
+  }
+
+  function onStageChange() {
+    const stage = currentStage();
+    const gradeSelect = document.getElementById('gradeSelect');
+    const tierGroup = document.getElementById('paymentTierGroup');
+    gradeSelect.innerHTML = '<option value="">اختر الصف</option>';
+    const stageData = getStageData(stage);
+    if (stageData) {
+      stageData.grades.forEach(g => { gradeSelect.innerHTML += `<option value="${g}">${g}</option>`; });
+    }
+    if (isCardiff && stage === 'semi_international') {
+      tierGroup.classList.remove('hidden');
+    } else {
+      tierGroup.classList.add('hidden');
+      const tier = document.getElementById('paymentTierSelect');
+      if (tier) tier.value = '';
+    }
+    resetSizesToBase();
+    renderPieces();
+  }
+
+  function showAlert(msg, type) {
+    const el = document.getElementById('formAlert');
+    el.className = 'alert alert-' + (type || 'error');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => el.classList.add('hidden'), 4500);
+  }
+
+  function goBackToCollection() {
+    window.location.href = 'collection.html';
+  }
+
+  function confirmUniform() {
+    const studentName = document.getElementById('studentName').value.trim();
+    const stage = currentStage();
+    const grade = currentGrade();
+    if (!studentName) return showAlert('من فضلك ادخل اسم الطالب');
+    if (!stage) return showAlert('من فضلك اختر المرحلة');
+    if (isCardiff && stage === 'semi_international' && !document.getElementById('paymentTierSelect').value) {
+      return showAlert('من فضلك اختر نوع الدفعة');
+    }
+    if (!grade) return showAlert('من فضلك اختر الصف');
+    if (mode === 'pieces' && selectedIds.size === 0) return showAlert('اختَر قطعة واحدة على الأقل');
+
+    const totals = calcTotals();
+    if (!totals.grand || totals.grand <= 0) return showAlert('لا يوجد مبلغ — تأكد من المرحلة والصف');
+
+    const stageData = getStageData(stage);
+    const notes = buildUniformNotes(
+      mode,
+      stageData?.labelAr || stageData?.label || stage,
+      grade,
+      totals.lines,
+      totals.packagePrice,
+      totals.extraTotal,
+      totals.grand
+    );
+
+    sessionStorage.setItem('uniform_selection', JSON.stringify({
+      studentName,
+      stage,
+      grade,
+      paymentTier: document.getElementById('paymentTierSelect')?.value || '',
+      mode,
+      total: totals.grand,
+      extraTotal: totals.extraTotal,
+      packagePrice: totals.packagePrice,
+      lines: totals.lines,
+      notes
+    }));
+    window.location.href = 'collection.html';
+  }
+
+  function populateStages() {
+    const stageSelect = document.getElementById('stageSelect');
+    stageSelect.innerHTML = '<option value="">اختر المرحلة</option>';
+    if (isCardiff) {
+      Object.entries(CARDIFF_STAGES).forEach(([key, s]) => {
+        stageSelect.innerHTML += `<option value="${key}">${s.label} - ${s.labelAr}</option>`;
+      });
+    } else {
+      stageSelect.innerHTML += `
+        <option value="pre_kg">Pre-KG - ما قبل الروضة</option>
+        <option value="kg">KG - الروضة</option>
+        <option value="grade">Grade - الابتدائي</option>
+        <option value="prep">Prep - الاعدادي</option>`;
+      if (isBristol) {
+        stageSelect.innerHTML += `<option value="secondary">Secondary - الثانوي</option>`;
+      }
+    }
+  }
+
+  function loadStudentSuggestions() {
+    const NAMES_KEY = `student_names_${schoolId}`;
+    try {
+      const raw = sessionStorage.getItem(NAMES_KEY);
+      if (!raw) return;
+      const obj = JSON.parse(raw);
+      if (!obj.names) return;
+      document.getElementById('studentSuggestions').innerHTML =
+        obj.names.map(n => `<option value="${escapeHtml(n)}">`).join('');
+    } catch (_) { /* ignore */ }
+  }
+
+  function applyCollectionDraft() {
+    const raw = sessionStorage.getItem('collection_draft');
+    if (!raw) return;
+    try {
+      const d = JSON.parse(raw);
+      if (d.studentName) document.getElementById('studentName').value = d.studentName;
+      if (d.stage) {
+        document.getElementById('stageSelect').value = d.stage;
+        onStageChange();
+      }
+      if (d.paymentTier) {
+        document.getElementById('paymentTierSelect').value = d.paymentTier;
+      }
+      if (d.grade) {
+        document.getElementById('gradeSelect').value = d.grade;
+        onGradeChange();
+      }
+    } catch (_) { /* ignore */ }
+  }
+
+  populateStages();
+  resetSizesToBase();
+  loadStudentSuggestions();
+  applyCollectionDraft();
+  renderPieces();
+</script>
+</body>
+</html>
