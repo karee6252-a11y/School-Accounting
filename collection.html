@@ -240,7 +240,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=2.9"></script>
+<script src="firebase-config.js?v=3.0"></script>
 <script src="layout.js?v=2.7"></script>
 <script src="/pwa.js?v=8"></script>
 <script>
@@ -440,7 +440,13 @@
         discount: 0,
         variable: true,
         customPrice: String(uni.total || 0),
-        fromUniformPage: true
+        fromUniformPage: true,
+        uniformDetails: {
+          mode: uni.mode,
+          lines: uni.lines || [],
+          packagePrice: uni.packagePrice || 0,
+          extraTotal: uni.extraTotal || 0
+        }
       };
       const userNotes = (draft && draft.notes) ? draft.notes.trim() : '';
       document.getElementById('notes').value = [userNotes, uni.notes].filter(Boolean).join('\n');
@@ -900,6 +906,7 @@
           }
         }
 
+        const uniItem = selectedItems['يونيفورم'];
         const transaction = {
           schoolId, schoolName:school.name, studentName, stage, stageName,
           paymentTier, paymentTierName, grade,
@@ -910,6 +917,7 @@
           createdAt:firebase.firestore.FieldValue.serverTimestamp(),
           year:new Date(date).getFullYear(), month:new Date(date).getMonth()+1, week:getWeekNumber(new Date(date)),
           academicYear: getAcademicYear(date),
+          ...(uniItem && uniItem.uniformDetails ? { uniformDetails: uniItem.uniformDetails } : {}),
           ...(debtDocId ? { debtId: debtDocId } : {}),
           ...(_shu2onStudentId ? { shu2onStudentId: _shu2onStudentId } : {})
         };

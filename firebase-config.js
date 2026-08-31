@@ -35,7 +35,8 @@ const SCHOOLS = {
     logo: "Bristol.jpeg",
     users: [
       "acc1.bristol@bristol-school.com",
-      "acc2.bristol@bristol-school.com"
+      "acc2.bristol@bristol-school.com",
+      "mohamed.galal@bristol-school.com"
     ],
     hrUsers: [
       "hr@bristol-school.com",
@@ -134,6 +135,15 @@ const SCHOOLS = {
 // ========================================
 // ADMINS
 // ========================================
+const USER_DISPLAY_NAMES = {
+  "mohamed.galal@bristol-school.com": "Mohamed Galal"
+};
+
+function getUserDisplayName(email) {
+  if (!email) return '';
+  return USER_DISPLAY_NAMES[email] || email.split('@')[0];
+}
+
 const ADMINS = [
   "admin@schools-system.com",
   "admin2@schools-system.com"
@@ -185,7 +195,7 @@ function buildSessionFromUser(user) {
     role,
     schoolId: school.id,
     schoolName: school.name,
-    name: email.split('@')[0]
+    name: getUserDisplayName(email)
   };
 }
 
@@ -608,6 +618,59 @@ function buildUniformNotes(mode, stageLabel, grade, lines, packagePrice, extraTo
   const extras = extraTotal > 0 ? [`زيادة المقاسات: ${extraTotal}`] : [];
   if (mode === 'package') extras.unshift(`سعر الباكدج: ${packagePrice}`);
   return [header, ...pieceLines, ...extras, `الإجمالي: ${grandTotal}`].filter(Boolean).join('\n');
+}
+
+function transactionHasUniform(tx) {
+  const inString = (tx.paymentItem || '').split('+').map(s => s.trim()).includes('يونيفورم');
+  const inArray = Array.isArray(tx.paymentItems) && tx.paymentItems.some(pi => (pi.item || '').trim() === 'يونيفورم');
+  return inString || inArray;
+}
+
+function parseUniformDetailsFromTransaction(tx) {
+  if (tx && tx.uniformDetails && tx.uniformDetails.mode && Array.isArray(tx.uniformDetails.lines)) {
+    return {
+      mode: tx.uniformDetails.mode,
+      lines: tx.uniformDetails.lines.map(l => ({
+        id: l.id,
+        name: l.name,
+        qty: Math.max(1, parseInt(l.qty, 10) || 1),
+        size: l.size || ''
+      })),
+      packagePrice: tx.uniformDetails.packagePrice || 0,
+      extraTotal: tx.uniformDetails.extraTotal || 0
+    };
+  }
+
+  const notes = (tx && tx.notes) || '';
+  if (!notes.includes('يونيفورم')) return null;
+  const mode = notes.includes('باكدج يونيفورم كامل') ? 'package'
+    : notes.includes('قطع يونيفورم فردانية') ? 'pieces'
+    : null;
+  if (!mode) return null;
+
+  const nameToId = {};
+  UNIFORM_ITEMS.forEach(it => { nameToId[it.name] = it.id; });
+  const lines = [];
+  notes.split('\n').forEach(raw => {
+    const line = String(raw || '').trim();
+    const m = line.match(/^(.+?)(?:\s*[×xX]\s*(\d+))?\s*—\s*مقاس\s+(\S+)/);
+    if (!m) return;
+    const name = m[1].trim();
+    const id = nameToId[name];
+    if (!id) return;
+    lines.push({
+      id,
+      name,
+      qty: Math.max(1, parseInt(m[2], 10) || 1),
+      size: m[3]
+    });
+  });
+
+  if (!lines.length && mode === 'package') {
+    UNIFORM_ITEMS.forEach(it => lines.push({ id: it.id, name: it.name, qty: 1, size: '' }));
+  }
+  if (!lines.length) return null;
+  return { mode, lines, packagePrice: 0, extraTotal: 0 };
 }
 
 // ========================================

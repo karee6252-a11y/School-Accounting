@@ -209,7 +209,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=2.7"></script>
+<script src="firebase-config.js?v=3.0"></script>
 <script src="/pwa.js?v=8"></script>
 <script>
   let selectedSchool = null;
@@ -356,7 +356,7 @@
           uid: user.uid, email, role: 'hr',
           schoolId: selectedSchool.id,
           schoolName: selectedSchool.name,
-          name: email.split('@')[0]
+          name: getUserDisplayName(email)
         }, { persist: remember });
         saveRememberMeta(selectedSchool.id);
         window.location.href = 'hr.html';
@@ -369,7 +369,7 @@
           uid: user.uid, email, role: 'shu2on',
           schoolId: selectedSchool.id,
           schoolName: selectedSchool.name,
-          name: email.split('@')[0]
+          name: getUserDisplayName(email)
         }, { persist: remember });
         saveRememberMeta(selectedSchool.id);
         window.location.href = 'student-affairs.html';
@@ -382,7 +382,7 @@
           uid: user.uid, email, role: 'contractors',
           schoolId: selectedSchool.id,
           schoolName: selectedSchool.name,
-          name: email.split('@')[0]
+          name: getUserDisplayName(email)
         }, { persist: remember });
         saveRememberMeta(selectedSchool.id);
         window.location.href = 'contractors.html';
@@ -400,7 +400,7 @@
         uid: user.uid, email, role: 'accountant',
         schoolId: selectedSchool.id,
         schoolName: selectedSchool.name,
-        name: email.split('@')[0]
+        name: getUserDisplayName(email)
       }, { persist: remember });
       saveRememberMeta(selectedSchool.id);
 

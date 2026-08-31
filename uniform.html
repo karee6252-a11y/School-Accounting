@@ -172,6 +172,31 @@
       </div>
 
       <div class="card mb-2">
+        <div class="card-header">
+          <span class="card-title">شيت اليونيفورم Excel</span>
+        </div>
+        <div class="card-body">
+          <div class="hint-box">ملف واحد فيه شيتين: القطع الفردانية، والباكدج الكامل — الأسامي وعدد كل قطعة.</div>
+          <div class="form-grid" style="margin-bottom:0.85rem">
+            <div class="form-group">
+              <label class="form-label">من</label>
+              <input type="date" class="form-input" id="uniExportFrom" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">إلى</label>
+              <input type="date" class="form-input" id="uniExportTo" />
+            </div>
+          </div>
+          <button class="btn btn-primary" type="button" id="uniExportBtn" onclick="exportUniformSheets()">تصدير شيت القطع والباكدج</button>
+        </div>
+      </div>
+
+      <div class="alert alert-info" id="pickerNeededHint" style="display:none;margin-bottom:1.25rem">
+        عشان تسجّل بيع يونيفورم: املأ اسم الطالب والمرحلة والصف في التحصيل اليومي، بعدين اضغط <strong>اختيار</strong> تحت بند اليونيفورم.
+      </div>
+
+      <div id="uniPickerBlock">
+      <div class="card mb-2">
         <div class="card-header"><span class="card-title">بيانات الطالب</span></div>
         <div class="card-body">
           <div class="hint-box" style="margin-bottom:1rem">البيانات دي جاية من التحصيل اليومي ومقفولة هنا — لو محتاج تعدّل الاسم أو المرحلة أو الصف ارجع للتحصيل.</div>
@@ -237,6 +262,7 @@
           <button class="btn btn-primary" id="confirmBtn" onclick="confirmUniform()">تأكيد والرجوع للتحصيل</button>
         </div>
       </div>
+      </div>
     </div>
   </div>
 </div>
@@ -244,9 +270,10 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=2.9"></script>
+<script src="firebase-config.js?v=3.0"></script>
 <script src="layout.js?v=2.7"></script>
 <script src="/pwa.js?v=8"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script>
   renderLayout('uniform', 'اختيار اليونيفورم');
   const session = SESSION.get();
@@ -561,15 +588,181 @@
     });
   }
 
+  async function ensureExcelJS() {
+    if (typeof ExcelJS !== 'undefined') return;
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      s.onload = res;
+      s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  function uniformAmount(tx) {
+    if (Array.isArray(tx.paymentItems)) {
+      const row = tx.paymentItems.find(pi => (pi.item || '').trim() === 'يونيفورم');
+      if (row) return Number(row.netPrice != null ? row.netPrice : row.price) || 0;
+    }
+    return Number(tx.amount) || 0;
+  }
+
+  async function exportUniformSheets() {
+    const btn = document.getElementById('uniExportBtn');
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'جاري التجهيز...';
+    try {
+      await ensureExcelJS();
+      const school = SESSION.getSchool();
+      const schoolName = school?.name || 'المدرسة';
+      const from = document.getElementById('uniExportFrom').value || ACADEMIC_YEAR_START;
+      const to = document.getElementById('uniExportTo').value || localDateStr(new Date());
+
+      const snap = await db.collection('transactions')
+        .where('schoolId', '==', schoolId)
+        .where('date', '>=', from)
+        .where('date', '<=', to)
+        .get();
+
+      const pieceRows = [];
+      const packageRows = [];
+      snap.forEach(doc => {
+        const tx = { id: doc.id, ...doc.data() };
+        if (!transactionHasUniform(tx)) return;
+        const details = parseUniformDetailsFromTransaction(tx);
+        if (!details) return;
+        const rec = {
+          name: tx.studentName || '',
+          grade: tx.grade || '',
+          date: tx.date || '',
+          receipt: tx.receiptNumber || '',
+          amount: uniformAmount(tx),
+          lines: details.lines,
+          sizes: details.lines.map(l => l.size ? `${l.name} ${l.size}` : '').filter(Boolean).join(' / ')
+        };
+        if (details.mode === 'package') packageRows.push(rec);
+        else pieceRows.push(rec);
+      });
+
+      pieceRows.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
+      packageRows.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
+
+      const rawP = (school?.primaryColor || '#1E2D5A').replace('#', '').toUpperCase();
+      const PRI = 'FF' + (rawP.length === 6 ? rawP : '1E2D5A');
+      const WHT = 'FFFFFFFF';
+      const BLK = 'FF111111';
+      const ACC = 'FFE8ECF5';
+      const GRN = 'FF1B5E20';
+
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'School Accounting';
+      const headers = ['م', 'اسم الطالب', 'الصف', 'التاريخ', 'الإيصال', ...UNIFORM_ITEMS.map(i => i.name), 'إجمالي القطع', 'المبلغ', 'المقاسات'];
+      const moneyCol = headers.length - 1;
+
+      function writeSheet(title, rows) {
+        const ws = wb.addWorksheet(title, { views: [{ rightToLeft: true, state: 'frozen', ySplit: 3 }] });
+        ws.columns = headers.map((h, i) => ({
+          width: i === 0 ? 6 : i === 1 ? 28 : i === headers.length - 1 ? 28 : 14
+        }));
+        const titleRow = ws.addRow([`${title} — ${schoolName} — ${ACADEMIC_YEAR}`]);
+        ws.mergeCells(1, 1, 1, headers.length);
+        titleRow.getCell(1).font = { name: 'Arial', bold: true, size: 14, color: { argb: WHT } };
+        titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PRI } };
+        titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 2 };
+        titleRow.height = 28;
+
+        const sub = ws.addRow([`من ${from} إلى ${to}          عدد الطلاب: ${rows.length}`]);
+        ws.mergeCells(2, 1, 2, headers.length);
+        sub.getCell(1).font = { name: 'Arial', bold: true, size: 10, color: { argb: WHT } };
+        sub.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4A6FA5' } };
+        sub.getCell(1).alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 2 };
+
+        const hdr = ws.addRow(headers);
+        hdr.eachCell(cell => {
+          cell.font = { name: 'Arial', bold: true, size: 10, color: { argb: WHT } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PRI } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true, readingOrder: 2 };
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        });
+        hdr.height = 26;
+
+        const qtyTotals = UNIFORM_ITEMS.map(() => 0);
+        let pieceTotal = 0;
+        let moneyTotal = 0;
+
+        rows.forEach((r, idx) => {
+          const qtyById = {};
+          r.lines.forEach(l => { qtyById[l.id] = (qtyById[l.id] || 0) + (l.qty || 1); });
+          const pieceQtys = UNIFORM_ITEMS.map(it => qtyById[it.id] || 0);
+          const rowPieces = pieceQtys.reduce((s, n) => s + n, 0);
+          pieceQtys.forEach((n, i) => { qtyTotals[i] += n; });
+          pieceTotal += rowPieces;
+          moneyTotal += r.amount || 0;
+          const row = ws.addRow([
+            idx + 1, r.name, r.grade, r.date, r.receipt,
+            ...pieceQtys, rowPieces, r.amount || 0, r.sizes
+          ]);
+          row.eachCell((cell, ci) => {
+            cell.font = { name: 'Arial', size: 10, color: { argb: BLK } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true, readingOrder: 2 };
+            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+            if (idx % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ACC } };
+            if (ci === 2) cell.alignment = { horizontal: 'right', vertical: 'middle', readingOrder: 2 };
+            if (ci === moneyCol) cell.numFmt = '#,##0';
+          });
+        });
+
+        const tot = ws.addRow(['', 'الإجمالي', '', '', '', ...qtyTotals, pieceTotal, moneyTotal, '']);
+        tot.eachCell((cell, ci) => {
+          cell.font = { name: 'Arial', bold: true, size: 11, color: { argb: WHT } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRN } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 2 };
+          cell.border = { top: { style: 'medium' }, bottom: { style: 'medium' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          if (ci === moneyCol) cell.numFmt = '#,##0';
+        });
+
+        if (!rows.length) {
+          const empty = ws.addRow(['لا توجد بيانات يونيفورم في الفترة دي']);
+          ws.mergeCells(empty.number, 1, empty.number, headers.length);
+          empty.getCell(1).alignment = { horizontal: 'center', readingOrder: 2 };
+        }
+      }
+
+      writeSheet('القطع الفردانية', pieceRows);
+      writeSheet('الباكدج الكامل', packageRows);
+
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `يونيفورم_${schoolName}_${from}_${to}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showAlert('تم تصدير شيت اليونيفورم', 'success');
+    } catch (err) {
+      console.error(err);
+      showAlert('تعذر تصدير الشيت: ' + (err.message || err));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  }
+
   populateStages();
   resetSizesToBase();
-  if (!applyCollectionDraft()) {
-    sessionStorage.setItem('collection_flash', 'املأ اسم الطالب والمرحلة والصف في التحصيل اليومي، ثم اضغط اختيار تحت بند اليونيفورم');
-    window.location.href = 'collection.html';
-  } else {
-    lockStudentFields();
-    renderPieces();
-  }
+  (function initUniformPage() {
+    const yearStart = typeof ACADEMIC_YEAR_START !== 'undefined' ? ACADEMIC_YEAR_START : localDateStr(new Date()).slice(0, 4) + '-07-01';
+    document.getElementById('uniExportFrom').value = yearStart;
+    document.getElementById('uniExportTo').value = localDateStr(new Date());
+    if (!applyCollectionDraft()) {
+      document.getElementById('uniPickerBlock').style.display = 'none';
+      document.getElementById('pickerNeededHint').style.display = 'block';
+    } else {
+      lockStudentFields();
+      renderPieces();
+    }
+  })();
 </script>
 </body>
 </html>
