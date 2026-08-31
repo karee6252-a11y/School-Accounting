@@ -638,8 +638,7 @@
           date: tx.date || '',
           receipt: tx.receiptNumber || '',
           amount: uniformAmount(tx),
-          lines: details.lines,
-          sizes: details.lines.map(l => l.size ? `${l.name} ${l.size}` : '').filter(Boolean).join(' / ')
+          lines: details.lines
         };
         if (details.mode === 'package') packageRows.push(rec);
         else pieceRows.push(rec);
@@ -657,13 +656,15 @@
 
       const wb = new ExcelJS.Workbook();
       wb.creator = 'School Accounting';
-      const headers = ['م', 'اسم الطالب', 'الصف', 'التاريخ', 'الإيصال', ...UNIFORM_ITEMS.map(i => i.name), 'إجمالي القطع', 'المبلغ', 'المقاسات'];
-      const moneyCol = headers.length - 1;
+      const qtyHeaders = UNIFORM_ITEMS.map(i => i.name);
+      const sizeHeaders = UNIFORM_ITEMS.map(i => 'مقاس ' + i.name);
+      const headers = ['م', 'اسم الطالب', 'الصف', 'التاريخ', 'الإيصال', ...qtyHeaders, 'إجمالي القطع', 'المبلغ', ...sizeHeaders];
+      const moneyCol = 5 + UNIFORM_ITEMS.length + 2;
 
       function writeSheet(title, rows) {
         const ws = wb.addWorksheet(title, { views: [{ rightToLeft: true, state: 'frozen', ySplit: 3 }] });
         ws.columns = headers.map((h, i) => ({
-          width: i === 0 ? 6 : i === 1 ? 28 : i === headers.length - 1 ? 28 : 14
+          width: i === 0 ? 6 : i === 1 ? 28 : i >= moneyCol ? 12 : 14
         }));
         const titleRow = ws.addRow([`${title} — ${schoolName} — ${ACADEMIC_YEAR}`]);
         ws.mergeCells(1, 1, 1, headers.length);
@@ -693,15 +694,20 @@
 
         rows.forEach((r, idx) => {
           const qtyById = {};
-          r.lines.forEach(l => { qtyById[l.id] = (qtyById[l.id] || 0) + (l.qty || 1); });
+          const sizeById = {};
+          r.lines.forEach(l => {
+            qtyById[l.id] = (qtyById[l.id] || 0) + (l.qty || 1);
+            if (l.size && !sizeById[l.id]) sizeById[l.id] = l.size;
+          });
           const pieceQtys = UNIFORM_ITEMS.map(it => qtyById[it.id] || 0);
+          const pieceSizes = UNIFORM_ITEMS.map(it => (qtyById[it.id] ? (sizeById[it.id] || '') : ''));
           const rowPieces = pieceQtys.reduce((s, n) => s + n, 0);
           pieceQtys.forEach((n, i) => { qtyTotals[i] += n; });
           pieceTotal += rowPieces;
           moneyTotal += r.amount || 0;
           const row = ws.addRow([
             idx + 1, r.name, r.grade, r.date, r.receipt,
-            ...pieceQtys, rowPieces, r.amount || 0, r.sizes
+            ...pieceQtys, rowPieces, r.amount || 0, ...pieceSizes
           ]);
           row.eachCell((cell, ci) => {
             cell.font = { name: 'Arial', size: 10, color: { argb: BLK } };
@@ -713,7 +719,7 @@
           });
         });
 
-        const tot = ws.addRow(['', 'الإجمالي', '', '', '', ...qtyTotals, pieceTotal, moneyTotal, '']);
+        const tot = ws.addRow(['', 'الإجمالي', '', '', '', ...qtyTotals, pieceTotal, moneyTotal, ...UNIFORM_ITEMS.map(() => '')]);
         tot.eachCell((cell, ci) => {
           cell.font = { name: 'Arial', bold: true, size: 11, color: { argb: WHT } };
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRN } };
