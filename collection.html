@@ -224,7 +224,7 @@
 
 <!-- Receipt Modal -->
 <div class="modal-overlay hidden" id="receiptModal">
-  <div class="modal" style="max-width:420px">
+  <div class="modal" style="max-width:780px">
     <div class="modal-header">
       <span class="modal-title">معاينة الايصال</span>
       <button class="btn-close" onclick="closeModal('receiptModal')">X</button>
@@ -240,7 +240,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=3.0"></script>
+<script src="firebase-config.js?v=3.1"></script>
 <script src="layout.js?v=2.7"></script>
 <script src="/pwa.js?v=8"></script>
 <script>
@@ -250,6 +250,7 @@
   let selectedItems = {};
   let todayTransactions = [];
   let _shu2onStudentId = null;  // يتعبّى لما يجي من شئون الطلاب
+  let _studentClassroom = '';
 
   const isCardiff = schoolId === 'cardiff';
   const isBristol = schoolId === 'bristol';
@@ -331,6 +332,7 @@
         if (prefill.studentDocId) {
           _shu2onStudentId = prefill.studentDocId;
         }
+        _studentClassroom = prefill.classroom || '';
       } catch(e) { console.warn('prefill parse error:', e); }
     }
 
@@ -998,11 +1000,18 @@
     document.getElementById('paymentSummaryBox').style.display='none';
     document.getElementById('discountSection').style.display='none';
     selectedItems={}; renderPaymentItems(null); updateSelectedSummary(); updateStageGradeRequiredUI(); generateReceiptNumber();
+    _studentClassroom = '';
+    _shu2onStudentId = null;
+  }
+
+  function receiptPaymentLabel() {
+    const keys = Object.keys(selectedItems || {});
+    return keys.length ? keys.join(' + ') : '';
   }
 
   function previewReceipt() {
     const studentName=document.getElementById('studentName').value.trim()||'اسم الطالب';
-    const grade=document.getElementById('gradeSelect').value||'الصف';
+    const grade=document.getElementById('gradeSelect').value||'';
     const stage=document.getElementById('stageSelect').value;
     const amount=document.getElementById('amountInput').value||'0';
     const paymentType=document.getElementById('paymentType').value;
@@ -1013,91 +1022,100 @@
     const totalDue=getTotalAfterDiscount();
     const debt=totalDue-parseFloat(amount);
     const stageName=stage?(getStageData(stage)?.labelAr||stage):'';
-    const tierHTML=isCardiff&&document.getElementById('paymentTierSelect').value?`<tr><td class="rl">نوع الدفعة</td><td class="rv">${document.getElementById('paymentTierSelect').options[document.getElementById('paymentTierSelect').selectedIndex]?.text}</td></tr>`:'';
-    const itemRows=`<tr><td class="rl">المصروفات الدراسية</td><td class="rv">${formatCurrency(totalDue)}</td></tr>`;
-    const debtHTML=debt>0?`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#f5f5f5;border:2px solid #000;border-radius:8px;color:#000;font-weight:800;font-size:12px;margin-bottom:10px;"><span>&#9888; مديونية متبقية</span><span>${formatCurrency(debt)}</span></div>`:'';
-    const rHTML=buildReceiptHTML(studentName,grade,stageName,tierHTML,itemRows,receiptNumber,date,paymentTypeName,amount,totalDue,debtHTML,school);
+    const rHTML=buildReceiptHTML({
+      studentName, grade, stageName, classroom: _studentClassroom,
+      receiptNumber, date, paymentTypeName, amount, totalDue, debt,
+      paymentLabel: receiptPaymentLabel(), school
+    });
     document.getElementById('receiptPreviewContent').innerHTML=rHTML;
     document.getElementById('receiptModal').classList.remove('hidden');
   }
 
-  function buildReceiptHTML(studentName,grade,stageName,tierHTML,itemRows,receiptNumber,date,paymentTypeName,amount,totalDue,debtHTML,school){
-    const logoSrc=school?.logo?new URL(school.logo,window.location.href).href:'';
-    const schoolNameAr=school?.name||'مدرسة بريستول للغات';
-    const schoolNameEn=(school?.nameEn||school?.name||'Bristol Language School').toUpperCase();
-    return `<div style="width:100%;font-family:Cairo,sans-serif;direction:rtl;">${singleReceipt(studentName,grade,stageName,tierHTML,itemRows,receiptNumber,date,paymentTypeName,amount,totalDue,debtHTML,schoolNameAr,schoolNameEn,logoSrc)}</div>`;
+  function buildReceiptHTML({ studentName, grade, stageName, classroom, receiptNumber, date, paymentTypeName, amount, totalDue, debt, paymentLabel, school }) {
+    const logoFile = school?.receiptLogo || school?.logo || '';
+    const logoSrc = logoFile ? new URL(logoFile, window.location.href).href : '';
+    const schoolNameAr = school?.nameAr || school?.name || '';
+    const schoolNameEn = school?.nameEn || school?.name || '';
+    const directorate = school?.directorate || '';
+    return `<div style="width:100%;font-family:Arial,'Cairo',sans-serif;">${singleReceipt({
+      studentName, grade, stageName, classroom, receiptNumber, date, paymentTypeName,
+      amount, totalDue, debt, paymentLabel, schoolNameAr, schoolNameEn, directorate, logoSrc
+    })}</div>`;
   }
 
-  function singleReceipt(studentName,grade,stageName,tierHTML,itemRows,receiptNumber,date,paymentTypeName,amount,totalDue,debtHTML,schoolNameAr,schoolNameEn,logoSrc){
-    const fmtDate=typeof formatDate==='function'?formatDate(date):date;
-    const fmtAmount=typeof formatCurrency==='function'?formatCurrency(parseFloat(amount)):amount+' ج.م';
-    const fmtTotal=typeof formatCurrency==='function'?formatCurrency(totalDue):totalDue+' ج.م';
-    const styledRows=(html)=>html.replace(/class="rl"/g,'style="padding:9px 14px;color:#111;font-size:13px;border-bottom:1px solid #ddd;"').replace(/class="rv"/g,'style="padding:9px 14px;font-weight:800;color:#000;text-align:left;direction:ltr;font-size:13px;border-bottom:1px solid #ddd;"');
-    const rows=styledRows(itemRows)+styledRows(tierHTML);
-    let dayNameAr='';
+  function singleReceipt({ studentName, grade, stageName, classroom, receiptNumber, date, paymentTypeName, amount, totalDue, debt, paymentLabel, schoolNameAr, schoolNameEn, directorate, logoSrc }) {
+    let dayNameEn = '';
+    let dateFmt = date || '';
     if (date) {
-      const d0=new Date(date+'T00:00:00');
-      dayNameAr=d0.toLocaleDateString('ar-EG',{weekday:'long'});
+      const d0 = new Date(date + 'T00:00:00');
+      dayNameEn = d0.toLocaleDateString('en-US', { weekday: 'long' });
+      const dd = String(d0.getDate()).padStart(2, '0');
+      const mm = String(d0.getMonth() + 1).padStart(2, '0');
+      dateFmt = `${dd}/${mm}/${d0.getFullYear()}`;
     }
-    function field(enLabel,arLabel,value){
-      return `<div dir="ltr" style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:#f5f5f5;border:1px solid #ccc;border-radius:7px;margin-bottom:9px;">
-        <span style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:0.4px;min-width:95px;">${enLabel}</span>
-        <span style="flex:1;text-align:center;font-size:14px;font-weight:800;color:#000;">${value||'-'}</span>
-        <span dir="rtl" style="font-size:13px;font-weight:800;color:#000;min-width:95px;text-align:right;">${arLabel}</span>
+    const n = parseFloat(amount) || 0;
+    const amtStr = n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    const classVal = classroom || stageName || '—';
+    function biRow(en, ar, value, gray, last) {
+      const bg = gray ? '#f2f2f2' : '#ffffff';
+      const bb = last ? 'border-bottom:1px solid #222;' : '';
+      return `<div style="display:grid;grid-template-columns:1.15fr 1.7fr 1.15fr;border:1px solid #222;border-bottom:none;${bb}background:${bg};">
+        <div style="padding:9px 12px;font-size:13px;font-weight:800;text-align:left;letter-spacing:0.2px;">${en}</div>
+        <div style="padding:9px 12px;font-size:14px;font-weight:800;text-align:center;border-left:1px solid #d0d0d0;border-right:1px solid #d0d0d0;">${value || '—'}</div>
+        <div style="padding:9px 12px;font-size:13px;font-weight:800;text-align:right;direction:rtl;">${ar}</div>
       </div>`;
     }
-    return `<div style="width:100%;border:2px solid #000;border-radius:12px;overflow:hidden;background:white;">
-      <div style="background:white;padding:18px 22px 14px;border-bottom:2px solid #000;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-          <div style="display:flex;align-items:center;gap:14px;">
-            <div style="width:68px;height:68px;border:1.5px solid #999;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;padding:4px;">
-              ${logoSrc?`<img src="${logoSrc}" style="width:100%;height:100%;object-fit:contain;" onerror="this.style.display='none'"/>`:''}
-            </div>
-            <div>
-              <div style="font-size:18px;font-weight:900;color:#000;letter-spacing:0.4px;">${schoolNameEn}</div>
-              <div style="font-size:13px;font-weight:700;color:#333;margin-top:3px;">${schoolNameAr}</div>
-            </div>
-          </div>
-          <div style="text-align:left;">
-            <div style="font-size:22px;font-weight:900;color:#000;letter-spacing:1px;line-height:1.1;">Receipt Voucher</div>
-            <div style="font-size:13px;font-weight:700;color:#333;margin-top:3px;">سند قبض</div>
-          </div>
+    const debtNote = (debt > 0.001) ? `<div style="margin-top:8px;font-size:11px;font-weight:700;color:#333;text-align:center;">Remaining / المتبقي: ${typeof formatCurrency==='function'?formatCurrency(debt):debt}</div>` : '';
+    const payRow = paymentLabel ? biRow('Payment For', 'البيان', paymentLabel, false, false) : '';
+    const methodRow = paymentTypeName ? biRow('Payment Method', 'طريقة الدفع', paymentTypeName, !paymentLabel, true) : '';
+    return `<div style="width:100%;max-width:720px;margin:0 auto;background:#fff;color:#000;direction:ltr;border:1px solid #111;">
+      <div style="padding:14px 18px 8px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+        <div style="width:96px;height:72px;flex-shrink:0;overflow:hidden;">
+          ${logoSrc ? `<img src="${logoSrc}" alt="" style="width:100%;height:100%;object-fit:contain;object-position:left center;" onerror="this.style.display='none'"/>` : ''}
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #ccc;padding-top:9px;margin-top:11px;">
-          <span style="border:1.5px solid #000;border-radius:20px;padding:3px 14px;font-size:13px;font-weight:800;color:#000;direction:ltr;">${receiptNumber}</span>
-          <span style="font-size:12px;color:#555;font-weight:700;">السنة الدراسية 2026 / 2027</span>
+        <div style="flex:1;text-align:right;">
+          <div style="font-size:20px;font-weight:900;letter-spacing:0.3px;line-height:1.15;">${schoolNameEn || ''}</div>
+          <div style="font-size:15px;font-weight:800;margin-top:3px;">${schoolNameAr || ''}</div>
+          ${directorate ? `<div style="font-size:12px;font-weight:600;color:#595959;margin-top:2px;">${directorate}</div>` : ''}
         </div>
       </div>
-      <div style="padding:18px 22px;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:9px;">
-          ${field('Day','اليوم', dayNameAr)}
-          ${field('Date','التاريخ', fmtDate)}
-        </div>
-        ${field('Student Name','اسم الطالب', studentName)}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:9px 0 13px;">
-          ${field('Academic Stage','المرحلة الدراسية', stageName)}
-          ${field('Class','الصف', grade)}
-        </div>
-        <div style="font-size:12px;font-weight:800;color:#333;letter-spacing:1px;margin-bottom:9px;">PAYMENT ITEMS &nbsp;|&nbsp; بنود الدفع</div>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:13px;font-size:13px;border:1.5px solid #000;">
-          <thead><tr style="background:#eee;"><th style="padding:9px 14px;font-size:13px;font-weight:800;text-align:right;border-bottom:2px solid #000;color:#000;">البند</th><th style="padding:9px 14px;font-size:13px;font-weight:800;text-align:left;border-bottom:2px solid #000;color:#000;">المبلغ</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-        <div style="border:2px solid #000;border-radius:9px;padding:15px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;background:#f9f9f9;">
-          <div><div style="font-size:12px;color:#555;font-weight:700;">Amount Paid | المبلغ المدفوع</div><div style="font-size:26px;font-weight:900;color:#000;direction:ltr;">${fmtAmount}</div></div>
-          <div style="text-align:left;"><div style="font-size:12px;color:#555;font-weight:700;">Total Due | الإجمالي المستحق</div><div style="font-size:16px;font-weight:800;color:#333;direction:ltr;">${fmtTotal}</div></div>
-        </div>
-        ${debtHTML}
-        ${field('Payment Method','طريقة الدفع', paymentTypeName)}
+      <div style="height:2px;background:#111;margin:0 10px;"></div>
+      <div style="background:#000;color:#fff;text-align:center;font-size:16px;font-weight:800;letter-spacing:0.6px;padding:9px 12px;margin:8px 0 10px;">
+        RECEIPT VOUCHER &nbsp;|&nbsp; إيصال استلام نقدية
       </div>
-      <div style="padding:12px 22px;background:#fafafa;border-top:1.5px solid #ccc;display:flex;align-items:center;justify-content:center;">
-        <div style="width:60px;height:60px;border:1.5px dashed #999;border-radius:50%;display:flex;align-items:center;justify-content:center;"><span style="font-size:10px;color:#999;text-align:center;line-height:1.3;font-weight:700;">ختم<br>المدرسة</span></div>
+      <div style="padding:0 18px 16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;font-size:13px;font-weight:800;">
+          <div><span style="color:#595959;">Date</span> &nbsp; ${dateFmt}</div>
+          <div><span style="color:#595959;">Day</span> &nbsp; ${dayNameEn || '—'}</div>
+          <div style="direction:ltr;"><span style="color:#595959;">No.</span> &nbsp; ${receiptNumber || '—'}</div>
+        </div>
+        ${biRow('Student Name', 'اسم الطالب', studentName, true, false)}
+        ${biRow('Grade', 'الصف', grade, false, false)}
+        ${biRow('Class', 'الفصل', classVal, true, !(payRow || methodRow))}
+        ${payRow}
+        ${methodRow}
+        <div style="display:grid;grid-template-columns:1.15fr 1.7fr 1.15fr;background:#000;color:#fff;margin-top:14px;border:2px solid #000;">
+          <div style="padding:12px 12px;font-size:14px;font-weight:800;text-align:left;">Amount Paid</div>
+          <div style="padding:10px 12px;font-size:22px;font-weight:900;text-align:center;letter-spacing:0.5px;">${amtStr}</div>
+          <div style="padding:12px 12px;font-size:14px;font-weight:800;text-align:right;direction:rtl;">المبلغ المدفوع</div>
+        </div>
+        ${debtNote}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:28px;">
+          <div>
+            <div style="border-top:1px solid #333;padding-top:6px;text-align:center;font-size:11px;font-style:italic;color:#595959;">Signature / التوقيع</div>
+          </div>
+          <div>
+            <div style="border-top:1px solid #333;padding-top:6px;text-align:center;font-size:11px;font-style:italic;color:#595959;">Stamp / الختم</div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:16px;font-size:11px;font-style:italic;color:#808080;">Thank you for your payment &nbsp;|&nbsp; شكراً لسدادكم</div>
       </div>
     </div>`;
   }
+
   function printReceipt() {
     const studentName=document.getElementById('studentName').value.trim()||'اسم الطالب';
-    const grade=document.getElementById('gradeSelect').value||'الصف';
+    const grade=document.getElementById('gradeSelect').value||'';
     const stage=document.getElementById('stageSelect').value;
     const amount=document.getElementById('amountInput').value||'0';
     const paymentType=document.getElementById('paymentType').value;
@@ -1108,12 +1126,18 @@
     const totalDue=getTotalAfterDiscount();
     const debt=totalDue-parseFloat(amount);
     const stageName=stage?(getStageData(stage)?.labelAr||stage):'';
-    const tierHTML=isCardiff&&document.getElementById('paymentTierSelect').value?`<tr><td class="rl">نوع الدفعة</td><td class="rv">${document.getElementById('paymentTierSelect').options[document.getElementById('paymentTierSelect').selectedIndex]?.text}</td></tr>`:'';
-    const itemRows=`<tr><td class="rl">المصروفات الدراسية</td><td class="rv">${formatCurrency(totalDue)}</td></tr>`;
-    const debtHTML=debt>0?`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#f5f5f5;border:2px solid #000;border-radius:8px;color:#000;font-weight:800;font-size:12px;margin-bottom:10px;"><span>&#9888; مديونية متبقية</span><span>${formatCurrency(debt)}</span></div>`:'';
-    const rHTML=buildReceiptHTML(studentName,grade,stageName,tierHTML,itemRows,receiptNumber,date,paymentTypeName,amount,totalDue,debtHTML,school);
+    const rHTML=buildReceiptHTML({
+      studentName, grade, stageName, classroom: _studentClassroom,
+      receiptNumber, date, paymentTypeName, amount, totalDue, debt,
+      paymentLabel: receiptPaymentLabel(), school
+    });
     const win=window.open('','_blank');
-    win.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"><style>@page{size:A5 landscape;margin:8mm}*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:132mm;overflow:hidden}body{font-family:Cairo,sans-serif;direction:rtl;background:white;}#printWrap{width:100%;transform:scale(0.55);transform-origin:top center;margin:0 auto;}@media print{body{padding:0;}}</style></head><body><div id="printWrap">${rHTML}</div><script>setTimeout(function(){window.print();setTimeout(function(){window.close();},500);},600);<\/script></body></html>`);
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"><style>
+      @page{size:A5 landscape;margin:8mm}
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:Arial,'Cairo',sans-serif;background:white;color:#000;}
+      @media print{body{padding:0;}}
+    </style></head><body>${rHTML}<script>setTimeout(function(){window.print();setTimeout(function(){window.close();},500);},600);<\/script></body></html>`);
     win.document.close();
   }
 

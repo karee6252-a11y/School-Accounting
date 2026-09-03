@@ -3,7 +3,7 @@
 //  الإصدار: يُحدَّث تلقائياً عند تغيير أي ملف
 // ============================================================
 
-const CACHE_NAME = 'mohasba-v30';
+const CACHE_NAME = 'mohasba-v32';
 
 // الملفات اللي هتتحفظ في الـ cache لأول مرة (App Shell)
 const APP_SHELL = [
@@ -41,6 +41,7 @@ const APP_SHELL = [
   '/icons/icon-192-maskable.png',
   '/icons/icon-512-maskable.png',
   '/icons/apple-touch-icon.png',
+  '/bristol-receipt-logo.jpeg',
 ];
 
 // مصادر خارجية تتحفظ في cache منفصل

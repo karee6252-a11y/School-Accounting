@@ -25,7 +25,7 @@ service cloud.firestore {
     // محاسبو كل مدرسة
     function canWriteToSchool(sid) {
       return isAdmin() || (
-        (sid == 'bristol'   && email() in ['acc1.bristol@bristol-school.com',   'acc2.bristol@bristol-school.com']) ||
+        (sid == 'bristol'   && email() in ['acc1.bristol@bristol-school.com',   'acc2.bristol@bristol-school.com', 'mohamed.galal@bristol-school.com']) ||
         (sid == 'cardiff'   && email() in ['acc1.cardiff@cardiff-school.com',   'acc2.cardiff@cardiff-school.com']) ||
         (sid == 'stanford1' && email() in ['acc1.stanford1@stanford-school.com','acc2.stanford1@stanford-school.com']) ||
         (sid == 'stanford2' && email() in ['acc1.stanford2@stanford-school.com','acc2.stanford2@stanford-school.com'])
@@ -288,7 +288,7 @@ service cloud.firestore {
       allow read: if isAuth() && (
         isAdmin() ||
         email() in [
-          'acc1.bristol@bristol-school.com', 'acc2.bristol@bristol-school.com',
+          'acc1.bristol@bristol-school.com', 'acc2.bristol@bristol-school.com', 'mohamed.galal@bristol-school.com',
           'acc1.cardiff@cardiff-school.com', 'acc2.cardiff@cardiff-school.com',
           'acc1.stanford1@stanford-school.com', 'acc2.stanford1@stanford-school.com',
           'acc1.stanford2@stanford-school.com', 'acc2.stanford2@stanford-school.com'
