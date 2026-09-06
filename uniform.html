@@ -176,7 +176,7 @@
           <span class="card-title">شيت اليونيفورم Excel</span>
         </div>
         <div class="card-body">
-          <div class="hint-box">ملف واحد فيه شيتين: القطع الفردانية، والباكدج الكامل — الأسامي وعدد كل قطعة.</div>
+          <div class="hint-box">ملف واحد فيه 3 شيتات: ملخص الأعداد، القطع الفردانية، والباكدج الكامل. التسويات مش بتتحسب تاني عشان العدد يطابق المبيعات المسجّلة.</div>
           <div class="form-grid" style="margin-bottom:0.85rem">
             <div class="form-group">
               <label class="form-label">من</label>
@@ -270,7 +270,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=3.0"></script>
+<script src="firebase-config.js?v=3.2"></script>
 <script src="layout.js?v=2.7"></script>
 <script src="/pwa.js?v=8"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -600,11 +600,25 @@
   }
 
   function uniformAmount(tx) {
+    if (typeof uniformItemAmount === 'function') return uniformItemAmount(tx);
     if (Array.isArray(tx.paymentItems)) {
       const row = tx.paymentItems.find(pi => (pi.item || '').trim() === 'يونيفورم');
       if (row) return Number(row.netPrice != null ? row.netPrice : row.price) || 0;
     }
     return Number(tx.amount) || 0;
+  }
+
+  function countPiecesByItem(rows) {
+    const totals = {};
+    UNIFORM_ITEMS.forEach(it => { totals[it.id] = 0; });
+    rows.forEach(r => {
+      (r.lines || []).forEach(l => {
+        if (!l.id || totals[l.id] == null) return;
+        const qty = Number(l.qty);
+        totals[l.id] += Number.isFinite(qty) && qty > 0 ? qty : 1;
+      });
+    });
+    return totals;
   }
 
   async function exportUniformSheets() {
@@ -627,25 +641,37 @@
 
       const pieceRows = [];
       const packageRows = [];
+      let siteUniformCount = 0;
+      let settlementCount = 0;
       snap.forEach(doc => {
         const tx = { id: doc.id, ...doc.data() };
         if (!transactionHasUniform(tx)) return;
-        const details = parseUniformDetailsFromTransaction(tx);
-        if (!details) return;
+        siteUniformCount += 1;
+        if (typeof isUniformDebtSettlement === 'function' && isUniformDebtSettlement(tx)) {
+          settlementCount += 1;
+          return;
+        }
+        const details = parseUniformDetailsFromTransaction(tx) || {
+          mode: 'package',
+          lines: typeof completePackageLines === 'function' ? completePackageLines([]) : UNIFORM_ITEMS.map(it => ({ id: it.id, name: it.name, qty: 1, size: '' }))
+        };
         const rec = {
           name: tx.studentName || '',
           grade: tx.grade || '',
           date: tx.date || '',
           receipt: tx.receiptNumber || '',
           amount: uniformAmount(tx),
-          lines: details.lines
+          lines: details.lines || []
         };
-        if (details.mode === 'package') packageRows.push(rec);
-        else pieceRows.push(rec);
+        if (details.mode === 'pieces') pieceRows.push(rec);
+        else packageRows.push(rec);
       });
 
       pieceRows.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
       packageRows.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
+      const saleCount = pieceRows.length + packageRows.length;
+      const pieceTotalsByItem = countPiecesByItem(pieceRows);
+      const packageTotalsByItem = countPiecesByItem(packageRows);
 
       const rawP = (school?.primaryColor || '#1E2D5A').replace('#', '').toUpperCase();
       const PRI = 'FF' + (rawP.length === 6 ? rawP : '1E2D5A');
@@ -661,7 +687,62 @@
       const headers = ['م', 'اسم الطالب', 'الصف', 'التاريخ', 'الإيصال', ...qtyHeaders, 'إجمالي القطع', 'المبلغ', ...sizeHeaders];
       const moneyCol = 5 + UNIFORM_ITEMS.length + 2;
 
-      function writeSheet(title, rows) {
+      function styleHeadCell(cell, fill) {
+        cell.font = { name: 'Arial', bold: true, size: 10, color: { argb: WHT } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true, readingOrder: 2 };
+        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      }
+
+      function writeSummary() {
+        const ws = wb.addWorksheet('ملخص الأعداد', { views: [{ rightToLeft: true }] });
+        ws.columns = [{ width: 36 }, { width: 18 }];
+        const titleRow = ws.addRow([`ملخص أعداد اليونيفورم — ${schoolName} — ${ACADEMIC_YEAR}`]);
+        ws.mergeCells(1, 1, 1, 2);
+        titleRow.getCell(1).font = { name: 'Arial', bold: true, size: 14, color: { argb: WHT } };
+        titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PRI } };
+        titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 2 };
+        titleRow.height = 28;
+        const sub = ws.addRow([`من ${from} إلى ${to}`]);
+        ws.mergeCells(2, 1, 2, 2);
+        styleHeadCell(sub.getCell(1), 'FF4A6FA5');
+
+        const rows = [
+          ['عمليات اليونيفورم في الموقع', siteUniformCount],
+          ['تسويات مديونية (مش مبيعات جديدة)', settlementCount],
+          ['المبيعات الفعلية في الشيت', saleCount],
+          ['عدد الباكدج', packageRows.length],
+          ['عدد فواتير القطع الفردانية', pieceRows.length],
+          ['إجمالي قطع الباكدج', UNIFORM_ITEMS.reduce((s, it) => s + (packageTotalsByItem[it.id] || 0), 0)],
+          ['إجمالي القطع الفردانية', UNIFORM_ITEMS.reduce((s, it) => s + (pieceTotalsByItem[it.id] || 0), 0)]
+        ];
+        rows.forEach((pair, i) => {
+          const r = ws.addRow(pair);
+          r.eachCell(cell => {
+            cell.font = { name: 'Arial', size: 11, color: { argb: BLK } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 2 };
+            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+            if (i % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ACC } };
+          });
+          r.getCell(1).alignment = { horizontal: 'right', vertical: 'middle', readingOrder: 2 };
+        });
+
+        const itemHdr = ws.addRow(['القطعة', 'الباكدج + القطع']);
+        itemHdr.eachCell(cell => styleHeadCell(cell, PRI));
+        UNIFORM_ITEMS.forEach((it, i) => {
+          const n = (packageTotalsByItem[it.id] || 0) + (pieceTotalsByItem[it.id] || 0);
+          const r = ws.addRow([it.name, n]);
+          r.eachCell(cell => {
+            cell.font = { name: 'Arial', size: 11, color: { argb: BLK } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 2 };
+            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+            if (i % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ACC } };
+          });
+          r.getCell(1).alignment = { horizontal: 'right', vertical: 'middle', readingOrder: 2 };
+        });
+      }
+
+      function writeSheet(title, rows, kind) {
         const ws = wb.addWorksheet(title, { views: [{ rightToLeft: true, state: 'frozen', ySplit: 3 }] });
         ws.columns = headers.map((h, i) => ({
           width: i === 0 ? 6 : i === 1 ? 28 : i >= moneyCol ? 12 : 14
@@ -673,7 +754,10 @@
         titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 2 };
         titleRow.height = 28;
 
-        const sub = ws.addRow([`من ${from} إلى ${to}          عدد الطلاب: ${rows.length}`]);
+        const countLabel = kind === 'package'
+          ? `عدد الباكدج: ${rows.length}`
+          : `عدد فواتير القطع: ${rows.length}`;
+        const sub = ws.addRow([`من ${from} إلى ${to}          ${countLabel}`]);
         ws.mergeCells(2, 1, 2, headers.length);
         sub.getCell(1).font = { name: 'Arial', bold: true, size: 10, color: { argb: WHT } };
         sub.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4A6FA5' } };
@@ -695,8 +779,10 @@
         rows.forEach((r, idx) => {
           const qtyById = {};
           const sizeById = {};
-          r.lines.forEach(l => {
-            qtyById[l.id] = (qtyById[l.id] || 0) + (l.qty || 1);
+          (r.lines || []).forEach(l => {
+            if (!l.id) return;
+            const qty = Number(l.qty);
+            qtyById[l.id] = (qtyById[l.id] || 0) + (Number.isFinite(qty) && qty > 0 ? qty : 1);
             if (l.size && !sizeById[l.id]) sizeById[l.id] = l.size;
           });
           const pieceQtys = UNIFORM_ITEMS.map(it => qtyById[it.id] || 0);
@@ -735,8 +821,9 @@
         }
       }
 
-      writeSheet('القطع الفردانية', pieceRows);
-      writeSheet('الباكدج الكامل', packageRows);
+      writeSummary();
+      writeSheet('القطع الفردانية', pieceRows, 'pieces');
+      writeSheet('الباكدج الكامل', packageRows, 'package');
 
       const buf = await wb.xlsx.writeBuffer();
       const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

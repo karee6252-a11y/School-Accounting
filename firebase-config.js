@@ -635,51 +635,120 @@ function transactionHasUniform(tx) {
   return inString || inArray;
 }
 
-function parseUniformDetailsFromTransaction(tx) {
-  if (tx && tx.uniformDetails && tx.uniformDetails.mode && Array.isArray(tx.uniformDetails.lines)) {
-    return {
-      mode: tx.uniformDetails.mode,
-      lines: tx.uniformDetails.lines.map(l => ({
-        id: l.id,
-        name: l.name,
-        qty: Math.max(1, parseInt(l.qty, 10) || 1),
-        size: l.size || ''
-      })),
-      packagePrice: tx.uniformDetails.packagePrice || 0,
-      extraTotal: tx.uniformDetails.extraTotal || 0
-    };
+function isUniformDebtSettlement(tx) {
+  if (!tx) return false;
+  if (tx.isDebtSettlement) return true;
+  const notes = String(tx.notes || '');
+  const receipt = String(tx.receiptNumber || '');
+  return notes.startsWith('تسوية مديونية') || /^SETTLE-/i.test(receipt);
+}
+
+function resolveUniformItemId(line) {
+  if (!line) return '';
+  if (line.id && UNIFORM_ITEMS.some(i => i.id === line.id)) return line.id;
+  const raw = String(line.name || '').trim().replace(/\s+/g, ' ');
+  if (!raw) return '';
+  const compact = raw.replace(/\s+/g, '');
+  const found = UNIFORM_ITEMS.find(i => i.name === raw || i.name.replace(/\s+/g, '') === compact);
+  return found ? found.id : '';
+}
+
+function readUniformLineQty(line) {
+  if (!line) return 1;
+  const n = Number(line.qty != null ? line.qty : line.quantity);
+  if (Number.isFinite(n) && n > 0) return Math.round(n);
+  return 1;
+}
+
+function uniformItemAmount(tx) {
+  if (Array.isArray(tx && tx.paymentItems)) {
+    const row = tx.paymentItems.find(pi => (pi.item || '').trim() === 'يونيفورم');
+    if (row) return Number(row.netPrice != null ? row.netPrice : row.price) || 0;
   }
+  return Number(tx && tx.amount) || 0;
+}
 
-  const notes = (tx && tx.notes) || '';
-  if (!notes.includes('يونيفورم')) return null;
-  const mode = notes.includes('باكدج يونيفورم كامل') ? 'package'
-    : notes.includes('قطع يونيفورم فردانية') ? 'pieces'
-    : null;
-  if (!mode) return null;
-
-  const nameToId = {};
-  UNIFORM_ITEMS.forEach(it => { nameToId[it.name] = it.id; });
+function parseUniformNoteLines(notes) {
   const lines = [];
-  notes.split('\n').forEach(raw => {
+  String(notes || '').split(/\r?\n/).forEach(raw => {
     const line = String(raw || '').trim();
-    const m = line.match(/^(.+?)(?:\s*[×xX]\s*(\d+))?\s*—\s*مقاس\s+(\S+)/);
+    const m = line.match(/^(.+?)(?:\s*[×xX*]\s*(\d+))?\s*[—–\-]\s*مقاس\s+(\S+)/);
     if (!m) return;
-    const name = m[1].trim();
-    const id = nameToId[name];
+    const id = resolveUniformItemId({ name: m[1].trim() });
     if (!id) return;
+    const item = UNIFORM_ITEMS.find(i => i.id === id);
     lines.push({
       id,
-      name,
+      name: item ? item.name : m[1].trim(),
       qty: Math.max(1, parseInt(m[2], 10) || 1),
       size: m[3]
     });
   });
+  return lines;
+}
 
-  if (!lines.length && mode === 'package') {
-    UNIFORM_ITEMS.forEach(it => lines.push({ id: it.id, name: it.name, qty: 1, size: '' }));
+function mergeUniformLines(lines) {
+  const byId = {};
+  (lines || []).forEach(l => {
+    const id = resolveUniformItemId(l);
+    if (!id) return;
+    const item = UNIFORM_ITEMS.find(i => i.id === id);
+    const qty = readUniformLineQty(l);
+    if (!byId[id]) {
+      byId[id] = { id, name: item ? item.name : (l.name || ''), qty, size: l.size || '' };
+    } else {
+      byId[id].qty += qty;
+      if (!byId[id].size && l.size) byId[id].size = l.size;
+    }
+  });
+  return Object.values(byId);
+}
+
+function completePackageLines(lines) {
+  const byId = {};
+  mergeUniformLines(lines).forEach(l => { byId[l.id] = l; });
+  return UNIFORM_ITEMS.map(it => byId[it.id] || { id: it.id, name: it.name, qty: 1, size: '' });
+}
+
+function inferUniformMode(tx, explicitMode, lines) {
+  if (explicitMode === 'package' || explicitMode === 'pieces') return explicitMode;
+  const notes = String((tx && tx.notes) || '');
+  if (notes.includes('باكدج يونيفورم كامل')) return 'package';
+  if (notes.includes('قطع يونيفورم فردانية')) return 'pieces';
+  if (lines && lines.length >= UNIFORM_ITEMS.length) return 'package';
+  if (lines && lines.length > 0) return 'pieces';
+  const amt = uniformItemAmount(tx);
+  const pkg = getUniformPackagePrice(tx && tx.stage, tx && tx.grade);
+  if (pkg && amt + 0.01 >= pkg) return 'package';
+  if (pkg && amt > 0 && amt < pkg) return 'pieces';
+  return 'package';
+}
+
+function parseUniformDetailsFromTransaction(tx) {
+  if (!tx) return null;
+  let lines = [];
+  let mode = '';
+  let packagePrice = 0;
+  let extraTotal = 0;
+
+  if (tx.uniformDetails && Array.isArray(tx.uniformDetails.lines)) {
+    mode = tx.uniformDetails.mode || '';
+    packagePrice = tx.uniformDetails.packagePrice || 0;
+    extraTotal = tx.uniformDetails.extraTotal || 0;
+    lines = mergeUniformLines(tx.uniformDetails.lines);
   }
-  if (!lines.length) return null;
-  return { mode, lines, packagePrice: 0, extraTotal: 0 };
+
+  if (!lines.length) lines = parseUniformNoteLines(tx.notes);
+
+  mode = inferUniformMode(tx, mode, lines);
+  if (mode === 'package') lines = completePackageLines(lines);
+
+  return {
+    mode,
+    lines,
+    packagePrice,
+    extraTotal
+  };
 }
 
 // ========================================
