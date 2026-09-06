@@ -449,7 +449,7 @@
             <option value="books">كتب</option>
             <option value="gypsum">ديبك</option>
             <option value="curtains">ستائر</option>
-            <option value="school">مدرسي</option>
+            <option value="school">زي مدرسي</option>
             <option value="other">أخرى</option>
           </select>
           <select class="form-select" id="purchasePurpose" onchange="filterPurchases()" style="width:170px">
@@ -533,7 +533,7 @@
             <option value="books">كتب</option>
             <option value="gypsum">ديبك</option>
             <option value="curtains">ستائر</option>
-            <option value="school">مدرسي</option>
+            <option value="school">زي مدرسي</option>
             <option value="other">أخرى</option>
           </select>
           <select class="form-select" id="contractPurpose" onchange="filterContracts()" style="width:170px">
@@ -674,7 +674,7 @@
             <option value="books">كتب</option>
             <option value="gypsum">ديبك</option>
             <option value="curtains">ستائر</option>
-            <option value="school">مدرسي</option>
+            <option value="school">زي مدرسي</option>
             <option value="other">متنوع / أخرى</option>
           </select>
         </div>
@@ -769,7 +769,7 @@
             <option value="books">كتب</option>
             <option value="gypsum">ديبك</option>
             <option value="curtains">ستائر</option>
-            <option value="school">مدرسي</option>
+            <option value="school">زي مدرسي</option>
             <option value="other">أخرى</option>
           </select>
         </div>
@@ -942,7 +942,7 @@
             <option value="books">كتب</option>
             <option value="gypsum">ديبك</option>
             <option value="curtains">ستائر</option>
-            <option value="school">مدرسي</option>
+            <option value="school">زي مدرسي</option>
             <option value="other">أخرى</option>
           </select>
         </div>
@@ -1315,7 +1315,7 @@ const PURPOSES = { pool_small:'حمام السباحة الصغير', pool_large
 // backward compat: القيم القديمة في Firebase
 const PURPOSES_LEGACY = { pool:'حمام السباحة (قديم)', wc:'دورات المياه (قديم)' };
 function getPurposeLabel(p) { return PURPOSES[p] || PURPOSES_LEGACY[p] || p || '—'; }
-const WORK_TYPES = { carpentry:'نجارة', plumbing:'سباكة', electric:'كهرباء', tiling:'تبليط', farming:'زراعة', building:'بناء', ironwork:'حدادة', loader:'لودر', sand:'رمل', gravel:'ظلط', cement:'اسمنت', blacksmith:'حداد', loader_big:'لودر كبير', loader_small:'لودر صغير', interlock:'بناء انترلوك', painter:'نقاش', pool_services:'خدمات حمام سباحة', interlock_services:'خدمات انترلوك', paint_services:'خدمات دهان', cleaning:'نضافة', miscellaneous:'نثريات', marble:'رخام', aluminum:'الومنتال', books:'كتب', gypsum:'ديبك', curtains:'ستائر', school:'مدرسي', other:'أخرى' };
+const WORK_TYPES = { carpentry:'نجارة', plumbing:'سباكة', electric:'كهرباء', tiling:'تبليط', farming:'زراعة', building:'بناء', ironwork:'حدادة', loader:'لودر', sand:'رمل', gravel:'ظلط', cement:'اسمنت', blacksmith:'حداد', loader_big:'لودر كبير', loader_small:'لودر صغير', interlock:'بناء انترلوك', painter:'نقاش', pool_services:'خدمات حمام سباحة', interlock_services:'خدمات انترلوك', paint_services:'خدمات دهان', cleaning:'نضافة', miscellaneous:'نثريات', marble:'رخام', aluminum:'الومنتال', books:'كتب', gypsum:'ديبك', curtains:'ستائر', school:'زي مدرسي', other:'أخرى' };
 const AREA_BASED = ['tiling','farming','building']; // بالمساحة
 const PAY_LABELS = { cash:'نقدي', bank_transfer:'تحويل بنكي', check:'شيك', instapay:'إنستاباي' };
 
