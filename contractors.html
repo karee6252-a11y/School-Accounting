@@ -121,6 +121,9 @@
     .work-tag.miscellaneous     { background:#fafafa; color:#546e7a; border-color:#b0bec5; }
     .work-tag.marble            { background:#f3e5f5; color:#4a148c; border-color:#ba68c8; }
     .work-tag.aluminum          { background:#e8eaf6; color:#1a237e; border-color:#7986cb; }
+    .work-tag.books             { background:#fff8e1; color:#f9a825; border-color:#ffe082; }
+    .work-tag.gypsum            { background:#f5f5f5; color:#616161; border-color:#bdbdbd; }
+    .work-tag.curtains          { background:#fce4ec; color:#ad1457; border-color:#f48fb1; }
     .work-tag.other             { background:#eceff1; color:#455a64; border-color:#b0bec5; }
 
 
@@ -442,6 +445,9 @@
             <option value="miscellaneous">نثريات</option>
             <option value="marble">رخام</option>
             <option value="aluminum">الومنتال</option>
+            <option value="books">كتب</option>
+            <option value="gypsum">ديبك</option>
+            <option value="curtains">ستائر</option>
             <option value="other">أخرى</option>
           </select>
           <select class="form-select" id="purchasePurpose" onchange="filterPurchases()" style="width:170px">
@@ -522,6 +528,9 @@
             <option value="miscellaneous">نثريات</option>
             <option value="marble">رخام</option>
             <option value="aluminum">الومنتال</option>
+            <option value="books">كتب</option>
+            <option value="gypsum">ديبك</option>
+            <option value="curtains">ستائر</option>
             <option value="other">أخرى</option>
           </select>
           <select class="form-select" id="contractPurpose" onchange="filterContracts()" style="width:170px">
@@ -659,6 +668,9 @@
             <option value="pool_services">خدمات حمام سباحة</option>
             <option value="interlock_services">خدمات انترلوك</option>
             <option value="paint_services">خدمات دهان</option>
+            <option value="books">كتب</option>
+            <option value="gypsum">ديبك</option>
+            <option value="curtains">ستائر</option>
             <option value="other">متنوع / أخرى</option>
           </select>
         </div>
@@ -750,6 +762,9 @@
             <option value="miscellaneous">نثريات</option>
             <option value="marble">رخام</option>
             <option value="aluminum">الومنتال</option>
+            <option value="books">كتب</option>
+            <option value="gypsum">ديبك</option>
+            <option value="curtains">ستائر</option>
             <option value="other">أخرى</option>
           </select>
         </div>
@@ -919,6 +934,9 @@
             <option value="miscellaneous">نثريات</option>
             <option value="marble">رخام</option>
             <option value="aluminum">الومنتال</option>
+            <option value="books">كتب</option>
+            <option value="gypsum">ديبك</option>
+            <option value="curtains">ستائر</option>
             <option value="other">أخرى</option>
           </select>
         </div>
@@ -1291,7 +1309,7 @@ const PURPOSES = { pool_small:'حمام السباحة الصغير', pool_large
 // backward compat: القيم القديمة في Firebase
 const PURPOSES_LEGACY = { pool:'حمام السباحة (قديم)', wc:'دورات المياه (قديم)' };
 function getPurposeLabel(p) { return PURPOSES[p] || PURPOSES_LEGACY[p] || p || '—'; }
-const WORK_TYPES = { carpentry:'نجارة', plumbing:'سباكة', electric:'كهرباء', tiling:'تبليط', farming:'زراعة', building:'بناء', ironwork:'حدادة', loader:'لودر', sand:'رمل', gravel:'ظلط', cement:'اسمنت', blacksmith:'حداد', loader_big:'لودر كبير', loader_small:'لودر صغير', interlock:'بناء انترلوك', painter:'نقاش', pool_services:'خدمات حمام سباحة', interlock_services:'خدمات انترلوك', paint_services:'خدمات دهان', cleaning:'نضافة', miscellaneous:'نثريات', marble:'رخام', aluminum:'الومنتال', other:'أخرى' };
+const WORK_TYPES = { carpentry:'نجارة', plumbing:'سباكة', electric:'كهرباء', tiling:'تبليط', farming:'زراعة', building:'بناء', ironwork:'حدادة', loader:'لودر', sand:'رمل', gravel:'ظلط', cement:'اسمنت', blacksmith:'حداد', loader_big:'لودر كبير', loader_small:'لودر صغير', interlock:'بناء انترلوك', painter:'نقاش', pool_services:'خدمات حمام سباحة', interlock_services:'خدمات انترلوك', paint_services:'خدمات دهان', cleaning:'نضافة', miscellaneous:'نثريات', marble:'رخام', aluminum:'الومنتال', books:'كتب', gypsum:'ديبك', curtains:'ستائر', other:'أخرى' };
 const AREA_BASED = ['tiling','farming','building']; // بالمساحة
 const PAY_LABELS = { cash:'نقدي', bank_transfer:'تحويل بنكي', check:'شيك', instapay:'إنستاباي' };
 
