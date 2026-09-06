@@ -715,13 +715,8 @@ function inferUniformMode(tx, explicitMode, lines) {
   const notes = String((tx && tx.notes) || '');
   if (notes.includes('باكدج يونيفورم كامل')) return 'package';
   if (notes.includes('قطع يونيفورم فردانية')) return 'pieces';
-  if (lines && lines.length >= UNIFORM_ITEMS.length) return 'package';
-  if (lines && lines.length > 0) return 'pieces';
-  const amt = uniformItemAmount(tx);
-  const pkg = getUniformPackagePrice(tx && tx.stage, tx && tx.grade);
-  if (pkg && amt + 0.01 >= pkg) return 'package';
-  if (pkg && amt > 0 && amt < pkg) return 'pieces';
-  return 'package';
+  if (lines && lines.length) return 'pieces';
+  return 'unknown';
 }
 
 function parseUniformDetailsFromTransaction(tx) {
