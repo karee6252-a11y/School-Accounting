@@ -1386,11 +1386,12 @@
     if (!confirm('هل تريد حذف هذا المصروف؟')) return;
     try {
       await db.collection('expenses').doc(id).delete();
+      const schoolName = (SESSION.getSchool && SESSION.getSchool()?.name) || '';
       if (typeof notifyAdminActivity === 'function') {
         notifyAdminActivity('حذف مصروف', `تم حذف مصروف رقم ${id}`, {
           type: 'expense_delete',
           url: '/expenses.html',
-          title: `حذف مصروف — ${school?.name || SESSION.getSchool()?.name || ''}`
+          title: `حذف مصروف — ${schoolName}`
         });
       }
       loadReport();
