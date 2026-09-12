@@ -57,7 +57,8 @@
           <div id="weeklyFilter" style="display:none"><label class="form-label">أسبوع من</label><input type="date" class="form-input" id="filterWeekStart" onchange="loadReport()" /></div>
           <div id="monthlyFilter" style="display:none"><label class="form-label">الشهر</label><input type="month" class="form-input" id="filterMonth" onchange="loadReport()" /></div>
           <div id="customFilter" style="display:none;grid-template-columns:1fr 1fr;gap:0.5rem;grid-column:span 2"><div><label class="form-label">من</label><input type="date" class="form-input" id="filterFrom" onchange="loadReport()" /></div><div><label class="form-label">إلى</label><input type="date" class="form-input" id="filterTo" onchange="loadReport()" /></div></div>
-          <div><label class="form-label">المرحلة</label><select class="form-select" id="filterStage" onchange="loadReport()"><option value="">كل المراحل</option><option value="pre_kg">Pre-KG</option><option value="kg">KG</option><option value="grade">Grade</option><option value="prep">Prep</option></select></div>
+          <div><label class="form-label">المرحلة</label><select class="form-select" id="filterStage" onchange="onReportStageChange()"><option value="">كل المراحل</option></select></div>
+          <div><label class="form-label">الصف</label><select class="form-select" id="filterGrade" onchange="loadReport()"><option value="">كل الصفوف</option></select></div>
           <div><label class="form-label">بند الدفع</label><select class="form-select" id="filterItem" onchange="loadReport()"><option value="">كل البنود</option><option value="مصروفات دراسية">مصروفات دراسية</option><option value="باص">باص</option><option value="يونيفورم">يونيفورم</option><option value="أبليكيشن">أبليكيشن</option><option value="فايل">فايل</option><option value="رحلات">رحلات</option><option value="امتحانات">امتحانات</option><option value="__other__">إيرادات أخرى</option></select></div>
           <div><label class="form-label">طريقة الدفع</label><select class="form-select" id="filterPaymentType" onchange="loadReport()"><option value="">كل الطرق</option><option value="cash">نقدي</option><option value="bank_transfer">تحويل بنكي</option><option value="check">شيك</option><option value="instapay">إنستاباي</option></select></div>
           <div><button class="btn btn-primary w-full" onclick="loadReport()"> بحث</button></div>
@@ -96,7 +97,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=2.7"></script>
+<script src="firebase-config.js?v=3.3"></script>
 <script src="layout.js?v=2.6"></script>
 <script src="/pwa.js?v=8"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -108,7 +109,50 @@
   let currentData = [];
   let currentDateRange = { from: '', to: '' };
 
+  function getReportStages() {
+    return typeof getSchoolStages === 'function' ? getSchoolStages(schoolId) : STAGES;
+  }
+
+  function populateReportStages() {
+    const sel = document.getElementById('filterStage');
+    sel.innerHTML = '<option value="">كل المراحل</option>';
+    Object.entries(getReportStages()).forEach(([key, s]) => {
+      const label = s.labelAr && s.label && s.label !== s.labelAr
+        ? `${s.label} - ${s.labelAr}`
+        : (s.labelAr || s.label || key);
+      sel.innerHTML += `<option value="${key}">${label}</option>`;
+    });
+  }
+
+  function populateReportGrades() {
+    const stage = document.getElementById('filterStage').value;
+    const gradeSel = document.getElementById('filterGrade');
+    const prev = gradeSel.value;
+    gradeSel.innerHTML = '<option value="">كل الصفوف</option>';
+    let grades = [];
+    if (stage) {
+      const sd = getReportStages()[stage];
+      grades = sd && sd.grades ? sd.grades.slice() : [];
+    } else {
+      const seen = new Set();
+      Object.values(getReportStages()).forEach(s => {
+        (s.grades || []).forEach(g => {
+          if (!seen.has(g)) { seen.add(g); grades.push(g); }
+        });
+      });
+    }
+    grades.forEach(g => { gradeSel.innerHTML += `<option value="${g}">${g}</option>`; });
+    if (prev && [...gradeSel.options].some(o => o.value === prev)) gradeSel.value = prev;
+  }
+
+  function onReportStageChange() {
+    populateReportGrades();
+    loadReport();
+  }
+
   function init() {
+    populateReportStages();
+    populateReportGrades();
     const today = localDateStr(new Date());
     document.getElementById('filterDate').value = today;
     const weekStart = new Date();
@@ -167,6 +211,7 @@
     const { from, to } = getDateRange();
     currentDateRange = { from, to };
     const filterStage = document.getElementById('filterStage').value;
+    const filterGrade = document.getElementById('filterGrade').value;
     const filterItem = document.getElementById('filterItem').value;
     const filterPaymentType = document.getElementById('filterPaymentType').value;
     const tbody = document.getElementById('reportTableBody');
@@ -177,6 +222,7 @@
       snap.forEach(doc => {
         const d = { id: doc.id, ...doc.data() };
         if (filterStage && d.stage !== filterStage) return;
+        if (filterGrade && d.grade !== filterGrade) return;
         if (filterItem) {
           if (filterItem === '__other__') {
             // إيرادات أخرى = أي بند مش من البنود الأساسية وليس فايل
@@ -1529,12 +1575,14 @@
     const existingStages = new Set(Object.values(studentMap).map(s => s.stage));
     // لو في فلتر مرحلة محدد، خليه يفلتر بيه
     const selectedStage = document.getElementById('filterStage').value;
+    const selectedGrade = document.getElementById('filterGrade').value;
     const stagesToShow = STAGE_ORDER.filter(st =>
       existingStages.has(st.stageId) &&
       (selectedStage === '' || st.stageId === selectedStage)
     );
     const unknownStudents = selectedStage === '' ? Object.values(studentMap).filter(s =>
-      !STAGE_ORDER.find(st => st.stageId === s.stage)
+      !STAGE_ORDER.find(st => st.stageId === s.stage) &&
+      (!selectedGrade || s.grade === selectedGrade)
     ) : [];
 
     const wb = new ExcelJS.Workbook();
@@ -1833,7 +1881,7 @@
 
     stagesToShow.forEach(stageInfo => {
       const stageStudents = Object.values(studentMap)
-        .filter(s => s.stage === stageInfo.stageId)
+        .filter(s => s.stage === stageInfo.stageId && (!selectedGrade || s.grade === selectedGrade))
         .sort((a, b) => {
           const gradeA = stageInfo.grades.indexOf(a.grade);
           const gradeB = stageInfo.grades.indexOf(b.grade);
