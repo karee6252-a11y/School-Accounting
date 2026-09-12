@@ -103,7 +103,8 @@ service cloud.firestore {
     match /expenses/{docId} {
       allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
       allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+      allow delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
 
     match /custodians/{sid} {
@@ -114,7 +115,8 @@ service cloud.firestore {
     match /custodianClosures/{docId} {
       allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
       allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+      allow delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
 
     // ═══════════════════════════════════════════
@@ -139,12 +141,14 @@ service cloud.firestore {
     match /busSubscriptions/{docId} {
       allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
       allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+      allow delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
     match /busExpenses/{docId} {
       allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
       allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+      allow delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
 
     // ═══════════════════════════════════════════
@@ -157,22 +161,26 @@ service cloud.firestore {
     match /contractors_suppliers/{docId} {
       allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
       allow create: if isAuth() && hasSchoolId() && (canWriteToSchool(request.resource.data.schoolId) || isContractorsForSchool(request.resource.data.schoolId));
-      allow update, delete: if isAuth() && schoolUnchanged() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+      allow update: if isAuth() && schoolUnchanged() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+      allow delete: if isAuth() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
     }
     match /contractors_purchases/{docId} {
       allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
       allow create: if isAuth() && hasSchoolId() && (canWriteToSchool(request.resource.data.schoolId) || isContractorsForSchool(request.resource.data.schoolId));
-      allow update, delete: if isAuth() && schoolUnchanged() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+      allow update: if isAuth() && schoolUnchanged() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+      allow delete: if isAuth() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
     }
     match /contractors_contracts/{docId} {
       allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
       allow create: if isAuth() && hasSchoolId() && (canWriteToSchool(request.resource.data.schoolId) || isContractorsForSchool(request.resource.data.schoolId));
-      allow update, delete: if isAuth() && schoolUnchanged() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+      allow update: if isAuth() && schoolUnchanged() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+      allow delete: if isAuth() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
     }
     match /custody_entries/{docId} {
       allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
       allow create: if isAuth() && hasSchoolId() && (canWriteToSchool(request.resource.data.schoolId) || isContractorsForSchool(request.resource.data.schoolId));
-      allow update, delete: if isAuth() && schoolUnchanged() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+      allow update: if isAuth() && schoolUnchanged() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
+      allow delete: if isAuth() && (canWriteToSchool(resource.data.schoolId) || isContractorsForSchool(resource.data.schoolId));
     }
 
     // ═══════════════════════════════════════════
@@ -184,13 +192,15 @@ service cloud.firestore {
       allow get: if true;
       allow list: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
       allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+      allow delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
 
     match /photoDirectStudents/{docId} {
       allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
       allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+      allow delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
 
     // ═══════════════════════════════════════════
@@ -206,7 +216,11 @@ service cloud.firestore {
         isShu2onForSchool(request.resource.data.schoolId) ||
         canWriteToSchool(request.resource.data.schoolId)
       );
-      allow update, delete: if isAuth() && schoolUnchanged() && (
+      allow update: if isAuth() && schoolUnchanged() && (
+        isShu2onForSchool(resource.data.schoolId) ||
+        canWriteToSchool(resource.data.schoolId)
+      );
+      allow delete: if isAuth() && (
         isShu2onForSchool(resource.data.schoolId) ||
         canWriteToSchool(resource.data.schoolId)
       );
@@ -221,7 +235,8 @@ service cloud.firestore {
         canWriteToSchool(resource.data.schoolId)
       );
       allow create: if isAuth() && hasSchoolId() && isHRForSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+      allow delete: if isAuth() && isHRForSchool(resource.data.schoolId);
     }
     match /schools/{schoolId}/employees/{docId} {
       allow read: if isAuth() && (isHRForSchool(schoolId) || canWriteToSchool(schoolId));
@@ -233,7 +248,8 @@ service cloud.firestore {
         canWriteToSchool(resource.data.schoolId)
       );
       allow create: if isAuth() && hasSchoolId() && isHRForSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+      allow delete: if isAuth() && isHRForSchool(resource.data.schoolId);
     }
     match /penalties/{docId} {
       allow read: if isAuth() && (
@@ -241,7 +257,8 @@ service cloud.firestore {
         canWriteToSchool(resource.data.schoolId)
       );
       allow create: if isAuth() && hasSchoolId() && isHRForSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+      allow delete: if isAuth() && isHRForSchool(resource.data.schoolId);
     }
     match /rewards/{docId} {
       allow read: if isAuth() && (
@@ -249,17 +266,20 @@ service cloud.firestore {
         canWriteToSchool(resource.data.schoolId)
       );
       allow create: if isAuth() && hasSchoolId() && isHRForSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+      allow delete: if isAuth() && isHRForSchool(resource.data.schoolId);
     }
     match /permissions/{docId} {
       allow read: if isAuth() && isHRForSchool(resource.data.schoolId);
       allow create: if isAuth() && hasSchoolId() && isHRForSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+      allow delete: if isAuth() && isHRForSchool(resource.data.schoolId);
     }
     match /leaves/{docId} {
       allow read: if isAuth() && isHRForSchool(resource.data.schoolId);
       allow create: if isAuth() && hasSchoolId() && isHRForSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && isHRForSchool(resource.data.schoolId);
+      allow delete: if isAuth() && isHRForSchool(resource.data.schoolId);
     }
 
     // ═══════════════════════════════════════════
@@ -268,7 +288,8 @@ service cloud.firestore {
     match /analyticsEntries/{docId} {
       allow read: if isAuth() && (isAdmin() || canWriteToSchool(resource.data.schoolId));
       allow create: if isAuth() && hasSchoolId() && canWriteToSchool(request.resource.data.schoolId);
-      allow update, delete: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+      allow update: if isAuth() && schoolUnchanged() && canWriteToSchool(resource.data.schoolId);
+      allow delete: if isAuth() && canWriteToSchool(resource.data.schoolId);
     }
 
     // ═══════════════════════════════════════════
