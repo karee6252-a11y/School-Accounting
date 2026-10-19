@@ -9,7 +9,7 @@
     /*  Custodian Cards  */
     .custodian-summary {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 1rem;
       margin-bottom: 1.5rem;
     }
@@ -36,7 +36,6 @@
     .custodian-card.new   { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
     .custodian-card.gross { background: linear-gradient(135deg, #6a1b9a, #4a148c); }
     .custodian-card.total { background: linear-gradient(135deg, var(--primary), var(--primary-dark, #0d2247)); }
-    .custodian-card.vault { background: linear-gradient(135deg, #e65100, #bf360c); }
     .custodian-card .cust-label { font-size: 0.8rem; opacity: 0.8; font-weight: 600; }
     .custodian-card .cust-value { font-size: 1.8rem; font-weight: 900; line-height: 1; }
     .custodian-card .cust-sub   { font-size: 0.75rem; opacity: 0.7; }
@@ -255,7 +254,7 @@
 
     /*  Responsive  */
     @media (max-width: 1100px) {
-      .custodian-summary { grid-template-columns: repeat(3, 1fr); }
+      .custodian-summary { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 768px) {
       .custodian-summary { grid-template-columns: 1fr 1fr; gap: 0.55rem; }
@@ -284,18 +283,16 @@
       <!-- Custodian Summary Cards -->
       <div class="custodian-summary animate-in" id="custodianSummary">
         <div class="custodian-card prev">
-          <button class="cust-edit-btn" onclick="openCustodianModal()" title="تعديل">✏ تعديل</button>
           <div class="cust-icon"></div>
           <div class="cust-label">العهدة السابقة</div>
           <div class="cust-value" id="custPrev">—</div>
-          <div class="cust-sub">الرصيد المرحّل</div>
+          <div class="cust-sub">رصيد الخزنة وقت آخر عهدة</div>
         </div>
         <div class="custodian-card new">
-          <button class="cust-edit-btn" onclick="openCustodianModal()" title="تعديل">✏ تعديل</button>
           <div class="cust-icon"></div>
           <div class="cust-label">العهدة الجديدة</div>
           <div class="cust-value" id="custNew">—</div>
-          <div class="cust-sub">المبلغ المستلم جديداً</div>
+          <div class="cust-sub">آخر مبلغ مستلم جديداً</div>
         </div>
         <div class="custodian-card gross">
           <div class="cust-icon">🏦</div>
@@ -304,18 +301,10 @@
           <div class="cust-sub">السابقة + الجديدة</div>
         </div>
         <div class="custodian-card total">
-          <button class="cust-edit-btn" onclick="openCustodianModal()" title="تعديل">✏ تعديل</button>
-          <div class="cust-icon"></div>
-          <div class="cust-label">الرصيد المتبقي</div>
-          <div class="cust-value" id="custTotal">—</div>
-          <div class="cust-sub" id="custTotalSub">السابقة + الجديدة - المصروفات</div>
-        </div>
-        <div class="custodian-card vault">
-          <button class="cust-edit-btn" onclick="openCustodianModal()" title="تعديل">✏ تعديل</button>
           <div class="cust-icon">🗄️</div>
-          <div class="cust-label">رصيد الخزنة أول اليوم</div>
-          <div class="cust-value" id="custVault">—</div>
-          <div class="cust-sub">الرصيد في بداية اليوم</div>
+          <div class="cust-label">رصيد الخزنة</div>
+          <div class="cust-value" id="custTotal">—</div>
+          <div class="cust-sub" id="custTotalSub">بيتخصم منه كل مصروف تلقائياً</div>
         </div>
       </div>
 
@@ -325,7 +314,7 @@
            تسجيل مصروف جديد
         </button>
         <button class="btn btn-secondary" onclick="openCustodianModal()">
-           تعديل العهدتين</button>
+           تعديل عهدة</button>
         <div style="flex:1"></div>
         <div class="export-btn-group">
           <button class="btn btn-outline btn-sm" onclick="exportExcel()"> Excel</button>
@@ -521,40 +510,32 @@
 </div>
 
 <!-- ==============================
-     CUSTODIAN MODAL
+     CUSTODIAN MODAL — تعديل عهدة (إضافة عهدة فقط)
      ============================== -->
 <div class="modal-overlay hidden" id="custodianModal">
   <div class="modal-box" style="max-width:440px">
     <div class="modal-header">
-      <span class="modal-title"> إعداد العهدة وأرصدة الكروت</span>
+      <span class="modal-title"> تعديل عهدة</span>
       <button class="modal-close" onclick="closeCustodianModal()"></button>
     </div>
     <div class="modal-body">
       <div class="alert alert-info" style="margin-bottom:1rem">
         <span>ℹ</span>
-        <span>العهدة السابقة = الرصيد المرحّل | العهدة الجديدة = المبلغ المستلم حديثاً</span>
+        <span>رصيد الخزنة الحالي هيتحول للعهدة السابقة، والمبلغ اللي هتضيفه هيبقى العهدة الجديدة وهيتضاف على رصيد الخزنة.</span>
       </div>
       <div class="form-group">
-        <label class="form-label">العهدة السابقة (جنيه)</label>
-        <input type="number" class="form-input" id="prevCustodianInput" placeholder="0.00" min="0" step="0.01" />
+        <label class="form-label">رصيد الخزنة الحالي</label>
+        <div id="addCustodyCurrent" style="font-weight:800;font-size:1.1rem;color:var(--primary)">—</div>
       </div>
       <div class="form-group">
-        <label class="form-label">العهدة الجديدة (جنيه)</label>
-        <input type="number" class="form-input" id="newCustodianInput" placeholder="0.00" min="0" step="0.01" />
+        <label class="form-label">إضافة عهدة (جنيه)</label>
+        <input type="number" class="form-input" id="addCustodyInput" placeholder="0.00" min="0" step="0.01" oninput="previewAddCustody()" />
       </div>
-      <div class="form-group" style="margin-top:0.5rem;padding-top:0.75rem;border-top:1px solid var(--border)">
-        <label class="form-label" style="color:var(--primary);font-weight:800">🗄️ رصيد الخزنة في بداية اليوم (جنيه)</label>
-        <input type="number" class="form-input" id="vaultBalanceInput" placeholder="0.00" min="0" step="0.01" />
-      </div>
-      <div class="form-group" style="margin-top:0.5rem;padding-top:0.75rem;border-top:1px solid var(--border)">
-        <label class="form-label" style="color:#e65100;font-weight:800"> تعديل الرصيد المتبقي يدوياً (جنيه)</label>
-        <input type="number" class="form-input" id="manualRemainingInput" placeholder="اتركه فارغ للحساب التلقائي" min="0" step="0.01" />
-        <div style="font-size:0.75rem;color:var(--text-light);margin-top:4px">⚠ لو دخلت قيمة هنا هتتعرض بدل الحساب التلقائي. امسحه لرجوع للحساب التلقائي.</div>
-      </div>
+      <div id="addCustodyPreview" style="font-size:0.85rem;line-height:1.9;padding:0.6rem 0.8rem;border:1px dashed var(--border);border-radius:8px;display:none"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeCustodianModal()">إلغاء</button>
-      <button class="btn btn-primary" onclick="savePrevCustodian()"> حفظ</button>
+      <button class="btn btn-primary" id="addCustodyBtn" onclick="saveAddCustody()"> إضافة العهدة</button>
     </div>
   </div>
 </div>
@@ -604,7 +585,10 @@
   window.newCustodian  = 0;
   window.vaultBalance  = 0;
   window.allExpensesTotal = 0;
-  window.manualRemaining = null; // null = حساب تلقائي
+  const round2 = n => Math.round((Number(n) || 0) * 100) / 100;
+  // القيم الابتدائية لنظام العهدة الجديد (بتتسجل مرة واحدة بس أول ما الصفحة تتفتح)
+  // لو الصفحة بتخدم أكتر من مدرسة حط هنا الـ schoolId الصحيح عشان القيم دي تتطبق على مدرسة واحدة بس
+  const CUSTODY_SEED = { schoolId: '', prevAmount: 0, newAmount: 150000, vaultBalance: 18392 };
 
   //  Populate selects 
   function populateCategories() {
@@ -938,76 +922,33 @@
     return `${y}-${m}-${day}`;
   }
 
-  //  Load prev custodian from Firestore 
+  //  Load custodian (العهدة السابقة / الجديدة / رصيد الخزنة) from Firestore 
   async function loadPrevCustodian() {
     const ref = db.collection('custodians').doc(schoolId);
-    const currentWorkDay = getWorkDayKey(new Date());
     try {
-      const doc = await ref.get();
-      if (doc.exists) {
-        const data = doc.data();
-        prevCustodian   = data.prevAmount    || 0;
-        newCustodian    = data.newAmount     || 0;
-        vaultBalance    = data.vaultBalance  || 0;
-        manualRemaining = data.manualRemaining ?? null;
-        const lastWorkDay = data.lastWorkDay || null;
-
-        if (lastWorkDay && lastWorkDay !== currentWorkDay) {
-          // فات ميعاد الـ 7 الصبح من آخر مرة اتسجل فيها حاجة — قفل يوم الشغل اللي فات ورحّل المتبقي للخزنة
-          await closeWorkDayAndRollover(ref, lastWorkDay, currentWorkDay);
-        } else if (!lastWorkDay) {
-          await ref.set({ lastWorkDay: currentWorkDay }, { merge: true });
-        }
-      } else {
-        prevCustodian = 0; newCustodian = 0; vaultBalance = 0; manualRemaining = null;
-        await ref.set({ schoolId, lastWorkDay: currentWorkDay }, { merge: true });
-      }
-    } catch (e) {
-      prevCustodian = 0; newCustodian = 0; vaultBalance = 0; manualRemaining = null;
-    }
-  }
-
-  // قفل يوم شغل قديم: بيحسب المتبقي منه، يرحّله فوق رصيد الخزنة، ويصفّر العهدة استعداداً ليوم شغل جديد
-  async function closeWorkDayAndRollover(ref, oldWorkDay, newWorkDay) {
-    try {
-      const snap = await db.collection('expenses')
-        .where('schoolId', '==', schoolId)
-        .where('workDayKey', '==', oldWorkDay)
-        .get();
-      let oldExpensesTotal = 0;
-      snap.forEach(d => { oldExpensesTotal += d.data().amount || 0; });
-
-      const oldGross     = prevCustodian + newCustodian;
-      const oldRemaining = (manualRemaining !== null && manualRemaining !== undefined)
-                            ? manualRemaining
-                            : (oldGross - oldExpensesTotal);
-      const newVaultBalance = (vaultBalance || 0) + oldRemaining;
-
-      await ref.set({
-        schoolId,
-        prevAmount: 0,
-        newAmount: 0,
-        vaultBalance: newVaultBalance,
-        manualRemaining: null,
-        lastWorkDay: newWorkDay,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedBy: 'system-auto-rollover-7am'
-      }, { merge: true });
-
-      // سجل تاريخي لقفل كل يوم شغل — للمراجعة لاحقاً لو احتجت تتأكد من رقم معين
-      await db.collection('custodianClosures').add({
-        schoolId, workDay: oldWorkDay,
-        prevCustodian, newCustodian, expensesTotal: oldExpensesTotal,
-        remaining: oldRemaining,
-        rolledIntoVaultAt: firebase.firestore.FieldValue.serverTimestamp()
+      const data = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const d = snap.exists ? snap.data() : null;
+        if (d && d.custodyV2) return d;
+        // أول تشغيل للنظام الجديد — تهيئة مرة واحدة
+        const seedHere = !CUSTODY_SEED.schoolId || CUSTODY_SEED.schoolId === schoolId;
+        const init = seedHere
+          ? { prevAmount: CUSTODY_SEED.prevAmount, newAmount: CUSTODY_SEED.newAmount, vaultBalance: CUSTODY_SEED.vaultBalance }
+          : { prevAmount: d?.prevAmount || 0, newAmount: d?.newAmount || 0, vaultBalance: d?.vaultBalance || 0 };
+        tx.set(ref, {
+          schoolId, ...init,
+          custodyV2: true,
+          manualRemaining: null,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: 'system-custody-v2-init'
+        }, { merge: true });
+        return init;
       });
-
-      prevCustodian   = 0;
-      newCustodian    = 0;
-      vaultBalance    = newVaultBalance;
-      manualRemaining = null;
+      prevCustodian = data.prevAmount   || 0;
+      newCustodian  = data.newAmount    || 0;
+      vaultBalance  = data.vaultBalance || 0;
     } catch (e) {
-      console.error('فشل ترحيل نهاية يوم الشغل:', e);
+      console.error('فشل تحميل العهدة:', e);
     }
   }
 
@@ -1055,18 +996,8 @@
       renderTable();
       renderBreakdown();
 
-      // إجمالي مصروفات يوم الشغل الحالي بس (من 7 الصبح) — مش كل المصروفات من الأول للعهدة
-      try {
-        const currentWorkDay = getWorkDayKey(new Date());
-        const allSnap = await db.collection('expenses')
-          .where('schoolId', '==', schoolId)
-          .where('workDayKey', '==', currentWorkDay)
-          .get();
-        allExpensesTotal = 0;
-        allSnap.forEach(d => { allExpensesTotal += d.data().amount || 0; });
-      } catch(e) {
-        allExpensesTotal = currentData.reduce((s,d) => s + (d.amount||0), 0);
-      }
+      // رصيد الخزنة بيتقرا من الداتابيز علشان يفضل متزامن لو أكتر من حد شغال
+      await loadPrevCustodian();
       updateCustodianCards();
 
     } catch (err) {
@@ -1167,35 +1098,17 @@
 
   //  Update custodian summary cards 
   function updateCustodianCards() {
-    // الرصيد المتبقي يحسب على كل المصروفات المسجلة (مش الفترة المفلترة بس)
-    const totalExpenses = allExpensesTotal;
-    const gross         = prevCustodian + newCustodian;
-    const autoRemaining = gross - totalExpenses;
-    const remaining     = (manualRemaining !== null && manualRemaining !== undefined)
-                          ? manualRemaining
-                          : autoRemaining;
-
+    const gross = prevCustodian + newCustodian;
     document.getElementById('custPrev').textContent  = formatCurrency(prevCustodian);
     document.getElementById('custNew').textContent   = formatCurrency(newCustodian);
     document.getElementById('custGross').textContent = formatCurrency(gross);
-    document.getElementById('custTotal').textContent = formatCurrency(remaining);
-    document.getElementById('custVault').textContent = formatCurrency(vaultBalance);
+    document.getElementById('custTotal').textContent = formatCurrency(vaultBalance);
 
-    // sub label يوضح المصدر
-    const subEl = document.getElementById('custTotalSub');
-    if (subEl) {
-      subEl.textContent = (manualRemaining !== null && manualRemaining !== undefined)
-        ? '✏ رصيد معدّل يدوياً'
-        : 'السابقة + الجديدة - مصروفات يوم الشغل الحالي (من 7 الصبح)';
-    }
-
-    // لون الرصيد المتبقي حسب الحالة
+    // لون رصيد الخزنة لو بقى بالسالب
     const totalCard = document.querySelector('.custodian-card.total');
-    if (remaining < 0) {
-      totalCard.style.background = 'linear-gradient(135deg, #c62828, #b71c1c)';
-    } else {
-      totalCard.style.background = '';
-    }
+    totalCard.style.background = vaultBalance < 0
+      ? 'linear-gradient(135deg, #c62828, #b71c1c)'
+      : '';
   }
 
   //  Add Expense Modal 
@@ -1337,8 +1250,16 @@
         sessionStorage.removeItem(`student_names_${schoolId}`);
       }
 
-      const ref = await db.collection('expenses').add(expense);
-      newExpenseId = ref.id;
+      // حفظ المصروف + خصمه من رصيد الخزنة في عملية واحدة (batch)
+      const expRef  = db.collection('expenses').doc();
+      const custRef = db.collection('custodians').doc(schoolId);
+      const batch   = db.batch();
+      batch.set(expRef, expense);
+      batch.set(custRef, { schoolId, vaultBalance: firebase.firestore.FieldValue.increment(-amount) }, { merge: true });
+      await batch.commit();
+      newExpenseId = expRef.id;
+      vaultBalance = round2(vaultBalance - amount);
+      updateCustodianCards();
 
       showAddAlert(refundTxn
         ? `تم حفظ الاسترداد وخصمه من دفعة الطالب بنجاح! المتبقي: ${formatCurrency(expense.remainingAfterRefund)}`
@@ -1385,7 +1306,14 @@
   async function deleteExpense(id) {
     if (!confirm('هل تريد حذف هذا المصروف؟')) return;
     try {
-      await db.collection('expenses').doc(id).delete();
+      const expRef  = db.collection('expenses').doc(id);
+      const custRef = db.collection('custodians').doc(schoolId);
+      const expSnap = await expRef.get();
+      const delAmount = expSnap.exists ? (expSnap.data().amount || 0) : 0;
+      const batch = db.batch();
+      batch.delete(expRef);
+      if (delAmount) batch.set(custRef, { schoolId, vaultBalance: firebase.firestore.FieldValue.increment(delAmount) }, { merge: true });
+      await batch.commit();
       const schoolName = (SESSION.getSchool && SESSION.getSchool()?.name) || '';
       if (typeof notifyAdminActivity === 'function') {
         notifyAdminActivity('حذف مصروف', `تم حذف مصروف رقم ${id}`, {
@@ -1400,43 +1328,70 @@
     }
   }
 
-  //  Custodian Modal 
+  //  Custodian Modal — تعديل عهدة (إضافة عهدة فقط) 
   function openCustodianModal() {
-    document.getElementById('prevCustodianInput').value  = prevCustodian;
-    document.getElementById('newCustodianInput').value   = newCustodian;
-    document.getElementById('vaultBalanceInput').value   = vaultBalance;
-    document.getElementById('manualRemainingInput').value = (manualRemaining !== null && manualRemaining !== undefined) ? manualRemaining : '';
+    document.getElementById('addCustodyCurrent').textContent = formatCurrency(vaultBalance);
+    document.getElementById('addCustodyInput').value = '';
+    document.getElementById('addCustodyPreview').style.display = 'none';
     document.getElementById('custodianModal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('addCustodyInput').focus(), 50);
   }
   function closeCustodianModal() {
     document.getElementById('custodianModal').classList.add('hidden');
   }
 
-  async function savePrevCustodian() {
-    const val      = parseFloat(document.getElementById('prevCustodianInput').value)  || 0;
-    const valNew   = parseFloat(document.getElementById('newCustodianInput').value)   || 0;
-    const valVault = parseFloat(document.getElementById('vaultBalanceInput').value)   || 0;
-    const manualRawStr = document.getElementById('manualRemainingInput').value.trim();
-    const manualRaw = manualRawStr === '' ? null : parseFloat(manualRawStr);
+  function previewAddCustody() {
+    const amt = parseFloat(document.getElementById('addCustodyInput').value);
+    const box = document.getElementById('addCustodyPreview');
+    if (!(amt > 0)) { box.style.display = 'none'; return; }
+    box.style.display = 'block';
+    box.innerHTML =
+      `العهدة السابقة هتبقى: <b>${formatCurrency(vaultBalance)}</b><br>` +
+      `العهدة الجديدة هتبقى: <b>${formatCurrency(amt)}</b><br>` +
+      `رصيد الخزنة هيبقى: <b>${formatCurrency(round2(vaultBalance + amt))}</b>`;
+  }
 
+  async function saveAddCustody() {
+    const amt = round2(parseFloat(document.getElementById('addCustodyInput').value));
+    if (!(amt > 0)) { alert('ادخل مبلغ العهدة'); return; }
+    if (!confirm(`هتضيف عهدة جديدة بمبلغ ${formatCurrency(amt)} ؟`)) return;
+
+    const btn = document.getElementById('addCustodyBtn');
+    btn.disabled = true;
+    const ref = db.collection('custodians').doc(schoolId);
     try {
-      await db.collection('custodians').doc(schoolId).set({
-        schoolId,
-        prevAmount:      val,
-        newAmount:       valNew,
-        vaultBalance:    valVault,
-        manualRemaining: manualRaw,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedBy: session.email
+      const res = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const curVault = round2(snap.exists ? (snap.data().vaultBalance || 0) : 0);
+        const out = { prev: curVault, added: amt, vault: round2(curVault + amt) };
+        tx.set(ref, {
+          schoolId,
+          prevAmount:   out.prev,   // رصيد الخزنة القديم بيتحول للعهدة السابقة
+          newAmount:    out.added,  // المبلغ المضاف هو العهدة الجديدة
+          vaultBalance: out.vault,  // رصيد الخزنة = القديم + المضاف
+          custodyV2: true,
+          manualRemaining: null,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: session.email
+        }, { merge: true });
+        return out;
       });
-      prevCustodian   = val;
-      newCustodian    = valNew;
-      vaultBalance    = valVault;
-      manualRemaining = manualRaw;
+      prevCustodian = res.prev;
+      newCustodian  = res.added;
+      vaultBalance  = res.vault;
       updateCustodianCards();
       closeCustodianModal();
+      // سجل تاريخي للمراجعة (ثانوي — مش بيوقف العملية لو فشل)
+      try {
+        await db.collection('custodyAdditions').add({
+          schoolId, addedAmount: res.added, previousVault: res.prev, newVault: res.vault,
+          addedBy: session.email, addedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (e) {}
     } catch (err) {
-      alert('خطأ في الحفظ: ' + err.message);
+      alert('خطأ في إضافة العهدة: ' + err.message);
+    } finally {
+      btn.disabled = false;
     }
   }
 
@@ -1466,7 +1421,7 @@
     const schoolName = school?.name || 'المدرسة';
     const { from, to, label } = getDateRange();
     const total     = currentData.reduce((s,d) => s+(d.amount||0), 0);
-    const remaining = prevCustodian + newCustodian - allExpensesTotal;
+    const remaining = vaultBalance;
 
     const rawP = (school?.primaryColor   || '#1E2D5A').replace('#','');
     const rawS = (school?.secondaryColor || '#4A6FA5').replace('#','');
@@ -1529,7 +1484,7 @@
       ['العهدة السابقة', prevCustodian, 'FF1565C0', WHT],
       ['العهدة الجديدة', newCustodian,  'FF2E7D32', WHT],
       ['إجمالي المصروفات', total,        RED,        WHT],
-      ['الرصيد المتبقي', remaining,      remaining>=0?'FF1B5E20':'FFC00000', WHT],
+      ['رصيد الخزنة', remaining,      remaining>=0?'FF1B5E20':'FFC00000', WHT],
     ].forEach(([lbl,val,bg,fc]) => {
       const sr = ws.addRow([lbl,'','','',val,'']);
       ws.mergeCells(`A${sr.number}:D${sr.number}`);
@@ -1568,10 +1523,10 @@
     const selectedDate= (filterDateEl && filterDateEl.value) ? filterDateEl.value : today;
 
     // جلب العهدة
-    let custPrev=0, custNew=0;
+    let custPrev=0, custNew=0, custVault=vaultBalance;
     try {
       const cd = await db.collection('custodians').doc(schoolId).get();
-      if (cd.exists) { custPrev=cd.data().prevAmount||0; custNew=cd.data().newAmount||0; }
+      if (cd.exists) { custPrev=cd.data().prevAmount||0; custNew=cd.data().newAmount||0; custVault=cd.data().vaultBalance||0; }
     } catch(e) {}
 
     // جلب مصروفات اليوم
@@ -1587,9 +1542,18 @@
     // نظام العهدة فقط - لا نحتاج إيرادات اليوم
     // العملية تقتصر على: صرف من العهدة + تحصيل بـ العهدة
 
+    // مصروفات الأيام اللي بعد اليوم المختار (لو الشيت لتاريخ قديم) علشان نرجّع رصيد الخزنة لوقتها
+    let laterExpenses = 0;
+    try {
+      const ls = await db.collection('expenses')
+        .where('schoolId','==',schoolId)
+        .where('date','>',selectedDate).get();
+      ls.forEach(d => { laterExpenses += d.data().amount || 0; });
+    } catch(e) {}
+
     const totalExpenses  = dayExpenses.reduce((s,e)=>s+(e.amount||0),0);
-    const openingBalance = custPrev + custNew;
-    const closingBalance = openingBalance - totalExpenses;
+    const closingBalance = custVault + laterExpenses;
+    const openingBalance = closingBalance + totalExpenses;
 
     // ============================================================
     // ألوان المدرسة
@@ -1720,7 +1684,7 @@
     const rBal = ws.addRow([
       'العهدة السابقة','','',
       'العهدة الجديدة','','',
-      'رصيد أول اليوم','',''
+      'رصيد الخزنة','',''
     ]);
     merge(rBal.number,'A','C'); merge(rBal.number,'D','F'); merge(rBal.number,'G','I');
     [[1,BLUE,WHT],[4,GRN,WHT],[7,PRI,WHT]].forEach(([ci,bg,fc])=>{
@@ -1734,7 +1698,7 @@
     const rBalV = ws.addRow([
       custPrev,'','',
       custNew,'','',
-      openingBalance,'',''
+      closingBalance,'',''
     ]);
     merge(rBalV.number,'A','C'); merge(rBalV.number,'D','F'); merge(rBalV.number,'G','I');
     [[1,BLUE,WHT],[4,GRN,WHT],[7,PRI,WHT]].forEach(([ci,bg,fc])=>{
@@ -1871,7 +1835,7 @@
 
     // جدول الملخص — كل سطر: وصف (A:H) | مبلغ (I:K)
     const finRows = [
-      { lbl:`رصيد الخزنة في بداية اليوم (العهدة السابقة ${custPrev.toLocaleString('ar-EG')} + الجديدة ${custNew.toLocaleString('ar-EG')})`, val:openingBalance, bg:BLUE,                              prefix:'◈' },
+      { lbl:'رصيد الخزنة قبل مصروفات اليوم', val:openingBalance, bg:BLUE,                              prefix:'◈' },
       { lbl:'( - ) إجمالي المصروفات والمدفوعات خلال اليوم',                                                                                  val:totalExpenses,  bg:DRED,                              prefix:'➖' },
       { lbl:'( = ) رصيد الخزنة في نهاية اليوم',                                                                                              val:closingBalance, bg:closingBalance>=0?GRN:RED,          prefix:'◆' },
     ];
@@ -1917,7 +1881,7 @@
     const school = SESSION.getSchool();
     const { from, to } = getDateRange();
     const total      = currentData.reduce((s, d) => s + (d.amount || 0), 0);
-    const remaining  = prevCustodian + newCustodian - total;
+    const remaining  = vaultBalance;
 
     const rows = currentData.map((d, i) => `
       <tr>
@@ -1964,7 +1928,7 @@
           <div class="sum-item"><div class="lbl">العهدة السابقة</div><div class="val">${formatCurrency(prevCustodian)}</div></div>
           <div class="sum-item"><div class="lbl">العهدة الجديدة</div><div class="val">${formatCurrency(newCustodian)}</div></div>
           <div class="sum-item"><div class="lbl">إجمالي المصروفات</div><div class="val">${formatCurrency(total)}</div></div>
-          <div class="sum-item"><div class="lbl">الرصيد المتبقي</div><div class="val">${formatCurrency(remaining)}</div></div>
+          <div class="sum-item"><div class="lbl">رصيد الخزنة</div><div class="val">${formatCurrency(remaining)}</div></div>
           <div class="sum-item"><div class="lbl">عدد العمليات</div><div class="val">${currentData.length}</div></div>
         </div>
 
@@ -1986,7 +1950,7 @@
               <td>${formatCurrency(prevCustodian)}</td><td></td>
             </tr>
             <tr class="foot-row" style="background:#c8e6c9;color:#1b5e20">
-              <td colspan="4" style="font-size:13px">الرصيد المتبقي</td>
+              <td colspan="4" style="font-size:13px">رصيد الخزنة</td>
               <td style="font-size:14px">${formatCurrency(remaining)}</td><td></td>
             </tr>
           </tfoot>
@@ -2086,12 +2050,20 @@
     const btn = document.getElementById('editExpSaveBtn');
     btn.disabled = true; btn.textContent = 'جاري الحفظ...';
     try {
-      await db.collection('expenses').doc(editingExpenseId).update({
-        recipientName, amount, date, category, notes,
-        categoryLabel: finalLabel,
-        customLabel:   cat?.customLabel ? customLabel : null,
-        editedBy: session.email,
-        editedAt: firebase.firestore.FieldValue.serverTimestamp()
+      const expRef  = db.collection('expenses').doc(editingExpenseId);
+      const custRef = db.collection('custodians').doc(schoolId);
+      await db.runTransaction(async (tx) => {
+        const s = await tx.get(expRef);
+        const oldAmount = s.exists ? (s.data().amount || 0) : 0;
+        tx.update(expRef, {
+          recipientName, amount, date, category, notes,
+          categoryLabel: finalLabel,
+          customLabel:   cat?.customLabel ? customLabel : null,
+          editedBy: session.email,
+          editedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        const diff = oldAmount - amount; // لو المبلغ زاد الرصيد بينقص، ولو قل بيرجع
+        if (diff) tx.set(custRef, { schoolId, vaultBalance: firebase.firestore.FieldValue.increment(diff) }, { merge: true });
       });
       closeEditExpenseModal();
       loadReport();
