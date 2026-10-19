@@ -70,7 +70,7 @@
         <div><div class="sub">إجمالي التحصيل</div><div class="big-num" id="summaryTotal">ج.م 0</div><div class="sub" id="summaryPeriod">التقرير اليومي</div></div>
         <div><div style="font-size:2rem;font-weight:900" id="summaryCount">0</div><div class="sub">عملية</div></div>
         <div><div style="font-size:2rem;font-weight:900" id="summaryStudents">0</div><div class="sub">طالب</div></div>
-        <div class="export-btn-group no-print"><button class="btn btn-secondary btn-sm" id="exportExcelBtn" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> Excel</button><button class="btn btn-secondary btn-sm" onclick="exportPDF()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> PDF</button><button class="btn btn-secondary btn-sm" onclick="window.print()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> طباعة</button><button class="btn btn-secondary btn-sm" onclick="exportCustomNamesSheet()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)" title="كشف بأسماء الأشخاص يتغير حسب بند الدفع المختار"> كشف مخصص بالأسامي</button><button class="btn btn-secondary btn-sm" id="revenueReviewBtn" onclick="handleRevenueReview()" style="background:rgba(255,215,0,0.25);color:#FFD700;border:1px solid rgba(255,215,0,0.6);font-weight:800" title="مراجعة الإيرادات الكاملة بالمراحل">📊 مراجعة الإيرادات</button>
+        <div class="export-btn-group no-print"><button class="btn btn-secondary btn-sm" id="exportExcelBtn" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> Excel</button><button class="btn btn-secondary btn-sm" onclick="exportPDF()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> PDF</button><button class="btn btn-secondary btn-sm" onclick="window.print()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)"> طباعة</button><button class="btn btn-secondary btn-sm" onclick="exportCustomNamesSheet()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)" title="كشف بأسماء الأشخاص يتغير حسب بند الدفع المختار"> كشف مخصص بالأسامي</button><button class="btn btn-secondary btn-sm" id="revenueReviewBtn" onclick="handleRevenueReview()" style="background:rgba(255,215,0,0.25);color:#FFD700;border:1px solid rgba(255,215,0,0.6);font-weight:800" title="مراجعة الإيرادات الكاملة بالمراحل">📊 مراجعة الإيرادات</button><a class="btn btn-secondary btn-sm" href="student-names.html" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3);text-decoration:none" title="توحيد الأسماء المكتوبة بأشكال مختلفة">🧹 توحيد الأسماء</a>
           <!-- زرار كشف الرواتب -->
           <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap">
             <input type="month" id="payrollMonthPicker" style="padding:0.3rem 0.5rem;border-radius:6px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);color:white;font-family:Cairo,sans-serif;font-size:0.78rem;max-width:140px" title="اختر الشهر"/>
@@ -97,8 +97,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=3.3"></script>
-<script src="layout.js?v=2.6"></script>
+<script src="firebase-config.js?v=3.4"></script>
+<script src="layout.js?v=2.7"></script>
 <script src="/pwa.js?v=8"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script>
@@ -109,8 +109,35 @@
   let currentData = [];
   let currentDateRange = { from: '', to: '' };
 
+  // مراحل اتلقت في الداتا بس مش معرّفة في إعدادات المدرسة (زي مرحلة ثانوي) — بتتضاف تلقائياً للفلتر
+  const extraStagesFromData = {};
   function getReportStages() {
-    return typeof getSchoolStages === 'function' ? getSchoolStages(schoolId) : STAGES;
+    const base = typeof getSchoolStages === 'function' ? getSchoolStages(schoolId) : STAGES;
+    return { ...base, ...Object.fromEntries(Object.entries(extraStagesFromData).filter(([k]) => !(k in base))) };
+  }
+
+  // بيكتشف المراحل/الصفوف الموجودة في المعاملات ومش موجودة في الفلتر ويضيفها
+  function syncStagesFromData(rows) {
+    const base = typeof getSchoolStages === 'function' ? getSchoolStages(schoolId) : STAGES;
+    let changed = false;
+    (rows || []).forEach(d => {
+      const id = d.stage;
+      if (!id || id in base) return;
+      if (!extraStagesFromData[id]) {
+        extraStagesFromData[id] = { label: d.stageName || id, labelAr: d.stageName || id, grades: [] };
+        changed = true;
+      }
+      if (d.grade && !extraStagesFromData[id].grades.includes(d.grade)) {
+        extraStagesFromData[id].grades.push(d.grade);
+        changed = true;
+      }
+    });
+    if (changed) {
+      const prevStage = document.getElementById('filterStage').value;
+      populateReportStages();
+      document.getElementById('filterStage').value = prevStage;
+      populateReportGrades();
+    }
   }
 
   function populateReportStages() {
@@ -219,8 +246,10 @@
     try {
       const snap = await db.collection('transactions').where('schoolId','==',schoolId).where('date','>=',from).where('date','<=',to).get();
       currentData = [];
+      const discoveredRows = [];
       snap.forEach(doc => {
         const d = { id: doc.id, ...doc.data() };
+        discoveredRows.push(d);
         if (filterStage && d.stage !== filterStage) return;
         if (filterGrade && d.grade !== filterGrade) return;
         if (filterItem) {
@@ -243,6 +272,7 @@
         currentData.push(d);
       });
       currentData.sort((a,b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
+      syncStagesFromData(discoveredRows);
       renderTable();
     } catch(err) { tbody.innerHTML = `<tr><td colspan="10"><div class="alert alert-error">خطأ: ${err.message}</div><tr></tr>`; }
   }
@@ -1572,6 +1602,22 @@
       }, 0);
     });
 
+    // أي مرحلة موجودة في الداتا أو في إعدادات المدرسة ومش في الترتيب الثابت (زي ثانوي) بتتضاف كتبويب لوحدها
+    {
+      const knownIds = new Set(STAGE_ORDER.map(s => s.stageId));
+      const defs = getReportStages();
+      const extraIds = [];
+      Object.values(studentMap).forEach(s => { if (s.stage && !knownIds.has(s.stage) && !extraIds.includes(s.stage)) extraIds.push(s.stage); });
+      Object.keys(defs).forEach(k => { if (!knownIds.has(k) && !extraIds.includes(k)) extraIds.push(k); });
+      extraIds.forEach(id => {
+        const def = defs[id] || {};
+        const fromData = Object.values(studentMap).filter(s => s.stage === id);
+        const name = def.labelAr || def.label || (fromData.find(s => s.stageName) || {}).stageName || id;
+        const grades = (def.grades && def.grades.length) ? def.grades.slice() : [...new Set(fromData.map(s => s.grade).filter(Boolean))];
+        STAGE_ORDER.push({ stageId: id, stageName: name, grades });
+      });
+    }
+
     const existingStages = new Set(Object.values(studentMap).map(s => s.stage));
     // لو في فلتر مرحلة محدد، خليه يفلتر بيه
     const selectedStage = document.getElementById('filterStage').value;
@@ -1736,8 +1782,12 @@
         return gf ? gf.total : 0;
       }
       // Bristol / Stanford: STAGES
-      const stage = STAGES[stageId];
-      if (stage) return stage.prices['مصروفات دراسية'] || 0;
+      let stage = getReportStages()[stageId] || STAGES[stageId];
+      if (!(stage && stage.prices) && grade) {
+        // id المرحلة في المعاملة مش معروف (مثلاً ثانوي) — نلاقيها من الصف
+        stage = Object.values(getReportStages()).find(st => st.prices && (st.grades || []).includes(grade));
+      }
+      if (stage && stage.prices) return stage.prices['مصروفات دراسية'] || 0;
       return 0;
     }
 

@@ -166,7 +166,7 @@ const ADMINS = [
 const ACCOUNTING_PAGES = [
   'dashboard', 'collection', 'student-search', 'debts',
   'expenses', 'buses', 'reports', 'analytics',
-  'party', 'photo-package', 'uniform', 'admin', 'accounts'
+  'party', 'photo-package', 'uniform', 'admin', 'accounts', 'student-names'
 ];
 
 /**

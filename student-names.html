@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+  <title>توحيد أسماء الطلاب - نظام المحاسبة</title>
+  <link rel="stylesheet" href="styles.css?v=2.6" />
+  <style>
+    .nm-card { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem; margin-bottom:1rem; }
+    .nm-card h3 { margin:0 0 0.75rem; font-size:1rem; color:var(--primary); }
+    .nm-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:0.75rem; margin-bottom:1rem; }
+    .nm-stat { background:linear-gradient(135deg,var(--primary),var(--primary-dark,#0d2247)); color:#fff; border-radius:var(--radius); padding:0.9rem 1rem; }
+    .nm-stat .v { font-size:1.6rem; font-weight:900; line-height:1.1; }
+    .nm-stat .l { font-size:0.78rem; opacity:0.8; }
+    .nm-search { display:flex; gap:0.6rem; flex-wrap:wrap; }
+    .nm-search input { flex:1 1 260px; }
+    .nm-table-wrap { overflow-x:auto; }
+    table.nm-table { width:100%; border-collapse:collapse; font-size:0.9rem; }
+    .nm-table th { background:var(--primary); color:#fff; padding:0.55rem 0.6rem; text-align:center; white-space:nowrap; }
+    .nm-table td { padding:0.5rem 0.6rem; border-bottom:1px solid var(--border); text-align:center; vertical-align:middle; }
+    .nm-table td.name { text-align:right; font-weight:700; }
+    .nm-table tr.canon { background:#e8f5e9; }
+    .nm-table tr.ticked { background:#fff8e1; }
+    .nm-table mark { background:#ffe082; padding:0 2px; border-radius:3px; }
+    .nm-actions { display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center; margin-top:0.9rem; }
+    .nm-summary { flex:1 1 280px; font-size:0.88rem; color:var(--text-light); }
+    .nm-summary b { color:var(--primary); }
+    .nm-badge { display:inline-block; font-size:0.72rem; padding:2px 8px; border-radius:10px; font-weight:700; }
+    .nm-badge.same  { background:#e8f5e9; color:#1b5e20; }
+    .nm-badge.fuzzy { background:#fff3e0; color:#e65100; }
+    .nm-group { display:flex; gap:0.6rem; align-items:center; justify-content:space-between; padding:0.55rem 0; border-bottom:1px dashed var(--border); flex-wrap:wrap; }
+    .nm-group .names { flex:1 1 300px; font-size:0.88rem; line-height:1.7; }
+    .nm-log { padding:0.6rem 0; border-bottom:1px dashed var(--border); font-size:0.86rem; line-height:1.7; }
+    .nm-log.undone { opacity:0.55; }
+    .nm-empty { text-align:center; color:var(--text-light); padding:1.2rem; font-size:0.9rem; }
+    @media (max-width:700px) {
+      .nm-table th, .nm-table td { padding:0.4rem 0.35rem; font-size:0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div id="topbarContainer"></div>
+    <div class="page-content">
+
+      <div class="alert alert-info animate-in" style="margin-bottom:1rem">
+        <span>ℹ</span>
+        <span>
+          ابحث عن الاسم، هتظهرلك كل الأسماء المكتوبة بشكل مشابه. اختار الاسم الصحيح (الثابت)، وعلّم على الأسماء اللي عاوز تدمجها فيه.
+          بعد التوحيد كل معاملات ومديونيات الأسماء المعلّمة بتتحول للاسم الثابت، فالأسماء التانية بتختفي من الشيت — <b>ومفيش أي معاملة أو مبلغ بيتمسح</b>.
+          وتقدر تتراجع عن أي عملية من «سجل التوحيد» تحت.
+        </span>
+      </div>
+
+      <div class="nm-stats animate-in">
+        <div class="nm-stat"><div class="v" id="stNames">—</div><div class="l">عدد الأسماء المختلفة</div></div>
+        <div class="nm-stat"><div class="v" id="stTx">—</div><div class="l">عدد المعاملات</div></div>
+        <div class="nm-stat"><div class="v" id="stGroups">—</div><div class="l">مجموعات أسماء متشابهة</div></div>
+      </div>
+
+      <!-- Search -->
+      <div class="nm-card animate-in">
+        <h3>🔍 ابحث عن اسم</h3>
+        <div class="nm-search">
+          <input type="text" class="form-input" id="searchInput" placeholder="اكتب الاسم (أو جزء منه)..." autocomplete="off" />
+          <button class="btn btn-primary" onclick="runSearch()">بحث</button>
+          <button class="btn btn-secondary" onclick="reloadAll()" title="إعادة تحميل الأسماء من قاعدة البيانات">↻ تحديث</button>
+        </div>
+
+        <div id="resultsArea" style="margin-top:1rem;display:none">
+          <div class="nm-table-wrap">
+            <table class="nm-table">
+              <thead>
+                <tr>
+                  <th>الاسم الثابت</th><th>دمج</th><th style="text-align:right">الاسم</th>
+                  <th>المرحلة</th><th>الصف</th><th>معاملات</th><th>إجمالي المدفوع</th><th>مديونيات</th>
+                </tr>
+              </thead>
+              <tbody id="resultsBody"></tbody>
+            </table>
+          </div>
+          <div class="nm-actions">
+            <div class="nm-summary" id="mergeSummary"></div>
+            <button class="btn btn-outline btn-sm" onclick="tickAllOthers()">تحديد كل المتشابهين</button>
+            <button class="btn btn-outline btn-sm" onclick="clearTicks()">إلغاء التحديد</button>
+            <button class="btn btn-primary" id="mergeBtn" onclick="doMerge()" disabled>🧹 توحيد الأسماء</button>
+          </div>
+        </div>
+        <div id="searchMsg" class="nm-empty" style="display:none"></div>
+      </div>
+
+      <!-- Auto suggestions -->
+      <div class="nm-card animate-in">
+        <h3>✨ أسماء متشابهة اتلقت تلقائياً</h3>
+        <div style="font-size:0.82rem;color:var(--text-light);margin-bottom:0.5rem">
+          <span class="nm-badge same">نفس الاسم</span> نفس الاسم بكتابة مختلفة (همزة، تاء مربوطة، مسافات، ترتيب الكلمات) — بيتعلّم تلقائياً.
+          &nbsp; <span class="nm-badge fuzzy">اسم قريب</span> فرق حرف أو حرفين — راجعه بنفسك قبل ما تدمج لأنه ممكن يكون طالب تاني.
+        </div>
+        <div id="groupsArea"><div class="nm-empty">جاري التحميل...</div></div>
+      </div>
+
+      <!-- Log -->
+      <div class="nm-card animate-in">
+        <h3>🕘 سجل التوحيد</h3>
+        <div id="logArea"><div class="nm-empty">جاري التحميل...</div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js?v=3.4"></script>
+<script src="layout.js?v=2.7"></script>
+<script src="/pwa.js?v=8"></script>
+<script>
+  renderLayout('student-names', 'توحيد أسماء الطلاب');
+  const session  = SESSION.get();
+  const schoolId = session.schoolId;
+
+  // ==PURE-START== (دوال بحتة بدون DOM — متفصولة علشان تتختبر لوحدها)
+  function normName(s) {
+    return String(s || '')
+      .replace(/[\u064B-\u065F\u0670\u0640]/g, '')   // تشكيل + تطويل
+      .replace(/[أإآٱ]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ى/g, 'ي')
+      .replace(/ؤ/g, 'و')
+      .replace(/ئ/g, 'ي')
+      .replace(/[^\u0621-\u064A\u0660-\u0669a-zA-Z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  function prepName(raw) {
+    const norm = normName(raw);
+    const tokens = norm ? norm.split(' ') : [];
+    return {
+      norm,
+      tokens,
+      compact: tokens.join(''),                          // بدون مسافات (عبد الرحمن = عبدالرحمن)
+      sortedKey: tokens.slice().sort().join(''),         // نفس الكلمات بترتيب مختلف
+    };
+  }
+
+  // Levenshtein مع حد أقصى — بيرجع max+1 لو المسافة أكبر
+  function lev(a, b, max) {
+    if (a === b) return 0;
+    const la = a.length, lb = b.length;
+    if (Math.abs(la - lb) > max) return max + 1;
+    let prev = new Array(lb + 1), cur = new Array(lb + 1);
+    for (let j = 0; j <= lb; j++) prev[j] = j;
+    for (let i = 1; i <= la; i++) {
+      cur[0] = i;
+      let rowMin = cur[0];
+      for (let j = 1; j <= lb; j++) {
+        const c = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + c);
+        if (cur[j] < rowMin) rowMin = cur[j];
+      }
+      if (rowMin > max) return max + 1;
+      const tmp = prev; prev = cur; cur = tmp;
+    }
+    return prev[lb];
+  }
+
+  // درجة تشابه اسم مع كلمة البحث (0-100)
+  function matchScore(q, n) {
+    if (!q.compact || !n.compact) return 0;
+    if (n.compact === q.compact || n.sortedKey === q.sortedKey) return 100;
+    if (n.compact.includes(q.compact) || (n.compact.length >= 4 && q.compact.includes(n.compact))) return 85;
+
+    // تغطية الكلمات: كل كلمة في البحث لازم تلاقي كلمة قريبة منها في الاسم
+    let hit = 0;
+    q.tokens.forEach(qt => {
+      const ok = n.tokens.some(nt =>
+        nt === qt ||
+        (qt.length >= 3 && nt.length >= 3 && (nt.startsWith(qt) || qt.startsWith(nt))) ||
+        (qt.length >= 5 && nt.length >= 5 && lev(qt, nt, 1) <= 1)
+      );
+      if (ok) hit++;
+    });
+    const cov = hit / q.tokens.length;
+    let score = 0;
+    if (cov === 1) score = 70;
+    else if (q.tokens.length >= 3 && cov >= 0.66) score = 55;   // اسم رباعي ناقص كلمة
+
+    // تشابه الحروف ككل (أخطاء إملائية)
+    const maxLen = Math.max(n.compact.length, q.compact.length);
+    const d = lev(n.compact, q.compact, Math.ceil(maxLen * 0.25));
+    const ratio = 1 - d / maxLen;
+    if (ratio >= 0.78) score = Math.max(score, Math.round(ratio * 80));
+    return score;
+  }
+
+  // تجميع الأسماء المتشابهة: [{ idxs:[...], type:'same'|'fuzzy' }]
+  function buildGroups(preps) {
+    const n = preps.length;
+    const parent = Array.from({ length: n }, (_, i) => i);
+    const fz = new Array(n).fill(false);
+    const find = x => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+    const union = (a, b, fuzzy) => {
+      const ra = find(a), rb = find(b);
+      if (ra === rb) return;
+      parent[ra] = rb;
+      fz[rb] = fz[rb] || fz[ra] || fuzzy;
+    };
+
+    const byCompact = new Map(), bySorted = new Map();
+    preps.forEach((p, i) => {
+      if (!p.compact) return;
+      if (byCompact.has(p.compact)) union(i, byCompact.get(p.compact), false); else byCompact.set(p.compact, i);
+      if (bySorted.has(p.sortedKey)) union(i, bySorted.get(p.sortedKey), false); else bySorted.set(p.sortedKey, i);
+    });
+
+    // أسماء قريبة (حرف/حرفين فرق) — داخل نفس البلوك علشان السرعة
+    const blocks = new Map();
+    preps.forEach((p, i) => {
+      if (p.compact.length < 10) return;
+      const k = p.compact.slice(0, 3);
+      if (!blocks.has(k)) blocks.set(k, []);
+      blocks.get(k).push(i);
+    });
+    blocks.forEach(list => {
+      for (let x = 0; x < list.length; x++) {
+        for (let y = x + 1; y < list.length; y++) {
+          const a = list[x], b = list[y];
+          if (find(a) === find(b)) continue;
+          const la = preps[a].compact.length, lb = preps[b].compact.length;
+          const limit = Math.min(la, lb) >= 16 ? 2 : 1;
+          if (lev(preps[a].compact, preps[b].compact, limit) <= limit) union(a, b, true);
+        }
+      }
+    });
+
+    const groups = new Map();
+    for (let i = 0; i < n; i++) {
+      const r = find(i);
+      if (!groups.has(r)) groups.set(r, []);
+      groups.get(r).push(i);
+    }
+    const out = [];
+    groups.forEach((idxs, r) => { if (idxs.length >= 2) out.push({ idxs, type: fz[r] ? 'fuzzy' : 'same' }); });
+    return out;
+  }
+  // ==PURE-END==
+
+  // ---------- الحالة ----------
+  let RECS = [];            // [{ name, prep, txIds, debtIds, paid, stage, stageName, grade, lastDate }]
+  let results = [];         // [{ rec, score }]
+  let canonical = null;     // الاسم الثابت (النص الأصلي)
+  let ticked = new Set();   // الأسماء المعلّم عليها للدمج
+  let lastQuery = '';
+  let groupsCache = [];
+
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const fmtMoney = n => (typeof formatCurrency === 'function') ? formatCurrency(n) : Number(n || 0).toLocaleString('ar-EG');
+
+  // ---------- تحميل الأسماء ----------
+  async function loadAll() {
+    document.getElementById('groupsArea').innerHTML = '<div class="nm-empty">جاري التحميل...</div>';
+    const [txSnap, debtSnap] = await Promise.all([
+      db.collection('transactions').where('schoolId', '==', schoolId).get(),
+      db.collection('debts').where('schoolId', '==', schoolId).get()
+    ]);
+    const map = new Map();
+    let txCount = 0;
+    const get = name => {
+      if (!map.has(name)) map.set(name, { name, txIds: [], debtIds: [], paid: 0, stage: '', stageName: '', grade: '', lastDate: '' });
+      return map.get(name);
+    };
+    txSnap.forEach(doc => {
+      const d = doc.data();
+      const name = d.studentName;
+      if (!name || !String(name).trim()) return;
+      txCount++;
+      const r = get(name);
+      r.txIds.push(doc.id);
+      r.paid += Number(d.amount || 0);
+      if (!r.lastDate || (d.date || '') >= r.lastDate) {
+        r.lastDate = d.date || r.lastDate;
+        r.stage = d.stage || r.stage; r.stageName = d.stageName || d.stage || r.stageName; r.grade = d.grade || r.grade;
+      }
+    });
+    debtSnap.forEach(doc => {
+      const name = doc.data().studentName;
+      if (!name || !String(name).trim()) return;
+      get(name).debtIds.push(doc.id);
+    });
+    RECS = [...map.values()].map(r => ({ ...r, prep: prepName(r.name) }));
+    RECS.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+    document.getElementById('stNames').textContent = RECS.length.toLocaleString('ar-EG');
+    document.getElementById('stTx').textContent    = txCount.toLocaleString('ar-EG');
+    computeGroups();
+  }
+
+  function computeGroups() {
+    groupsCache = buildGroups(RECS.map(r => r.prep)).map(g => ({
+      type: g.type,
+      recs: g.idxs.map(i => RECS[i]).sort((a, b) => b.txIds.length - a.txIds.length)
+    }));
+    // "نفس الاسم" الأول، وبعدين الأكتر معاملات
+    groupsCache.sort((a, b) => (a.type === b.type ? 0 : a.type === 'same' ? -1 : 1) ||
+      b.recs.reduce((s, r) => s + r.txIds.length, 0) - a.recs.reduce((s, r) => s + r.txIds.length, 0));
+    document.getElementById('stGroups').textContent = groupsCache.length.toLocaleString('ar-EG');
+    renderGroups();
+  }
+
+  function renderGroups() {
+    const area = document.getElementById('groupsArea');
+    if (groupsCache.length === 0) { area.innerHTML = '<div class="nm-empty">مفيش أسماء متشابهة 👌</div>'; return; }
+    const LIMIT = 150;
+    area.innerHTML = groupsCache.slice(0, LIMIT).map((g, gi) => {
+      const shown = g.recs.slice(0, 4).map(r => `<b>${esc(r.name)}</b> <span style="color:var(--text-light)">(${r.txIds.length})</span>`).join(' &nbsp;|&nbsp; ');
+      const more = g.recs.length > 4 ? ` &nbsp;+${g.recs.length - 4}` : '';
+      return `<div class="nm-group">
+        <div class="names"><span class="nm-badge ${g.type}">${g.type === 'same' ? 'نفس الاسم' : 'اسم قريب'}</span> ${shown}${more}</div>
+        <button class="btn btn-outline btn-sm" onclick="openGroup(${gi})">مراجعة</button>
+      </div>`;
+    }).join('') + (groupsCache.length > LIMIT ? `<div class="nm-empty">معروض أول ${LIMIT} مجموعة من ${groupsCache.length} — خلّص دول وبعدين حدّث الصفحة.</div>` : '');
+  }
+
+  function openGroup(gi) {
+    const g = groupsCache[gi];
+    if (!g) return;
+    lastQuery = '';
+    document.getElementById('searchInput').value = '';
+    results = g.recs.map(r => ({ rec: r, score: 100 }));
+    canonical = g.recs[0].name;                       // الأكتر معاملات كاقتراح مبدئي (تقدر تغيّره)
+    ticked = new Set(g.type === 'same' ? g.recs.slice(1).map(r => r.name) : []);
+    renderResults();
+    document.getElementById('resultsArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // ---------- البحث ----------
+  let searchTimer = null;
+  document.getElementById('searchInput').addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(runSearch, 250);
+  });
+  document.getElementById('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') { clearTimeout(searchTimer); runSearch(); } });
+
+  function runSearch() {
+    const q = document.getElementById('searchInput').value;
+    const msg = document.getElementById('searchMsg');
+    const qp = prepName(q);
+    lastQuery = qp.norm;
+    canonical = null; ticked = new Set();
+    if (!qp.compact || qp.compact.length < 2) {
+      results = [];
+      document.getElementById('resultsArea').style.display = 'none';
+      msg.style.display = 'none';
+      return;
+    }
+    results = RECS.map(rec => ({ rec, score: matchScore(qp, rec.prep) }))
+      .filter(x => x.score >= 50)
+      .sort((a, b) => b.score - a.score || b.rec.txIds.length - a.rec.txIds.length)
+      .slice(0, 200);
+    if (results.length === 0) {
+      document.getElementById('resultsArea').style.display = 'none';
+      msg.style.display = 'block';
+      msg.textContent = 'مفيش أسماء مشابهة للي كتبته.';
+      return;
+    }
+    msg.style.display = 'none';
+    renderResults();
+  }
+
+  function highlight(name) {
+    const safe = esc(name);
+    if (!lastQuery) return safe;
+    // تظليل الكلمات المطابقة حرفياً (بدون تطبيع) كتحسين بصري بسيط
+    let out = safe;
+    lastQuery.split(' ').forEach(t => {
+      if (t.length < 2) return;
+      const re = new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      out = out.replace(re, m => `<mark>${m}</mark>`);
+    });
+    return out;
+  }
+
+  function renderResults() {
+    document.getElementById('resultsArea').style.display = 'block';
+    document.getElementById('searchMsg').style.display = 'none';
+    document.getElementById('resultsBody').innerHTML = results.map((x, i) => {
+      const r = x.rec;
+      const isCanon = canonical === r.name;
+      const isTick  = ticked.has(r.name);
+      return `<tr class="${isCanon ? 'canon' : isTick ? 'ticked' : ''}">
+        <td><input type="radio" name="canon" ${isCanon ? 'checked' : ''} onchange="setCanon(${i})" /></td>
+        <td><input type="checkbox" ${isTick ? 'checked' : ''} ${isCanon ? 'disabled' : ''} onchange="toggleTick(${i}, this.checked)" /></td>
+        <td class="name">${highlight(r.name)}${isCanon ? ' <span class="nm-badge same">ثابت</span>' : ''}</td>
+        <td>${esc(r.stageName || r.stage || '—')}</td>
+        <td>${esc(r.grade || '—')}</td>
+        <td>${r.txIds.length}</td>
+        <td>${fmtMoney(r.paid)}</td>
+        <td>${r.debtIds.length}</td>
+      </tr>`;
+    }).join('');
+    updateSummary();
+  }
+
+  function setCanon(i) {
+    canonical = results[i].rec.name;
+    ticked.delete(canonical);
+    renderResults();
+  }
+  function toggleTick(i, on) {
+    const name = results[i].rec.name;
+    if (on) ticked.add(name); else ticked.delete(name);
+    renderResults();
+  }
+  function tickAllOthers() {
+    if (!canonical) { alert('اختار الاسم الثابت الأول'); return; }
+    ticked = new Set(results.map(x => x.rec.name).filter(n => n !== canonical));
+    renderResults();
+  }
+  function clearTicks() { ticked = new Set(); renderResults(); }
+
+  function selectedOthers() { return RECS.filter(r => ticked.has(r.name) && r.name !== canonical); }
+
+  function updateSummary() {
+    const btn = document.getElementById('mergeBtn');
+    const sum = document.getElementById('mergeSummary');
+    const others = selectedOthers();
+    if (!canonical) {
+      sum.innerHTML = 'اختار الاسم الثابت (الاسم الصح اللي هيفضل في الشيت).';
+      btn.disabled = true; return;
+    }
+    if (others.length === 0) {
+      sum.innerHTML = `الاسم الثابت: <b>${esc(canonical)}</b> — علّم على الأسماء اللي عاوز تدمجها فيه.`;
+      btn.disabled = true; return;
+    }
+    const tx = others.reduce((s, r) => s + r.txIds.length, 0);
+    const dt = others.reduce((s, r) => s + r.debtIds.length, 0);
+    sum.innerHTML = `الاسم الثابت: <b>${esc(canonical)}</b> — هيتدمج فيه <b>${others.length}</b> اسم (<b>${tx}</b> معاملة + <b>${dt}</b> مديونية).`;
+    btn.disabled = false;
+  }
+
+  // ---------- التنفيذ ----------
+  // بيطبّق التغييرات على دفعات (حد Firestore 500 عملية) ويرجّع اللي اتنفذ فعلاً
+  async function applyOps(ops, applied) {
+    const CH = 400;
+    for (let i = 0; i < ops.length; i += CH) {
+      const chunk = ops.slice(i, i + CH);
+      const batch = db.batch();
+      chunk.forEach(o => batch.update(o.ref, o.data));
+      await batch.commit();
+      chunk.forEach(o => applied.push(o));
+    }
+  }
+
+  async function doMerge() {
+    const others = selectedOthers();
+    if (!canonical || others.length === 0) return;
+    const tx = others.reduce((s, r) => s + r.txIds.length, 0);
+    const dt = others.reduce((s, r) => s + r.debtIds.length, 0);
+
+    // تنبيه لو الصفوف/المراحل مختلفة بين الأسماء
+    const sigs = new Set([RECS.find(r => r.name === canonical), ...others].map(r => `${r.stage}|${r.grade}`));
+    let warn = '';
+    if (sigs.size > 1) warn = '\n\n⚠ الأسماء دي مسجلة بمراحل/صفوف مختلفة — اتأكد إنها نفس الطالب.';
+
+    const list = others.map(r => `• ${r.name} (${r.txIds.length} معاملة)`).join('\n');
+    if (!confirm(`هتوحّد الأسماء دي:\n${list}\n\nإلى الاسم الثابت:\n${canonical}\n\nهيتغير اسم ${tx} معاملة و ${dt} مديونية. مفيش حاجة بتتمسح، وتقدر تتراجع من سجل التوحيد.${warn}`)) return;
+
+    const btn = document.getElementById('mergeBtn');
+    btn.disabled = true; btn.textContent = '⏳ جاري التوحيد...';
+
+    const ops = [];
+    others.forEach(r => {
+      r.txIds.forEach(id => ops.push({ kind: 'tx', id, oldName: r.name,
+        ref: db.collection('transactions').doc(id),
+        data: { studentName: canonical, nameMergedFrom: r.name, nameMergedAt: firebase.firestore.FieldValue.serverTimestamp() } }));
+      r.debtIds.forEach(id => ops.push({ kind: 'debt', id, oldName: r.name,
+        ref: db.collection('debts').doc(id),
+        data: { studentName: canonical, nameMergedFrom: r.name, nameMergedAt: firebase.firestore.FieldValue.serverTimestamp() } }));
+    });
+
+    const applied = [];
+    let failed = null;
+    try { await applyOps(ops, applied); } catch (e) { failed = e; console.error(e); }
+
+    // سجل (للتراجع) بالمعاملات اللي اتغيرت فعلاً
+    let logSaved = true;
+    if (applied.length > 0) {
+      const merged = {};
+      applied.forEach(o => {
+        if (!merged[o.oldName]) merged[o.oldName] = { name: o.oldName, txIds: [], debtIds: [] };
+        (o.kind === 'tx' ? merged[o.oldName].txIds : merged[o.oldName].debtIds).push(o.id);
+      });
+      try {
+        await db.collection('nameMergeLogs').add({
+          schoolId, canonical,
+          merged: Object.values(merged),
+          txCount: applied.filter(o => o.kind === 'tx').length,
+          debtCount: applied.filter(o => o.kind === 'debt').length,
+          undone: false,
+          by: session.email,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (e) { logSaved = false; console.error('log failed', e); }
+
+      if (typeof notifyAdminActivity === 'function') {
+        try { notifyAdminActivity('توحيد أسماء طلاب', `${canonical} ← ${others.map(r => r.name).join('، ')}`, { type: 'names_merge', url: '/student-names.html' }); } catch (e) {}
+      }
+    }
+
+    btn.textContent = '🧹 توحيد الأسماء';
+    if (failed) alert(`حصل خطأ أثناء التنفيذ: ${failed.message}\nاتغيّر ${applied.length} من ${ops.length} سجل. حدّث الصفحة وراجع.`);
+    else if (!logSaved) alert('تم التوحيد، لكن ماتسجلش في سجل التراجع (صلاحيات قاعدة البيانات). لو عاوز ترجّع هتحتاج تعدّل الأسماء يدوي.');
+
+    canonical = null; ticked = new Set(); results = [];
+    document.getElementById('resultsArea').style.display = 'none';
+    await reloadAll();
+  }
+
+  // ---------- سجل التوحيد + التراجع ----------
+  async function loadLogs() {
+    const area = document.getElementById('logArea');
+    try {
+      const snap = await db.collection('nameMergeLogs').where('schoolId', '==', schoolId).get();
+      const logs = [];
+      snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
+      logs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      if (logs.length === 0) { area.innerHTML = '<div class="nm-empty">لسه ما اتعملش توحيد.</div>'; return; }
+      area.innerHTML = logs.slice(0, 15).map(l => {
+        const when = l.createdAt?.toDate ? l.createdAt.toDate().toLocaleString('ar-EG') : '';
+        const names = (l.merged || []).map(m => esc(m.name)).join('، ');
+        return `<div class="nm-log ${l.undone ? 'undone' : ''}">
+          <b>${esc(l.canonical)}</b> ← ${names}<br>
+          <span style="color:var(--text-light)">${when} — ${esc(l.by || '')} — ${l.txCount || 0} معاملة، ${l.debtCount || 0} مديونية</span>
+          ${l.undone ? ' <span class="nm-badge fuzzy">اتراجع عنه</span>' : ` <button class="btn btn-outline btn-sm" onclick="undoMerge('${l.id}')">↩ تراجع</button>`}
+        </div>`;
+      }).join('');
+      window.__logs = Object.fromEntries(logs.map(l => [l.id, l]));
+    } catch (e) {
+      area.innerHTML = `<div class="nm-empty">تعذر تحميل السجل: ${esc(e.message)}</div>`;
+    }
+  }
+
+  async function undoMerge(logId) {
+    const log = (window.__logs || {})[logId];
+    if (!log || log.undone) return;
+    const names = (log.merged || []).map(m => m.name).join('، ');
+    if (!confirm(`هترجّع الأسماء القديمة (${names}) بدل «${log.canonical}» للمعاملات اللي اتدمجت في العملية دي؟`)) return;
+
+    const del = firebase.firestore.FieldValue.delete();
+    const ops = [];
+    (log.merged || []).forEach(m => {
+      (m.txIds || []).forEach(id => ops.push({ ref: db.collection('transactions').doc(id), data: { studentName: m.name, nameMergedFrom: del, nameMergedAt: del } }));
+      (m.debtIds || []).forEach(id => ops.push({ ref: db.collection('debts').doc(id), data: { studentName: m.name, nameMergedFrom: del, nameMergedAt: del } }));
+    });
+
+    let skipped = 0;
+    const applied = [];
+    try {
+      await applyOps(ops, applied);
+    } catch (e) {
+      // لو في سجل اتمسح بعد الدمج الدفعة بتفشل كلها — نكمل واحد واحد ونتخطى الناقص
+      for (const o of ops.filter(o => !applied.includes(o))) {
+        try { await o.ref.update(o.data); } catch (e2) { skipped++; }
+      }
+    }
+    try { await db.collection('nameMergeLogs').doc(logId).update({ undone: true, undoneBy: session.email, undoneAt: firebase.firestore.FieldValue.serverTimestamp() }); } catch (e) {}
+    if (skipped) alert(`تم التراجع، مع تخطي ${skipped} سجل (ممكن يكون اتمسح).`);
+    await reloadAll();
+  }
+
+  async function reloadAll() {
+    try {
+      await loadAll();
+      await loadLogs();
+      if (document.getElementById('searchInput').value.trim()) runSearch();
+    } catch (e) {
+      console.error(e);
+      document.getElementById('groupsArea').innerHTML = `<div class="nm-empty">خطأ في التحميل: ${esc(e.message)}</div>`;
+    }
+  }
+
+  reloadAll();
+</script>
+</body>
+</html>
