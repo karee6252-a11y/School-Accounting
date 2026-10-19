@@ -1458,11 +1458,43 @@
     let allDebts = [];
     try {
       const [txSnap, debtSnap] = await Promise.all([
-        db.collection('transactions').where('schoolId','==',schoolId).where('date','>=',ACADEMIC_YEAR_START).get(),
+        db.collection('transactions').where('schoolId','==',schoolId).get(),
         db.collection('debts').where('schoolId','==',schoolId).get()
       ]);
-      txSnap.forEach(doc => allTx.push({ id: doc.id, ...doc.data() }));
+
+      // تحويل التاريخ لصيغة YYYY-MM-DD مهما كان متخزن (نص بصيغة تانية أو Timestamp)
+      const toIsoDate = (v) => {
+        if (!v) return '';
+        if (typeof v.toDate === 'function') return localDateStr(v.toDate());
+        if (v instanceof Date) return localDateStr(v);
+        const t = String(v).trim();
+        let m = t.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+        if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+        m = t.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+        if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+        return '';
+      };
+
+      const inYear = [], older = [];
+      txSnap.forEach(doc => {
+        const tx = { id: doc.id, ...doc.data() };
+        tx.date = toIsoDate(tx.date);
+        (tx.date && tx.date >= ACADEMIC_YEAR_START ? inYear : older).push(tx);
+      });
       debtSnap.forEach(doc => allDebts.push({ id: doc.id, ...doc.data() }));
+
+      // معاملات قبل بداية العام (أو بتاريخ مش مفهوم) لطلاب موجودين في الشيت — المستخدم يقرر يضيفها ولا لأ
+      const inYearNames = new Set(inYear.map(tx => normalizeName(tx.studentName)));
+      const olderForThem = older.filter(tx => inYearNames.has(normalizeName(tx.studentName)));
+      allTx = inYear;
+      if (olderForThem.length > 0) {
+        const sum = olderForThem.reduce((a, tx) => a + (Number(tx.amount) || 0), 0);
+        const dated = olderForThem.map(tx => tx.date).filter(Boolean).sort();
+        const range = dated.length ? `من ${dated[0]} إلى ${dated[dated.length - 1]}` : 'بتاريخ غير واضح';
+        if (confirm(`في ${olderForThem.length} معاملة لطلاب موجودين في الشيت تاريخها قبل ${ACADEMIC_YEAR_START} (${range}) وإجماليها ${formatCurrency(sum)}.\n\nتضيفها للشيت؟\n\nموافق = تتضاف   |   إلغاء = العام الحالي بس`)) {
+          allTx = inYear.concat(olderForThem);
+        }
+      }
     } catch(e) {
       alert('خطأ في تحميل البيانات: ' + e.message);
       return;
