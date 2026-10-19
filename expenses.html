@@ -949,9 +949,24 @@
       prevCustodian = data.prevAmount   || 0;
       newCustodian  = data.newAmount    || 0;
       vaultBalance  = data.vaultBalance || 0;
+      showCustDiag(!prevCustodian && !newCustodian && !vaultBalance
+        ? `كل الأرقام صفر — المدرسة الحالية: ${schoolId} | الحساب: ${session.email} | custodyV3: ${data.custodyV3 ? 'نعم' : 'لا'}` : '');
     } catch (e) {
       console.error('فشل تحميل العهدة:', e);
+      showCustDiag(`فشل تحميل العهدة — المدرسة: ${schoolId} | الحساب: ${session.email} | الخطأ: ${e.code || ''} ${e.message || e}`);
     }
+  }
+
+  function showCustDiag(msg) {
+    let el = document.getElementById('custDiag');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'custDiag';
+      el.style.cssText = 'background:#fdecea;color:#c0392b;border:1px solid #c0392b;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-weight:700;font-size:0.85rem;direction:rtl';
+      document.getElementById('custodianSummary').before(el);
+    }
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
   }
 
   //  Load report 
