@@ -369,7 +369,7 @@
           <!-- Recipient filter -->
           <div>
             <label class="form-label">اسم المستلم</label>
-            <input type="text" class="form-input" id="filterRecipient" placeholder="ابحث بالاسم..." oninput="loadReport()" />
+            <input type="text" class="form-input" id="filterRecipient" placeholder="ابحث بالاسم..." oninput="debouncedLoadReport()" />
           </div>
 
           <div style="align-self:end">
@@ -927,6 +927,17 @@
   async function loadPrevCustodian() {
     const ref = db.collection('custodians').doc(schoolId);
     try {
+      // قراءة عادية الأول (أرخص) — الترانزاكشن بس لو لسه محتاج تهيئة
+      const quick = await ref.get();
+      if (quick.exists && quick.data().custodyV3) {
+        const q = quick.data();
+        prevCustodian = q.prevAmount   || 0;
+        newCustodian  = q.newAmount    || 0;
+        vaultBalance  = q.vaultBalance || 0;
+        window._custLoadedAt = Date.now();
+        showCustDiag('');
+        return;
+      }
       const data = await db.runTransaction(async (tx) => {
         const snap = await tx.get(ref);
         const d = snap.exists ? snap.data() : null;
@@ -949,6 +960,7 @@
       prevCustodian = data.prevAmount   || 0;
       newCustodian  = data.newAmount    || 0;
       vaultBalance  = data.vaultBalance || 0;
+      window._custLoadedAt = Date.now();
       showCustDiag(!prevCustodian && !newCustodian && !vaultBalance
         ? `كل الأرقام صفر — المدرسة الحالية: ${schoolId} | الحساب: ${session.email} | custodyV3: ${data.custodyV3 ? 'نعم' : 'لا'}` : '');
     } catch (e) {
@@ -967,6 +979,12 @@
     }
     el.textContent = msg;
     el.style.display = msg ? 'block' : 'none';
+  }
+
+  let _reportDebounce = null;
+  function debouncedLoadReport() {
+    clearTimeout(_reportDebounce);
+    _reportDebounce = setTimeout(loadReport, 700);
   }
 
   //  Load report 
@@ -1014,7 +1032,7 @@
       renderBreakdown();
 
       // رصيد الخزنة بيتقرا من الداتابيز علشان يفضل متزامن لو أكتر من حد شغال
-      await loadPrevCustodian();
+      if (!window._custLoadedAt || Date.now() - window._custLoadedAt > 120000) await loadPrevCustodian();
       updateCustodianCards();
 
     } catch (err) {
@@ -1989,7 +2007,6 @@
 
   //  INIT 
   async function init() {
-    await loadPrevCustodian();
     await loadReport();
   }
   init();
