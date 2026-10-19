@@ -444,6 +444,8 @@
 
   // ---------- التنفيذ ----------
   // بيطبّق التغييرات على دفعات (حد Firestore 500 عملية) ويرجّع اللي اتنفذ فعلاً
+  const withTimeout = (p, ms, msg) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(msg)), ms))]);
+
   async function applyOps(ops, applied) {
     const CH = 400;
     for (let i = 0; i < ops.length; i += CH) {
@@ -484,7 +486,7 @@
 
     const applied = [];
     let failed = null;
-    try { await applyOps(ops, applied); } catch (e) { failed = e; console.error(e); }
+    try { await withTimeout(applyOps(ops, applied), 60000, 'انتهت المهلة — غالباً صلاحيات Firestore بتمنع تعديل transactions/debts'); } catch (e) { failed = e; console.error(e); }
 
     // سجل (للتراجع) بالمعاملات اللي اتغيرت فعلاً
     let logSaved = true;
@@ -495,7 +497,7 @@
         (o.kind === 'tx' ? merged[o.oldName].txIds : merged[o.oldName].debtIds).push(o.id);
       });
       try {
-        await db.collection('nameMergeLogs').add({
+        await withTimeout(db.collection('nameMergeLogs').add({
           schoolId, canonical,
           merged: Object.values(merged),
           txCount: applied.filter(o => o.kind === 'tx').length,
@@ -503,7 +505,7 @@
           undone: false,
           by: session.email,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        }), 15000, 'log timeout');
       } catch (e) { logSaved = false; console.error('log failed', e); }
 
       if (typeof notifyAdminActivity === 'function') {
@@ -540,7 +542,7 @@
       }).join('');
       window.__logs = Object.fromEntries(logs.map(l => [l.id, l]));
     } catch (e) {
-      area.innerHTML = `<div class="nm-empty">تعذر تحميل السجل: ${esc(e.message)}</div>`;
+      area.innerHTML = `<div class="nm-empty">تعذر تحميل السجل: ${esc(e.message)}<br>لازم تضيف قاعدة لكولكشن nameMergeLogs في firestore.rules.</div>`;
     }
   }
 
