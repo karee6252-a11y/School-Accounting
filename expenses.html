@@ -590,6 +590,11 @@
   // لو الصفحة بتخدم أكتر من مدرسة حط هنا الـ schoolId الصحيح عشان القيم دي تتطبق على مدرسة واحدة بس
   // الأرقام دي تخص مدرسة bristol فقط — أي مدرسة تانية بتحتفظ بأرقامها الحالية ومش بتتأثر
   const CUSTODY_SEED = { schoolId: 'bristol', prevAmount: 8512, newAmount: 150000, vaultBalance: 8512 };
+  // تصفير/ضبط عهدة مدرسة معينة مرة واحدة (بتتطبق أول ما حد من المدرسة دي يفتح الصفحة، وبعدها مش بتتكرر)
+  // كاردييف فقط — باقي المدارس مش بتتأثر
+  const CUSTODY_RESEED = {
+    cardiff: { id: 'cardiff-reseed-1', prevAmount: 0, newAmount: 370000, vaultBalance: 29590 }
+  };
 
   //  Populate selects 
   function populateCategories() {
@@ -929,7 +934,8 @@
     try {
       // قراءة عادية الأول (أرخص) — الترانزاكشن بس لو لسه محتاج تهيئة
       const quick = await ref.get();
-      if (quick.exists && quick.data().custodyV3) {
+      const reseed = CUSTODY_RESEED[schoolId];
+      if (quick.exists && quick.data().custodyV3 && !(reseed && quick.data().reseedId !== reseed.id)) {
         const q = quick.data();
         prevCustodian = q.prevAmount   || 0;
         newCustodian  = q.newAmount    || 0;
@@ -941,16 +947,19 @@
       const data = await db.runTransaction(async (tx) => {
         const snap = await tx.get(ref);
         const d = snap.exists ? snap.data() : null;
-        if (d && d.custodyV3) return d;
+        if (d && d.custodyV3 && !(reseed && d.reseedId !== reseed.id)) return d;
         // أول تشغيل للنظام الجديد — تهيئة مرة واحدة
         const seedHere = CUSTODY_SEED.schoolId === schoolId; // بريستول فقط — باقي المدارس أرقامها محفوظة زي ما هي
-        const init = seedHere
+        const init = reseed
+          ? { prevAmount: reseed.prevAmount, newAmount: reseed.newAmount, vaultBalance: reseed.vaultBalance }
+          : seedHere
           ? { prevAmount: CUSTODY_SEED.prevAmount, newAmount: CUSTODY_SEED.newAmount, vaultBalance: CUSTODY_SEED.vaultBalance }
           : { prevAmount: d?.prevAmount || 0, newAmount: d?.newAmount || 0, vaultBalance: d?.vaultBalance || 0 };
         tx.set(ref, {
           schoolId, ...init,
           custodyV2: true,
           custodyV3: true,
+          ...(reseed ? { reseedId: reseed.id } : {}),
           manualRemaining: null,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
           updatedBy: 'system-custody-v3-init'
