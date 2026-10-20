@@ -589,12 +589,14 @@
   // القيم الابتدائية لنظام العهدة الجديد (بتتسجل مرة واحدة بس أول ما الصفحة تتفتح)
   // لو الصفحة بتخدم أكتر من مدرسة حط هنا الـ schoolId الصحيح عشان القيم دي تتطبق على مدرسة واحدة بس
   // الأرقام دي تخص مدرسة bristol فقط — أي مدرسة تانية بتحتفظ بأرقامها الحالية ومش بتتأثر
-  const CUSTODY_SEED = { schoolId: 'bristol', prevAmount: 8512, newAmount: 150000, vaultBalance: 8512 };
+  const CUSTODY_SEED = { schoolId: 'bristol', prevAmount: 0, newAmount: 150000, vaultBalance: 8512 };
   // تصفير/ضبط عهدة مدرسة معينة مرة واحدة (بتتطبق أول ما حد من المدرسة دي يفتح الصفحة، وبعدها مش بتتكرر)
   // كاردييف فقط — باقي المدارس مش بتتأثر
   const CUSTODY_RESEED = {
     cardiff: { id: 'cardiff-reseed-1', prevAmount: 0, newAmount: 370000, vaultBalance: 29590 }
   };
+  // تصفير العهدة السابقة فقط (مرة واحدة) — بريستول فقط، من غير ما يلمس العهدة الجديدة أو رصيد الخزنة
+  const CUSTODY_PREV_ZERO = { bristol: 'bristol-prev-zero-1' };
 
   //  Populate selects 
   function populateCategories() {
@@ -935,7 +937,9 @@
       // قراءة عادية الأول (أرخص) — الترانزاكشن بس لو لسه محتاج تهيئة
       const quick = await ref.get();
       const reseed = CUSTODY_RESEED[schoolId];
-      if (quick.exists && quick.data().custodyV3 && !(reseed && quick.data().reseedId !== reseed.id)) {
+      const zeroFix = CUSTODY_PREV_ZERO[schoolId];
+      if (quick.exists && quick.data().custodyV3 && !(reseed && quick.data().reseedId !== reseed.id)
+          && !(zeroFix && quick.data().prevZeroId !== zeroFix)) {
         const q = quick.data();
         prevCustodian = q.prevAmount   || 0;
         newCustodian  = q.newAmount    || 0;
@@ -947,7 +951,18 @@
       const data = await db.runTransaction(async (tx) => {
         const snap = await tx.get(ref);
         const d = snap.exists ? snap.data() : null;
-        if (d && d.custodyV3 && !(reseed && d.reseedId !== reseed.id)) return d;
+        if (d && d.custodyV3 && !(reseed && d.reseedId !== reseed.id)) {
+          if (zeroFix && d.prevZeroId !== zeroFix) {
+            tx.set(ref, {
+              prevAmount: 0,
+              prevZeroId: zeroFix,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+              updatedBy: 'system-prev-zero'
+            }, { merge: true });
+            return { ...d, prevAmount: 0 };
+          }
+          return d;
+        }
         // أول تشغيل للنظام الجديد — تهيئة مرة واحدة
         const seedHere = CUSTODY_SEED.schoolId === schoolId; // بريستول فقط — باقي المدارس أرقامها محفوظة زي ما هي
         const init = reseed
@@ -960,6 +975,7 @@
           custodyV2: true,
           custodyV3: true,
           ...(reseed ? { reseedId: reseed.id } : {}),
+          ...(zeroFix ? { prevZeroId: zeroFix } : {}),
           manualRemaining: null,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
           updatedBy: 'system-custody-v3-init'
@@ -1413,6 +1429,7 @@
           prevAmount:   out.prev,   // رصيد الخزنة القديم بيتحول للعهدة السابقة
           newAmount:    out.added,  // المبلغ المضاف هو العهدة الجديدة
           vaultBalance: out.vault,  // رصيد الخزنة = القديم + المضاف
+          ...(CUSTODY_PREV_ZERO[schoolId] ? { prevZeroId: CUSTODY_PREV_ZERO[schoolId] } : {}),
           custodyV2: true,
           custodyV3: true,
           manualRemaining: null,
