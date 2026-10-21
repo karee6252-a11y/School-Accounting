@@ -579,19 +579,13 @@
     } catch(e) { expensesData = []; }
 
     // جلب بيانات العهدة
-    let custPrev = 0, custNew = 0;
+    // نظام العهدة الجديد: رصيد الخزنة (vaultBalance) متخزن ومتحدث مع كل مصروف/إضافة عهدة — هو المتبقي الفعلي
+    let custPrev = 0, custNew = 0, custVault = 0;
     try {
       const cd = await db.collection('custodians').doc(schoolId).get();
-      if (cd.exists) { custPrev = cd.data().prevAmount || 0; custNew = cd.data().newAmount || 0; }
+      if (cd.exists) { custPrev = cd.data().prevAmount || 0; custNew = cd.data().newAmount || 0; custVault = cd.data().vaultBalance || 0; }
     } catch(e) {}
-
-    // جلب كل المصروفات لحساب الرصيد المتبقي الصح (زي ما بيعمل expenses.html)
-    let allExpensesTotal = 0;
-    try {
-      const allExpSnap = await db.collection('expenses').where('schoolId','==',schoolId).get();
-      allExpSnap.forEach(doc => { allExpensesTotal += doc.data().amount || 0; });
-    } catch(e) {}
-    const custRemaining = custPrev + custNew - allExpensesTotal;
+    const custRemaining = custVault;
 
     if (typeof ExcelJS === 'undefined') {
       const s = document.createElement('script');
@@ -778,7 +772,7 @@
 
       // صف التسميات — 4 خلايا متساوية
       const custGross = custPrev + custNew;
-      const custFinal = custGross - allExpensesTotal;
+      const custFinal = custVault;
       const lblRow = ws.addRow(['العهدة السابقة', '', '', 'العهدة الجديدة', '', '', 'إجمالي العهدة', '', '', 'الرصيد المتبقي', '', '']);
       lblRow.height = 22;
       ws.mergeCells(`A${lblRow.number}:C${lblRow.number}`);
@@ -977,7 +971,7 @@
 
       // صف العهدة الأسبوعية
       const wkCustTotal = custPrev + custNew;
-      const wkCustRemain = wkCustTotal - expGrandTotal;
+      const wkCustRemain = custVault;
       const wkCr = ws.addRow(['','','', wkCustTotal,'','المصروفات من العهدة', expGrandTotal,'', '','', wkCustRemain,'المتبقي من العهدة', '','','']);
       wkCr.height = 26;
       ws.mergeCells(`A${wkCr.number}:C${wkCr.number}`);
@@ -1133,7 +1127,7 @@
 
       // صف العهدة الشهرية
       const moCustTotal = custPrev + custNew;
-      const moCustRemain = moCustTotal - monthExpTotal;
+      const moCustRemain = custVault;
       const moLabels = [
         ['إجمالي العهدة', moCustTotal, 'FF1565C0', WHT],
         ['المتبقي من العهدة', moCustRemain, moCustRemain >= 0 ? 'FF1565C0' : 'FFC00000', WHT],
@@ -1237,14 +1231,14 @@
         buildTable(['#','التاريخ','الطالب','الصف','مصروفات','فايل','يونيفورم','باص','أبليكيشن','إيرادات أخرى','الإجمالي','المديونية','الدفع','الإيصال','ملاحظات'], rows, foot));
 
       let expTotal = 0;
-      let pdfCustPrev = 0, pdfCustNew = 0;
+      let pdfCustPrev = 0, pdfCustNew = 0, pdfCustVault = 0;
       try {
         const snap = await db.collection('expenses').where('schoolId','==',schoolId).where('date','==',from).get();
         snap.forEach(d => expTotal+=d.data().amount||0);
         const cd = await db.collection('custodians').doc(schoolId).get();
-        if (cd.exists) { pdfCustPrev = cd.data().prevAmount||0; pdfCustNew = cd.data().newAmount||0; }
+        if (cd.exists) { pdfCustPrev = cd.data().prevAmount||0; pdfCustNew = cd.data().newAmount||0; pdfCustVault = cd.data().vaultBalance||0; }
       } catch(e) {}
-      const pdfCustRemain = (pdfCustPrev + pdfCustNew) - expTotal;
+      const pdfCustRemain = pdfCustVault;
       sectionsHtml += buildSection('② الموقف المالي اليومي',
         buildTable(['البيان','القيمة'],[
           ['إجمالي الإيرادات', formatCurrency(revTotal)],
@@ -1316,13 +1310,13 @@
           gRows3, ['الإجمالي','','-',formatCurrency(tc3),'-','']));
 
       let mExpTotal=0;
-      let pdfMoCustPrev=0, pdfMoCustNew=0;
+      let pdfMoCustPrev=0, pdfMoCustNew=0, pdfMoCustVault=0;
       try {
         const eSnap=await db.collection('expenses').where('schoolId','==',schoolId).where('date','>=',from).where('date','<=',to).get(); eSnap.forEach(d=>mExpTotal+=d.data().amount||0);
         const cd=await db.collection('custodians').doc(schoolId).get();
-        if(cd.exists){ pdfMoCustPrev=cd.data().prevAmount||0; pdfMoCustNew=cd.data().newAmount||0; }
+        if(cd.exists){ pdfMoCustPrev=cd.data().prevAmount||0; pdfMoCustNew=cd.data().newAmount||0; pdfMoCustVault=cd.data().vaultBalance||0; }
       } catch(e){}
-      const pdfMoCustRemain = (pdfMoCustPrev + pdfMoCustNew) - mExpTotal;
+      const pdfMoCustRemain = pdfMoCustVault;
       sectionsHtml += buildSection('③ الملخص المالي الشهري',
         buildTable(['البيان','القيمة'],[
           ['إجمالي الإيرادات الشهرية',formatCurrency(mRev)],
