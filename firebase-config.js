@@ -123,7 +123,9 @@ const SCHOOLS = {
     logo: "stanford.jpeg",
     users: [
       "acc1.stanford2@stanford-school.com",
-      "acc2.stanford2@stanford-school.com"
+      "acc2.stanford2@stanford-school.com",
+      "shereen.abo.seada@stanford-school.com",
+      "mohamed.magdy@stanford-school.com"
     ],
     hrUsers: [
       "hr@stanford2-school.com",
@@ -145,7 +147,9 @@ const SCHOOLS = {
 // ADMINS
 // ========================================
 const USER_DISPLAY_NAMES = {
-  "mohamed.galal@bristol-school.com": "Mohamed Galal"
+  "mohamed.galal@bristol-school.com": "Mohamed Galal",
+  "shereen.abo.seada@stanford-school.com": "Shereen Abo Seada",
+  "mohamed.magdy@stanford-school.com": "Mohamed Magdy"
 };
 
 function getUserDisplayName(email) {
